@@ -12,6 +12,7 @@
     - [Remediate Vulnerability in code](#remediate-vulnerability-in-code)
     - [3rd Party Library Remediation](#3rd-party-library-remediation)
   - [For the Security Professional](#for-the-security-professional)
+- [Data Privacy](#data-privacy)
 - [Build](#build)
 - [Run](#run)
 - [Docker](#docker)
