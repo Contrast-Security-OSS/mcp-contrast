@@ -12,7 +12,7 @@ jobs:
       run:
         shell: bash
     env:
-      POLICY: "Contrast" # Set the desired Wiz CLI policy to use
+      POLICY: "Block-VM" # Set the desired Wiz CLI policy to use
     permissions:
       id-token: write
       contents: read
@@ -36,7 +36,7 @@ jobs:
           WIZ_CLIENT_SECRET: ${{ secrets.WIZ_CLIENT_SECRET }}
 
       - name: Run wiz-cli docker image scan
-        run: ./wizcli docker scan --image contrast-mcp:dev --policy "$POLICY" --Block-VM -o contrast-mcp-wiz-report,cvs-zip
+        run: ./wizcli docker scan --image contrast-mcp:dev --policy "$POLICY" --policy-hits-only -o contrast-mcp-wiz-report,cvs-zip
 
       - name: Capture Wiz Output
         uses: actions/upload-artifact@1eb3cb2b3e0f29609092a73eb033bb759a334595 #v4.1.0
