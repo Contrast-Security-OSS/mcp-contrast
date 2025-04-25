@@ -1,0 +1,46 @@
+name: Wiz Scan
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  wiz-scan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      POLICY: "Contrast" # Set the desired Wiz CLI policy to use
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+
+      - name: Build and tag docker image to scan
+        env:
+          IMAGE_TAG: wiz
+        run: |
+          docker build -t contrast-mcp:dev . 
+
+      - name: Download Wiz CLI
+        run: curl -o wizcli https://wizcli.app.wiz.io/latest/wizcli && chmod +x wizcli
+
+      - name: Authenticate to Wiz
+        run: ./wizcli auth --id "$WIZ_CLIENT_ID" --secret "$WIZ_CLIENT_SECRET"
+        env:
+          WIZ_CLIENT_ID: ${{ secrets.WIZ_CLIENT_ID }}
+          WIZ_CLIENT_SECRET: ${{ secrets.WIZ_CLIENT_SECRET }}
+
+      - name: Run wiz-cli docker image scan
+        run: ./wizcli docker scan --image contrast-mcp:dev --policy "$POLICY" --policy-hits-only -o wiz-report.zip,csv-zip
+
+      - name: Capture Wiz Output
+        uses: actions/upload-artifact@1eb3cb2b3e0f29609092a73eb033bb759a334595 #v4.1.0
+        with:
+          name: wiz-report
+          path: |
+            wiz-report.zip
