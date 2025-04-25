@@ -36,7 +36,7 @@ jobs:
           WIZ_CLIENT_SECRET: ${{ secrets.WIZ_CLIENT_SECRET }}
 
       - name: Run wiz-cli docker image scan
-        run: ./wizcli docker scan --image contrast-mcp:dev --policy "$POLICY" --policy-hits-only -o contrast-mcp-wiz-report.zip,csv-zip
+        run: ./wizcli docker scan --image contrast-mcp:dev --policy "$POLICY" -o contrast-mcp-wiz-report.zip,csv-zip
 
       - name: Capture Wiz Output
         uses: actions/upload-artifact@1eb3cb2b3e0f29609092a73eb033bb759a334595 #v4.1.0
