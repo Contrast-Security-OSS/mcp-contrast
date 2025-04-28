@@ -3,7 +3,7 @@
 [![Java CI with Maven](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Maven Central](https://img.shields.io/maven-central/v/com.contrast.labs/mcp-contrast.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.contrast.labs%22%20AND%20a:%22mcp-contrast%22)
-[![Install in VS Code Docker](https://img.shields.io/badge/VS_Code-docker-0098FF?style=flat-square&logo=githubcopilot&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=contrastmcp&config=%7B%22command%22:%22docker%22,%22args%22:%5B%22run%22,%20%22-e%22,%22CONTRAST_HOST_NAME%22,%20%22-e%22,%22CONTRAST_API_KEY%22,%20%22-e%22,%22CONTRAST_SERVICE_KEY%22,%20%22-e%22,%22CONTRAST_USERNAME%22,%20%22-e%22,%22CONTRAST_ORG_ID%22,%20%20%22-i%22,%20%22--rm%22,%20%22contrast-mcp%22,%20%22-t%22,%20%22stdio%22%5D,%22env%22:%7B%22CONTRAST_HOST_NAME%22:%22example.contrastsecurity.com%22,%22CONTRAST_API_KEY%22:%22example%22,%22CONTRAST_SERVICE_KEY%22:%22example%22,%22CONTRAST_USERNAME%22:%22example@example.com%22,%22CONTRAST_ORG_ID%22:%22example%22%7D%7D)
+[![Install in VS Code Docker](https://img.shields.io/badge/VS_Code-docker-0098FF?style=flat-square&logo=githubcopilot&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=contrastmcp&config=%7B%22command%22:%22docker%22,%22args%22:%5B%22run%22,%20%22-e%22,%22CONTRAST_HOST_NAME%22,%20%22-e%22,%22CONTRAST_API_KEY%22,%20%22-e%22,%22CONTRAST_SERVICE_KEY%22,%20%22-e%22,%22CONTRAST_USERNAME%22,%20%22-e%22,%22CONTRAST_ORG_ID%22,%20%20%22-i%22,%20%22--rm%22,%20%22contrast/mcp-contrast:latest%22,%20%22-t%22,%20%22stdio%22%5D,%22env%22:%7B%22CONTRAST_HOST_NAME%22:%22example.contrastsecurity.com%22,%22CONTRAST_API_KEY%22:%22example%22,%22CONTRAST_SERVICE_KEY%22:%22example%22,%22CONTRAST_USERNAME%22:%22example@example.com%22,%22CONTRAST_ORG_ID%22:%22example%22%7D%7D)
 ![output.gif](images/output.gif)
 
 ## Table of Contents 
@@ -82,7 +82,7 @@ You obviously need to configure the above to match your contrast API Creds.
 
 ### Build Docker Image
 ```bash
-docker build -t contrast-mcp .
+docker build -t mcp-contrast .
 ```
 
 ### Run with Docker
@@ -100,14 +100,7 @@ docker run \
 
 
 ### Using Copilot + Petclinic
-Download and Build Contrast-MCP as a Docker Image
-```bash
-git clone git@github.com:Contrast-Labs/mcp-contrast.git
-cd mcp-contrast
-docker build -t contrast-mcp .
-```
-
-Then download the Vulnerable Pet Clinic.
+Download the Vulnerable Pet Clinic.
 `git clone https://github.com/Contrast-Security-OSS/vulnerable-spring-petclinic.git`
 Open the project in VSCode.
 Edit the contrast_security.yaml file and configure it with your AGENT credentials
@@ -126,7 +119,7 @@ To build out the vulnerabilites and attack events run
 `./testscript.sh`
 Select option 25. ( this will exercise the app and perform attacks to populate the vulnerabilities and attack events)
 #### Install via Link
-Click following link  >>> [![Install in VS Code Docker](https://img.shields.io/badge/VS_Code-docker-0098FF?style=flat-square&logo=githubcopilot&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=contrastmcp&config=%7B%22command%22:%22docker%22,%22args%22:%5B%22run%22,%20%22-e%22,%22CONTRAST_HOST_NAME%22,%20%22-e%22,%22CONTRAST_API_KEY%22,%20%22-e%22,%22CONTRAST_SERVICE_KEY%22,%20%22-e%22,%22CONTRAST_USERNAME%22,%20%22-e%22,%22CONTRAST_ORG_ID%22,%20%20%22-i%22,%20%22--rm%22,%20%22contrast-mcp%22,%20%22-t%22,%20%22stdio%22%5D,%22env%22:%7B%22CONTRAST_HOST_NAME%22:%22example.contrastsecurity.com%22,%22CONTRAST_API_KEY%22:%22example%22,%22CONTRAST_SERVICE_KEY%22:%22example%22,%22CONTRAST_USERNAME%22:%22example@example.com%22,%22CONTRAST_ORG_ID%22:%22example%22%7D%7D) <<<
+Click following link  >>> [![Install in VS Code Docker](https://img.shields.io/badge/VS_Code-docker-0098FF?style=flat-square&logo=githubcopilot&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=contrastmcp&config=%7B%22command%22:%22docker%22,%22args%22:%5B%22run%22,%20%22-e%22,%22CONTRAST_HOST_NAME%22,%20%22-e%22,%22CONTRAST_API_KEY%22,%20%22-e%22,%22CONTRAST_SERVICE_KEY%22,%20%22-e%22,%22CONTRAST_USERNAME%22,%20%22-e%22,%22CONTRAST_ORG_ID%22,%20%20%22-i%22,%20%22--rm%22,%20%22contrast/mcp-contrast:latest%22,%20%22-t%22,%20%22stdio%22%5D,%22env%22:%7B%22CONTRAST_HOST_NAME%22:%22example.contrastsecurity.com%22,%22CONTRAST_API_KEY%22:%22example%22,%22CONTRAST_SERVICE_KEY%22:%22example%22,%22CONTRAST_USERNAME%22:%22example@example.com%22,%22CONTRAST_ORG_ID%22:%22example%22%7D%7D) <<<
 Allow the extension to be installed in your VSCode instance.
 Select Install Server
 
@@ -162,7 +155,7 @@ Then add the following to the settings.json file.
             "CONTRAST_ORG_ID",
             "-i",
             "--rm",
-            "contrast-mcp",
+            "contrast/mcp-contrast:latest",
             "-t",
             "stdio"
             ],
@@ -209,7 +202,7 @@ Add the following the json configuration
         "CONTRAST_ORG_ID",
         "-i",
         "--rm",
-        "contrast-mcp",
+        "contrast/mcp-contrast:latest",
         "-t",
         "stdio"
       ],
@@ -291,7 +284,7 @@ docker run \
   -e CONTRAST_USERNAME=example \
   -e CONTRAST_ORG_ID=example \
   -i \
-  contrast-mcp \
+  contrast/mcp-contrast:latest \
   -t stdio
 
 ```
@@ -320,7 +313,7 @@ For VS Code configuration with Docker and proxy, modify the settings.json like t
         "-e", "HTTPS_PROXY=http://proxy.example.com:8080",
         "-i",
         "--rm",
-        "contrast-mcp",
+        "contrast/mcp-contrast:latest",
         "-t",
         "stdio"
         ],
