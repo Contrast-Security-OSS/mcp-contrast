@@ -114,9 +114,9 @@ public class SDKHelper {
     // The withUserAgentProduct will generate a user agent header that looks like
     // User-Agent: contrast-mcp/1.0 contrast-sdk-java/3.4.2 Java/19.0.2+7
     public static ContrastSDK getSDK(String hostName, String apiKey, String serviceKey, String userName)  {
-        logger.debug("Initializing ContrastSDK with username: {}, host: {}", userName,  hostName);
+        logger.info("Initializing ContrastSDK with username: {}, host: {}", userName,  hostName);
         return new ContrastSDK.Builder(userName, serviceKey, apiKey)
-                .withApiUrl(  hostName + "/Contrast/api")
+                .withApiUrl( "https://" + hostName + "/Contrast/api")
                 .withUserAgentProduct(UserAgentProduct.of(MCP_SERVER_NAME,MCP_VERSION))
                 .build();
 
