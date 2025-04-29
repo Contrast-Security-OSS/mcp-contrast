@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>com.contrast.labs.ai.mcp</groupId>
 	<artifactId>mcp-contrast</artifactId>
-	<version>0.0.2</version>
+	<version>0.0.3</version>
 	<name>mcp-contrast</name>
 	<description>MCP Server</description>
 	<url/>
