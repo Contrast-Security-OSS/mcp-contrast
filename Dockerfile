@@ -3,8 +3,11 @@ WORKDIR /app
 COPY . .
 RUN mvn clean package -DskipTests
 
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
+
+# Install the 'shadow' package to get groupadd and useradd
+RUN apk add --no-cache shadow
 
 # Create a non-root user to run the application
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
