@@ -1,8 +1,16 @@
 name: Build and Push Docker Image on Release
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: "${{secrets.DIGICERT_PKEY_PASSPHRASE}}"
+  DOCKER_CONTENT_TRUST_KEY_FILENAME: "${{secrets.DIGICERT_PKEY_FILENAME}}"
+  DOCKER_CONTENT_TRUST_PKEY_ROLE: "${{secrets.DIGICERT_PKEY_ROLE}}"  
+  DOCKER_CONTENT_TRUST: 1
 
 jobs:
   build-and-push:
@@ -21,6 +29,21 @@ jobs:
           
       - name: Build with Maven
         run: ./mvnw clean package -DskipTests
+
+      - name: Create the trust keys folder
+        shell: sh
+        run: mkdir -p ~/.docker/trust/private/
+      
+      - name: Save PKEY to file
+        shell: sh
+        run: echo "${{secrets.DIGICERT_PKEY}}" > ~/.docker/trust/private/"${{secrets.DIGICERT_PKEY_FILENAME}}"
+
+      - name: Chmod key
+        shell: sh
+        run: chmod 600 ~/.docker/trust/private/"${{secrets.DIGICERT_PKEY_FILENAME}}"
+    
+      - name: Docker load PKEY
+        run: docker trust key load ~/.docker/trust/private/"${{secrets.DIGICERT_PKEY_FILENAME}}" --name "${{secrets.DIGICERT_PKEY_ROLE}}"
         
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -41,7 +64,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           
-      - name: Build and push Docker image
+      - name: Build and push Docker image (with signing)
         uses: docker/build-push-action@v4
         with:
           context: .
