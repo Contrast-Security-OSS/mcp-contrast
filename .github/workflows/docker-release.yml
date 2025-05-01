@@ -57,24 +57,30 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             latest
-          
+
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           
-      - name: Build and push Docker image (with signing)
+      - name: Build Docker image (without pushing)
         uses: docker/build-push-action@v4
-        env:
-          DOCKER_CONTENT_TRUST: 1
-          DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: ${{secrets.DIGICERT_PKEY_PASSPHRASE}}
-          DOCKER_CONTENT_TRUST_KEY_FILENAME: ${{secrets.DIGICERT_PKEY_FILENAME}}
-          DOCKER_CONTENT_TRUST_PKEY_ROLE: ${{secrets.DIGICERT_PKEY_ROLE}}
         with:
           context: .
-          push: true
+          push: false
+          load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          
+      - name: Push and sign Docker image with DCT
+        run: |
+          # Parse the tags from metadata output
+          IFS=',' read -ra TAGS <<< "${{ steps.meta.outputs.tags }}"
+          # Push each tag with Docker Content Trust enabled
+          for tag in "${TAGS[@]}"; do
+            echo "Pushing and signing $tag"
+            docker push $tag
+          done
