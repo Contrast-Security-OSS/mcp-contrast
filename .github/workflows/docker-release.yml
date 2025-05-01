@@ -1,8 +1,10 @@
 name: Build and Push Docker Image on Release
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
 env:
   DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: "${{secrets.DIGICERT_PKEY_PASSPHRASE}}"
