@@ -66,6 +66,11 @@ jobs:
           
       - name: Build and push Docker image (with signing)
         uses: docker/build-push-action@v4
+        env:
+          DOCKER_CONTENT_TRUST: 1
+          DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: ${{secrets.DIGICERT_PKEY_PASSPHRASE}}
+          DOCKER_CONTENT_TRUST_KEY_FILENAME: ${{secrets.DIGICERT_PKEY_FILENAME}}
+          DOCKER_CONTENT_TRUST_PKEY_ROLE: ${{secrets.DIGICERT_PKEY_ROLE}}
         with:
           context: .
           push: true
