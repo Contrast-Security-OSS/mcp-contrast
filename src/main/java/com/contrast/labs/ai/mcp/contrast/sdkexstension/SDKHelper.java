@@ -16,6 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.sdkexstension;
 
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservation;
 import com.contrastsecurity.models.Application;
 import com.contrastsecurity.sdk.ContrastSDK;
 import com.contrastsecurity.sdk.UserAgentProduct;
@@ -32,6 +33,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import com.contrastsecurity.exceptions.UnauthorizedException;
 
 public class SDKHelper {
 
@@ -50,7 +52,11 @@ public class SDKHelper {
             .maximumSize(100)
             .expireAfterWrite(10, TimeUnit.MINUTES)
             .build();
-
+            
+    private static final Cache<String, List<LibraryObservation>> libraryObservationsCache = CacheBuilder.newBuilder()
+            .maximumSize(5000)
+            .expireAfterWrite(60, TimeUnit.MINUTES)
+            .build();
 
     public static List<LibraryExtended> getLibsForID(String appID, String orgID, SDKExtension extendedSDK) throws IOException {
         // Check cache for existing result
@@ -109,6 +115,55 @@ public class SDKHelper {
             logger.error("Application not found: {}", appName);
             throw new IOException("Application not found");
         }
+    }
+
+    /**
+     * Retrieves library observations for a specific library in an application, with caching.
+     * 
+     * @param libraryId The library ID
+     * @param appId The application ID
+     * @param orgId The organization ID
+     * @param pageSize The number of items per page (default 25)
+     * @param extendedSDK The SDK extension instance
+     * @return List of library observations
+     * @throws IOException If an I/O error occurs
+     * @throws UnauthorizedException If the request is not authorized
+     */
+    public static List<LibraryObservation> getLibraryObservationsWithCache(
+            String libraryId, String appId, String orgId, int pageSize, SDKExtension extendedSDK) 
+            throws IOException, UnauthorizedException {
+        
+        // Generate cache key from combination of library, app and org IDs
+        String cacheKey = String.format("%s:%s:%s", orgId, appId, libraryId);
+        
+        // Check cache for existing result
+        List<LibraryObservation> cachedObservations = libraryObservationsCache.getIfPresent(cacheKey);
+        if (cachedObservations != null) {
+            logger.info("Cache hit for library observations: {}", cacheKey);
+            return cachedObservations;
+        }
+        
+        logger.info("Cache miss for library observations: {}, fetching from API", cacheKey);
+        List<LibraryObservation> observations = extendedSDK.getLibraryObservations(orgId, appId, libraryId, pageSize);
+        
+        logger.info("Successfully retrieved {} library observations for library: {} in app: {}", 
+                observations.size(), libraryId, appId);
+        
+        // Store result in cache
+        libraryObservationsCache.put(cacheKey, observations);
+        
+        return observations;
+    }
+
+
+    
+    /**
+     * Retrieves library observations with default page size of 25.
+     */
+    public static List<LibraryObservation> getLibraryObservationsWithCache(
+            String libraryId, String appId, String orgId, SDKExtension extendedSDK) 
+            throws IOException, UnauthorizedException {
+        return getLibraryObservationsWithCache(libraryId, appId, orgId, 25, extendedSDK);
     }
 
     // The withUserAgentProduct will generate a user agent header that looks like

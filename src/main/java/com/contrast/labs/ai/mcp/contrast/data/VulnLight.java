@@ -15,5 +15,5 @@
  */
 package com.contrast.labs.ai.mcp.contrast.data;
 
-public record VulnLight(String title, String type, String vulnID) {
+public record VulnLight(String title, String type, String vulnID,String severity) {
 }
