@@ -104,7 +104,7 @@ docker run \
 ### Using Copilot + Petclinic
 Download the Vulnerable Pet Clinic.
 `git clone https://github.com/Contrast-Security-OSS/vulnerable-spring-petclinic.git`
-Open the project in VSCode.
+Open the project in VSCode or Intellij.
 Edit the contrast_security.yaml file and configure it with your AGENT credentials
 ```yaml
 api:
@@ -120,7 +120,7 @@ It will build and run the services that make up petclinic.
 To build out the vulnerabilites and attack events run
 `./testscript.sh`
 Select option 25. ( this will exercise the app and perform attacks to populate the vulnerabilities and attack events)
-#### Install via Link
+#### Install via Link in VScode
 Click following link  >>> [![Install in VS Code Docker](https://img.shields.io/badge/VS_Code-docker-0098FF?style=flat-square&logo=githubcopilot&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=contrastmcp&config=%7B%22command%22:%22docker%22,%22args%22:%5B%22run%22,%20%22-e%22,%22CONTRAST_HOST_NAME%22,%20%22-e%22,%22CONTRAST_API_KEY%22,%20%22-e%22,%22CONTRAST_SERVICE_KEY%22,%20%22-e%22,%22CONTRAST_USERNAME%22,%20%22-e%22,%22CONTRAST_ORG_ID%22,%20%20%22-i%22,%20%22--rm%22,%20%22contrast/mcp-contrast:latest%22,%20%22-t%22,%20%22stdio%22%5D,%22env%22:%7B%22CONTRAST_HOST_NAME%22:%22example.contrastsecurity.com%22,%22CONTRAST_API_KEY%22:%22example%22,%22CONTRAST_SERVICE_KEY%22:%22example%22,%22CONTRAST_USERNAME%22:%22example@example.com%22,%22CONTRAST_ORG_ID%22:%22example%22%7D%7D) <<<
 Allow the extension to be installed in your VSCode instance.
 Select Install Server
@@ -129,8 +129,6 @@ Select Install Server
 
 This will install the MCP Server. You will need to configure the server with your Contrast API credentials.
 ![install2.png](images/install2.png)
-
-
 
 #### Manual Install of MCP Server
 In VSCode go to settings and search for "mcp"
@@ -178,6 +176,49 @@ You should also see a small start button appear in the json file as you can see 
 Once complete you should see the Contrast MCP Tools in the Tools drop down and you should be ready to perform queries!
 ![vscode-config3.png](images%2Fvscode-config3.png)
 
+
+#### Install in Intellij
+To install the MCP Server in Copilot for Intellij.
+1. Select the Agent Mode in Copilot
+2. Click on the Tools drop down
+3. Select add more tools
+4. Add the below configuration to the mcp.json file
+5. Add your credentials to the env section.
+```json
+{
+  "servers": {
+    "contrastmcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-e",
+        "CONTRAST_HOST_NAME",
+        "-e",
+        "CONTRAST_API_KEY",
+        "-e",
+        "CONTRAST_SERVICE_KEY",
+        "-e",
+        "CONTRAST_USERNAME",
+        "-e",
+        "CONTRAST_ORG_ID",
+        "-i",
+        "--rm",
+        "contrast/mcp-contrast:latest",
+        "-t",
+        "stdio"
+      ],
+      "env": {
+        "CONTRAST_HOST_NAME": "example.contrastsecurity.com",
+        "CONTRAST_API_KEY": "example",
+        "CONTRAST_SERVICE_KEY": "example",
+        "CONTRAST_USERNAME": "example@example.com",
+        "CONTRAST_ORG_ID": "example"
+      }
+    }
+  }
+}
+```
+![intellij.gif](images/intellij.gif)
 
 ### Using Cline Plugin
 With the Cline plugin installed, select the MCP button in the top right corner of the screen.
