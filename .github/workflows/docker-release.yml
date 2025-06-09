@@ -75,10 +75,8 @@ jobs:
           
       - name: Push and sign Docker image with DCT
         run: |
-          # Parse the tags from metadata output
-          IFS=',' read -ra TAGS <<< "${{ steps.meta.outputs.tags }}"
-          # Push each tag with Docker Content Trust enabled
-          for tag in "${TAGS[@]}"; do
+          # The tags are newline-separated, not comma-separated
+          echo "${{ steps.meta.outputs.tags }}" | while read -r tag; do
             echo "Pushing and signing $tag"
             docker push $tag
           done
