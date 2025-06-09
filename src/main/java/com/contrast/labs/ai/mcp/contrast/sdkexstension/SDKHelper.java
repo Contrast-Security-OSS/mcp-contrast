@@ -39,7 +39,7 @@ public class SDKHelper {
 
 
     private static final String MCP_SERVER_NAME = "contrast-mcp";
-    private static final String MCP_VERSION = "0.0.4";
+    private static final String MCP_VERSION = "0.0.6";
 
     private static final Logger logger = LoggerFactory.getLogger(SDKHelper.class);
 
