@@ -87,19 +87,6 @@ You obviously need to configure the above to match your contrast API Creds.
 docker build -t mcp-contrast .
 ```
 
-### Run with Docker
-```bash
-docker run \
-  -e CONTRAST_HOST_NAME=example.contrastsecurity.com \
-  -e CONTRAST_API_KEY=example \
-  -e CONTRAST_SERVICE_KEY=example \
-  -e CONTRAST_USERNAME=example@exampe.com \
-  -e CONTRAST_ORG_ID=example \
-  -i contrast-mcp \
-  -t stdio
-  ```
-
-
 
 ### Using Copilot + Petclinic
 Download the Vulnerable Pet Clinic.
