@@ -249,7 +249,7 @@ public class AssessService {
     }
 
 
-    @Tool(name = "list__all_applications", description = "Takes no argument and list all the applications")
+    @Tool(name = "list_all_applications", description = "Takes no argument and list all the applications")
     public List<ApplicationData> getActiveApplications() throws IOException {
         logger.info("Listing all applications");
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
