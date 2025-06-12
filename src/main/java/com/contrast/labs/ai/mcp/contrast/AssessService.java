@@ -247,4 +247,27 @@ public class AssessService {
             throw new IOException("Failed to list applications: " + e.getMessage(), e);
         }
     }
+
+
+    @Tool(name = "list__all_applications", description = "Takes no argument and list all the applications")
+    public List<ApplicationData> getActiveApplications() throws IOException {
+        logger.info("Listing all applications");
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        try {
+            List<Application> applications = contrastSDK.getApplications(orgID).getApplications();
+            logger.debug("Retrieved {} total applications from Contrast", applications.size());
+            
+            List<ApplicationData> ReturnedApps = new ArrayList<>();
+            for(Application app : applications) {
+                ReturnedApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getId()));
+            }
+            
+            logger.info("Found {} applications matching'", ReturnedApps.size());
+            return ReturnedApps;
+
+        } catch (Exception e) {
+            logger.error("Error listing all applications", e);
+            throw new IOException("Failed to list applications: " + e.getMessage(), e);
+        }
+    }
 }
