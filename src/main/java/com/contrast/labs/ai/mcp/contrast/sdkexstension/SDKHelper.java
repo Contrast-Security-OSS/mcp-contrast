@@ -90,17 +90,17 @@ public class SDKHelper {
         return libs;
     }
 
-    public static String getAppIDFromAppName(String appName, String orgID, ContrastSDK contrastSDK) throws IOException {
+    public static String getAppIDFromapp_name(String app_name, String orgID, ContrastSDK contrastSDK) throws IOException {
         // Check cache for existing result
-        String cachedAppID = appIDCache.getIfPresent(appName);
+        String cachedAppID = appIDCache.getIfPresent(app_name);
         if (cachedAppID != null) {
-            logger.info("Cache hit for application name: {}", appName);
+            logger.info("Cache hit for application name: {}", app_name);
             return cachedAppID;
         }
-        logger.debug("Cache miss for application name: {}, searching for application ID", appName);
+        logger.debug("Cache miss for application name: {}, searching for application ID", app_name);
         Optional<String> appID = Optional.empty();
         for (Application app : contrastSDK.getApplications(orgID).getApplications()) {
-            if (app.getName().toLowerCase().contains(appName.toLowerCase())) {
+            if (app.getName().toLowerCase().contains(app_name.toLowerCase())) {
                 appID = Optional.of(app.getId());
                 logger.info("Found matching application - ID: {}, Name: {}", app.getId(), app.getName());
                 break;
@@ -109,10 +109,10 @@ public class SDKHelper {
 
         if (appID.isPresent()) {
             // Store result in cache
-            appIDCache.put(appName, appID.get());
+            appIDCache.put(app_name, appID.get());
             return appID.get();
         } else {
-            logger.error("Application not found: {}", appName);
+            logger.error("Application not found: {}", app_name);
             throw new IOException("Application not found");
         }
     }
