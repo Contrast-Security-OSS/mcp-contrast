@@ -67,17 +67,17 @@ public class SCAService {
 
 
     @Tool(name = "list_application_libraries", description = "takes a application name and returns the libraries used in the application, note if class usage count is 0 the library is unlikely to be used")
-    public List<LibraryExtended> getApplicationLibraries(String appName) throws IOException {
-        logger.info("Retrieving libraries for application: {}", appName);
+    public List<LibraryExtended> getApplicationLibraries(String app_name) throws IOException {
+        logger.info("Retrieving libraries for application: {}", app_name);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
         logger.debug("ContrastSDK initialized with host: {}", hostName);
         
         SDKExtension extendedSDK = new SDKExtension(contrastSDK);
         Optional<String> appID = Optional.empty();
-        logger.debug("Searching for application ID matching name: {}", appName);
+        logger.debug("Searching for application ID matching name: {}", app_name);
         
         for(Application app : contrastSDK.getApplications(orgID).getApplications()) {
-            if(app.getName().toLowerCase().contains(appName.toLowerCase())) {
+            if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
                 appID = Optional.of(app.getId());
                 logger.info("Found matching application - ID: {}, Name: {}", app.getId(), app.getName());
                 break;
@@ -86,7 +86,7 @@ public class SCAService {
         if(appID.isPresent()) {
             return SDKHelper.getLibsForID(appID.get(),orgID, extendedSDK);
         } else {
-            logger.error("Application not found: {}", appName);
+            logger.error("Application not found: {}", app_name);
             throw new IOException("Application not found");
         }
     }

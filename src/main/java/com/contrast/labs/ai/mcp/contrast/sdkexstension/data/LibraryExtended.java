@@ -117,7 +117,7 @@ public class LibraryExtended {
     private String appId;
 
     @SerializedName("app_name")
-    private String appName;
+    private String app_name;
 
     @SerializedName("app_context_path")
     private String appContextPath;
@@ -212,8 +212,8 @@ public class LibraryExtended {
         return appId;
     }
 
-    public String getAppName() {
-        return appName;
+    public String getapp_name() {
+        return app_name;
     }
 
     public String getAppContextPath() {
