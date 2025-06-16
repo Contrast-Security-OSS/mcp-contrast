@@ -76,7 +76,7 @@ public class SCAService {
         Optional<String> appID = Optional.empty();
         logger.debug("Searching for application ID matching name: {}", app_name);
         
-        for(Application app : contrastSDK.getApplications(orgID).getApplications()) {
+        for(Application app : SDKHelper.getApplicationsWithCache(orgID, contrastSDK)) {
             if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
                 appID = Optional.of(app.getId());
                 logger.info("Found matching application - ID: {}, Name: {}", app.getId(), app.getName());

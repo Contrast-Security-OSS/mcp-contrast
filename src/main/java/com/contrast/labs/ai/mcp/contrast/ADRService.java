@@ -58,7 +58,7 @@ public class ADRService {
 
             // Get application ID from name
             logger.debug("Looking up application ID for name: {}", applicationName);
-            String appID = SDKHelper.getAppIDFromapp_name(applicationName, orgID, contrastSDK);
+            String appID = SDKHelper.getAppIDFromName(applicationName, orgID, contrastSDK);
             if (appID == null || appID.isEmpty()) {
                 logger.warn("No application ID found for application: {}", applicationName);
                 return null;

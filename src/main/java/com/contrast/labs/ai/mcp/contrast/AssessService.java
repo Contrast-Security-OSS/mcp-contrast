@@ -102,7 +102,7 @@ public class AssessService {
             List<LibraryExtended> libs = SDKHelper.getLibsForID(appID,orgID, new SDKExtension(contrastSDK));
             List<LibraryLibraryObservation> lobs = new ArrayList<>();
             for(LibraryExtended lib : libs) {
-                LibraryLibraryObservation llob = new LibraryLibraryObservation(lib,new SDKExtension(contrastSDK).getLibraryObservations(orgID,appID,lib.getHash(),50));
+                LibraryLibraryObservation llob = new LibraryLibraryObservation(lib, SDKHelper.getLibraryObservationsWithCache(lib.getHash(), appID, orgID, 50,new SDKExtension(contrastSDK)));
                 lobs.add(llob);
             }
             List<StackLib> stackLibs = new ArrayList<>();
@@ -157,7 +157,7 @@ public class AssessService {
         Optional<String> appID = Optional.empty();
         logger.debug("Searching for application ID matching name: {}", app_name);
 
-        for(Application app : contrastSDK.getApplications(orgID).getApplications()) {
+        for(Application app : SDKHelper.getApplicationsWithCache(orgID, contrastSDK)) {
             if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
                 appID = Optional.of(app.getId());
                 logger.debug("Found matching application - ID: {}, Name: {}", app.getId(), app.getName());
@@ -176,7 +176,6 @@ public class AssessService {
     public List<VulnLight> listVulnsByAppId(String appID) throws IOException {
         logger.info("Listing vulnerabilities for application ID: {}", appID);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
-        
         try {
             List<Trace> traces = contrastSDK.getTraces(orgID, appID, new TraceFilterBody()).getTraces();
             logger.debug("Found {} vulnerability traces for application ID: {}", traces.size(), appID);
@@ -203,7 +202,7 @@ public class AssessService {
         Optional<String> appID = Optional.empty();
         logger.debug("Searching for application ID matching name: {}", app_name);
         
-        for(Application app : contrastSDK.getApplications(orgID).getApplications()) {
+        for(Application app : SDKHelper.getApplicationsWithCache(orgID, contrastSDK)) {
             if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
                 appID = Optional.of(app.getId());
                 logger.debug("Found matching application - ID: {}, Name: {}", app.getId(), app.getName());
@@ -225,11 +224,11 @@ public class AssessService {
 
 
     @Tool(name = "list_applications", description = "Takes an application name (app_name) returns a list of active applications matching that name. Please remember to display the name, status and ID.")
-    public List<ApplicationData> getActiveApplications(String app_name) throws IOException {
+    public List<ApplicationData> getApplications(String app_name) throws IOException {
         logger.info("Listing active applications matching name: {}", app_name);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
         try {
-            List<Application> applications = contrastSDK.getApplications(orgID).getApplications();
+            List<Application> applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
             logger.debug("Retrieved {} total applications from Contrast", applications.size());
             
             List<ApplicationData> filteredApps = new ArrayList<>();
@@ -255,16 +254,16 @@ public class AssessService {
         logger.info("Listing all applications");
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
         try {
-            List<Application> applications = contrastSDK.getApplications(orgID).getApplications();
+            List<Application> applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
             logger.debug("Retrieved {} total applications from Contrast", applications.size());
             
-            List<ApplicationData> ReturnedApps = new ArrayList<>();
+            List<ApplicationData> returnedApps = new ArrayList<>();
             for(Application app : applications) {
-                ReturnedApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getId()));
+                returnedApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getId()));
             }
             
-            logger.info("Found {} applications matching'", ReturnedApps.size());
-            return ReturnedApps;
+            logger.info("Found {} applications", returnedApps.size());
+            return returnedApps;
 
         } catch (Exception e) {
             logger.error("Error listing all applications", e);

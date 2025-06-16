@@ -47,13 +47,13 @@ public class SDKHelper {
             .maximumSize(100)
             .expireAfterWrite(5, TimeUnit.MINUTES)
             .build();
-
-    private static final Cache<String, String> appIDCache = CacheBuilder.newBuilder()
-            .maximumSize(100)
-            .expireAfterWrite(10, TimeUnit.MINUTES)
-            .build();
             
     private static final Cache<String, List<LibraryObservation>> libraryObservationsCache = CacheBuilder.newBuilder()
+            .maximumSize(5000)
+            .expireAfterWrite(60, TimeUnit.MINUTES)
+            .build();
+
+    private static final Cache<String, List<Application>> applicationsCache = CacheBuilder.newBuilder()
             .maximumSize(5000)
             .expireAfterWrite(60, TimeUnit.MINUTES)
             .build();
@@ -90,30 +90,21 @@ public class SDKHelper {
         return libs;
     }
 
-    public static String getAppIDFromapp_name(String app_name, String orgID, ContrastSDK contrastSDK) throws IOException {
-        // Check cache for existing result
-        String cachedAppID = appIDCache.getIfPresent(app_name);
-        if (cachedAppID != null) {
-            logger.info("Cache hit for application name: {}", app_name);
-            return cachedAppID;
-        }
+    public static String getAppIDFromName(String app_name, String orgID, ContrastSDK contrastSDK) throws IOException {
         logger.debug("Cache miss for application name: {}, searching for application ID", app_name);
         Optional<String> appID = Optional.empty();
-        for (Application app : contrastSDK.getApplications(orgID).getApplications()) {
+        for (Application app : getApplicationsWithCache(orgID, contrastSDK)) {
             if (app.getName().toLowerCase().contains(app_name.toLowerCase())) {
                 appID = Optional.of(app.getId());
                 logger.info("Found matching application - ID: {}, Name: {}", app.getId(), app.getName());
                 break;
             }
         }
-
         if (appID.isPresent()) {
-            // Store result in cache
-            appIDCache.put(app_name, appID.get());
             return appID.get();
         } else {
-            logger.error("Application not found: {}", app_name);
-            throw new IOException("Application not found");
+            logger.warn("No application found with name: {}", app_name);
+            return null;
         }
     }
 
@@ -174,8 +165,36 @@ public class SDKHelper {
                 .withApiUrl( "https://" + hostName + "/Contrast/api")
                 .withUserAgentProduct(UserAgentProduct.of(MCP_SERVER_NAME,MCP_VERSION))
                 .build();
-
     }
 
+    /**
+     * Retrieves all applications from Contrast with caching.
+     *
+     * @param orgId The organization ID
+     * @param contrastSDK The Contrast SDK instance
+     * @return List of applications
+     * @throws IOException If an I/O error occurs
+     */
+    public static List<Application> getApplicationsWithCache(String orgId, ContrastSDK contrastSDK) throws IOException {
+        // Generate cache key based on organization ID
+        String cacheKey = String.format("applications:%s", orgId);
 
+        // Check cache for existing result
+        List<Application> cachedApplications = applicationsCache.getIfPresent(cacheKey);
+        if (cachedApplications != null) {
+            logger.info("Cache hit for applications in org: {}", orgId);
+            return cachedApplications;
+        }
+
+        logger.info("Cache miss for applications in org: {}, fetching from API", orgId);
+        List<Application> applications = contrastSDK.getApplications(orgId).getApplications();
+
+        logger.info("Successfully retrieved {} applications from organization: {}",
+                applications.size(), orgId);
+
+        // Store result in cache
+        applicationsCache.put(cacheKey, applications);
+
+        return applications;
+    }
 }
