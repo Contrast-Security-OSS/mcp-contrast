@@ -33,8 +33,8 @@ public class McpContrastApplication {
 	}
 
 	@Bean
-	public List<ToolCallback> tools(AssessService assessService, SastService sastService,SCAService scaService,ADRService adrService) {
-		return of(ToolCallbacks.from(assessService,sastService,scaService,adrService));
+	public List<ToolCallback> tools(AssessService assessService, SastService sastService,SCAService scaService,ADRService adrService,RouteCoverageService routeCoverageService) {
+		return of(ToolCallbacks.from(assessService,sastService,scaService,adrService,routeCoverageService));
 	}
 
 }

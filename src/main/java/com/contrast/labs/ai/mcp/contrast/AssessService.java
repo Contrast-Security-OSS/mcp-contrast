@@ -234,7 +234,7 @@ public class AssessService {
             List<ApplicationData> filteredApps = new ArrayList<>();
             for(Application app : applications) {
                 if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-                    filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getId()));
+                    filteredApps.add(new ApplicationData(app.getName()m app.getStatus(), app.getId(), app.getLastSeen(), app.getLanguage()));
                     logger.debug("Found matching application - ID: {}, Name: {}, Status: {}", 
                             app.getId(), app.getName(), app.getStatus());
                 }
@@ -250,7 +250,7 @@ public class AssessService {
 
 
     @Tool(name = "list_all_applications", description = "Takes no argument and list all the applications")
-    public List<ApplicationData> getActiveApplications() throws IOException {
+    public List<ApplicationData> getAllApplications() throws IOException {
         logger.info("Listing all applications");
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
         try {
@@ -259,7 +259,8 @@ public class AssessService {
             
             List<ApplicationData> returnedApps = new ArrayList<>();
             for(Application app : applications) {
-                returnedApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getId()));
+                returnedApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getId(),
+                        app.getLastSeen(), app.getLanguage()));
             }
             
             logger.info("Found {} applications", returnedApps.size());

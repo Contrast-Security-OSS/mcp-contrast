@@ -15,5 +15,5 @@
  */
 package com.contrast.labs.ai.mcp.contrast.data;
 
-public record ApplicationData(String name, String status, String appID) {
+public record ApplicationData(String name, String status, String appID, long lastSeen, String language) {
 }

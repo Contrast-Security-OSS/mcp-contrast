@@ -1,0 +1,104 @@
+package com.contrast.labs.ai.mcp.contrast;
+
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.Route;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteCoverageResponse;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteDetailsResponse;
+import com.contrastsecurity.models.Application;
+import com.contrastsecurity.sdk.ContrastSDK;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.util.Optional;
+
+@Service
+public class RouteCoverageService {
+
+    private static final Logger logger = LoggerFactory.getLogger(RouteCoverageService.class);
+
+
+    @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
+    private String hostName;
+
+    @Value("${contrast.api-key:${CONTRAST_API_KEY:}}")
+    private String apiKey;
+
+    @Value("${contrast.service-key:${CONTRAST_SERVICE_KEY:}}")
+    private String serviceKey;
+
+    @Value("${contrast.username:${CONTRAST_USERNAME:}}")
+    private String userName;
+
+    @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
+    private String orgID;
+
+    @Tool(name = "get_application_route_coverage", description = "takes a application name and return the route coverage data for that application. " +
+            "If a route/endpoint is DISCOVERED, it means it has been found by Assess but that route has had no inbound http requests. If it is EXERCISED, it means it has had atleast one inbound http request to that route/endpoint.")
+    public RouteCoverageResponse getRouteCoverage(String app_name) throws IOException {
+        logger.info("Retrieving route coverage for application by name: {}", app_name);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        SDKExtension sdkExtension = new SDKExtension(contrastSDK);
+        Optional<String> appID = Optional.empty();
+        logger.debug("Searching for application ID matching name: {}", app_name);
+
+        for(Application app : SDKHelper.getApplicationsWithCache(orgID, contrastSDK)) {
+            if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
+                appID = Optional.of(app.getId());
+                logger.debug("Found matching application with ID: {}", appID.get());
+                break;
+            }
+        }
+
+        if (!appID.isPresent()) {
+            logger.error("Application not found: {}", app_name);
+            throw new IOException("Application not found: " + app_name);
+        }
+
+        logger.debug("Fetching route coverage data for application ID: {}", appID.get());
+        RouteCoverageResponse response = sdkExtension.getRouteCoverage(orgID, appID.get(), null);
+        logger.debug("Found {} routes for application", response.getRoutes().size());
+
+        logger.debug("Retrieving route details for each route");
+        for(Route route : response.getRoutes()) {
+            logger.trace("Fetching details for route: {}", route.getSignature());
+            RouteDetailsResponse routeDetailsResponse = sdkExtension.getRouteDetails(orgID, appID.get(), route.getRouteHash());
+            route.setRouteDetailsResponse(routeDetailsResponse);
+        }
+
+        logger.info("Successfully retrieved route coverage for application: {}", app_name);
+        return response;
+    }
+
+    @Tool(name = "get_application_route_coverage_by_app_id", description = "takes a application id and return the route coverage data for that application. " +
+            "If a route/endpoint is DISCOVERED, it means it has been found by Assess but that route has had no inbound http requests. If it is EXERCISED, it means it has had atleast one inbound http request to that route/endpoint.")
+    public RouteCoverageResponse getRouteCoverageByAppID(String app_id) throws IOException {
+        logger.info("Retrieving route coverage for application by ID: {}", app_id);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        SDKExtension sdkExtension = new SDKExtension(contrastSDK);
+
+        logger.debug("Fetching route coverage data for application ID: {}", app_id);
+        RouteCoverageResponse response = sdkExtension.getRouteCoverage(orgID, app_id, null);
+        logger.debug("Found {} routes for application", response.getRoutes().size());
+
+        logger.debug("Retrieving route details for each route");
+        for(Route route : response.getRoutes()) {
+            logger.trace("Fetching details for route: {}", route.getSignature());
+            RouteDetailsResponse routeDetailsResponse = sdkExtension.getRouteDetails(orgID, app_id, route.getRouteHash());
+            route.setRouteDetailsResponse(routeDetailsResponse);
+        }
+
+        logger.info("Successfully retrieved route coverage for application ID: {}", app_id);
+        return response;
+    }
+
+
+
+
+
+
+}

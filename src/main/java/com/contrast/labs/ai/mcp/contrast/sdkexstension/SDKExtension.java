@@ -19,13 +19,13 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibrariesExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttackEvent;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservation;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservationsResponse;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteDetailsResponse;
 import com.contrastsecurity.exceptions.UnauthorizedException;
-import com.contrastsecurity.http.FilterForm;
-import com.contrastsecurity.http.HttpMethod;
-import com.contrastsecurity.http.LibraryFilterForm;
-import com.contrastsecurity.http.UrlBuilder;
+import com.contrastsecurity.http.*;
+import com.contrastsecurity.models.RouteCoverageBySessionIDAndMetadataRequest;
 import com.contrastsecurity.sdk.ContrastSDK;
 import com.contrastsecurity.sdk.internal.GsonFactory;
 import com.google.gson.Gson;
@@ -166,4 +166,71 @@ public class SDKExtension {
                 organizationId, applicationId, libraryId, offset, limit);
     }
 
+    /**
+     * Retrieves the detailed observations for a specific route.
+     *
+     * @param organizationId The organization ID
+     * @param applicationId The application ID
+     * @param routeHash The unique hash identifying the route
+     * @return RouteDetailsResponse containing observations for the route
+     * @throws IOException If an I/O error occurs
+     * @throws UnauthorizedException If the request is not authorized
+     */
+    public RouteDetailsResponse getRouteDetails(String organizationId, String applicationId, String routeHash)
+            throws IOException, UnauthorizedException {
+        String url = getRouteDetailsUrl(organizationId, applicationId, routeHash);
+
+        try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
+             Reader reader = new InputStreamReader(is)) {
+            return gson.fromJson(reader, RouteDetailsResponse.class);
+        }
+    }
+
+    /**
+     * Retrieves route coverage information for an application.
+     *
+     * @param organizationId The organization ID
+     * @param appId The application ID
+     * @param metadata Optional metadata request for filtering (can be null)
+     * @return RouteCoverageResponse containing route coverage information
+     * @throws IOException If an I/O error occurs
+     * @throws UnauthorizedException If the request is not authorized
+     */
+    public RouteCoverageResponse getRouteCoverage(String organizationId, String appId,
+                                                RouteCoverageBySessionIDAndMetadataRequest metadata)
+            throws IOException, UnauthorizedException {
+
+        InputStream is = null;
+
+        try {
+            if (metadata == null) {
+                is = contrastSDK.makeRequest(
+                        HttpMethod.GET,
+                        urlBuilder.getRouteCoverageUrl(organizationId, appId));
+            } else {
+                is = contrastSDK.makeRequestWithBody(
+                        HttpMethod.POST,
+                        urlBuilder.getRouteCoverageWithMetadataUrl(organizationId, appId),
+                        gson.toJson(metadata),
+                        MediaType.JSON);
+            }
+
+            try (Reader reader = new InputStreamReader(is)) {
+                return gson.fromJson(reader, RouteCoverageResponse.class);
+            }
+        } finally {
+            if (is != null) {
+                is.close();
+            }
+        }
+    }
+
+    /**
+     * Builds URL for retrieving route details observations
+     */
+    private String getRouteDetailsUrl(String organizationId, String applicationId, String routeHash) {
+        return String.format(
+                "/ng/%s/applications/%s/route/%s/observations?expand=skip_links",
+                organizationId, applicationId, routeHash);
+    }
 }
