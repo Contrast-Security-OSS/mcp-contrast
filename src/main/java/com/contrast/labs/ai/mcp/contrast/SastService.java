@@ -37,6 +37,7 @@ public class SastService {
 
     private static final Logger logger = LoggerFactory.getLogger(SastService.class);
 
+
     @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
     private String hostName;
 
@@ -52,10 +53,18 @@ public class SastService {
     @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
     private String orgID;
 
+    @Value("${http.proxy.host:${http_proxy_host:}}")
+    private String httpProxyHost;
+
+    @Value("${http.proxy.port:${http_proxy_port:}}")
+    private String httpProxyPort;
+
+
+
     @Tool(name = "list_Scan_Project", description = "takes a scan project name and returns the project details")
     public Project getScanProject(String projectName) throws IOException {
         logger.info("Retrieving scan project details for project: {}", projectName);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         logger.debug("ContrastSDK initialized with host: {}", hostName);
         
         try {
@@ -72,7 +81,7 @@ public class SastService {
     @Tool(name = "list_Scan_Results", description = "takes a scan project name and returns the latest results in Sarif format")
     public String getLatestScanResult(String projectName) throws IOException {
         logger.info("Retrieving latest scan results in SARIF format for project: {}", projectName);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         logger.debug("ContrastSDK initialized with host: {}", hostName);
 
         try {

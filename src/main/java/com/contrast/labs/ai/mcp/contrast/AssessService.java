@@ -42,11 +42,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Service
 public class AssessService {
@@ -69,11 +65,18 @@ public class AssessService {
     @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
     private String orgID;
 
+    @Value("${http.proxy.host:${http_proxy_host:}}")
+    private String httpProxyHost;
+
+    @Value("${http.proxy.port:${http_proxy_port:}}")
+    private String httpProxyPort;
+
+
 
     @Tool(name = "get_vulnerability_by_id", description = "takes a vulnerability ID ( vulnID ) and Application ID ( appID ) and returns details about the specific security vulnerability. If based on the stacktrace, the vulnerability looks like it is in code that is not in the codebase, the vulnerability may be in a 3rd party library, review the CVE data attached to that stackframe you believe the vulnerability exists in and if possible upgrade that library to the next non vulnerable version based on the remediation guidance.")
     public Vulnerability getVulnerabilityById(String vulnID, String appID) throws IOException {
         logger.info("Retrieving vulnerability details for vulnID: {} in application ID: {}", vulnID, appID);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         logger.debug("ContrastSDK initialized with host: {}", hostName);
         
         try {
@@ -153,7 +156,7 @@ public class AssessService {
     @Tool(name = "get_vulnerability", description = "Takes a vulnerability ID (vulnID) and application name (app_name) and returns details about the specific security vulnerability.  If based on the stacktrace, the vulnerability looks like it is in code that is not in the codebase, the vulnerability may be in a 3rd party library, review the CVE data attached to that stackframe you believe the vulnerability exists in and if possible upgrade that library to the next non vulnerable version based on the remediation guidance.")
     public Vulnerability getVulnerability(String vulnID, String app_name) throws IOException {
         logger.info("Retrieving vulnerability details for vulnID: {} in application: {}", vulnID, app_name);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         Optional<String> appID = Optional.empty();
         logger.debug("Searching for application ID matching name: {}", app_name);
 
@@ -175,7 +178,7 @@ public class AssessService {
     @Tool(name = "list_vulnerabilities_with_id", description = "Takes a  Application ID ( appID ) and returns a list of vulnerabilities, please remember to include the vulnID in the response.")
     public List<VulnLight> listVulnsByAppId(String appID) throws IOException {
         logger.info("Listing vulnerabilities for application ID: {}", appID);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         try {
             List<Trace> traces = contrastSDK.getTraces(orgID, appID, new TraceFilterBody()).getTraces();
             logger.debug("Found {} vulnerability traces for application ID: {}", traces.size(), appID);
@@ -197,7 +200,7 @@ public class AssessService {
     @Tool(name = "list_vulnerabilities", description = "Takes an application name ( app_name ) and returns a list of vulnerabilities, please remember to include the vulnID in the response.  ")
     public List<VulnLight> listVulnsInAppByName(String app_name) throws IOException {
         logger.info("Listing vulnerabilities for application: {}", app_name);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         
         Optional<String> appID = Optional.empty();
         logger.debug("Searching for application ID matching name: {}", app_name);
@@ -226,7 +229,7 @@ public class AssessService {
     @Tool(name = "list_applications", description = "Takes an application name (app_name) returns a list of active applications matching that name. Please remember to display the name, status and ID.")
     public List<ApplicationData> getApplications(String app_name) throws IOException {
         logger.info("Listing active applications matching name: {}", app_name);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         try {
             List<Application> applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
             logger.debug("Retrieved {} total applications from Contrast", applications.size());
@@ -234,7 +237,7 @@ public class AssessService {
             List<ApplicationData> filteredApps = new ArrayList<>();
             for(Application app : applications) {
                 if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-                    filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getId(), app.getLastSeen(), app.getLanguage()));
+                    filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getId(), app.getLastSeen(), new Date(app.getLastSeen()).toString(), app.getLanguage()));
                     logger.debug("Found matching application - ID: {}, Name: {}, Status: {}", 
                             app.getId(), app.getName(), app.getStatus());
                 }
@@ -252,7 +255,7 @@ public class AssessService {
     @Tool(name = "list_all_applications", description = "Takes no argument and list all the applications")
     public List<ApplicationData> getAllApplications() throws IOException {
         logger.info("Listing all applications");
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         try {
             List<Application> applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
             logger.debug("Retrieved {} total applications from Contrast", applications.size());
@@ -260,7 +263,7 @@ public class AssessService {
             List<ApplicationData> returnedApps = new ArrayList<>();
             for(Application app : applications) {
                 returnedApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getId(),
-                        app.getLastSeen(), app.getLanguage()));
+                        app.getLastSeen(), new Date(app.getLastSeen()).toString(),app.getLanguage()));
             }
             
             logger.info("Found {} applications", returnedApps.size());

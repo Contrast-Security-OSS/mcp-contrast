@@ -15,5 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.data;
 
-public record ApplicationData(String name, String status, String appID, long lastSeen, String language) {
+import java.util.Date;
+
+public record ApplicationData(String name, String status, String appID, long lastSeen, String lastSeenDate, String language) {
 }

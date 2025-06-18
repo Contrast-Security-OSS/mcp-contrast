@@ -304,10 +304,11 @@ When configuring in your config.json file, include the proxy settings in the arg
 ### Docker
 When running the MCP server in Docker, you can configure the proxy by passing the relevant environment variables:
 
+
 ```bash
 docker run \
-  -e HTTP_PROXY="http://proxy.example.com:8080" \
-  -e HTTPS_PROXY="http://proxy.example.com:8080" \
+  -e http_proxy_host="proxy.example.com" \
+  -e http_proxy_port="8080" \
   -e CONTRAST_HOST_NAME=example.contrastsecurity.com \
   -e CONTRAST_API_KEY=example \
   -e CONTRAST_SERVICE_KEY=example \
@@ -339,8 +340,8 @@ For VS Code configuration with Docker and proxy, modify the settings.json like t
         "CONTRAST_USERNAME",
         "-e",
         "CONTRAST_ORG_ID",
-        "-e", "HTTP_PROXY=http://proxy.example.com:8080",
-        "-e", "HTTPS_PROXY=http://proxy.example.com:8080",
+        "-e", "http_proxy_host",
+        "-e", "http_proxy_port",
         "-i",
         "--rm",
         "contrast/mcp-contrast:latest",
@@ -353,8 +354,8 @@ For VS Code configuration with Docker and proxy, modify the settings.json like t
             "CONTRAST_SERVICE_KEY": "example",
             "CONTRAST_USERNAME": "example@example.com",
             "CONTRAST_ORG_ID": "example",
-            "HTTP_PROXY": "http://proxy.example.com:8080",
-            "HTTP_PROXY": "http://proxy.example.com:8080"
+            "http_proxy_host": "proxy.example.com",
+            "http_proxy_port": "8080"
         }
     }
   }

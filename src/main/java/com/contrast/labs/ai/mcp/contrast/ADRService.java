@@ -32,6 +32,7 @@ public class ADRService {
 
     private static final Logger logger = LoggerFactory.getLogger(ADRService.class);
 
+
     @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
     private String hostName;
 
@@ -47,13 +48,20 @@ public class ADRService {
     @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
     private String orgID;
 
+    @Value("${http.proxy.host:${http_proxy_host:}}")
+    private String httpProxyHost;
+
+    @Value("${http.proxy.port:${http_proxy_port:}}")
+    private String httpProxyPort;
+
+
     @Tool(name = "get_ADR_Protect_Rules", description = "takes a application name and returns the protect / adr rules for the application")
     public ProtectData getProtectData(String applicationName) throws IOException {
         logger.info("Starting retrieval of protection rules for application: {}", applicationName);
         long startTime = System.currentTimeMillis();
 
         try {
-            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
             logger.debug("ContrastSDK initialized successfully for application: {}", applicationName);
 
             // Get application ID from name
@@ -90,7 +98,7 @@ public class ADRService {
 
         try {
             // Initialize ContrastSDK
-            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
             logger.debug("ContrastSDK initialized successfully for application ID: {}", appID);
 
             // Initialize SDK extension

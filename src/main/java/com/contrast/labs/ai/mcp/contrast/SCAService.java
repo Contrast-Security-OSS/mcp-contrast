@@ -39,6 +39,7 @@ public class SCAService {
 
     private static final Logger logger = LoggerFactory.getLogger(SCAService.class);
 
+
     @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
     private String hostName;
 
@@ -54,10 +55,17 @@ public class SCAService {
     @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
     private String orgID;
 
+    @Value("${http.proxy.host:${http_proxy_host:}}")
+    private String httpProxyHost;
+
+    @Value("${http.proxy.port:${http_proxy_port:}}")
+    private String httpProxyPort;
+
+
     @Tool(name = "list_application_libraries_by_app_id", description = "takes a application ID and returns the libraries used in the application, note if class usage count is 0 the library is unlikely to be used")
     public List<LibraryExtended> getApplicationLibrariesByID(String appID) throws IOException {
         logger.info("Retrieving libraries for application id: {}", appID);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         logger.debug("ContrastSDK initialized with host: {}", hostName);
 
         SDKExtension extendedSDK = new SDKExtension(contrastSDK);
@@ -69,7 +77,7 @@ public class SCAService {
     @Tool(name = "list_application_libraries", description = "takes a application name and returns the libraries used in the application, note if class usage count is 0 the library is unlikely to be used")
     public List<LibraryExtended> getApplicationLibraries(String app_name) throws IOException {
         logger.info("Retrieving libraries for application: {}", app_name);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         logger.debug("ContrastSDK initialized with host: {}", hostName);
         
         SDKExtension extendedSDK = new SDKExtension(contrastSDK);
@@ -94,7 +102,7 @@ public class SCAService {
     @Tool(name= "list_applications_vulnerable_to_cve", description = "takes a cve id and returns the applications and servers vulnerable to the cve. Please note if the application class usage is 0, its unlikely to be vulnerable")
     public CveData listCVESForApplication(String cveid) throws IOException {
         logger.info("Retrieving applications vulnerable to CVE: {}", cveid);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
 
         logger.debug("ContrastSDK initialized with host: {}", hostName);
         contrastSDK.getLibrariesWithFilter(orgID, new LibraryFilterForm());

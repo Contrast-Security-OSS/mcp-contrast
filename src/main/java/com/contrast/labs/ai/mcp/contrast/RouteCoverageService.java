@@ -22,6 +22,7 @@ public class RouteCoverageService {
     private static final Logger logger = LoggerFactory.getLogger(RouteCoverageService.class);
 
 
+
     @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
     private String hostName;
 
@@ -37,11 +38,19 @@ public class RouteCoverageService {
     @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
     private String orgID;
 
+    @Value("${http.proxy.host:${http_proxy_host:}}")
+    private String httpProxyHost;
+
+    @Value("${http.proxy.port:${http_proxy_port:}}")
+    private String httpProxyPort;
+
+
+
     @Tool(name = "get_application_route_coverage", description = "takes a application name and return the route coverage data for that application. " +
             "If a route/endpoint is DISCOVERED, it means it has been found by Assess but that route has had no inbound http requests. If it is EXERCISED, it means it has had atleast one inbound http request to that route/endpoint.")
     public RouteCoverageResponse getRouteCoverage(String app_name) throws IOException {
         logger.info("Retrieving route coverage for application by name: {}", app_name);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         SDKExtension sdkExtension = new SDKExtension(contrastSDK);
         Optional<String> appID = Optional.empty();
         logger.debug("Searching for application ID matching name: {}", app_name);
@@ -78,7 +87,7 @@ public class RouteCoverageService {
             "If a route/endpoint is DISCOVERED, it means it has been found by Assess but that route has had no inbound http requests. If it is EXERCISED, it means it has had atleast one inbound http request to that route/endpoint.")
     public RouteCoverageResponse getRouteCoverageByAppID(String app_id) throws IOException {
         logger.info("Retrieving route coverage for application by ID: {}", app_id);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         SDKExtension sdkExtension = new SDKExtension(contrastSDK);
 
         logger.debug("Fetching route coverage data for application ID: {}", app_id);

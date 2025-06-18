@@ -28,6 +28,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibrariesExtended;
 import com.contrastsecurity.http.LibraryFilterForm;
 
 import java.io.IOException;
+import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -159,12 +160,26 @@ public class SDKHelper {
 
     // The withUserAgentProduct will generate a user agent header that looks like
     // User-Agent: contrast-mcp/1.0 contrast-sdk-java/3.4.2 Java/19.0.2+7
-    public static ContrastSDK getSDK(String hostName, String apiKey, String serviceKey, String userName)  {
-        logger.info("Initializing ContrastSDK with username: {}, host: {}", userName,  hostName);
-        return new ContrastSDK.Builder(userName, serviceKey, apiKey)
-                .withApiUrl( "https://" + hostName + "/Contrast/api")
-                .withUserAgentProduct(UserAgentProduct.of(MCP_SERVER_NAME,MCP_VERSION))
-                .build();
+    public static ContrastSDK getSDK(String hostName, String apiKey, String serviceKey, String userName, String httpProxyHost, String httpProxyPort)  {
+        logger.info("Initializing ContrastSDK with username: {}, host: {}", userName, hostName);
+
+        ContrastSDK.Builder builder = new ContrastSDK.Builder(userName, serviceKey, apiKey)
+                .withApiUrl("https://" + hostName + "/Contrast/api")
+                .withUserAgentProduct(UserAgentProduct.of(MCP_SERVER_NAME, MCP_VERSION));
+
+        if (httpProxyHost != null && !httpProxyHost.isEmpty()) {
+            int port = httpProxyPort != null && !httpProxyPort.isEmpty() ? Integer.parseInt(httpProxyPort) : 80;
+            logger.debug("Configuring HTTP proxy: {}:{}", httpProxyHost, port);
+
+            java.net.Proxy proxy = new java.net.Proxy(
+                java.net.Proxy.Type.HTTP,
+                new java.net.InetSocketAddress(httpProxyHost, port)
+            );
+
+            builder.withProxy(proxy);
+        }
+
+        return builder.build();
     }
 
     /**
