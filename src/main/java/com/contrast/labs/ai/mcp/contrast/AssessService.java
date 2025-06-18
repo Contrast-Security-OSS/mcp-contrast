@@ -234,7 +234,7 @@ public class AssessService {
             List<ApplicationData> filteredApps = new ArrayList<>();
             for(Application app : applications) {
                 if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-                    filteredApps.add(new ApplicationData(app.getName()m app.getStatus(), app.getId(), app.getLastSeen(), app.getLanguage()));
+                    filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getId(), app.getLastSeen(), app.getLanguage()));
                     logger.debug("Found matching application - ID: {}, Name: {}, Status: {}", 
                             app.getId(), app.getName(), app.getStatus());
                 }
