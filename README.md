@@ -269,13 +269,7 @@ https://ggozad.github.io/oterm/
 If you need to configure a proxy for your Java process when using the standalone JAR, you can set the Java system properties for HTTP and HTTPS proxies:
 
 ```bash
-java -Dhttp.proxyHost=proxy.example.com -Dhttp.proxyPort=8080 -Dhttps.proxyHost=proxy.example.com -Dhttps.proxyPort=8080 -jar /path/to/mcp-contrast-0.0.1-SNAPSHOT.jar --CONTRAST_HOST_NAME=example.contrastsecurity.com --CONTRAST_API_KEY=example --CONTRAST_SERVICE_KEY=example --CONTRAST_USERNAME=example@example.com --CONTRAST_ORG_ID=example
-```
-
-If your proxy requires authentication, you can also set:
-
-```bash
-java -Dhttp.proxyHost=proxy.example.com -Dhttp.proxyPort=8080 -Dhttps.proxyHost=proxy.example.com -Dhttps.proxyPort=8080 -Dhttp.proxyUser=username -Dhttp.proxyPassword=password -Dhttps.proxyUser=username -Dhttps.proxyPassword=password -jar /path/to/mcp-contrast-0.0.1-SNAPSHOT.jar --CONTRAST_HOST_NAME=example.contrastsecurity.com --CONTRAST_API_KEY=example --CONTRAST_SERVICE_KEY=example --CONTRAST_USERNAME=example@example.com --CONTRAST_ORG_ID=example
+java -Dhttp_proxy_host=proxy.example.com -Dhttp_proxy_port=8080 -jar /path/to/mcp-contrast-0.0.1-SNAPSHOT.jar --CONTRAST_HOST_NAME=example.contrastsecurity.com --CONTRAST_API_KEY=example --CONTRAST_SERVICE_KEY=example --CONTRAST_USERNAME=example@example.com --CONTRAST_ORG_ID=example
 ```
 
 When configuring in your config.json file, include the proxy settings in the args array:
@@ -285,10 +279,8 @@ When configuring in your config.json file, include the proxy settings in the arg
   "contrast-assess": {
     "command": "/usr/bin/java", 
     "args": [
-      "-Dhttp.proxyHost=proxy.example.com", 
-      "-Dhttp.proxyPort=8080", 
-      "-Dhttps.proxyHost=proxy.example.com", 
-      "-Dhttps.proxyPort=8080",
+      "-Dhttp_proxy_host=proxy.example.com", 
+      "-Dhttp_proxy_port=8080",
       "-jar",
       "/Users/name/workspace/mcp-contrast/mcp-contrast/target/mcp-contrast-0.0.1-SNAPSHOT.jar",
       "--CONTRAST_HOST_NAME=example.contrastsecurity.com",
