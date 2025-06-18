@@ -25,11 +25,11 @@ jobs:
         with:
           apiKey: ${{ secrets.CONTRAST_GITHUB_APP_API_KEY }}
           authHeader: ${{ secrets.CONTRAST_GITHUB_APP_AUTH_HEADER }}
-          orgId: ${{ vars.CONTRAST_GITHUB_APP_ORG_ID }}
-          apiUrl: ${{ vars.CONTRAST_GITHUB_APP_TS_URL }}
+          orgId: ${{ secrets.CONTRAST_GITHUB_APP_ORG_ID }}
+          apiUrl: ${{ secrets.CONTRAST_GITHUB_APP_TS_URL }}
           repoUrl: ${{ github.server_url }}/${{ github.repository }}
           repoName: ${{ github.repository }}
-          externalId: ${{ vars.CONTRAST_GITHUB_APP_ID }}
+          externalId: ${{ secrets.CONTRAST_GITHUB_APP_ID }}
           command: fingerprint
     outputs:
       fingerprint: ${{ steps.fingerprint.outputs.fingerprint }}
