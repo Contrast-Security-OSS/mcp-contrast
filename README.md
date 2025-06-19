@@ -400,3 +400,32 @@ For VS Code configuration with Docker and proxy, modify the settings.json like t
   }
 }
 ```
+
+## Common Issues
+If you are experiencing issues with the MCP server, here are some common troubleshooting steps:
+### Review Log
+A log will be created, by default under `/tmp/mcp-contrast.log` either locally or witin the docker container. You can view this log to see if there are any errors or issues with the MCP server.
+
+### Enable Debug Logging
+To enable debug logging you can add the following flag to the command line arguments when running the MCP server:
+`--logging.level.root=DEBUG`
+This can be added at this part of the docker command 
+```
+        "--rm",
+        "contrast/mcp-contrast:latest",
+        "-t",
+         "--logging.level.root=DEBUG",
+        "stdio"
+        ],
+```
+
+### Certificate Issues
+If the SSL Certificate for the Teamserver URL is not trusted, you may see the following error:
+```
+Failed to list applications: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
+```
+If this occurs you will need to add the certificate to the Java Truststore and then add the following to the command line arguments when running the MCP server:
+`-Djavax.net.ssl.trustStore=/loctaion/to/mcp-truststore.jks, -Djavax.net.ssl.trustStorePassword=yourpassword`
+More details on how to do this can be found in the [Java documentation](https://docs.oracle.com/cd/E19509-01/820-3503/6nf1il6er/index.html). Or ask your LLM to help you with this.
+
+
