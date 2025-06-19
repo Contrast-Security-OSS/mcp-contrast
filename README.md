@@ -252,6 +252,53 @@ Add the following the json configuration
 Once done you should see the contrast mcp server appear in the list of MCP servers, if you expand it you should see a list of available tools.
 ![cline3.png](images/cline3.png)
 
+### Using Claude Desktop
+Claude Desktop is a desktop application that allows you to use the Claude AI model locally. It can be configured to use the Contrast MCP server for enhanced functionality.
+To setup Claude Desktop with the Contrast MCP server, follow these steps:
+In Claude Desktop, go to the settings and then the Developer tab.
+![claude1.png](images/claude1.png)
+Then select Edit Config and edit the `claude_desktop_config.json` file.
+Add the following configuration to the `claude_desktop_config.json` file:
+```json
+{
+  "mcpServers": {
+    "contrastmcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-e",
+        "CONTRAST_HOST_NAME",
+        "-e",
+        "CONTRAST_API_KEY",
+        "-e",
+        "CONTRAST_SERVICE_KEY",
+        "-e",
+        "CONTRAST_USERNAME",
+        "-e",
+        "CONTRAST_ORG_ID",
+        "-i",
+        "--rm",
+        "contrast/mcp-contrast:latest",
+        "-t",
+        "stdio"
+      ],
+      "env": {
+        "CONTRAST_HOST_NAME": "example.contrastsecurity.com",
+        "CONTRAST_API_KEY": "xxx",
+        "CONTRAST_SERVICE_KEY": "xxx",
+        "CONTRAST_USERNAME": "xxx.xxx@example.com",
+        "CONTRAST_ORG_ID": "xxx"
+      }
+    }
+  }
+}
+```
+Once you have added the configuration you will need to restart the Claude Desktop application for the change to take effect.
+After you have restarted the application, you should be able to use Claude Desktop to interact with the Contrast MCP server. For example :
+![claude2.png](images/claude2.png)
+
+
+
 ### Using oterm
 oterm is  terminal wrapper for ollama. One of its features is the ability to add MCP servers to specific LLM Models.
 https://ggozad.github.io/oterm/
