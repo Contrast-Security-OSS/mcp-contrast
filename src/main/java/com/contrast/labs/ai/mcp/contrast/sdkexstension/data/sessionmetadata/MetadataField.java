@@ -13,12 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.contrast.labs.ai.mcp.contrast.data;
+package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata;
 
-import java.util.List;
+/**
+ * Represents a metadata field with display and agent labels
+ */
+public class MetadataField {
+    private String displayLabel;
+    private String agentLabel;
 
-public record ApplicationData(String name, String status, String appID,
-                              long lastSeen, String lastSeenDate,
-                              String language, List<Metadata> metadata,List<String> tags,
-                              List<String> technologies) {
+    public String getDisplayLabel() {
+        return displayLabel;
+    }
+
+    public void setDisplayLabel(String displayLabel) {
+        this.displayLabel = displayLabel;
+    }
+
+    public String getAgentLabel() {
+        return agentLabel;
+    }
+
+    public void setAgentLabel(String agentLabel) {
+        this.agentLabel = agentLabel;
+    }
 }

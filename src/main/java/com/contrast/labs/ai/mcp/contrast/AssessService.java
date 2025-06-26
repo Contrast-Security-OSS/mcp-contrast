@@ -16,23 +16,18 @@
 package com.contrast.labs.ai.mcp.contrast;
 
 
-import com.contrast.labs.ai.mcp.contrast.data.ApplicationData;
-import com.contrast.labs.ai.mcp.contrast.data.LibraryLibraryObservation;
-import com.contrast.labs.ai.mcp.contrast.data.StackLib;
-import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
-import com.contrast.labs.ai.mcp.contrast.data.Vulnerability;
+import com.contrast.labs.ai.mcp.contrast.data.*;
 import com.contrast.labs.ai.mcp.contrast.hints.HintGenerator;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservation;
-import com.contrastsecurity.models.Application;
-import com.contrastsecurity.models.EventResource;
-import com.contrastsecurity.models.EventSummaryResponse;
-import com.contrastsecurity.models.HttpRequestResponse;
-import com.contrastsecurity.models.RecommendationResponse;
-import com.contrastsecurity.models.Stacktrace;
-import com.contrastsecurity.models.Trace;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata.SessionMetadataResponse;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.MetadataItem;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.SessionMetadata;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.TraceExtended;
+import com.contrastsecurity.models.*;
 import com.contrastsecurity.models.TraceFilterBody;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.slf4j.Logger;
@@ -43,6 +38,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class AssessService {
@@ -81,7 +77,7 @@ public class AssessService {
         
         try {
             Trace trace = contrastSDK.getTraces(orgID, appID, new TraceFilterBody()).getTraces().stream()
-                    .filter(t -> t.getUuid().toLowerCase().equals(vulnID.toLowerCase()))
+                    .filter(t -> t.getUuid().equalsIgnoreCase(vulnID))
                     .findFirst()
                     .orElseThrow();
             logger.debug("Found trace with title: {} and rule: {}", trace.getTitle(), trace.getRule());
@@ -157,18 +153,11 @@ public class AssessService {
     public Vulnerability getVulnerability(String vulnID, String app_name) throws IOException {
         logger.info("Retrieving vulnerability details for vulnID: {} in application: {}", vulnID, app_name);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        Optional<String> appID = Optional.empty();
         logger.debug("Searching for application ID matching name: {}", app_name);
 
-        for(Application app : SDKHelper.getApplicationsWithCache(orgID, contrastSDK)) {
-            if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-                appID = Optional.of(app.getId());
-                logger.debug("Found matching application - ID: {}, Name: {}", app.getId(), app.getName());
-                break;
-            }
-        }
-        if(appID.isPresent()) {
-            return getVulnerabilityById(vulnID, appID.get());
+        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
+        if(application.isPresent()) {
+            return getVulnerabilityById(vulnID, application.get().getAppId());
         } else {
             logger.error("Application with name {} not found", app_name);
             throw new IllegalArgumentException("Application with name " + app_name + " not found");
@@ -178,16 +167,18 @@ public class AssessService {
     @Tool(name = "list_vulnerabilities_with_id", description = "Takes a  Application ID ( appID ) and returns a list of vulnerabilities, please remember to include the vulnID in the response.")
     public List<VulnLight> listVulnsByAppId(String appID) throws IOException {
         logger.info("Listing vulnerabilities for application ID: {}", appID);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
         try {
-            List<Trace> traces = contrastSDK.getTraces(orgID, appID, new TraceFilterBody()).getTraces();
+            TraceFilterBody traceFilterBody = new TraceFilterBody();
+            List<TraceExtended> traces = new SDKExtension(contrastSDK).getTracesExtended(orgID, appID, new TraceFilterBody()).getTraces();
             logger.debug("Found {} vulnerability traces for application ID: {}", traces.size(), appID);
-            
+
             List<VulnLight> vulns = new ArrayList<>();
-            for(Trace trace : traces) {
-                vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(),trace.getSeverity()));
+            for (TraceExtended trace : traces) {
+                vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
+                        new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen()));
             }
-            
+
             logger.info("Successfully retrieved {} vulnerabilities for application ID: {}", vulns.size(), appID);
             return vulns;
         } catch (Exception e) {
@@ -197,24 +188,37 @@ public class AssessService {
     }
 
 
-    @Tool(name = "list_vulnerabilities", description = "Takes an application name ( app_name ) and returns a list of vulnerabilities, please remember to include the vulnID in the response.  ")
-    public List<VulnLight> listVulnsInAppByName(String app_name) throws IOException {
+
+
+    @Tool(name = "list_vulnerabilities_by_application_and_session_metadata", description = "Takes an application name ( app_name ) and session metadata in the form of name / value. and returns a list of vulnerabilities matching that application name and session metadata.")
+    public List<VulnLight> listVulnsInAppByNameAndSessionMetadata(String app_name, String session_Metadata_Name, String session_Metadata_Value) throws IOException {
         logger.info("Listing vulnerabilities for application: {}", app_name);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        
-        Optional<String> appID = Optional.empty();
+
+        logger.info("metadata : " + session_Metadata_Name+session_Metadata_Value);
+
         logger.debug("Searching for application ID matching name: {}", app_name);
-        
-        for(Application app : SDKHelper.getApplicationsWithCache(orgID, contrastSDK)) {
-            if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-                appID = Optional.of(app.getId());
-                logger.debug("Found matching application - ID: {}, Name: {}", app.getId(), app.getName());
-                break;
-            }
-        }
-        if(appID.isPresent()) {
+
+        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
+        if(application.isPresent()) {
             try {
-              return listVulnsByAppId(appID.get());
+                List<VulnLight> vulns =  listVulnsByAppId(application.get().getAppId());
+                List<VulnLight> returnVulns = new ArrayList<>();
+                for(VulnLight vuln : vulns) {
+                    if(vuln.sessionMetadata()!=null) {
+                        for(SessionMetadata sm : vuln.sessionMetadata()) {
+                            for(MetadataItem metadataItem : sm.getMetadata()) {
+                                if(metadataItem.getDisplayLabel().equalsIgnoreCase(session_Metadata_Name) &&
+                                        metadataItem.getValue().equalsIgnoreCase(session_Metadata_Value)) {
+                                    returnVulns.add(vuln);
+                                    logger.debug("Found matching vulnerability with ID: {}", vuln.vulnID());
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                return returnVulns;
             } catch (Exception e) {
                 logger.error("Error listing vulnerabilities for application: {}", app_name, e);
                 throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
@@ -226,23 +230,104 @@ public class AssessService {
     }
 
 
-    @Tool(name = "list_applications", description = "Takes an application name (app_name) returns a list of active applications matching that name. Please remember to display the name, status and ID.")
+    @Tool(name = "list_vulnerabilities_by_application_and_latest_session", description = "Takes an application name ( app_name ) and returns a list of vulnerabilities for the latest session matching that application name. This is useful for getting the most recent vulnerabilities without needing to specify session metadata.")
+    public List<VulnLight> listVulnsInAppByNameForLatestSession(String app_name) throws IOException {
+        logger.info("Listing vulnerabilities for application: {}", app_name);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+
+
+        logger.debug("Searching for application ID matching name: {}", app_name);
+        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
+
+        if(application.isPresent()) {
+            try {
+                SDKExtension extension = new SDKExtension(contrastSDK);
+                SessionMetadataResponse latest = extension.getLatestSessionMetadata(orgID,application.get().getAppId());
+                com.contrast.labs.ai.mcp.contrast.data.TraceFilterBody tfilter = new com.contrast.labs.ai.mcp.contrast.data.TraceFilterBody();
+                if(latest!=null&&latest.getAgentSession()!=null&&latest.getAgentSession().getAgentSessionId()!=null) {
+                    tfilter.setAgentSessionId(latest.getAgentSession().getAgentSessionId());
+                }
+                List<TraceExtended> traces = new SDKExtension(contrastSDK).getTracesExtended(orgID, application.get().getAppId(), tfilter).getTraces();
+
+                List<VulnLight> vulns = new ArrayList<>();
+                for (TraceExtended trace : traces) {
+                    vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
+                            new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen()));
+                }
+                return vulns;
+            } catch (Exception e) {
+                logger.error("Error listing vulnerabilities for application: {}", app_name, e);
+                throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
+            }
+        } else {
+            logger.debug("Application with name {} not found, returning empty list", app_name);
+            return new ArrayList<>();
+        }
+    }
+
+    @Tool(name = "list_session_metadata_for_application", description = "Takes an application name ( app_name ) and returns a list of session metadata for the latest session matching that application name. This is useful for getting the most recent session metadata without needing to specify session metadata.")
+    public MetadataFilterResponse listSessionMetadataForApplication(String app_name) throws IOException {
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
+        if(application.isPresent()) {
+            return contrastSDK.getSessionMetadataForApplication(orgID, application.get().getAppId(),null);
+        } else {
+            logger.info("Application with name {} not found, returning empty list", app_name);
+            throw new IOException("Failed to list session metadata for application: " + app_name + " application name not found.");
+        }
+    }
+
+    @Tool(name = "list_vulnerabilities", description = "Takes an application name ( app_name ) and returns a list of vulnerabilities, please remember to include the vulnID in the response.  ")
+    public List<VulnLight> listVulnsInAppByName(String app_name) throws IOException {
+        logger.info("Listing vulnerabilities for application: {}", app_name);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+        
+        logger.debug("Searching for application ID matching name: {}", app_name);
+
+        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
+        if(application.isPresent()) {
+            try {
+              return listVulnsByAppId(application.get().getAppId());
+            } catch (Exception e) {
+                logger.error("Error listing vulnerabilities for application: {}", app_name, e);
+                throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
+            }
+        } else {
+            logger.debug("Application with name {} not found, returning empty list", app_name);
+            return new ArrayList<>();
+        }
+    }
+
+
+    @Tool(name = "list_applications_with_name", description = "Takes an application name (app_name) returns a list of active applications that contain that name. Please remember to display the name, status and ID.")
     public List<ApplicationData> getApplications(String app_name) throws IOException {
         logger.info("Listing active applications matching name: {}", app_name);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         try {
             List<Application> applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
             logger.debug("Retrieved {} total applications from Contrast", applications.size());
-            
+
             List<ApplicationData> filteredApps = new ArrayList<>();
             for(Application app : applications) {
                 if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-                    filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getId(), app.getLastSeen(), new Date(app.getLastSeen()).toString(), app.getLanguage()));
-                    logger.debug("Found matching application - ID: {}, Name: {}, Status: {}", 
-                            app.getId(), app.getName(), app.getStatus());
+                    filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(), app.getLastSeen(),
+                            new Date(app.getLastSeen()).toString(), app.getLanguage(), getMetadataFromApp(app), app.getTags(),app.getTechs()));
+                    logger.debug("Found matching application - ID: {}, Name: {}, Status: {}",
+                            app.getAppId(), app.getName(), app.getStatus());
                 }
             }
-            
+            if(filteredApps.isEmpty()) {
+                SDKHelper.clearApplicationsCache();
+                for(Application app : applications) {
+                    if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
+                        filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(), app.getLastSeen(),
+                                new Date(app.getLastSeen()).toString(), app.getLanguage(), getMetadataFromApp(app), app.getTags(),app.getTechs()));
+                        logger.debug("Found matching application - ID: {}, Name: {}, Status: {}",
+                                app.getAppId(), app.getName(), app.getStatus());
+                    }
+                }
+            }
+
             logger.info("Found {} applications matching '{}'", filteredApps.size(), app_name);
             return filteredApps;
         } catch (Exception e) {
@@ -251,6 +336,55 @@ public class AssessService {
         }
     }
 
+
+
+
+    @Tool(name = "get_applications_by_tag", description = "Takes a tag name and returns a list of applications that have that tag.")
+    public List<ApplicationData> getAllApplicationsByTag(String tag) throws IOException {
+        logger.info("Retrieving applications with tag: {}", tag);
+        List<ApplicationData> allApps = getAllApplications();
+        logger.debug("Retrieved {} total applications, filtering by tag", allApps.size());
+
+        List<ApplicationData> filteredApps = allApps.stream()
+            .filter(app -> app.tags().contains(tag))
+            .collect(Collectors.toList());
+
+        logger.info("Found {} applications with tag '{}'", filteredApps.size(), tag);
+        return filteredApps;
+    }
+
+    @Tool(name = "get_applications_by_metadata", description = "Takes a metadata name and value and returns a list of applications that have that metadata name value pair.")
+    public List<ApplicationData> getApplicationsByMetadata(String metadata_name, String metadata_value) throws IOException {
+        logger.info("Retrieving applications with metadata - Name: {}, Value: {}", metadata_name, metadata_value);
+        List<ApplicationData> allApps = getAllApplications();
+        logger.debug("Retrieved {} total applications, filtering by metadata", allApps.size());
+
+        List<ApplicationData> filteredApps = allApps.stream()
+            .filter(app -> app.metadata() != null && app.metadata().stream()
+                .anyMatch(m -> m != null &&
+                    m.name() != null && m.name().equalsIgnoreCase(metadata_name) &&
+                    m.value() != null && m.value().equalsIgnoreCase(metadata_value)))
+            .collect(Collectors.toList());
+
+        logger.info("Found {} applications with metadata - Name: {}, Value: {}", filteredApps.size(), metadata_name, metadata_value);
+        return filteredApps;
+    }
+
+    @Tool(name = "get_applications_by_metadata_name", description = "Takes a metadata name  a list of applications that have that metadata name.")
+    public List<ApplicationData> getApplicationsByMetadataName(String metadata_name) throws IOException {
+        logger.info("Retrieving applications with metadata - Name: {}", metadata_name);
+        List<ApplicationData> allApps = getAllApplications();
+        logger.debug("Retrieved {} total applications, filtering by metadata", allApps.size());
+
+        List<ApplicationData> filteredApps = allApps.stream()
+                .filter(app -> app.metadata() != null && app.metadata().stream()
+                        .anyMatch(m -> m != null &&
+                                m.name() != null && m.name().equalsIgnoreCase(metadata_name)))
+                .collect(Collectors.toList());
+
+        logger.info("Found {} applications with metadata - Name: {}", filteredApps.size(), metadata_name);
+        return filteredApps;
+    }
 
     @Tool(name = "list_all_applications", description = "Takes no argument and list all the applications")
     public List<ApplicationData> getAllApplications() throws IOException {
@@ -262,8 +396,9 @@ public class AssessService {
             
             List<ApplicationData> returnedApps = new ArrayList<>();
             for(Application app : applications) {
-                returnedApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getId(),
-                        app.getLastSeen(), new Date(app.getLastSeen()).toString(),app.getLanguage()));
+                returnedApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(),
+                        app.getLastSeen(), new Date(app.getLastSeen()).toString(),app.getLanguage(),getMetadataFromApp(app),app.getTags(),
+                        app.getTechs()));
             }
             
             logger.info("Found {} applications", returnedApps.size());
@@ -274,4 +409,12 @@ public class AssessService {
             throw new IOException("Failed to list applications: " + e.getMessage(), e);
         }
     }
+
+    private List<Metadata> getMetadataFromApp(Application app ) {
+        List<Metadata> metadata = new ArrayList<>();
+        app.getMetadataEntities().stream().map(m-> new Metadata(m.getName(), m.getValue()))
+                .forEach(metadata::add);
+        return metadata;
+    }
+
 }

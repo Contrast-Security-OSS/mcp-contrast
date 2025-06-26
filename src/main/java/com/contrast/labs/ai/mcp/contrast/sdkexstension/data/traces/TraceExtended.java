@@ -13,11 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.contrast.labs.ai.mcp.contrast.data;
+package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces;
 
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.SessionMetadata;
+import com.contrastsecurity.models.Trace;
+import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
 
-public record VulnLight(String title, String type, String vulnID, String severity, List<SessionMetadata> sessionMetadata, String lastSeenDate, long lastSeenTime ) {
+/**
+ * Extended Trace class that includes session metadata information.
+ * This extends the standard Trace class from the Contrast SDK.
+ */
+public class TraceExtended extends Trace {
+    @SerializedName("session_metadata")
+    private List<SessionMetadata> sessionMetadata;
+
+    public List<SessionMetadata> getSessionMetadata() {
+        return sessionMetadata;
+    }
+
+    public void setSessionMetadata(List<SessionMetadata> sessionMetadata) {
+        this.sessionMetadata = sessionMetadata;
+    }
 }

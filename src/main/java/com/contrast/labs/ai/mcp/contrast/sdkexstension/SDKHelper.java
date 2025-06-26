@@ -16,8 +16,8 @@
 package com.contrast.labs.ai.mcp.contrast.sdkexstension;
 
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservation;
-import com.contrastsecurity.models.Application;
 import com.contrastsecurity.sdk.ContrastSDK;
 import com.contrastsecurity.sdk.UserAgentProduct;
 import com.google.common.cache.Cache;
@@ -26,6 +26,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibrariesExtended;
 import com.contrastsecurity.http.LibraryFilterForm;
+import org.springframework.core.env.Environment;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.net.Proxy;
@@ -36,27 +39,34 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import com.contrastsecurity.exceptions.UnauthorizedException;
 
+@Component
 public class SDKHelper {
-
 
     private static final String MCP_SERVER_NAME = "contrast-mcp";
     private static final String MCP_VERSION = "0.0.9";
 
     private static final Logger logger = LoggerFactory.getLogger(SDKHelper.class);
 
+    private static Environment environment;
+
+    @Autowired
+    public void setEnvironment(Environment environment) {
+        SDKHelper.environment = environment;
+    }
+
     private static final Cache<String, List<LibraryExtended>> libraryCache = CacheBuilder.newBuilder()
-            .maximumSize(100)
-            .expireAfterWrite(5, TimeUnit.MINUTES)
+            .maximumSize(500000)
+            .expireAfterWrite(10, TimeUnit.MINUTES)
             .build();
             
     private static final Cache<String, List<LibraryObservation>> libraryObservationsCache = CacheBuilder.newBuilder()
-            .maximumSize(5000)
-            .expireAfterWrite(60, TimeUnit.MINUTES)
+            .maximumSize(500000)
+            .expireAfterWrite(10, TimeUnit.MINUTES)
             .build();
 
     private static final Cache<String, List<Application>> applicationsCache = CacheBuilder.newBuilder()
-            .maximumSize(5000)
-            .expireAfterWrite(60, TimeUnit.MINUTES)
+            .maximumSize(500000)
+            .expireAfterWrite(10, TimeUnit.MINUTES)
             .build();
 
     public static List<LibraryExtended> getLibsForID(String appID, String orgID, SDKExtension extendedSDK) throws IOException {
@@ -89,24 +99,6 @@ public class SDKHelper {
         libraryCache.put(appID, libs);
 
         return libs;
-    }
-
-    public static String getAppIDFromName(String app_name, String orgID, ContrastSDK contrastSDK) throws IOException {
-        logger.debug("Cache miss for application name: {}, searching for application ID", app_name);
-        Optional<String> appID = Optional.empty();
-        for (Application app : getApplicationsWithCache(orgID, contrastSDK)) {
-            if (app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-                appID = Optional.of(app.getId());
-                logger.info("Found matching application - ID: {}, Name: {}", app.getId(), app.getName());
-                break;
-            }
-        }
-        if (appID.isPresent()) {
-            return appID.get();
-        } else {
-            logger.warn("No application found with name: {}", app_name);
-            return null;
-        }
     }
 
     /**
@@ -164,7 +156,7 @@ public class SDKHelper {
         logger.info("Initializing ContrastSDK with username: {}, host: {}", userName, hostName);
 
         ContrastSDK.Builder builder = new ContrastSDK.Builder(userName, serviceKey, apiKey)
-                .withApiUrl("https://" + hostName + "/Contrast/api")
+                .withApiUrl(SDKHelper.environment.getProperty("contrast.api.protocol", "https") + "://" + hostName + "/Contrast/api")
                 .withUserAgentProduct(UserAgentProduct.of(MCP_SERVER_NAME, MCP_VERSION));
 
         if (httpProxyHost != null && !httpProxyHost.isEmpty()) {
@@ -180,6 +172,26 @@ public class SDKHelper {
         }
 
         return builder.build();
+    }
+
+    public static Optional<Application> getApplicationByName(String appName, String orgId, ContrastSDK contrastSDK) throws IOException {
+        logger.debug("Searching for application by name: {}", appName);
+        for (Application app : getApplicationsWithCache(orgId, contrastSDK)) {
+            if (app.getName().equalsIgnoreCase(appName)) {
+                logger.info("Found application - ID: {}, Name: {}", app.getAppId(), app.getName());
+                return Optional.of(app);
+            }
+        }
+
+        logger.warn("No application found with name: {}, clearing cache and retrying", appName);
+        clearApplicationsCache();
+        for (Application app : getApplicationsWithCache(orgId, contrastSDK)) {
+            if (app.getName().equalsIgnoreCase(appName)) {
+                logger.info("Found application after cache clear - ID: {}, Name: {}", app.getAppId(), app.getName());
+                return Optional.of(app);
+            }
+        }
+        return Optional.empty();
     }
 
     /**
@@ -202,8 +214,7 @@ public class SDKHelper {
         }
 
         logger.info("Cache miss for applications in org: {}, fetching from API", orgId);
-        List<Application> applications = contrastSDK.getApplications(orgId).getApplications();
-
+        List<com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application> applications = new SDKExtension(contrastSDK).getApplications(orgId).getApplications();
         logger.info("Successfully retrieved {} applications from organization: {}",
                 applications.size(), orgId);
 
@@ -211,5 +222,60 @@ public class SDKHelper {
         applicationsCache.put(cacheKey, applications);
 
         return applications;
+    }
+
+    /**
+     * Clears the libraries cache.
+     *
+     * @return The number of entries cleared
+     */
+    public static long clearLibraryCache() {
+        long size = libraryCache.size();
+        libraryCache.invalidateAll();
+        libraryCache.cleanUp();
+        logger.info("Cleared {} entries from library cache", size);
+        return size;
+    }
+
+    /**
+     * Clears the library observations cache.
+     *
+     * @return The number of entries cleared
+     */
+    public static long clearLibraryObservationsCache() {
+        long size = libraryObservationsCache.size();
+        libraryObservationsCache.invalidateAll();
+        libraryObservationsCache.cleanUp();
+        logger.info("Cleared {} entries from library observations cache", size);
+        return size;
+    }
+
+    /**
+     * Clears the applications cache.
+     *
+     * @return The number of entries cleared
+     */
+    public static long clearApplicationsCache() {
+        long size = applicationsCache.size();
+        applicationsCache.invalidateAll();
+        applicationsCache.cleanUp();
+        logger.info("Cleared {} entries from applications cache", size);
+        return size;
+    }
+
+    /**
+     * Clears all caches maintained by the SDKHelper.
+     *
+     * @return Total number of entries cleared across all caches
+     */
+    public static long clearAllCaches() {
+        long libraryEntries = clearLibraryCache();
+        long observationsEntries = clearLibraryObservationsCache();
+        long applicationsEntries = clearApplicationsCache();
+
+        long totalCleared = libraryEntries + observationsEntries + applicationsEntries;
+        logger.info("Cleared a total of {} entries from all caches", totalCleared);
+
+        return totalCleared;
     }
 }

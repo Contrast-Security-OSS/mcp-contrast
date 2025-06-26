@@ -18,14 +18,18 @@ package com.contrast.labs.ai.mcp.contrast.sdkexstension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibrariesExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttackEvent;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.ApplicationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservation;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteDetailsResponse;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata.SessionMetadataResponse;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.TracesExtended;
 import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.http.*;
 import com.contrastsecurity.models.RouteCoverageBySessionIDAndMetadataRequest;
+import com.contrastsecurity.models.TraceFilterBody;
+import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.sdk.ContrastSDK;
 import com.contrastsecurity.sdk.internal.GsonFactory;
 import com.google.gson.Gson;
@@ -230,7 +234,58 @@ public class SDKExtension {
      */
     private String getRouteDetailsUrl(String organizationId, String applicationId, String routeHash) {
         return String.format(
-                "/ng/%s/applications/%s/route/%s/observations?expand=skip_links",
+                "/ng/%s/applications/%s/route/%s/observations?expand=skip_links,session_metadata",
                 organizationId, applicationId, routeHash);
     }
+
+    public ApplicationsResponse getApplications(String organizationId)
+            throws UnauthorizedException, IOException {
+        String url = urlBuilder.getApplicationsUrl(organizationId)+"&expand=metadata,technologies,skip_links";
+        try (InputStream is =
+                     contrastSDK.makeRequest(HttpMethod.GET, url);
+             Reader reader = new InputStreamReader(is)) {
+            return this.gson.fromJson(reader, ApplicationsResponse.class);
+        }
+    }
+
+    public Traces getTraces(String organizationId, String appId, TraceFilterBody filters)
+            throws IOException, UnauthorizedException {
+        try (InputStream is =
+                     contrastSDK.makeRequestWithBody(
+                             HttpMethod.POST,
+                             urlBuilder.getTracesWithBodyUrl(organizationId, appId)+"?expand=session_metadata",
+                             this.gson.toJson(filters),
+                             MediaType.JSON);
+             Reader reader = new InputStreamReader(is)) {
+            return this.gson.fromJson(reader, Traces.class);
+        }
+    }
+
+    public SessionMetadataResponse getLatestSessionMetadata(String organizationId, String appId)
+            throws IOException, UnauthorizedException {
+
+        String url = String.format(
+                "/ng/organizations/%s/applications/%s/agent-sessions/latest",
+                organizationId, appId);
+        try (InputStream is =
+                     contrastSDK.makeRequest(HttpMethod.GET, url);
+             Reader reader = new InputStreamReader(is)) {
+            return this.gson.fromJson(reader, com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata.SessionMetadataResponse.class);
+        }
+    }
+
+    public TracesExtended getTracesExtended(String organizationId, String appId, TraceFilterBody filters)
+            throws IOException, UnauthorizedException {
+        try (InputStream is =
+                     contrastSDK.makeRequestWithBody(
+                             HttpMethod.POST,
+                             urlBuilder.getTracesWithBodyUrl(organizationId, appId)+"?expand=session_metadata",
+                             this.gson.toJson(filters),
+                             MediaType.JSON);
+             Reader reader = new InputStreamReader(is)) {
+            return this.gson.fromJson(reader, com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.TracesExtended.class);
+        }
+    }
+
+
 }

@@ -18,6 +18,7 @@ package com.contrast.labs.ai.mcp.contrast;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +27,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Service
 public class ADRService {
@@ -66,14 +68,14 @@ public class ADRService {
 
             // Get application ID from name
             logger.debug("Looking up application ID for name: {}", applicationName);
-            String appID = SDKHelper.getAppIDFromName(applicationName, orgID, contrastSDK);
-            if (appID == null || appID.isEmpty()) {
+            Optional<Application> app = SDKHelper.getApplicationByName(applicationName, orgID, contrastSDK);
+            if (app.isEmpty()) {
                 logger.warn("No application ID found for application: {}", applicationName);
                 return null;
             }
-            logger.debug("Found application ID: {} for application: {}", appID, applicationName);
+            logger.debug("Found application ID: {} for application: {}", app.get().getAppId(), applicationName);
 
-            ProtectData result = getProtectDataByAppID(appID);
+            ProtectData result = getProtectDataByAppID(app.get().getAppId());
             long duration = System.currentTimeMillis() - startTime;
             logger.info("Completed retrieval of protection rules for application: {} (took {} ms)", applicationName, duration);
             return result;

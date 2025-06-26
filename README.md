@@ -42,6 +42,20 @@ Contrast's MCP server allows you as a developer or security professional to quic
 
 * Which libraries in Application X are not being used?
 
+#### Retrieving application based on Tags
+* please give me the applications tagged with "backend"
+
+#### Retrieving application based on Metadata
+* please give me the applications with metadata  "dev-team" "backend-team"
+
+#### Retrieving vulnerabilities based on Session Metadata
+* give me the sesssion metadata for application x
+* give me the vulnerabilities in the latest session for application X
+* give me the vulnerabilities for session metadata "Branch Name" "feature/some-new-fix" for application X
+* give me the route coverage for the latest session for application X
+* give me the route coverage for session metadata "Branch Name" "feature/some-new-fix" for application X
+
+
 ### For the Security Professional
 * Please give me a breakdown of applications and servers vulnerable to CVE-xxxx-xxxx
 * Please list the libraries for application named xxx and tell me what version of commons-collections is being used

@@ -13,12 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.contrast.labs.ai.mcp.contrast.data;
+package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata;
 
-import java.util.List;
+/**
+ * Represents a metadata session value with its associated field
+ */
+public class MetadataSession {
+    private String value;
+    private MetadataField metadataField;
 
-public record ApplicationData(String name, String status, String appID,
-                              long lastSeen, String lastSeenDate,
-                              String language, List<Metadata> metadata,List<String> tags,
-                              List<String> technologies) {
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
+
+    public MetadataField getMetadataField() {
+        return metadataField;
+    }
+
+    public void setMetadataField(MetadataField metadataField) {
+        this.metadataField = metadataField;
+    }
 }

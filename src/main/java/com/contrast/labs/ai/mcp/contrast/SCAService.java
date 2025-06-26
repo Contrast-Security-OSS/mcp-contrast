@@ -21,8 +21,8 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.App;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
 import com.contrastsecurity.http.LibraryFilterForm;
-import com.contrastsecurity.models.Application;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +62,7 @@ public class SCAService {
     private String httpProxyPort;
 
 
-    @Tool(name = "list_application_libraries_by_app_id", description = "takes a application ID and returns the libraries used in the application, note if class usage count is 0 the library is unlikely to be used")
+    @Tool(name = "list_application_libraries_by_app_id", description = "Takes a application ID and returns the libraries used in the application, note if class usage count is 0 the library is unlikely to be used")
     public List<LibraryExtended> getApplicationLibrariesByID(String appID) throws IOException {
         logger.info("Retrieving libraries for application id: {}", appID);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
@@ -81,18 +81,11 @@ public class SCAService {
         logger.debug("ContrastSDK initialized with host: {}", hostName);
         
         SDKExtension extendedSDK = new SDKExtension(contrastSDK);
-        Optional<String> appID = Optional.empty();
         logger.debug("Searching for application ID matching name: {}", app_name);
-        
-        for(Application app : SDKHelper.getApplicationsWithCache(orgID, contrastSDK)) {
-            if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-                appID = Optional.of(app.getId());
-                logger.info("Found matching application - ID: {}, Name: {}", app.getId(), app.getName());
-                break;
-            }
-        }
-        if(appID.isPresent()) {
-            return SDKHelper.getLibsForID(appID.get(),orgID, extendedSDK);
+
+        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
+        if(application.isPresent()) {
+            return SDKHelper.getLibsForID(application.get().getAppId(),orgID, extendedSDK);
         } else {
             logger.error("Application not found: {}", app_name);
             throw new IOException("Application not found");
