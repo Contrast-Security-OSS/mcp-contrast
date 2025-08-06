@@ -165,6 +165,13 @@ public class RouteCoverageService {
         SDKExtension sdkExtension = new SDKExtension(contrastSDK);
         SDKExtension extension = new SDKExtension(contrastSDK);
         SessionMetadataResponse latest = extension.getLatestSessionMetadata(orgID,app_id);
+        if (latest == null || latest.getAgentSession() == null) {
+            logger.error("No session metadata found for application ID: {}", app_id);
+            RouteCoverageResponse noRouteCoverageResponse = new RouteCoverageResponse();
+            noRouteCoverageResponse.setSuccess(Boolean.FALSE);
+            logger.debug("No Agent session found in latest session metadata response for application ID: {}", app_id);
+            return noRouteCoverageResponse; // Return empty response if no session metadata found
+        }
         RouteCoverageBySessionIDAndMetadataRequestExtended requestExtended = new RouteCoverageBySessionIDAndMetadataRequestExtended();
         requestExtended.setSessionId(latest.getAgentSession().getAgentSessionId());
         logger.debug("Fetching route coverage data for application ID: {}", app_id);
