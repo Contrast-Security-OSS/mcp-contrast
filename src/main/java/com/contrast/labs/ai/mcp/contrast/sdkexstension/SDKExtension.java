@@ -33,11 +33,16 @@ import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.sdk.ContrastSDK;
 import com.contrastsecurity.sdk.internal.GsonFactory;
 import com.google.gson.Gson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,6 +51,7 @@ public class SDKExtension {
     private final ContrastSDK contrastSDK;
     private final UrlBuilder urlBuilder;
     private final Gson gson;
+    private static final Logger logger = LoggerFactory.getLogger(SDKExtension.class);
 
     public SDKExtension(ContrastSDK contrastSDK) {
         this.contrastSDK = contrastSDK;
@@ -241,11 +247,35 @@ public class SDKExtension {
     public ApplicationsResponse getApplications(String organizationId)
             throws UnauthorizedException, IOException {
         String url = urlBuilder.getApplicationsUrl(organizationId)+"&expand=metadata,technologies,skip_links";
-        try (InputStream is =
-                     contrastSDK.makeRequest(HttpMethod.GET, url);
-             Reader reader = new InputStreamReader(is)) {
+        try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url)) {
+            // Read the entire input stream into a string for logging
+            String responseContent = convertStreamToString(is);
+            
+            // Log the response content
+            logger.debug("Applications API response: {}", responseContent);
+            
+            // Convert the string back to a reader for GSON
+            Reader reader = new StringReader(responseContent);
             return this.gson.fromJson(reader, ApplicationsResponse.class);
         }
+    }
+    
+    /**
+     * Converts an InputStream to String without closing the stream.
+     */
+    private String convertStreamToString(InputStream is) throws IOException {
+        if (is == null) {
+            return "";
+        }
+        
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line).append("\n");
+            }
+        }
+        return sb.toString();
     }
 
     public Traces getTraces(String organizationId, String appId, TraceFilterBody filters)
