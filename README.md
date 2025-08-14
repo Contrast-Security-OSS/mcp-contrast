@@ -1,6 +1,6 @@
 # Contrast MCP Server
 
-$${\color{red} ** WARNING ** }$$
+$${\color{red} ** WARNING ** WARNING ** WARNING ** WARNING ** WARNING **}$$
 
 <h4><code style="color: red;">EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A PUBLIC LLM IS DANGEROUS! </code>
 </h4>
