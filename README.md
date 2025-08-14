@@ -1,11 +1,12 @@
 # Contrast MCP Server
 
-<p style="color:red;">
-  <b>** WARNING ** <br/>EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A PUBLIC LLM IS DANGEROUS!</b><br/></br>
-  Never under any circumstances use mcp-contrast functions which pull sensitive data with a public LLM as it will potentially expose your vulnerability data to the outside world.
-  <br/><br/>
-</p>
+$${\color{red}  ** WARNING ** }$$
 
+<code style="color: red;">EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A PUBLIC LLM IS DANGEROUS! </code>
+
+Never under any circumstances use mcp-contrast functions which pull sensitive data with a public LLM as it will potentially expose your vulnerability data to the outside world.
+  
+<br/><br/>
 
 [![Java CI with Maven](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
