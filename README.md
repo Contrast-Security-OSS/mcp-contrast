@@ -1,7 +1,7 @@
 # Contrast MCP Server
 
-<p align="center">
-  <h1 style="color:red;">** WARNING ** <br/>EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A PUBLIC LLM IS DANGEROUS!</h1>
+<p style="color:red;">
+  <b>** WARNING ** <br/>EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A PUBLIC LLM IS DANGEROUS!</b><br/></br>
   Never under any circumstances use mcp-contrast functions which pull sensitive data with a public LLM as it will potentially expose your vulnerability data to the outside world.
   <br/><br/>
 </p>
