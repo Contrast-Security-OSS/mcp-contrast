@@ -45,6 +45,7 @@ public class AssessService {
 
     private static final Logger logger = LoggerFactory.getLogger(AssessService.class);
     
+    private int acceptedRiskTolerance = 1;
 
     @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
     private String hostName;
@@ -67,7 +68,8 @@ public class AssessService {
     @Value("${http.proxy.port:${http_proxy_port:}}")
     private String httpProxyPort;
 
-
+    @Value("${accepted.risk.tolerance:${ACCEPTED_RISK_TOLERANCE:}}")
+    private String acceptedRiskToleranceStr;
 
     @Tool(name = "get_vulnerability_by_id", description = "takes a vulnerability ID ( vulnID ) and Application ID ( appID ) and returns details about the specific security vulnerability. If based on the stacktrace, the vulnerability looks like it is in code that is not in the codebase, the vulnerability may be in a 3rd party library, review the CVE data attached to that stackframe you believe the vulnerability exists in and if possible upgrade that library to the next non vulnerable version based on the remediation guidance.")
     public Vulnerability getVulnerabilityById(String vulnID, String appID) throws IOException {
@@ -169,7 +171,6 @@ public class AssessService {
         logger.info("Listing vulnerabilities for application ID: {}", appID);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
         try {
-            TraceFilterBody traceFilterBody = new TraceFilterBody();
             List<TraceExtended> traces = new SDKExtension(contrastSDK).getTracesExtended(orgID, appID, new TraceFilterBody()).getTraces();
             logger.debug("Found {} vulnerability traces for application ID: {}", traces.size(), appID);
 
@@ -310,7 +311,7 @@ public class AssessService {
             List<ApplicationData> filteredApps = new ArrayList<>();
             for(Application app : applications) {
                 if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-                    filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(), app.getLastSeen(),
+                    filteredApps.add(new ApplicationData(acceptedRiskToleranceStr, app.getName(), app.getStatus(), app.getAppId(), app.getLastSeen(),
                             new Date(app.getLastSeen()).toString(), app.getLanguage(), getMetadataFromApp(app), app.getTags(),app.getTechs()));
                     logger.debug("Found matching application - ID: {}, Name: {}, Status: {}",
                             app.getAppId(), app.getName(), app.getStatus());
@@ -320,7 +321,7 @@ public class AssessService {
                 SDKHelper.clearApplicationsCache();
                 for(Application app : applications) {
                     if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-                        filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(), app.getLastSeen(),
+                        filteredApps.add(new ApplicationData(acceptedRiskToleranceStr, app.getName(), app.getStatus(), app.getAppId(), app.getLastSeen(),
                                 new Date(app.getLastSeen()).toString(), app.getLanguage(), getMetadataFromApp(app), app.getTags(),app.getTechs()));
                         logger.debug("Found matching application - ID: {}, Name: {}, Status: {}",
                                 app.getAppId(), app.getName(), app.getStatus());
@@ -340,73 +341,105 @@ public class AssessService {
 
 
     @Tool(name = "get_applications_by_tag", description = "Takes a tag name and returns a list of applications that have that tag.")
-    public List<ApplicationData> getAllApplicationsByTag(String tag) throws IOException {
-        logger.info("Retrieving applications with tag: {}", tag);
-        List<ApplicationData> allApps = getAllApplications();
-        logger.debug("Retrieved {} total applications, filtering by tag", allApps.size());
+    public List<ApplicationData> getAllApplicationsByTag(String acceptedRiskToleranceStr, String tag) throws IOException {
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();
+        logger.info("Risk level: low, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.LOW.getValue()) {
+      
+            logger.info("Retrieving applications with tag: {}", tag);
+            List<ApplicationData> allApps = getAllApplications(acceptedRiskToleranceStr);
+            logger.debug("Retrieved {} total applications, filtering by tag", allApps.size());
 
-        List<ApplicationData> filteredApps = allApps.stream()
-            .filter(app -> app.tags().contains(tag))
-            .collect(Collectors.toList());
+            List<ApplicationData> filteredApps = allApps.stream()
+                .filter(app -> app.tags().contains(tag))
+                .collect(Collectors.toList());
 
-        logger.info("Found {} applications with tag '{}'", filteredApps.size(), tag);
-        return filteredApps;
+            logger.info("Found {} applications with tag '{}'", filteredApps.size(), tag);
+            return filteredApps;
+        } else {
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: LOW, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: LOW or higher.");
+        }
     }
 
     @Tool(name = "get_applications_by_metadata", description = "Takes a metadata name and value and returns a list of applications that have that metadata name value pair.")
-    public List<ApplicationData> getApplicationsByMetadata(String metadata_name, String metadata_value) throws IOException {
-        logger.info("Retrieving applications with metadata - Name: {}, Value: {}", metadata_name, metadata_value);
-        List<ApplicationData> allApps = getAllApplications();
-        logger.debug("Retrieved {} total applications, filtering by metadata", allApps.size());
+    public List<ApplicationData> getApplicationsByMetadata(String acceptedRiskToleranceStr, String metadata_name, String metadata_value) throws IOException {
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();
+        logger.info("Risk level: low, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.LOW.getValue()) {
+        
+            logger.info("Retrieving applications with metadata - Name: {}, Value: {}", metadata_name, metadata_value);
+            List<ApplicationData> allApps = getAllApplications(acceptedRiskToleranceStr);
+            logger.debug("Retrieved {} total applications, filtering by metadata", allApps.size());
 
-        List<ApplicationData> filteredApps = allApps.stream()
-            .filter(app -> app.metadata() != null && app.metadata().stream()
-                .anyMatch(m -> m != null &&
-                    m.name() != null && m.name().equalsIgnoreCase(metadata_name) &&
-                    m.value() != null && m.value().equalsIgnoreCase(metadata_value)))
-            .collect(Collectors.toList());
-
-        logger.info("Found {} applications with metadata - Name: {}, Value: {}", filteredApps.size(), metadata_name, metadata_value);
-        return filteredApps;
-    }
-
-    @Tool(name = "get_applications_by_metadata_name", description = "Takes a metadata name  a list of applications that have that metadata name.")
-    public List<ApplicationData> getApplicationsByMetadataName(String metadata_name) throws IOException {
-        logger.info("Retrieving applications with metadata - Name: {}", metadata_name);
-        List<ApplicationData> allApps = getAllApplications();
-        logger.debug("Retrieved {} total applications, filtering by metadata", allApps.size());
-
-        List<ApplicationData> filteredApps = allApps.stream()
+            List<ApplicationData> filteredApps = allApps.stream()
                 .filter(app -> app.metadata() != null && app.metadata().stream()
-                        .anyMatch(m -> m != null &&
-                                m.name() != null && m.name().equalsIgnoreCase(metadata_name)))
+                    .anyMatch(m -> m != null &&
+                        m.name() != null && m.name().equalsIgnoreCase(metadata_name) &&
+                        m.value() != null && m.value().equalsIgnoreCase(metadata_value)))
                 .collect(Collectors.toList());
 
-        logger.info("Found {} applications with metadata - Name: {}", filteredApps.size(), metadata_name);
-        return filteredApps;
+            logger.info("Found {} applications with metadata - Name: {}, Value: {}", filteredApps.size(), metadata_name, metadata_value);
+            return filteredApps;
+        } else {
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: LOW, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: LOW or higher.");
+        }
     }
 
-    @Tool(name = "list_all_applications", description = "Takes no argument and list all the applications")
-    public List<ApplicationData> getAllApplications() throws IOException {
-        logger.info("Listing all applications");
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        try {
-            List<Application> applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
-            logger.debug("Retrieved {} total applications from Contrast", applications.size());
-            
-            List<ApplicationData> returnedApps = new ArrayList<>();
-            for(Application app : applications) {
-                returnedApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(),
-                        app.getLastSeen(), new Date(app.getLastSeen()).toString(),app.getLanguage(),getMetadataFromApp(app),app.getTags(),
-                        app.getTechs()));
-            }
-            
-            logger.info("Found {} applications", returnedApps.size());
-            return returnedApps;
+    @Tool(name = "get_applications_by_metadata_name", description = "Risk Level: LOW, Takes a metadata name  a list of applications that have that metadata name.")
+    public List<ApplicationData> getApplicationsByMetadataName(String acceptedRiskToleranceStr, String metadata_name) throws IOException {
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();
+        logger.info("Risk level: low, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.LOW.getValue()) {
+      
+            logger.info("Retrieving applications with metadata - Name: {}", metadata_name);
+            List<ApplicationData> allApps = getAllApplications(acceptedRiskToleranceStr);
+            logger.debug("Retrieved {} total applications, filtering by metadata", allApps.size());
 
-        } catch (Exception e) {
-            logger.error("Error listing all applications", e);
-            throw new IOException("Failed to list applications: " + e.getMessage(), e);
+            List<ApplicationData> filteredApps = allApps.stream()
+                    .filter(app -> app.metadata() != null && app.metadata().stream()
+                            .anyMatch(m -> m != null &&
+                                    m.name() != null && m.name().equalsIgnoreCase(metadata_name)))
+                    .collect(Collectors.toList());
+
+            logger.info("Found {} applications with metadata - Name: {}", filteredApps.size(), metadata_name);
+            return filteredApps;
+        } else {
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: LOW, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: LOW or higher.");
+        }
+    }
+
+    @Tool(name = "list_all_applications", description = "Risk Level: LOW, Takes no argument and list all the applications")
+    public List<ApplicationData> getAllApplications(String acceptedRiskToleranceStr) throws IOException {
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();        
+        logger.info("Risk level: low, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.LOW.getValue()) {
+      
+            logger.info("Listing all applications");
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+            try {
+                List<Application> applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
+                logger.debug("Retrieved {} total applications from Contrast", applications.size());
+                
+                List<ApplicationData> returnedApps = new ArrayList<>();
+                for(Application app : applications) {
+                    returnedApps.add(new ApplicationData(acceptedRiskToleranceStr, app.getName(), app.getStatus(), app.getAppId(),
+                            app.getLastSeen(), new Date(app.getLastSeen()).toString(),app.getLanguage(),getMetadataFromApp(app),app.getTags(),
+                            app.getTechs()));
+                }
+                
+                logger.info("Found {} applications", returnedApps.size());
+                return returnedApps;
+
+            } catch (Exception e) {
+                logger.error("Error listing all applications", e);
+                throw new IOException("Failed to list applications: " + e.getMessage(), e);
+            }
+        } else {
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: LOW, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: LOW or higher.");
         }
     }
 
