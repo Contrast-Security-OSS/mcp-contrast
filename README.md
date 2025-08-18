@@ -71,6 +71,70 @@ Depending on what questions you ask the following information will be provided t
 * Route Coverage data
 * ADR/Protect Attack Event Details
 
+## Risk Tolerance and Data Sensitivity Controls
+
+The Contrast MCP Server implements a risk-based access control system to protect sensitive security data from being inadvertently exposed to public LLMs. This is controlled via the `ACCEPTED_RISK_TOLERANCE` environment variable.
+
+### Risk Levels
+
+The system supports the following risk tolerance levels (from most restrictive to least restrictive):
+
+- **`NO_RISK`** (0) - Completely safe, no data access allowed
+- **`LOW`** (1) - Minimal potential impact, basic application metadata only
+- **`MEDIUM`** (2) - Moderate potential impact, includes vulnerability listings
+- **`HIGH`** (3) - Significant potential impact, includes detailed vulnerability data
+- **`CRITICAL`** (4) - Severe potential impact, includes all sensitive security details
+- **`ACCEPT_ALL_RISK`** (5) - No security restrictions, all data accessible
+
+### Function Risk Requirements
+
+Each MCP function requires a minimum risk tolerance level based on the sensitivity of the data it exposes:
+
+#### LOW Risk Functions
+- `list_all_applications` - Lists basic application information (name, status, ID, language)
+- `list_applications_with_name` - Searches applications by name
+- `get_applications_by_tag` - Filters applications by tags
+- `get_applications_by_metadata` - Filters applications by metadata
+- `get_applications_by_metadata_name` - Filters applications by metadata name
+- `list_session_metadata_for_application` - Lists session metadata for applications
+
+#### MEDIUM Risk Functions
+- `list_vulnerabilities` - Lists vulnerability summaries for applications
+- `list_vulnerabilities_with_id` - Lists vulnerabilities by application ID
+- `list_vulnerabilities_by_application_and_session_metadata` - Filtered vulnerability listings
+- `list_vulnerabilities_by_application_and_latest_session` - Latest session vulnerability data
+
+#### HIGH Risk Functions
+- `get_vulnerability_by_id` - Detailed vulnerability information including stack traces
+- `get_vulnerability` - Detailed vulnerability data by name and ID
+
+### Configuration
+
+Set the risk tolerance in your environment configuration:
+
+```bash
+# For maximum security (recommended for public LLMs)
+ACCEPTED_RISK_TOLERANCE=NO_RISK
+
+# For basic application information only
+ACCEPTED_RISK_TOLERANCE=LOW
+
+# For vulnerability listings (use with caution)
+ACCEPTED_RISK_TOLERANCE=MEDIUM
+
+# For detailed vulnerability data (private LLMs only)
+ACCEPTED_RISK_TOLERANCE=HIGH
+```
+
+### Security Recommendations
+
+- **Public LLMs**: Use `NO_RISK` or `LOW` only
+- **Private/Local LLMs**: Use appropriate level based on your security requirements
+- **Development/Testing**: Can use higher levels with proper data handling controls
+- **Production Security Analysis**: Use `HIGH` only with verified private LLM instances
+
+⚠️ **WARNING**: Never use `MEDIUM` or `HIGH` risk tolerance with public LLMs as this will expose sensitive vulnerability data including stack traces, HTTP requests, and detailed security information to external services.
+
 ## Build
 Requires Java 17+
 
@@ -87,7 +151,8 @@ To add the MCP Server to your local AI system, modify the config.json file and a
         "--CONTRAST_API_KEY=xxx",
         "--CONTRAST_SERVICE_KEY=xxx",
         "--CONTRAST_USERNAME=xxx.xxx@contrastsecurity.com",
-        "--CONTRAST_ORG_ID=xxx"]
+        "--CONTRAST_ORG_ID=xxx",
+        "--ACCEPTED_RISK_TOLERANCE=LOW"]
     }
 }
 ```
@@ -154,6 +219,8 @@ Then add the following to the settings.json file.
             "CONTRAST_USERNAME",
             "-e",
             "CONTRAST_ORG_ID",
+            "-e",
+            "ACCEPTED_RISK_TOLERANCE",
             "-i",
             "--rm",
             "contrast/mcp-contrast:latest",
@@ -165,7 +232,8 @@ Then add the following to the settings.json file.
                 "CONTRAST_API_KEY": "example",
                 "CONTRAST_SERVICE_KEY": "example",
                 "CONTRAST_USERNAME": "example@example.com",
-                "CONTRAST_ORG_ID": "example"
+                "CONTRAST_ORG_ID": "example",
+                "ACCEPTED_RISK_TOLERANCE": "LOW"
             }
     }
 }
@@ -202,6 +270,8 @@ To install the MCP Server in Copilot for Intellij.
         "CONTRAST_USERNAME",
         "-e",
         "CONTRAST_ORG_ID",
+        "-e",
+        "ACCEPTED_RISK_TOLERANCE",
         "-i",
         "--rm",
         "contrast/mcp-contrast:latest",
@@ -213,7 +283,8 @@ To install the MCP Server in Copilot for Intellij.
         "CONTRAST_API_KEY": "example",
         "CONTRAST_SERVICE_KEY": "example",
         "CONTRAST_USERNAME": "example@example.com",
-        "CONTRAST_ORG_ID": "example"
+        "CONTRAST_ORG_ID": "example",
+        "ACCEPTED_RISK_TOLERANCE": "LOW"
       }
     }
   }
@@ -244,6 +315,8 @@ Add the following the json configuration
         "CONTRAST_USERNAME",
         "-e",
         "CONTRAST_ORG_ID",
+        "-e",
+        "ACCEPTED_RISK_TOLERANCE",
         "-i",
         "--rm",
         "contrast/mcp-contrast:latest",
@@ -255,7 +328,8 @@ Add the following the json configuration
         "CONTRAST_API_KEY": "example",
         "CONTRAST_SERVICE_KEY": "example",
         "CONTRAST_USERNAME": "example@example.com",
-        "CONTRAST_ORG_ID": "example"
+        "CONTRAST_ORG_ID": "example",
+        "ACCEPTED_RISK_TOLERANCE": "LOW"
       },
       "disabled": false,
       "autoApprove": []
@@ -290,6 +364,8 @@ Add the following configuration to the `claude_desktop_config.json` file:
         "CONTRAST_USERNAME",
         "-e",
         "CONTRAST_ORG_ID",
+        "-e",
+        "ACCEPTED_RISK_TOLERANCE",
         "-i",
         "--rm",
         "contrast/mcp-contrast:latest",
@@ -301,7 +377,8 @@ Add the following configuration to the `claude_desktop_config.json` file:
         "CONTRAST_API_KEY": "xxx",
         "CONTRAST_SERVICE_KEY": "xxx",
         "CONTRAST_USERNAME": "xxx.xxx@example.com",
-        "CONTRAST_ORG_ID": "xxx"
+        "CONTRAST_ORG_ID": "xxx",
+        "ACCEPTED_RISK_TOLERANCE": "LOW"
       }
     }
   }
@@ -348,7 +425,8 @@ When configuring in your config.json file, include the proxy settings in the arg
       "--CONTRAST_API_KEY=example",
       "--CONTRAST_SERVICE_KEY=example",
       "--CONTRAST_USERNAME=example@example.com",
-      "--CONTRAST_ORG_ID=example"
+      "--CONTRAST_ORG_ID=example",
+      "--ACCEPTED_RISK_TOLERANCE=LOW"
     ]
   }
 }
@@ -367,6 +445,7 @@ docker run \
   -e CONTRAST_SERVICE_KEY=example \
   -e CONTRAST_USERNAME=example \
   -e CONTRAST_ORG_ID=example \
+  -e ACCEPTED_RISK_TOLERANCE=LOW \
   -i \
   contrast/mcp-contrast:latest \
   -t stdio
@@ -393,6 +472,8 @@ For VS Code configuration with Docker and proxy, modify the settings.json like t
         "CONTRAST_USERNAME",
         "-e",
         "CONTRAST_ORG_ID",
+        "-e",
+        "ACCEPTED_RISK_TOLERANCE",
         "-e", "http_proxy_host",
         "-e", "http_proxy_port",
         "-i",
@@ -407,8 +488,9 @@ For VS Code configuration with Docker and proxy, modify the settings.json like t
             "CONTRAST_SERVICE_KEY": "example",
             "CONTRAST_USERNAME": "example@example.com",
             "CONTRAST_ORG_ID": "example",
+            "ACCEPTED_RISK_TOLERANCE": "LOW",
             "http_proxy_host": "proxy.example.com",
-            "http_proxy_port": "8080"
+            "http_proxy_port": "8080"            
         }
     }
   }
@@ -441,5 +523,3 @@ Failed to list applications: PKIX path building failed: sun.security.provider.ce
 If this occurs you will need to add the certificate to the Java Truststore and then add the following to the command line arguments when running the MCP server:
 `-Djavax.net.ssl.trustStore=/loctaion/to/mcp-truststore.jks, -Djavax.net.ssl.trustStorePassword=yourpassword`
 More details on how to do this can be found in the [Java documentation](https://docs.oracle.com/cd/E19509-01/820-3503/6nf1il6er/index.html). Or ask your LLM to help you with this.
-
-
