@@ -1,5 +1,21 @@
 # Contrast MCP Server
 
+$${\color{red} ** WARNING ** WARNING ** WARNING ** WARNING ** WARNING **}$$
+
+<h4><code style="color: red;">EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A LLM THAT TRAINS ON YOUR DATA IS DANGEROUS! </code>
+</h4>
+
+Never under any circumstances use mcp-contrast functions which pull sensitive data with a LLM that trains on your data as it will potentially expose your vulnerability data to the outside world.
+
+⚠️ Critical Security Warning: Verify AI Data Privacy
+Before sending vulnerability data to an AI, you must confirm that your service agreement guarantees your data will not be used for model training.
+
+UNSAFE: Public consumer websites (e.g., the free versions of ChatGPT, Gemini, Claude). These services often use your input for training.
+
+POTENTIAL-SAFE: Enterprise-grade services (e.g., Google Cloud AI, AWS Bedrock, Azure OpenAI) or paid plans that contractually ensure data privacy and prevent model training on your prompts, verify with your information security teams.
+  
+<br/><br/>
+
 [![Java CI with Maven](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Maven Central](https://img.shields.io/maven-central/v/com.contrast.labs/mcp-contrast.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.contrast.labs%22%20AND%20a:%22mcp-contrast%22)
