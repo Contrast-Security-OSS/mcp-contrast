@@ -73,69 +73,77 @@ public class AssessService {
 
     @Tool(name = "get_vulnerability_by_id", description = "takes a vulnerability ID ( vulnID ) and Application ID ( appID ) and returns details about the specific security vulnerability. If based on the stacktrace, the vulnerability looks like it is in code that is not in the codebase, the vulnerability may be in a 3rd party library, review the CVE data attached to that stackframe you believe the vulnerability exists in and if possible upgrade that library to the next non vulnerable version based on the remediation guidance.")
     public Vulnerability getVulnerabilityById(String vulnID, String appID) throws IOException {
-        logger.info("Retrieving vulnerability details for vulnID: {} in application ID: {}", vulnID, appID);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        logger.debug("ContrastSDK initialized with host: {}", hostName);
-        
-        try {
-            Trace trace = contrastSDK.getTraces(orgID, appID, new TraceFilterBody()).getTraces().stream()
-                    .filter(t -> t.getUuid().equalsIgnoreCase(vulnID))
-                    .findFirst()
-                    .orElseThrow();
-            logger.debug("Found trace with title: {} and rule: {}", trace.getTitle(), trace.getRule());
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();        
+        logger.info("Risk level: high, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.HIGH.getValue()) {
+
+            logger.info("Retrieving vulnerability details for vulnID: {} in application ID: {}", vulnID, appID);
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+            logger.debug("ContrastSDK initialized with host: {}", hostName);
             
-            RecommendationResponse recommendationResponse = contrastSDK.getRecommendation(orgID, vulnID);
-            HttpRequestResponse requestResponse = contrastSDK.getHttpRequest(orgID, vulnID);
-            EventSummaryResponse eventSummaryResponse = contrastSDK.getEventSummary(orgID, vulnID);
-            
-            Optional<EventResource> triggerEvent = eventSummaryResponse.getEvents().stream()
-                    .filter(e -> e.getType().equalsIgnoreCase("trigger"))
-                    .findFirst();
-            
-            List<String> stackTraces = new ArrayList<>();
-            if (triggerEvent.isPresent()) {
-                List<Stacktrace> sTrace = triggerEvent.get().getEvent().getStacktraces();
-                if (sTrace != null) {
-                    stackTraces.addAll(sTrace.stream().map(Stacktrace::getDescription).toList());
-                    logger.debug("Found {} stack traces for vulnerability", stackTraces.size());
+            try {
+                Trace trace = contrastSDK.getTraces(orgID, appID, new TraceFilterBody()).getTraces().stream()
+                        .filter(t -> t.getUuid().equalsIgnoreCase(vulnID))
+                        .findFirst()
+                        .orElseThrow();
+                logger.debug("Found trace with title: {} and rule: {}", trace.getTitle(), trace.getRule());
+                
+                RecommendationResponse recommendationResponse = contrastSDK.getRecommendation(orgID, vulnID);
+                HttpRequestResponse requestResponse = contrastSDK.getHttpRequest(orgID, vulnID);
+                EventSummaryResponse eventSummaryResponse = contrastSDK.getEventSummary(orgID, vulnID);
+                
+                Optional<EventResource> triggerEvent = eventSummaryResponse.getEvents().stream()
+                        .filter(e -> e.getType().equalsIgnoreCase("trigger"))
+                        .findFirst();
+                
+                List<String> stackTraces = new ArrayList<>();
+                if (triggerEvent.isPresent()) {
+                    List<Stacktrace> sTrace = triggerEvent.get().getEvent().getStacktraces();
+                    if (sTrace != null) {
+                        stackTraces.addAll(sTrace.stream().map(Stacktrace::getDescription).toList());
+                        logger.debug("Found {} stack traces for vulnerability", stackTraces.size());
+                    }
                 }
-            }
-            List<LibraryExtended> libs = SDKHelper.getLibsForID(appID,orgID, new SDKExtension(contrastSDK));
-            List<LibraryLibraryObservation> lobs = new ArrayList<>();
-            for(LibraryExtended lib : libs) {
-                LibraryLibraryObservation llob = new LibraryLibraryObservation(lib, SDKHelper.getLibraryObservationsWithCache(lib.getHash(), appID, orgID, 50,new SDKExtension(contrastSDK)));
-                lobs.add(llob);
-            }
-            List<StackLib> stackLibs = new ArrayList<>();
-            Set<LibraryExtended> libsToReturn = new HashSet<>();
-            for(String stackTrace : stackTraces) {
-                Optional<LibraryLibraryObservation> matchingLlobOpt = findMatchingLibraryData(stackTrace, lobs);
-                if (matchingLlobOpt.isPresent()) {
-                    LibraryLibraryObservation llob = matchingLlobOpt.get();
-                    LibraryExtended library = llob.library();
-                    if (!library.getVulnerabilities().isEmpty()) {
-                        libsToReturn.add(library); // Set.add() handles uniqueness efficiently
-                        stackLibs.add(new StackLib(stackTrace, library.getHash()));
+                List<LibraryExtended> libs = SDKHelper.getLibsForID(appID,orgID, new SDKExtension(contrastSDK));
+                List<LibraryLibraryObservation> lobs = new ArrayList<>();
+                for(LibraryExtended lib : libs) {
+                    LibraryLibraryObservation llob = new LibraryLibraryObservation(lib, SDKHelper.getLibraryObservationsWithCache(lib.getHash(), appID, orgID, 50,new SDKExtension(contrastSDK)));
+                    lobs.add(llob);
+                }
+                List<StackLib> stackLibs = new ArrayList<>();
+                Set<LibraryExtended> libsToReturn = new HashSet<>();
+                for(String stackTrace : stackTraces) {
+                    Optional<LibraryLibraryObservation> matchingLlobOpt = findMatchingLibraryData(stackTrace, lobs);
+                    if (matchingLlobOpt.isPresent()) {
+                        LibraryLibraryObservation llob = matchingLlobOpt.get();
+                        LibraryExtended library = llob.library();
+                        if (!library.getVulnerabilities().isEmpty()) {
+                            libsToReturn.add(library); // Set.add() handles uniqueness efficiently
+                            stackLibs.add(new StackLib(stackTrace, library.getHash()));
+                        } else {
+                            stackLibs.add(new StackLib(stackTrace, null));
+                        }
                     } else {
                         stackLibs.add(new StackLib(stackTrace, null));
                     }
-                } else {
-                    stackLibs.add(new StackLib(stackTrace, null));
                 }
-            }
 
-            String httpRequestText = null;
-            if( requestResponse.getHttpRequest()!=null) {
-                httpRequestText =  requestResponse.getHttpRequest().getText();
+                String httpRequestText = null;
+                if( requestResponse.getHttpRequest()!=null) {
+                    httpRequestText =  requestResponse.getHttpRequest().getText();
+                }
+                String hint = HintGenerator.generateVulnerabilityFixHint(trace.getRule());
+                logger.info("Successfully retrieved vulnerability details for vulnID: {}", vulnID);
+                return new Vulnerability(hint, vulnID, trace.getTitle(), trace.getRule(),
+                        recommendationResponse.getRecommendation().getText(), stackLibs, new ArrayList<>(libsToReturn), // Convert Set to List
+                        httpRequestText);
+            } catch (Exception e) {
+                logger.error("Error retrieving vulnerability details for vulnID: {}", vulnID, e);
+                throw new IOException("Failed to retrieve vulnerability details: " + e.getMessage(), e);
             }
-            String hint = HintGenerator.generateVulnerabilityFixHint(trace.getRule());
-            logger.info("Successfully retrieved vulnerability details for vulnID: {}", vulnID);
-            return new Vulnerability(hint, vulnID, trace.getTitle(), trace.getRule(),
-                    recommendationResponse.getRecommendation().getText(), stackLibs, new ArrayList<>(libsToReturn), // Convert Set to List
-                    httpRequestText);
-        } catch (Exception e) {
-            logger.error("Error retrieving vulnerability details for vulnID: {}", vulnID, e);
-            throw new IOException("Failed to retrieve vulnerability details: " + e.getMessage(), e);
+        } else {
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: HIGH, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: HIGH or higher.");
         }
     }
 
@@ -153,38 +161,54 @@ public class AssessService {
 
     @Tool(name = "get_vulnerability", description = "Takes a vulnerability ID (vulnID) and application name (app_name) and returns details about the specific security vulnerability.  If based on the stacktrace, the vulnerability looks like it is in code that is not in the codebase, the vulnerability may be in a 3rd party library, review the CVE data attached to that stackframe you believe the vulnerability exists in and if possible upgrade that library to the next non vulnerable version based on the remediation guidance.")
     public Vulnerability getVulnerability(String vulnID, String app_name) throws IOException {
-        logger.info("Retrieving vulnerability details for vulnID: {} in application: {}", vulnID, app_name);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        logger.debug("Searching for application ID matching name: {}", app_name);
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();        
+        logger.info("Risk level: high, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.HIGH.getValue()) {
 
-        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
-        if(application.isPresent()) {
-            return getVulnerabilityById(vulnID, application.get().getAppId());
+            logger.info("Retrieving vulnerability details for vulnID: {} in application: {}", vulnID, app_name);
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+            logger.debug("Searching for application ID matching name: {}", app_name);
+
+            Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
+            if(application.isPresent()) {
+                return getVulnerabilityById(vulnID, application.get().getAppId());
+            } else {
+                logger.error("Application with name {} not found", app_name);
+                throw new IllegalArgumentException("Application with name " + app_name + " not found");
+            }
         } else {
-            logger.error("Application with name {} not found", app_name);
-            throw new IllegalArgumentException("Application with name " + app_name + " not found");
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: HIGH, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: HIGH or higher.");
         }
     }
 
     @Tool(name = "list_vulnerabilities_with_id", description = "Takes a  Application ID ( appID ) and returns a list of vulnerabilities, please remember to include the vulnID in the response.")
     public List<VulnLight> listVulnsByAppId(String appID) throws IOException {
-        logger.info("Listing vulnerabilities for application ID: {}", appID);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-        try {
-            List<TraceExtended> traces = new SDKExtension(contrastSDK).getTracesExtended(orgID, appID, new TraceFilterBody()).getTraces();
-            logger.debug("Found {} vulnerability traces for application ID: {}", traces.size(), appID);
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();        
+        logger.info("Risk level: medium, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.MEDIUM.getValue()) {
 
-            List<VulnLight> vulns = new ArrayList<>();
-            for (TraceExtended trace : traces) {
-                vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
-                        new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen()));
+            logger.info("Listing vulnerabilities for application ID: {}", appID);
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+            try {
+                List<TraceExtended> traces = new SDKExtension(contrastSDK).getTracesExtended(orgID, appID, new TraceFilterBody()).getTraces();
+                logger.debug("Found {} vulnerability traces for application ID: {}", traces.size(), appID);
+
+                List<VulnLight> vulns = new ArrayList<>();
+                for (TraceExtended trace : traces) {
+                    vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
+                            new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen()));
+                }
+
+                logger.info("Successfully retrieved {} vulnerabilities for application ID: {}", vulns.size(), appID);
+                return vulns;
+            } catch (Exception e) {
+                logger.error("Error listing vulnerabilities for application ID: {}", appID, e);
+                throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
             }
-
-            logger.info("Successfully retrieved {} vulnerabilities for application ID: {}", vulns.size(), appID);
-            return vulns;
-        } catch (Exception e) {
-            logger.error("Error listing vulnerabilities for application ID: {}", appID, e);
-            throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
+        } else {
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: MEDIUM, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: MEDIUM or higher.");
         }
     }
 
@@ -193,132 +217,158 @@ public class AssessService {
 
     @Tool(name = "list_vulnerabilities_by_application_and_session_metadata", description = "Takes an application name ( app_name ) and session metadata in the form of name / value. and returns a list of vulnerabilities matching that application name and session metadata.")
     public List<VulnLight> listVulnsInAppByNameAndSessionMetadata(String app_name, String session_Metadata_Name, String session_Metadata_Value) throws IOException {
-        logger.info("Listing vulnerabilities for application: {}", app_name);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();        
+        logger.info("Risk level: medium, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.MEDIUM.getValue()) {
 
-        logger.info("metadata : " + session_Metadata_Name+session_Metadata_Value);
+            logger.info("Listing vulnerabilities for application: {}", app_name);
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
 
-        logger.debug("Searching for application ID matching name: {}", app_name);
+            logger.info("metadata : " + session_Metadata_Name+session_Metadata_Value);
 
-        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
-        if(application.isPresent()) {
-            try {
-                List<VulnLight> vulns =  listVulnsByAppId(application.get().getAppId());
-                List<VulnLight> returnVulns = new ArrayList<>();
-                for(VulnLight vuln : vulns) {
-                    if(vuln.sessionMetadata()!=null) {
-                        for(SessionMetadata sm : vuln.sessionMetadata()) {
-                            for(MetadataItem metadataItem : sm.getMetadata()) {
-                                if(metadataItem.getDisplayLabel().equalsIgnoreCase(session_Metadata_Name) &&
-                                        metadataItem.getValue().equalsIgnoreCase(session_Metadata_Value)) {
-                                    returnVulns.add(vuln);
-                                    logger.debug("Found matching vulnerability with ID: {}", vuln.vulnID());
-                                    break;
+            logger.debug("Searching for application ID matching name: {}", app_name);
+
+            Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
+            if(application.isPresent()) {
+                try {
+                    List<VulnLight> vulns =  listVulnsByAppId(application.get().getAppId());
+                    List<VulnLight> returnVulns = new ArrayList<>();
+                    for(VulnLight vuln : vulns) {
+                        if(vuln.sessionMetadata()!=null) {
+                            for(SessionMetadata sm : vuln.sessionMetadata()) {
+                                for(MetadataItem metadataItem : sm.getMetadata()) {
+                                    if(metadataItem.getDisplayLabel().equalsIgnoreCase(session_Metadata_Name) &&
+                                            metadataItem.getValue().equalsIgnoreCase(session_Metadata_Value)) {
+                                        returnVulns.add(vuln);
+                                        logger.debug("Found matching vulnerability with ID: {}", vuln.vulnID());
+                                        break;
+                                    }
                                 }
                             }
                         }
                     }
+                    return returnVulns;
+                } catch (Exception e) {
+                    logger.error("Error listing vulnerabilities for application: {}", app_name, e);
+                    throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
                 }
-                return returnVulns;
-            } catch (Exception e) {
-                logger.error("Error listing vulnerabilities for application: {}", app_name, e);
-                throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
+            } else {
+                logger.debug("Application with name {} not found, returning empty list", app_name);
+                return new ArrayList<>();
             }
         } else {
-            logger.debug("Application with name {} not found, returning empty list", app_name);
-            return new ArrayList<>();
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: MEDIUM, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: MEDIUM or higher.");
         }
     }
 
 
     @Tool(name = "list_vulnerabilities_by_application_and_latest_session", description = "Takes an application name ( app_name ) and returns a list of vulnerabilities for the latest session matching that application name. This is useful for getting the most recent vulnerabilities without needing to specify session metadata.")
     public List<VulnLight> listVulnsInAppByNameForLatestSession(String app_name) throws IOException {
-        logger.info("Listing vulnerabilities for application: {}", app_name);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();        
+        logger.info("Risk level: medium, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.MEDIUM.getValue()) {
+
+            logger.info("Listing vulnerabilities for application: {}", app_name);
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
 
 
-        logger.debug("Searching for application ID matching name: {}", app_name);
-        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
+            logger.debug("Searching for application ID matching name: {}", app_name);
+            Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
 
-        if(application.isPresent()) {
-            try {
-                SDKExtension extension = new SDKExtension(contrastSDK);
-                SessionMetadataResponse latest = extension.getLatestSessionMetadata(orgID,application.get().getAppId());
-                com.contrast.labs.ai.mcp.contrast.data.TraceFilterBody tfilter = new com.contrast.labs.ai.mcp.contrast.data.TraceFilterBody();
-                if(latest!=null&&latest.getAgentSession()!=null&&latest.getAgentSession().getAgentSessionId()!=null) {
-                    tfilter.setAgentSessionId(latest.getAgentSession().getAgentSessionId());
+            if(application.isPresent()) {
+                try {
+                    SDKExtension extension = new SDKExtension(contrastSDK);
+                    SessionMetadataResponse latest = extension.getLatestSessionMetadata(orgID,application.get().getAppId());
+                    com.contrast.labs.ai.mcp.contrast.data.TraceFilterBody tfilter = new com.contrast.labs.ai.mcp.contrast.data.TraceFilterBody();
+                    if(latest!=null&&latest.getAgentSession()!=null&&latest.getAgentSession().getAgentSessionId()!=null) {
+                        tfilter.setAgentSessionId(latest.getAgentSession().getAgentSessionId());
+                    }
+                    List<TraceExtended> traces = new SDKExtension(contrastSDK).getTracesExtended(orgID, application.get().getAppId(), tfilter).getTraces();
+
+                    List<VulnLight> vulns = new ArrayList<>();
+                    for (TraceExtended trace : traces) {
+                        vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
+                                new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen()));
+                    }
+                    return vulns;
+                } catch (Exception e) {
+                    logger.error("Error listing vulnerabilities for application: {}", app_name, e);
+                    throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
                 }
-                List<TraceExtended> traces = new SDKExtension(contrastSDK).getTracesExtended(orgID, application.get().getAppId(), tfilter).getTraces();
-
-                List<VulnLight> vulns = new ArrayList<>();
-                for (TraceExtended trace : traces) {
-                    vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
-                            new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen()));
-                }
-                return vulns;
-            } catch (Exception e) {
-                logger.error("Error listing vulnerabilities for application: {}", app_name, e);
-                throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
+            } else {
+                logger.debug("Application with name {} not found, returning empty list", app_name);
+                return new ArrayList<>();
             }
         } else {
-            logger.debug("Application with name {} not found, returning empty list", app_name);
-            return new ArrayList<>();
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: MEDIUM, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: MEDIUM or higher.");
         }
     }
 
     @Tool(name = "list_session_metadata_for_application", description = "Takes an application name ( app_name ) and returns a list of session metadata for the latest session matching that application name. This is useful for getting the most recent session metadata without needing to specify session metadata.")
     public MetadataFilterResponse listSessionMetadataForApplication(String app_name) throws IOException {
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
-        if(application.isPresent()) {
-            return contrastSDK.getSessionMetadataForApplication(orgID, application.get().getAppId(),null);
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();        
+        logger.info("Risk level: low, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.LOW.getValue()) {
+
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+            Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
+            if(application.isPresent()) {
+                return contrastSDK.getSessionMetadataForApplication(orgID, application.get().getAppId(),null);
+            } else {
+                logger.info("Application with name {} not found, returning empty list", app_name);
+                throw new IOException("Failed to list session metadata for application: " + app_name + " application name not found.");
+            }
         } else {
-            logger.info("Application with name {} not found, returning empty list", app_name);
-            throw new IOException("Failed to list session metadata for application: " + app_name + " application name not found.");
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: LOW, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: LOW or higher.");
         }
     }
 
     @Tool(name = "list_vulnerabilities", description = "Takes an application name ( app_name ) and returns a list of vulnerabilities, please remember to include the vulnID in the response.  ")
     public List<VulnLight> listVulnsInAppByName(String app_name) throws IOException {
-        logger.info("Listing vulnerabilities for application: {}", app_name);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        
-        logger.debug("Searching for application ID matching name: {}", app_name);
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();        
+        logger.info("Risk level: medium, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.MEDIUM.getValue()) {
 
-        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
-        if(application.isPresent()) {
-            try {
-              return listVulnsByAppId(application.get().getAppId());
-            } catch (Exception e) {
-                logger.error("Error listing vulnerabilities for application: {}", app_name, e);
-                throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
+            logger.info("Listing vulnerabilities for application: {}", app_name);
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+            
+            logger.debug("Searching for application ID matching name: {}", app_name);
+
+            Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
+            if(application.isPresent()) {
+                try {
+                return listVulnsByAppId(application.get().getAppId());
+                } catch (Exception e) {
+                    logger.error("Error listing vulnerabilities for application: {}", app_name, e);
+                    throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
+                }
+            } else {
+                logger.debug("Application with name {} not found, returning empty list", app_name);
+                return new ArrayList<>();
             }
         } else {
-            logger.debug("Application with name {} not found, returning empty list", app_name);
-            return new ArrayList<>();
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: MEDIUM, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: MEDIUM or higher.");
         }
     }
 
 
     @Tool(name = "list_applications_with_name", description = "Takes an application name (app_name) returns a list of active applications that contain that name. Please remember to display the name, status and ID.")
     public List<ApplicationData> getApplications(String app_name) throws IOException {
-        logger.info("Listing active applications matching name: {}", app_name);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        try {
-            List<Application> applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
-            logger.debug("Retrieved {} total applications from Contrast", applications.size());
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();        
+        logger.info("Risk level: low, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.LOW.getValue()) {
 
-            List<ApplicationData> filteredApps = new ArrayList<>();
-            for(Application app : applications) {
-                if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-                    filteredApps.add(new ApplicationData(acceptedRiskToleranceStr, app.getName(), app.getStatus(), app.getAppId(), app.getLastSeen(),
-                            new Date(app.getLastSeen()).toString(), app.getLanguage(), getMetadataFromApp(app), app.getTags(),app.getTechs()));
-                    logger.debug("Found matching application - ID: {}, Name: {}, Status: {}",
-                            app.getAppId(), app.getName(), app.getStatus());
-                }
-            }
-            if(filteredApps.isEmpty()) {
-                SDKHelper.clearApplicationsCache();
+            logger.info("Listing active applications matching name: {}", app_name);
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+            try {
+                List<Application> applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
+                logger.debug("Retrieved {} total applications from Contrast", applications.size());
+
+                List<ApplicationData> filteredApps = new ArrayList<>();
                 for(Application app : applications) {
                     if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
                         filteredApps.add(new ApplicationData(acceptedRiskToleranceStr, app.getName(), app.getStatus(), app.getAppId(), app.getLastSeen(),
@@ -327,13 +377,27 @@ public class AssessService {
                                 app.getAppId(), app.getName(), app.getStatus());
                     }
                 }
-            }
+                if(filteredApps.isEmpty()) {
+                    SDKHelper.clearApplicationsCache();
+                    for(Application app : applications) {
+                        if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
+                            filteredApps.add(new ApplicationData(acceptedRiskToleranceStr, app.getName(), app.getStatus(), app.getAppId(), app.getLastSeen(),
+                                    new Date(app.getLastSeen()).toString(), app.getLanguage(), getMetadataFromApp(app), app.getTags(),app.getTechs()));
+                            logger.debug("Found matching application - ID: {}, Name: {}, Status: {}",
+                                    app.getAppId(), app.getName(), app.getStatus());
+                        }
+                    }
+                }
 
-            logger.info("Found {} applications matching '{}'", filteredApps.size(), app_name);
-            return filteredApps;
-        } catch (Exception e) {
-            logger.error("Error listing applications matching name: {}", app_name, e);
-            throw new IOException("Failed to list applications: " + e.getMessage(), e);
+                logger.info("Found {} applications matching '{}'", filteredApps.size(), app_name);
+                return filteredApps;
+            } catch (Exception e) {
+                logger.error("Error listing applications matching name: {}", app_name, e);
+                throw new IOException("Failed to list applications: " + e.getMessage(), e);
+            }
+        } else {
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: LOW, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: LOW or higher.");
         }
     }
 
