@@ -2,10 +2,17 @@
 
 $${\color{red} ** WARNING ** WARNING ** WARNING ** WARNING ** WARNING **}$$
 
-<h4><code style="color: red;">EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A PUBLIC LLM IS DANGEROUS! </code>
+<h4><code style="color: red;">EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A LLM THAT TRAINS ON YOUR DATA IS DANGEROUS! </code>
 </h4>
 
-Never under any circumstances use mcp-contrast functions which pull sensitive data with a public LLM as it will potentially expose your vulnerability data to the outside world.
+Never under any circumstances use mcp-contrast functions which pull sensitive data with a LLM that trains on your data as it will potentially expose your vulnerability data to the outside world.
+
+⚠️ Critical Security Warning: Verify AI Data Privacy
+Before sending vulnerability data to an AI, you must confirm that your service agreement guarantees your data will not be used for model training.
+
+UNSAFE: Public consumer websites (e.g., the free versions of ChatGPT, Gemini, Claude). These services often use your input for training.
+
+POTENTIAL-SAFE: Enterprise-grade services (e.g., Google Cloud AI, AWS Bedrock, Azure OpenAI) or paid plans that contractually ensure data privacy and prevent model training on your prompts, verify with your information security teams.
   
 <br/><br/>
 
