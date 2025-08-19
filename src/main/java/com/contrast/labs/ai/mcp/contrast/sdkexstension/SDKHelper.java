@@ -43,7 +43,7 @@ import com.contrastsecurity.exceptions.UnauthorizedException;
 public class SDKHelper {
 
     private static final String MCP_SERVER_NAME = "contrast-mcp";
-    private static final String MCP_VERSION = "0.0.9";
+    private static final String MCP_VERSION = "0.0.11";
 
     private static final Logger logger = LoggerFactory.getLogger(SDKHelper.class);
 
