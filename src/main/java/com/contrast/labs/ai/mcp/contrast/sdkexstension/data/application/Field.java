@@ -2,13 +2,12 @@ package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application;
 
 import com.google.gson.annotations.SerializedName;
 
-import javax.validation.Validation;
 import java.util.List;
 
-public class ValidationErrorField {
+public class Field {
 
     /**
-     * Represents ValidationErrorField information for an application.
+     * Represents Field information for an application.
      */
 
     /**
@@ -43,7 +42,7 @@ public class ValidationErrorField {
     private boolean unique;
 
     @SerializedName("subfields")
-    private List<ValidationErrorField> subfields;
+    private List<Field> subfields;
 
     @SerializedName("links")
     private List<String> links;
@@ -85,10 +84,10 @@ public class ValidationErrorField {
     public void setUnique(boolean unique) {
         this.unique = unique;
     }
-    public List<ValidationErrorField> getSubfields() {
+    public List<Field> getSubfields() {
         return subfields;
     }
-    public void setSubfields(List<ValidationErrorField> subfields) {
+    public void setSubfields(List<Field> subfields) {
         this.subfields = subfields;
     }
     public List<String> getLinks() {
@@ -100,7 +99,7 @@ public class ValidationErrorField {
 
     @Override
     public String toString() {
-        return "ValidationErrorField{" +
+        return "Field{" +
                 "fieldId='" + fieldId + '\'' +
                 ", fieldType='" + fieldType + '\'' +
                 ", displayLabel='" + displayLabel + '\'' +

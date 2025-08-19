@@ -1,7 +1,7 @@
 package com.contrast.labs.ai.mcp.contrast;
 
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.ValidationErrorField;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Field;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -72,7 +72,7 @@ public class ApplicationJsonParsingTest {
         assertEquals(2, application.getMissingRequiredFields().size(), "Should have 2 missing required fields");
 
         // Verify first missing required field
-        ValidationErrorField firstField = application.getMissingRequiredFields().get(0);
+        Field firstField = application.getMissingRequiredFields().get(0);
         assertEquals("29", firstField.getFieldId(), "First field ID should match");
         assertEquals("STRING", firstField.getFieldType(), "First field type should match");
         assertEquals("Custom Name", firstField.getDisplayLabel(), "First field display label should match");
@@ -81,7 +81,7 @@ public class ApplicationJsonParsingTest {
         assertFalse(firstField.isUnique(), "First field should not be unique");
 
         // Verify second missing required field
-        ValidationErrorField secondField = application.getMissingRequiredFields().get(1);
+        Field secondField = application.getMissingRequiredFields().get(1);
         assertEquals("30", secondField.getFieldId(), "Second field ID should match");
         assertEquals("SELECT", secondField.getFieldType(), "Second field type should match");
         assertEquals("Environment", secondField.getDisplayLabel(), "Second field display label should match");
