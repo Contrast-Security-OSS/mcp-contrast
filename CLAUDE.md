@@ -11,7 +11,7 @@ This is an MCP (Model Context Protocol) server for Contrast Security that enable
 ### Building the Project
 - **Build**: `mvn clean install` or `./mvnw clean install`
 - **Test**: `mvn test` or `./mvnw test`
-- **Run locally**: `java -jar target/mcp-contrast-0.0.9.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
+- **Run locally**: `java -jar target/mcp-contrast-0.0.11.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
 
 ### Docker Commands
 - **Build Docker image**: `docker build -t mcp-contrast .`
