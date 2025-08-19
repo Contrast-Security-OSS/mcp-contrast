@@ -68,7 +68,7 @@ public class Application {
     private List<ValidationErrorFields> validationErrorFields;
 
     @SerializedName("missingRequiredFields")
-    private List<String> missingRequiredFields;
+    private List<ValidationErrorFields> missingRequiredFields;
 
     @SerializedName("protect")
     private Object protect;
@@ -268,11 +268,11 @@ public class Application {
         this.validationErrorFields = validationErrorFields;
     }
 
-    public List<String> getMissingRequiredFields() {
+    public List<ValidationErrorFields> getMissingRequiredFields() {
         return missingRequiredFields;
     }
 
-    public void setMissingRequiredFields(List<String> missingRequiredFields) {
+    public void setMissingRequiredFields(List<ValidationErrorFields> missingRequiredFields) {
         this.missingRequiredFields = missingRequiredFields;
     }
 
