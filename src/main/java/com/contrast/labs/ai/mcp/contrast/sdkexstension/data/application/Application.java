@@ -65,10 +65,10 @@ public class Application {
     private List<Metadata> metadataEntities;
 
     @SerializedName("validationErrorFields")
-    private List<ValidationErrorFields> validationErrorFields;
+    private List<ValidationErrorField> validationErrorFields;
 
     @SerializedName("missingRequiredFields")
-    private List<ValidationErrorFields> missingRequiredFields;
+    private List<ValidationErrorField> missingRequiredFields;
 
     @SerializedName("protect")
     private Object protect;
@@ -260,19 +260,19 @@ public class Application {
         this.metadataEntities = metadataEntities;
     }
 
-    public List<ValidationErrorFields> getValidationErrorFields() {
+    public List<ValidationErrorField> getValidationErrorFields() {
         return validationErrorFields;
     }
 
-    public void setValidationErrorFields(List<ValidationErrorFields> validationErrorFields) {
+    public void setValidationErrorFields(List<ValidationErrorField> validationErrorFields) {
         this.validationErrorFields = validationErrorFields;
     }
 
-    public List<ValidationErrorFields> getMissingRequiredFields() {
+    public List<ValidationErrorField> getMissingRequiredFields() {
         return missingRequiredFields;
     }
 
-    public void setMissingRequiredFields(List<ValidationErrorFields> missingRequiredFields) {
+    public void setMissingRequiredFields(List<ValidationErrorField> missingRequiredFields) {
         this.missingRequiredFields = missingRequiredFields;
     }
 

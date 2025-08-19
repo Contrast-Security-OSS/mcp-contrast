@@ -5,10 +5,10 @@ import com.google.gson.annotations.SerializedName;
 import javax.validation.Validation;
 import java.util.List;
 
-public class ValidationErrorFields {
+public class ValidationErrorField {
 
     /**
-     * Represents ValidationErrorFields information for an application.
+     * Represents ValidationErrorField information for an application.
      */
 
     /**
@@ -43,7 +43,7 @@ public class ValidationErrorFields {
     private boolean unique;
 
     @SerializedName("subfields")
-    private List<ValidationErrorFields> subfields;
+    private List<ValidationErrorField> subfields;
 
     @SerializedName("links")
     private List<String> links;
@@ -85,10 +85,10 @@ public class ValidationErrorFields {
     public void setUnique(boolean unique) {
         this.unique = unique;
     }
-    public List<ValidationErrorFields> getSubfields() {
+    public List<ValidationErrorField> getSubfields() {
         return subfields;
     }
-    public void setSubfields(List<ValidationErrorFields> subfields) {
+    public void setSubfields(List<ValidationErrorField> subfields) {
         this.subfields = subfields;
     }
     public List<String> getLinks() {
@@ -100,7 +100,7 @@ public class ValidationErrorFields {
 
     @Override
     public String toString() {
-        return "ValidationErrorFields{" +
+        return "ValidationErrorField{" +
                 "fieldId='" + fieldId + '\'' +
                 ", fieldType='" + fieldType + '\'' +
                 ", displayLabel='" + displayLabel + '\'' +
