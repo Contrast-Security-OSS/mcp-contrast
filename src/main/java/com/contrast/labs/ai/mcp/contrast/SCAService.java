@@ -39,6 +39,8 @@ public class SCAService {
 
     private static final Logger logger = LoggerFactory.getLogger(SCAService.class);
 
+    //This is the accepted risk tolerance level for running ADR operations. Default is ACCEPT_NO_RISK (0)
+    private int acceptedRiskTolerance = 0;
 
     @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
     private String hostName;
@@ -61,72 +63,90 @@ public class SCAService {
     @Value("${http.proxy.port:${http_proxy_port:}}")
     private String httpProxyPort;
 
+    @Value("${accepted.risk.tolerance:${ACCEPTED_RISK_TOLERANCE:}}")
+    private String acceptedRiskToleranceStr;
 
     @Tool(name = "list_application_libraries_by_app_id", description = "Takes a application ID and returns the libraries used in the application, note if class usage count is 0 the library is unlikely to be used")
     public List<LibraryExtended> getApplicationLibrariesByID(String appID) throws IOException {
-        logger.info("Retrieving libraries for application id: {}", appID);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        logger.debug("ContrastSDK initialized with host: {}", hostName);
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();        
+        logger.info("Risk level: medium, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.MEDIUM.getValue()) {
+            logger.info("Retrieving libraries for application id: {}", appID);
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+            logger.debug("ContrastSDK initialized with host: {}", hostName);
 
-        SDKExtension extendedSDK = new SDKExtension(contrastSDK);
-        return SDKHelper.getLibsForID(appID,orgID, extendedSDK);
-
+            SDKExtension extendedSDK = new SDKExtension(contrastSDK);
+            return SDKHelper.getLibsForID(appID,orgID, extendedSDK);
+        } else {
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: MEDIUM, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: MEDIUM or higher.");
+        }
     }
 
 
     @Tool(name = "list_application_libraries", description = "takes a application name and returns the libraries used in the application, note if class usage count is 0 the library is unlikely to be used")
     public List<LibraryExtended> getApplicationLibraries(String app_name) throws IOException {
-        logger.info("Retrieving libraries for application: {}", app_name);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        logger.debug("ContrastSDK initialized with host: {}", hostName);
-        
-        SDKExtension extendedSDK = new SDKExtension(contrastSDK);
-        logger.debug("Searching for application ID matching name: {}", app_name);
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();        
+        logger.info("Risk level: medium, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.MEDIUM.getValue()) {
+            logger.info("Retrieving libraries for application: {}", app_name);
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+            logger.debug("ContrastSDK initialized with host: {}", hostName);
+            
+            SDKExtension extendedSDK = new SDKExtension(contrastSDK);
+            logger.debug("Searching for application ID matching name: {}", app_name);
 
-        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
-        if(application.isPresent()) {
-            return SDKHelper.getLibsForID(application.get().getAppId(),orgID, extendedSDK);
+            Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
+            if(application.isPresent()) {
+                return SDKHelper.getLibsForID(application.get().getAppId(),orgID, extendedSDK);
+            } else {
+                logger.error("Application not found: {}", app_name);
+                throw new IOException("Application not found");
+            }
         } else {
-            logger.error("Application not found: {}", app_name);
-            throw new IOException("Application not found");
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: MEDIUM, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: MEDIUM or higher.");
         }
     }
 
     @Tool(name= "list_applications_vulnerable_to_cve", description = "takes a cve id and returns the applications and servers vulnerable to the cve. Please note if the application class usage is 0, its unlikely to be vulnerable")
     public CveData listCVESForApplication(String cveid) throws IOException {
-        logger.info("Retrieving applications vulnerable to CVE: {}", cveid);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();        
+        logger.info("Risk level: high, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.HIGH.getValue()) {
+            logger.info("Retrieving applications vulnerable to CVE: {}", cveid);
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
 
-        logger.debug("ContrastSDK initialized with host: {}", hostName);
-        contrastSDK.getLibrariesWithFilter(orgID, new LibraryFilterForm());
-        try {
-            SDKExtension extendedSDK = new SDKExtension(contrastSDK);
-            CveData result = extendedSDK.getAppsForCVE(orgID, cveid);
-            logger.info("Successfully retrieved data for CVE: {}, found {} vulnerable applications",
-                    cveid, result != null && result.getApps() != null ? result.getApps().size() : 0);
-            logger.info(result.toString());
-            List<Library> vulnerableLibs = result.getLibraries();
-            for(App app : result.getApps()) {
-                List<LibraryExtended> libData = SDKHelper.getLibsForID(app.getApp_id(), orgID, extendedSDK);
-                for(LibraryExtended lib:libData) {
-                    for(Library vulnLib:vulnerableLibs) {
-                        if(lib.getHash().equals(vulnLib.getHash())) {
-                            if(lib.getClassedUsed()>0) {
-                                app.setClassCount(lib.getClassCount());
-                                app.setClassUsage(lib.getClassedUsed());
+            logger.debug("ContrastSDK initialized with host: {}", hostName);
+            contrastSDK.getLibrariesWithFilter(orgID, new LibraryFilterForm());
+            try {
+                SDKExtension extendedSDK = new SDKExtension(contrastSDK);
+                CveData result = extendedSDK.getAppsForCVE(orgID, cveid);
+                logger.info("Successfully retrieved data for CVE: {}, found {} vulnerable applications",
+                        cveid, result != null && result.getApps() != null ? result.getApps().size() : 0);
+                logger.info(result.toString());
+                List<Library> vulnerableLibs = result.getLibraries();
+                for(App app : result.getApps()) {
+                    List<LibraryExtended> libData = SDKHelper.getLibsForID(app.getApp_id(), orgID, extendedSDK);
+                    for(LibraryExtended lib:libData) {
+                        for(Library vulnLib:vulnerableLibs) {
+                            if(lib.getHash().equals(vulnLib.getHash())) {
+                                if(lib.getClassedUsed()>0) {
+                                    app.setClassCount(lib.getClassCount());
+                                    app.setClassUsage(lib.getClassedUsed());
+                                }
                             }
                         }
                     }
                 }
+                return result;
+            } catch (Exception e) {
+                logger.error("Error retrieving applications vulnerable to CVE: {}", cveid, e);
+                throw new IOException("Failed to retrieve CVE data: " + e.getMessage(), e);
             }
-            return result;
-        } catch (Exception e) {
-            logger.error("Error retrieving applications vulnerable to CVE: {}", cveid, e);
-            throw new IOException("Failed to retrieve CVE data: " + e.getMessage(), e);
+        } else {
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: HIGH, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: HIGH or higher.");
         }
     }
-
-
-
-
 }

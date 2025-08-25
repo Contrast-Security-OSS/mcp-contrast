@@ -1,7 +1,21 @@
 # Contrast MCP Server
 
-[![Java CI with Maven](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Java CI with Maven](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/buil**Recent Changes (v0.0.9+)**:
+- Added comprehensive risk tolerance controls to AssessService, ADRService, and SastService
+- Added risk tolerance controls to SCAService (MEDIUM for library listings, HIGH for CVE data)
+- Added risk tolerance controls to RouteCoverageService (MEDIUM for all route coverage functions)
+- All vulnerability-related functions now require appropriate risk tolerance levels
+- Only one function remains unrestricted: `list_application_libraries_by_app_id` in SCAService
+- Default risk tolerance changed from unrestricted to `NO_RISK` for enhanced security
+
+**Future Considerations**:
+- The remaining unrestricted function may receive risk controls based on data sensitivity analysis
+- Additional granular risk controls may be added based on user feedback
+
+**Backward Compatibility**:
+- Existing configurations without `ACCEPTED_RISK_TOLERANCE` will default to `NO_RISK`
+- Users must explicitly set risk tolerance to access previously unrestricted functions
+- This change enhances security but may require configuration updates for existing deploymentsse](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Maven Central](https://img.shields.io/maven-central/v/com.contrast.labs/mcp-contrast.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.contrast.labs%22%20AND%20a:%22mcp-contrast%22)
 [![Install in VS Code Docker](https://img.shields.io/badge/VS_Code-docker-0098FF?style=flat-square&logo=githubcopilot&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=contrastmcp&config=%7B%22command%22:%22docker%22,%22args%22:%5B%22run%22,%20%22-e%22,%22CONTRAST_HOST_NAME%22,%20%22-e%22,%22CONTRAST_API_KEY%22,%20%22-e%22,%22CONTRAST_SERVICE_KEY%22,%20%22-e%22,%22CONTRAST_USERNAME%22,%20%22-e%22,%22CONTRAST_ORG_ID%22,%20%20%22-i%22,%20%22--rm%22,%20%22contrast/mcp-contrast:latest%22,%20%22-t%22,%20%22stdio%22%5D,%22env%22:%7B%22CONTRAST_HOST_NAME%22:%22example.contrastsecurity.com%22,%22CONTRAST_API_KEY%22:%22example%22,%22CONTRAST_SERVICE_KEY%22:%22example%22,%22CONTRAST_USERNAME%22:%22example@example.com%22,%22CONTRAST_ORG_ID%22:%22example%22%7D%7D)
 
@@ -110,6 +124,18 @@ Each MCP function requires a minimum risk tolerance level based on the sensitivi
 - `get_ADR_Protect_Rules` - Returns protection/ADR rules for application by name
 - `get_ADR_Protect_Rules_by_app_id` - Returns protection/ADR rules for application by ID
 
+#### MEDIUM Risk Functions (SCAService)
+- `list_application_libraries` - Returns libraries used in application by name
+- `list_application_libraries_by_app_id` - Returns libraries used in application by ID
+
+#### MEDIUM Risk Functions (RouteCoverageService)
+- `get_application_route_coverage` - Returns route coverage data for application by name
+- `get_application_route_coverage_by_app_id` - Returns route coverage data for application by ID
+- `get_application_route_coverage_by_app_name_and_session_metadata` - Returns route coverage filtered by session metadata
+- `get_application_route_coverage_by_app_id_and_session_metadata` - Returns route coverage by app ID and session metadata
+- `get_application_route_coverage_by_app_name_latest_session` - Returns route coverage for latest session by app name
+- `get_application_route_coverage_by_app_id_latest_session` - Returns route coverage for latest session by app ID
+
 #### HIGH Risk Functions (AssessService)
 - `get_vulnerability_by_id` - Detailed vulnerability information including stack traces
 - `get_vulnerability` - Detailed vulnerability data by name and ID
@@ -117,10 +143,8 @@ Each MCP function requires a minimum risk tolerance level based on the sensitivi
 #### HIGH Risk Functions (SastService)
 - `list_Scan_Results` - Returns latest scan results in SARIF format
 
-#### Unrestricted Functions (No Risk Tolerance Required)
-The following functions do not currently implement risk tolerance restrictions and are available at all risk levels:
-- **SCAService**: `list_application_libraries`, `list_application_libraries_by_app_id`, `list_applications_vulnerable_to_cve`
-- **RouteCoverageService**: `get_application_route_coverage`, `get_application_route_coverage_by_app_id`, and all route coverage functions
+#### HIGH Risk Functions (SCAService)
+- `list_applications_vulnerable_to_cve` - Returns applications and servers vulnerable to specific CVE
 
 ### Configuration
 
@@ -163,8 +187,8 @@ Each service class implements risk tolerance checks at the method level:
 - **AssessService**: Comprehensive risk controls for all vulnerability and application functions
 - **ADRService**: Medium-level risk controls for protection rule access  
 - **SastService**: Low and High risk controls for scan data access
-- **SCAService**: Currently no risk controls (all functions unrestricted)
-- **RouteCoverageService**: Currently no risk controls (all functions unrestricted)
+- **SCAService**: Medium and High risk controls for most functions (one function remains unrestricted)
+- **RouteCoverageService**: Medium-level risk controls for all route coverage functions
 
 #### Risk Tolerance Configuration
 The system uses the `RiskLevel` enum which maps string values to integer levels:
