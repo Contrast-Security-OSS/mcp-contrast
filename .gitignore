@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### contrast specific items ###
+config.json
+*.ipynb
