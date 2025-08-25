@@ -83,14 +83,13 @@ The system supports the following risk tolerance levels (from most restrictive t
 - **`LOW`** (1) - Minimal potential impact, basic application metadata only
 - **`MEDIUM`** (2) - Moderate potential impact, includes vulnerability listings
 - **`HIGH`** (3) - Significant potential impact, includes detailed vulnerability data
-- **`CRITICAL`** (4) - Severe potential impact, includes all sensitive security details
-- **`ACCEPT_ALL_RISK`** (5) - No security restrictions, all data accessible
+- **`ACCEPT_ALL_RISK`** (4) - No security restrictions, all data accessible
 
 ### Function Risk Requirements
 
-Each MCP function requires a minimum risk tolerance level based on the sensitivity of the data it exposes:
+Each MCP function requires a minimum risk tolerance level based on the sensitivity of the data it exposes. The risk tolerance checks are implemented across all service layers:
 
-#### LOW Risk Functions
+#### LOW Risk Functions (AssessService)
 - `list_all_applications` - Lists basic application information (name, status, ID, language)
 - `list_applications_with_name` - Searches applications by name
 - `get_applications_by_tag` - Filters applications by tags
@@ -98,15 +97,30 @@ Each MCP function requires a minimum risk tolerance level based on the sensitivi
 - `get_applications_by_metadata_name` - Filters applications by metadata name
 - `list_session_metadata_for_application` - Lists session metadata for applications
 
-#### MEDIUM Risk Functions
+#### LOW Risk Functions (SastService)
+- `list_Scan_Project` - Returns scan project details
+
+#### MEDIUM Risk Functions (AssessService)
 - `list_vulnerabilities` - Lists vulnerability summaries for applications
 - `list_vulnerabilities_with_id` - Lists vulnerabilities by application ID
 - `list_vulnerabilities_by_application_and_session_metadata` - Filtered vulnerability listings
 - `list_vulnerabilities_by_application_and_latest_session` - Latest session vulnerability data
 
-#### HIGH Risk Functions
+#### MEDIUM Risk Functions (ADRService)
+- `get_ADR_Protect_Rules` - Returns protection/ADR rules for application by name
+- `get_ADR_Protect_Rules_by_app_id` - Returns protection/ADR rules for application by ID
+
+#### HIGH Risk Functions (AssessService)
 - `get_vulnerability_by_id` - Detailed vulnerability information including stack traces
 - `get_vulnerability` - Detailed vulnerability data by name and ID
+
+#### HIGH Risk Functions (SastService)
+- `list_Scan_Results` - Returns latest scan results in SARIF format
+
+#### Unrestricted Functions (No Risk Tolerance Required)
+The following functions do not currently implement risk tolerance restrictions and are available at all risk levels:
+- **SCAService**: `list_application_libraries`, `list_application_libraries_by_app_id`, `list_applications_vulnerable_to_cve`
+- **RouteCoverageService**: `get_application_route_coverage`, `get_application_route_coverage_by_app_id`, and all route coverage functions
 
 ### Configuration
 
@@ -124,6 +138,9 @@ ACCEPTED_RISK_TOLERANCE=MEDIUM
 
 # For detailed vulnerability data (private LLMs only)
 ACCEPTED_RISK_TOLERANCE=HIGH
+
+# For detail vulnerability data and moving forward anything to be added to always accept
+ACCEPTED_RISK_TOLERANCE=ACCEPT_ALL_RISK
 ```
 
 ### Security Recommendations
@@ -132,8 +149,57 @@ ACCEPTED_RISK_TOLERANCE=HIGH
 - **Private/Local LLMs**: Use appropriate level based on your security requirements
 - **Development/Testing**: Can use higher levels with proper data handling controls
 - **Production Security Analysis**: Use `HIGH` only with verified private LLM instances
+- **Production Security Analysis**: Use `ACCEPT_ALL_RISK` only with verified private LLM instances and with caution as it will accept everything without review
 
 ⚠️ **WARNING**: Never use `MEDIUM` or `HIGH` risk tolerance with public LLMs as this will expose sensitive vulnerability data including stack traces, HTTP requests, and detailed security information to external services.
+
+### Implementation Details
+
+The risk tolerance system is implemented across multiple service classes:
+
+#### Service-Level Risk Controls
+Each service class implements risk tolerance checks at the method level:
+
+- **AssessService**: Comprehensive risk controls for all vulnerability and application functions
+- **ADRService**: Medium-level risk controls for protection rule access  
+- **SastService**: Low and High risk controls for scan data access
+- **SCAService**: Currently no risk controls (all functions unrestricted)
+- **RouteCoverageService**: Currently no risk controls (all functions unrestricted)
+
+#### Risk Tolerance Configuration
+The system uses the `RiskLevel` enum which maps string values to integer levels:
+```java
+NO_RISK(0), LOW(1), MEDIUM(2), HIGH(3), ACCEPT_ALL_RISK(4)
+```
+
+Each protected method includes:
+1. Risk tolerance parsing from environment variable
+2. Logging of current operation and risk level  
+3. Access control check before executing sensitive operations
+4. Appropriate error messages when access is denied
+
+#### Risk Tolerance Defaults
+- **Default Risk Level**: `NO_RISK` (0) - Most restrictive by default
+- **Environment Variable**: `ACCEPTED_RISK_TOLERANCE`
+- **Fallback Behavior**: If not set or invalid, defaults to `NO_RISK`
+
+### Migration and Upgrade Notes
+
+**Recent Changes (v0.0.9+)**:
+- Added comprehensive risk tolerance controls to AssessService, ADRService, and SastService
+- All vulnerability-related functions now require appropriate risk tolerance levels
+- SCAService and RouteCoverageService functions remain unrestricted (may be updated in future versions)
+- Default risk tolerance changed from unrestricted to `NO_RISK` for enhanced security
+
+**Future Considerations**:
+- SCAService functions may be enhanced with risk controls in future versions  
+- RouteCoverageService functions may receive risk controls based on data sensitivity analysis
+- Additional granular risk controls may be added based on user feedback
+
+**Backward Compatibility**:
+- Existing configurations without `ACCEPTED_RISK_TOLERANCE` will default to `NO_RISK`
+- Users must explicitly set risk tolerance to access previously unrestricted functions
+- This change enhances security but may require configuration updates for existing deployments
 
 ## Build
 Requires Java 17+
@@ -146,18 +212,22 @@ To add the MCP Server to your local AI system, modify the config.json file and a
 ```json
 "mcpServers": {
     "contrast-mcp": {
-      "command": "/usr/bin/java", "args": ["-jar","/Users/name/workspace/mcp-contrast/mcp-contrast/target/mcp-contrast-0.0.1-SNAPSHOT.jar",
+      "command": "/usr/bin/java", 
+      "args": [
+        "-jar",
+        "/Users/name/workspace/mcp-contrast/mcp-contrast/target/mcp-contrast-0.0.1-SNAPSHOT.jar",
         "--CONTRAST_HOST_NAME=example.contrastsecurity.com",
         "--CONTRAST_API_KEY=xxx",
         "--CONTRAST_SERVICE_KEY=xxx",
         "--CONTRAST_USERNAME=xxx.xxx@contrastsecurity.com",
         "--CONTRAST_ORG_ID=xxx",
-        "--ACCEPTED_RISK_TOLERANCE=LOW"]
+        "--ACCEPTED_RISK_TOLERANCE=LOW"
+      ]
     }
 }
 ```
 
-You obviously need to configure the above to match your contrast API Creds.
+You obviously need to configure the above to match your contrast API credentials and set your desired risk tolerance level.
 
 ## Docker
 
