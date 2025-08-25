@@ -7,7 +7,7 @@ public enum RiskLevel {
     /**
      * No risk - completely safe
      */
-    NO_RISK(0),
+    ACCEPT_NO_RISK(0),
 
     /**
      * Low risk - minimal potential impact
@@ -38,7 +38,7 @@ public enum RiskLevel {
     public static RiskLevel fromString(String value) {
         if (value == null || value.equalsIgnoreCase(""))
         {
-            return NO_RISK;
+            return ACCEPT_NO_RISK;
         } else {
             switch (value.toUpperCase()) {
                 case "LOW":
@@ -49,10 +49,10 @@ public enum RiskLevel {
                     return HIGH;
                 case "ACCEPT_ALL_RISK":
                     return ACCEPT_ALL_RISK;
-                case "NO_RISK":
-                    return NO_RISK;
+                case "ACCEPT_NO_RISK":
+                    return ACCEPT_NO_RISK;
                 default:
-                    return NO_RISK;
+                    return ACCEPT_NO_RISK;
             }
         }
         

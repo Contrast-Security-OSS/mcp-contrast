@@ -79,7 +79,7 @@ The Contrast MCP Server implements a risk-based access control system to protect
 
 The system supports the following risk tolerance levels (from most restrictive to least restrictive):
 
-- **`NO_RISK`** (0) - Completely safe, no data access allowed
+- **`ACCEPT_NO_RISK`** (0) - Completely safe, no data access allowed
 - **`LOW`** (1) - Minimal potential impact, basic application metadata only
 - **`MEDIUM`** (2) - Moderate potential impact, includes vulnerability listings
 - **`HIGH`** (3) - Significant potential impact, includes detailed vulnerability data
@@ -128,7 +128,7 @@ Set the risk tolerance in your environment configuration:
 
 ```bash
 # For maximum security (recommended for public LLMs)
-ACCEPTED_RISK_TOLERANCE=NO_RISK
+ACCEPTED_RISK_TOLERANCE=ACCEPT_NO_RISK
 
 # For basic application information only
 ACCEPTED_RISK_TOLERANCE=LOW
@@ -145,7 +145,7 @@ ACCEPTED_RISK_TOLERANCE=ACCEPT_ALL_RISK
 
 ### Security Recommendations
 
-- **Public LLMs**: Use `NO_RISK` or `LOW` only
+- **Public LLMs**: Use `ACCEPT_NO_RISK` or `LOW` only
 - **Private/Local LLMs**: Use appropriate level based on your security requirements
 - **Development/Testing**: Can use higher levels with proper data handling controls
 - **Production Security Analysis**: Use `HIGH` only with verified private LLM instances
@@ -169,7 +169,7 @@ Each service class implements risk tolerance checks at the method level:
 #### Risk Tolerance Configuration
 The system uses the `RiskLevel` enum which maps string values to integer levels:
 ```java
-NO_RISK(0), LOW(1), MEDIUM(2), HIGH(3), ACCEPT_ALL_RISK(4)
+ACCEPT_NO_RISK(0), LOW(1), MEDIUM(2), HIGH(3), ACCEPT_ALL_RISK(4)
 ```
 
 Each protected method includes:
@@ -179,9 +179,9 @@ Each protected method includes:
 4. Appropriate error messages when access is denied
 
 #### Risk Tolerance Defaults
-- **Default Risk Level**: `NO_RISK` (0) - Most restrictive by default
+- **Default Risk Level**: `ACCEPT_NO_RISK` (0) - Most restrictive by default
 - **Environment Variable**: `ACCEPTED_RISK_TOLERANCE`
-- **Fallback Behavior**: If not set or invalid, defaults to `NO_RISK`
+- **Fallback Behavior**: If not set or invalid, defaults to `ACCEPT_NO_RISK`
 
 ### Migration and Upgrade Notes
 
@@ -189,7 +189,7 @@ Each protected method includes:
 - Added comprehensive risk tolerance controls to AssessService, ADRService, and SastService
 - All vulnerability-related functions now require appropriate risk tolerance levels
 - SCAService and RouteCoverageService functions remain unrestricted (may be updated in future versions)
-- Default risk tolerance changed from unrestricted to `NO_RISK` for enhanced security
+- Default risk tolerance changed from unrestricted to `ACCEPT_NO_RISK` for enhanced security
 
 **Future Considerations**:
 - SCAService functions may be enhanced with risk controls in future versions  
@@ -197,7 +197,7 @@ Each protected method includes:
 - Additional granular risk controls may be added based on user feedback
 
 **Backward Compatibility**:
-- Existing configurations without `ACCEPTED_RISK_TOLERANCE` will default to `NO_RISK`
+- Existing configurations without `ACCEPTED_RISK_TOLERANCE` will default to `ACCEPT_NO_RISK`
 - Users must explicitly set risk tolerance to access previously unrestricted functions
 - This change enhances security but may require configuration updates for existing deployments
 

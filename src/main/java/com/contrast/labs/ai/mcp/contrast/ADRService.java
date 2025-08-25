@@ -34,7 +34,7 @@ public class ADRService {
 
     private static final Logger logger = LoggerFactory.getLogger(ADRService.class);
 
-    //This is the accepted risk tolerance level for running ADR operations. Default is NO_RISK (0)
+    //This is the accepted risk tolerance level for running ADR operations. Default is ACCEPT_NO_RISK (0)
     private int acceptedRiskTolerance = 0;
 
     @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
