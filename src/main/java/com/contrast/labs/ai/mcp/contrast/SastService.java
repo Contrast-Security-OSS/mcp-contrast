@@ -37,6 +37,8 @@ public class SastService {
 
     private static final Logger logger = LoggerFactory.getLogger(SastService.class);
 
+    //This is the accepted risk tolerance level for running ADR operations. Default is NO_RISK (0)
+    private int acceptedRiskTolerance = 0;
 
     @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
     private String hostName;
@@ -59,51 +61,67 @@ public class SastService {
     @Value("${http.proxy.port:${http_proxy_port:}}")
     private String httpProxyPort;
 
+    @Value("${accepted.risk.tolerance:${ACCEPTED_RISK_TOLERANCE:}}")
+    private String acceptedRiskToleranceStr;
 
 
     @Tool(name = "list_Scan_Project", description = "takes a scan project name and returns the project details")
     public Project getScanProject(String projectName) throws IOException {
-        logger.info("Retrieving scan project details for project: {}", projectName);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        logger.debug("ContrastSDK initialized with host: {}", hostName);
-        
-        try {
-            Project project = contrastSDK.scan(orgID).projects().findByName(projectName)
-                .orElseThrow(() -> new IOException("Project not found"));
-            logger.info("Successfully found project: {}", projectName);
-            return project;
-        } catch (IOException e) {
-            logger.error("Failed to find project {}: {}", projectName, e.getMessage());
-            throw e;
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();        
+        logger.info("Risk level: low, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.LOW.getValue()) {
+            logger.info("Retrieving scan project details for project: {}", projectName);
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+            logger.debug("ContrastSDK initialized with host: {}", hostName);
+            
+            try {
+                Project project = contrastSDK.scan(orgID).projects().findByName(projectName)
+                    .orElseThrow(() -> new IOException("Project not found"));
+                logger.info("Successfully found project: {}", projectName);
+                return project;
+            } catch (IOException e) {
+                logger.error("Failed to find project {}: {}", projectName, e.getMessage());
+                throw e;
+            }
+        } else {
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: LOW, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: LOW or higher.");
         }
     }
 
     @Tool(name = "list_Scan_Results", description = "takes a scan project name and returns the latest results in Sarif format")
     public String getLatestScanResult(String projectName) throws IOException {
-        logger.info("Retrieving latest scan results in SARIF format for project: {}", projectName);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        logger.debug("ContrastSDK initialized with host: {}", hostName);
+        acceptedRiskTolerance = RiskLevel.fromString(acceptedRiskToleranceStr).getValue();        
+        logger.info("Risk level: high, and your accepted risk tolerance is set to: {}", acceptedRiskTolerance);
+        if (acceptedRiskTolerance >= RiskLevel.HIGH.getValue()) {
+            logger.info("Retrieving latest scan results in SARIF format for project: {}", projectName);
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+            logger.debug("ContrastSDK initialized with host: {}", hostName);
 
-        try {
-            Project project = contrastSDK.scan(orgID).projects().findByName(projectName)
-                .orElseThrow(() -> new IOException("Project not found"));
-            logger.debug("Found project with id: {}", project.id());
-            
-            Scans scans = contrastSDK.scan(orgID).scans(project.id());
-            logger.debug("Retrieved scans for project, last scan id: {}", project.lastScanId());
-            
-            Scan scan = scans.get(project.lastScanId());
-            logger.debug("Retrieved scan with id: {}", project.lastScanId());
+            try {
+                Project project = contrastSDK.scan(orgID).projects().findByName(projectName)
+                    .orElseThrow(() -> new IOException("Project not found"));
+                logger.debug("Found project with id: {}", project.id());
+                
+                Scans scans = contrastSDK.scan(orgID).scans(project.id());
+                logger.debug("Retrieved scans for project, last scan id: {}", project.lastScanId());
+                
+                Scan scan = scans.get(project.lastScanId());
+                logger.debug("Retrieved scan with id: {}", project.lastScanId());
 
-            try (InputStream sarifStream = scan.sarif();
-                 BufferedReader reader = new BufferedReader(new InputStreamReader(sarifStream))) {
-                String result = reader.lines().collect(Collectors.joining(System.lineSeparator()));
-                logger.info("Successfully retrieved SARIF data for project: {}", projectName);
-                return result;
-            }
-        } catch (IOException e) {
-            logger.error("Error retrieving SARIF data for project {}: {}", projectName, e.getMessage());
-            throw e;
+                try (InputStream sarifStream = scan.sarif();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(sarifStream))) {
+                    String result = reader.lines().collect(Collectors.joining(System.lineSeparator()));
+                    logger.info("Successfully retrieved SARIF data for project: {}", projectName);
+                    return result;
+                }
+            } catch (IOException e) {
+                logger.error("Error retrieving SARIF data for project {}: {}", projectName, e.getMessage());
+                throw e;
+            }        
+        } else {
+            logger.error("Your accepted Risk tolerance is too low to perform this operation. This risk level is: HIGH, with your accepted risk tolerance set at: {}", acceptedRiskTolerance);
+            throw new IOException("Accepted Risk Tolerance is too low to perform this operation. Required: HIGH or higher.");
         }
     }
 }

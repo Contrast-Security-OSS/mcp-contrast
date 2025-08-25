@@ -45,7 +45,8 @@ public class AssessService {
 
     private static final Logger logger = LoggerFactory.getLogger(AssessService.class);
     
-    private int acceptedRiskTolerance = 1;
+    //This is the accepted risk tolerance level for running ADR operations. Default is NO_RISK (0)
+    private int acceptedRiskTolerance = 0;
 
     @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
     private String hostName;

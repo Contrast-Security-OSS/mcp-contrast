@@ -25,14 +25,9 @@ public enum RiskLevel {
     HIGH(3),
 
     /**
-     * Critical risk - severe potential impact
-     */
-    CRITICAL(4),
-
-    /**
      * Accept all risk - no security restrictions
      */
-    ACCEPT_ALL_RISK(5);
+    ACCEPT_ALL_RISK(4);
 
     private final int value;
 
@@ -52,8 +47,6 @@ public enum RiskLevel {
                     return MEDIUM;
                 case "HIGH":
                     return HIGH;
-                case "CRITICAL":
-                    return CRITICAL;
                 case "ACCEPT_ALL_RISK":
                     return ACCEPT_ALL_RISK;
                 case "NO_RISK":
