@@ -248,32 +248,39 @@ public class SDKExtension {
             throws UnauthorizedException, IOException {
         String url = urlBuilder.getApplicationsUrl(organizationId)+"&expand=metadata,technologies,skip_links";
         try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url)) {
-            // Read the entire input stream into a string for logging
-            String responseContent = convertStreamToString(is);
-            
-            // Log the response content
-            logger.debug("Applications API response: {}", responseContent);
-            
-            // Convert the string back to a reader for GSON
-            Reader reader = new StringReader(responseContent);
+            Reader reader;
+
+            // Only buffer the response if debug logging is enabled
+            if (logger.isDebugEnabled()) {
+                String responseContent = convertStreamToString(is);
+                logger.debug("Applications API response: {}", responseContent);
+                reader = new StringReader(responseContent);
+            } else {
+                reader = new InputStreamReader(is);
+            }
+
             return this.gson.fromJson(reader, ApplicationsResponse.class);
         }
     }
-    
+
     /**
-     * Converts an InputStream to String without closing the stream.
+     * Converts an InputStream to String.
+     * Note: This will consume the InputStream but not close it.
+     *
+     * @param is The InputStream to convert
+     * @return The string content of the stream
+     * @throws IOException If an I/O error occurs
      */
     private String convertStreamToString(InputStream is) throws IOException {
         if (is == null) {
             return "";
         }
-        
+
         StringBuilder sb = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(line).append("\n");
-            }
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+        String line;
+        while ((line = reader.readLine()) != null) {
+            sb.append(line).append("\n");
         }
         return sb.toString();
     }

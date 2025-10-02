@@ -56,26 +56,92 @@ class SDKHelperTest {
     @Test
     void testGetProtocolAndServer_WithCustomProtocol() {
         when(environment.getProperty("contrast.api.protocol", "https")).thenReturn("http");
-        
+
         String result = SDKHelper.getProtocolAndServer("example.com");
         assertEquals("http://example.com", result);
     }
-    
+
+    @Test
+    void testGetProtocolAndServer_WithEmptyString() {
+        String result = SDKHelper.getProtocolAndServer("");
+        assertEquals("https://", result);
+    }
+
+    @Test
+    void testGetProtocolAndServer_WithLeadingWhitespace() {
+        String result = SDKHelper.getProtocolAndServer("  example.com");
+        assertEquals("https://example.com", result);
+    }
+
+    @Test
+    void testGetProtocolAndServer_WithTrailingWhitespace() {
+        String result = SDKHelper.getProtocolAndServer("example.com  ");
+        assertEquals("https://example.com", result);
+    }
+
+    @Test
+    void testGetProtocolAndServer_WithLeadingAndTrailingWhitespace() {
+        String result = SDKHelper.getProtocolAndServer("  https://example.com  ");
+        assertEquals("https://example.com", result);
+    }
+
+    @Test
+    void testGetProtocolAndServer_WithInvalidProtocol_Ftp() {
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            SDKHelper.getProtocolAndServer("ftp://example.com");
+        });
+
+        assertTrue(exception.getMessage().contains("Invalid protocol"));
+        assertTrue(exception.getMessage().contains("ftp://example.com"));
+    }
+
+    @Test
+    void testGetProtocolAndServer_WithInvalidProtocol_Custom() {
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            SDKHelper.getProtocolAndServer("custom://example.com");
+        });
+
+        assertTrue(exception.getMessage().contains("Invalid protocol"));
+    }
+
+    @Test
+    void testGetProtocolAndServer_WithMalformedProtocol() {
+        // "ht://example.com" contains "://" but doesn't start with http:// or https://
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            SDKHelper.getProtocolAndServer("ht://example.com");
+        });
+
+        assertTrue(exception.getMessage().contains("Invalid protocol"));
+    }
+
     @Test
     void testGetSDK_WithHttpsUrl() {
         String hostWithProtocol = "https://custom.example.com";
-        
-        // Use reflection to access the private method that builds the API URL
+        when(environment.getProperty("spring.ai.mcp.server.version", "unknown")).thenReturn("1.0.0");
+
+        // getSDK is a public static method, so we can call it directly
         try {
-            Method method = SDKHelper.class.getDeclaredMethod("getSDK", String.class, String.class, String.class, String.class, String.class, String.class);
-            method.setAccessible(true);
-            
-            Object sdk = method.invoke(null, hostWithProtocol, "apiKey", "serviceKey", "username", null, null);
-            
+            Object sdk = SDKHelper.getSDK(hostWithProtocol, "apiKey", "serviceKey", "username", null, null);
+
             assertNotNull(sdk);
-            // The actual URL validation would require accessing ContrastSDK's internal state,
-            // which is beyond the scope of a unit test.
-            // In a real application, you would use integration tests to verify this behavior.
+            // The SDK was successfully created with the https URL.
+            // Detailed URL validation would require accessing ContrastSDK's internal state,
+            // which is beyond the scope of a unit test and better suited for integration tests.
+        } catch (Exception e) {
+            fail("Exception occurred: " + e.getMessage());
+        }
+    }
+
+    @Test
+    void testGetSDK_WithHostnameOnly() {
+        String hostname = "example.contrastsecurity.com";
+        when(environment.getProperty("spring.ai.mcp.server.version", "unknown")).thenReturn("1.0.0");
+
+        try {
+            Object sdk = SDKHelper.getSDK(hostname, "apiKey", "serviceKey", "username", null, null);
+
+            assertNotNull(sdk);
+            // The SDK should prepend https:// by default
         } catch (Exception e) {
             fail("Exception occurred: " + e.getMessage());
         }

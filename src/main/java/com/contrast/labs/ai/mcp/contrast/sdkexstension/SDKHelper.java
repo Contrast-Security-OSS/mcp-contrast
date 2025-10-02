@@ -43,7 +43,9 @@ import com.contrastsecurity.exceptions.UnauthorizedException;
 public class SDKHelper {
 
     private static final String MCP_SERVER_NAME = "contrast-mcp";
-  
+    private static final String HTTPS_PROTOCOL = "https://";
+    private static final String HTTP_PROTOCOL = "http://";
+
     private static final Logger logger = LoggerFactory.getLogger(SDKHelper.class);
 
     private static Environment environment;
@@ -151,21 +153,32 @@ public class SDKHelper {
 
     /**
      * Constructs a URL with protocol and server.
-     * If the hostname already contains a protocol (e.g., "https://host.com"), 
+     * If the hostname already contains a protocol (e.g., "https://host.com"),
      * it returns the hostname as is. Otherwise, it prepends the protocol from properties.
-     * 
+     *
      * @param hostName The hostname, which may or may not include a protocol
      * @return A URL with protocol and hostname
+     * @throws IllegalArgumentException If the hostname contains an invalid protocol
      */
     public static String getProtocolAndServer(String hostName) {
         if (hostName == null) {
             return null;
         }
-        
-        if (hostName.startsWith("http://") || hostName.startsWith("https://")) {
+
+        // Trim whitespace
+        hostName = hostName.trim();
+
+        // Check if hostname contains a protocol separator
+        if (hostName.contains("://")) {
+            // Validate that it's a supported protocol
+            if (!hostName.startsWith(HTTP_PROTOCOL) && !hostName.startsWith(HTTPS_PROTOCOL)) {
+                throw new IllegalArgumentException("Invalid protocol in hostname: " + hostName +
+                    ". Only http:// and https:// are supported.");
+            }
             return hostName;
         }
-        
+
+        // No protocol specified, prepend from configuration
         String protocol = SDKHelper.environment.getProperty("contrast.api.protocol", "https");
         return protocol + "://" + hostName;
     }
@@ -178,16 +191,16 @@ public class SDKHelper {
         String baseUrl = getProtocolAndServer(hostName);
         String apiUrl = baseUrl + "/Contrast/api";
         logger.info("API URL will be : {}", apiUrl);
-      
+
         String mcpVersion = SDKHelper.environment.getProperty("spring.ai.mcp.server.version", "unknown");
-      
+
         ContrastSDK.Builder builder = new ContrastSDK.Builder(userName, serviceKey, apiKey)
                 .withApiUrl(apiUrl)
                 .withUserAgentProduct(UserAgentProduct.of(MCP_SERVER_NAME, mcpVersion));
 
         if (httpProxyHost != null && !httpProxyHost.isEmpty()) {
             int port = httpProxyPort != null && !httpProxyPort.isEmpty() ? Integer.parseInt(httpProxyPort) : 80;
-            logger.info("Configuring HTTP proxy: {}:{}", httpProxyHost, port);
+            logger.debug("Configuring HTTP proxy: {}:{}", httpProxyHost, port);
 
             java.net.Proxy proxy = new java.net.Proxy(
                 java.net.Proxy.Type.HTTP,
