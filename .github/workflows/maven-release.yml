@@ -2,15 +2,6 @@ name: Maven Release
 
 on:
   workflow_dispatch:
-    inputs:
-      releaseVersion:
-        description: 'Release version (e.g., 0.0.12)'
-        required: true
-        type: string
-      nextVersion:
-        description: 'Next development version (e.g., 0.0.13-SNAPSHOT)'
-        required: true
-        type: string
 
 jobs:
   release:
@@ -36,22 +27,42 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      - name: Determine release versions
+        id: versions
+        run: |
+          # Get current version from pom.xml (e.g., "0.0.12-SNAPSHOT")
+          CURRENT=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "Current version: $CURRENT"
+
+          # Strip -SNAPSHOT to get release version (e.g., "0.0.12")
+          RELEASE_VERSION=$(echo $CURRENT | sed 's/-SNAPSHOT//')
+          echo "Release version: $RELEASE_VERSION"
+
+          # Increment patch version for next dev version (e.g., "0.0.13-SNAPSHOT")
+          NEXT_VERSION=$(echo $RELEASE_VERSION | awk -F. '{$NF = $NF + 1;} 1' OFS=.)
+          NEXT_DEV_VERSION="${NEXT_VERSION}-SNAPSHOT"
+          echo "Next dev version: $NEXT_DEV_VERSION"
+
+          # Output for use in later steps
+          echo "release=$RELEASE_VERSION" >> $GITHUB_OUTPUT
+          echo "next=$NEXT_DEV_VERSION" >> $GITHUB_OUTPUT
+
       - name: Prepare Release
         run: |
           ./mvnw release:prepare \
-            -DreleaseVersion=${{ inputs.releaseVersion }} \
-            -DdevelopmentVersion=${{ inputs.nextVersion }} \
-            -Dtag=v${{ inputs.releaseVersion }} \
+            -DreleaseVersion=${{ steps.versions.outputs.release }} \
+            -DdevelopmentVersion=${{ steps.versions.outputs.next }} \
+            -Dtag=v${{ steps.versions.outputs.release }} \
             -DpushChanges=false \
             -B
 
       - name: Push Changes and Tags
         run: |
           git push origin HEAD:main
-          git push origin v${{ inputs.releaseVersion }}
+          git push origin v${{ steps.versions.outputs.release }}
 
       - name: Checkout Release Tag
-        run: git checkout v${{ inputs.releaseVersion }}
+        run: git checkout v${{ steps.versions.outputs.release }}
 
       - name: Build Release Artifact
         run: ./mvnw clean package -DskipTests
@@ -59,11 +70,11 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ inputs.releaseVersion }}
-          name: Release v${{ inputs.releaseVersion }}
+          tag_name: v${{ steps.versions.outputs.release }}
+          name: Release v${{ steps.versions.outputs.release }}
           draft: false
           prerelease: false
-          files: target/mcp-contrast-${{ inputs.releaseVersion }}.jar
+          files: target/mcp-contrast-${{ steps.versions.outputs.release }}.jar
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

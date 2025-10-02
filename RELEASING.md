@@ -27,10 +27,12 @@ Before starting a release:
 1. Navigate to the [GitHub Actions](https://github.com/Contrast-Security-OSS/mcp-contrast/actions) page
 2. Select the "Maven Release" workflow from the left sidebar
 3. Click "Run workflow" button (top right)
-4. Fill in the required inputs:
-   - **Release version**: The version number for this release (e.g., `0.0.12`)
-   - **Next development version**: The next SNAPSHOT version (e.g., `0.0.13-SNAPSHOT`)
+4. Select the branch (usually `main`)
 5. Click "Run workflow"
+
+**Note:** The release version is automatically determined from `pom.xml`. If `pom.xml` shows `0.0.12-SNAPSHOT`, the workflow will:
+- Release version `0.0.12`
+- Set next development version to `0.0.13-SNAPSHOT` (automatic patch increment)
 
 ### 3. What Happens Automatically
 
@@ -91,6 +93,23 @@ This project follows [Semantic Versioning](https://semver.org/) with the format 
 - **PATCH**: Backwards-compatible bug fixes
 
 For pre-1.0 releases, we use `0.0.X` versioning where X increments for each release.
+
+### Controlling Version Numbers
+
+The release workflow automatically increments the **patch** version. To control major or minor version bumps:
+
+1. **Edit `pom.xml`** to set the desired next version with `-SNAPSHOT`:
+   ```xml
+   <version>1.0.0-SNAPSHOT</version>  <!-- For major bump -->
+   <version>0.1.0-SNAPSHOT</version>  <!-- For minor bump -->
+   <version>0.0.15-SNAPSHOT</version> <!-- To skip versions -->
+   ```
+
+2. **Commit and merge** the version change to `main`
+
+3. **Run the release workflow** - it will release that version and auto-increment the patch
+
+This approach provides full control while maintaining automation. Version changes are tracked in git history and reviewable via pull requests.
 
 ## Development Versions
 
@@ -202,18 +221,17 @@ git push fork fork-main:main
 3. If workflows don't appear, refresh the page
 4. Click **Maven Release** in the left sidebar
 5. Click the green **Run workflow** button
-6. Configure:
-   - **Branch:** `main`
-   - **Release version:** `0.0.12-test`
-   - **Next development version:** `0.0.13-SNAPSHOT`
+6. Select branch: `main`
 7. Click **Run workflow**
+
+**Note:** The version is automatically read from `pom.xml`. If `pom.xml` shows `0.0.12-SNAPSHOT`, it will release `0.0.12` and create `0.0.13-SNAPSHOT` for next development.
 
 ### Step 6: Verify the Release
 
 The workflow will:
 - ✅ Update versions in all files
 - ✅ Build the JAR artifact
-- ✅ Create tag `v0.0.12-test`
+- ✅ Create tag (e.g., `v0.0.12`)
 - ✅ Create GitHub release with JAR attached
 - ❌ Docker build will fail (expected - you don't have DockerHub credentials)
 
@@ -221,8 +239,8 @@ Check the results:
 
 1. **Verify JAR artifact:**
    - Go to **Releases** in your fork
-   - Click on `v0.0.12-test`
-   - Under **Assets**, confirm `mcp-contrast-0.0.12-test.jar` is attached
+   - Find the release matching your version
+   - Under **Assets**, confirm the JAR file is attached
 
 2. **Verify workflow success:**
    - Go to **Actions** tab
@@ -239,16 +257,22 @@ After successful testing, clean up:
 
 1. **Delete the test release:**
    - Go to **Releases**
-   - Click **Edit** on v0.0.12-test
+   - Click **Edit** on the release you created
    - Scroll down and click **Delete this release**
 
-2. **Delete the test tag and branch:**
+2. **Delete the test tag:**
    ```bash
-   # Delete tag
-   git push fork :refs/tags/v0.0.12-test
+   # Delete tag (replace VERSION with your version, e.g., v0.0.12)
+   git push fork :refs/tags/vVERSION
+   ```
 
-   # Delete test-release branch
-   git push fork :refs/heads/test-release
+3. **Optional: Reset your fork's main branch** to match upstream:
+   ```bash
+   # Fetch latest from upstream
+   git fetch origin main
+
+   # Reset your fork's main to match upstream (removes test commits)
+   git push fork origin/main:main --force
    ```
 
 3. **Clean up local branches:**
