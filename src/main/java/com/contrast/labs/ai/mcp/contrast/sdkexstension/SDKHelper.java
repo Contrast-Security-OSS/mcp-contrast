@@ -158,8 +158,8 @@ public class SDKHelper {
      * Trailing slashes are removed to ensure consistent URL formatting.
      *
      * @param hostName The hostname, which may or may not include a protocol
-     * @return A URL with protocol and hostname (without trailing slash)
-     * @throws IllegalArgumentException If the hostname is empty or contains an invalid protocol
+     * @return A URL with protocol and hostname (without trailing slash), or null if hostname is null/empty
+     * @throws IllegalArgumentException If the hostname contains an invalid protocol
      */
     public static String getProtocolAndServer(String hostName) {
         if (hostName == null) {
@@ -169,9 +169,9 @@ public class SDKHelper {
         // Trim whitespace
         hostName = hostName.trim();
 
-        // Validate hostname is not empty
+        // Return null for empty strings (consistent with null handling)
         if (hostName.isEmpty()) {
-            throw new IllegalArgumentException("Hostname cannot be empty");
+            return null;
         }
 
         String result;

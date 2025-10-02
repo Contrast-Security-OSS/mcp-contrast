@@ -63,20 +63,16 @@ class SDKHelperTest {
 
     @Test
     void testGetProtocolAndServer_WithEmptyString() {
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            SDKHelper.getProtocolAndServer("");
-        });
-
-        assertTrue(exception.getMessage().contains("Hostname cannot be empty"));
+        // Empty string should return null (consistent with null input handling)
+        String result = SDKHelper.getProtocolAndServer("");
+        assertNull(result);
     }
 
     @Test
     void testGetProtocolAndServer_WithWhitespaceOnly() {
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            SDKHelper.getProtocolAndServer("   ");
-        });
-
-        assertTrue(exception.getMessage().contains("Hostname cannot be empty"));
+        // Whitespace-only string should return null (consistent with null input handling)
+        String result = SDKHelper.getProtocolAndServer("   ");
+        assertNull(result);
     }
 
     @Test
