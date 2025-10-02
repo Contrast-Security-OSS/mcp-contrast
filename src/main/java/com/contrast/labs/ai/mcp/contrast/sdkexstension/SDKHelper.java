@@ -43,8 +43,7 @@ import com.contrastsecurity.exceptions.UnauthorizedException;
 public class SDKHelper {
 
     private static final String MCP_SERVER_NAME = "contrast-mcp";
-    private static final String MCP_VERSION = "0.0.10";
-
+  
     private static final Logger logger = LoggerFactory.getLogger(SDKHelper.class);
 
     private static Environment environment;
@@ -175,12 +174,16 @@ public class SDKHelper {
     // User-Agent: contrast-mcp/1.0 contrast-sdk-java/3.4.2 Java/19.0.2+7
     public static ContrastSDK getSDK(String hostName, String apiKey, String serviceKey, String userName, String httpProxyHost, String httpProxyPort)  {
         logger.info("Initializing ContrastSDK with username: {}, host: {}", userName, hostName);
+
         String baseUrl = getProtocolAndServer(hostName);
         String apiUrl = baseUrl + "/Contrast/api";
         logger.info("API URL will be : {}", apiUrl);
+      
+        String mcpVersion = SDKHelper.environment.getProperty("spring.ai.mcp.server.version", "unknown");
+      
         ContrastSDK.Builder builder = new ContrastSDK.Builder(userName, serviceKey, apiKey)
                 .withApiUrl(apiUrl)
-                .withUserAgentProduct(UserAgentProduct.of(MCP_SERVER_NAME, MCP_VERSION));
+                .withUserAgentProduct(UserAgentProduct.of(MCP_SERVER_NAME, mcpVersion));
 
         if (httpProxyHost != null && !httpProxyHost.isEmpty()) {
             int port = httpProxyPort != null && !httpProxyPort.isEmpty() ? Integer.parseInt(httpProxyPort) : 80;

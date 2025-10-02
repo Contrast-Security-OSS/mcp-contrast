@@ -1,5 +1,15 @@
 # Contrast MCP Server
 
+⚠️ CRITICAL SECURITY WARNING: EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A LLM THAT TRAINS ON YOUR DATA CAN POTENTIALLY EXPOSE YOUR VULNERABILITY DATA TO THE OUTSIDE WORLD. Thus, do not use mcp-contrast functions which pull sensitive data with a LLM that trains on your data.  
+
+Verify AI Data Privacy: Before sending vulnerability data to an AI, you must confirm that your service agreement guarantees your data will not be used for model training.
+
+UNSAFE: Public consumer websites (e.g., the free versions of ChatGPT, Gemini, Claude). These services often use your input for training.
+
+POTENTIALLY-SAFE: Enterprise-grade services (e.g. Google Cloud AI, AWS Bedrock, Azure OpenAI) or paid plans that contractually ensure data privacy and prevent model training on your prompts, verify with your information security teams.
+  
+<br/><br/>
+
 [![Java CI with Maven](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Maven Central](https://img.shields.io/maven-central/v/com.contrast.labs/mcp-contrast.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.contrast.labs%22%20AND%20a:%22mcp-contrast%22)
@@ -8,7 +18,7 @@
 Contrast's MCP server allows you as a developer or security professional to quickly remediate vulnerabilities found by Contrast products. By combining the abilities of a LLM and Coding Agent of your choice and Contrast's unique vulnerability data it is possible to easily remediate vulnerabilities in your code or 3rd party libraries.
 ![output.gif](images/output.gif)
 
-## Table of Contents 
+## Table of Contents
 - [Sample Prompts](#sample-prompts)
   - [For the Developer](#for-the-developer)
     - [Remediate Vulnerability in code](#remediate-vulnerability-in-code)
