@@ -10,10 +10,10 @@
 	</parent>
 	<groupId>com.contrast.labs.ai.mcp</groupId>
 	<artifactId>mcp-contrast</artifactId>
-	<version>0.0.11</version>
+	<version>0.0.12-SNAPSHOT</version>
 	<name>mcp-contrast</name>
 	<description>MCP Server</description>
-	<url/>
+	<url>https://github.com/Contrast-Security-OSS/mcp-contrast</url>
 	<licenses>
 		<license/>
 	</licenses>
@@ -21,14 +21,15 @@
 		<developer/>
 	</developers>
 	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
+		<connection>scm:git:https://github.com/Contrast-Security-OSS/mcp-contrast.git</connection>
+		<developerConnection>scm:git:https://github.com/Contrast-Security-OSS/mcp-contrast.git</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://github.com/Contrast-Security-OSS/mcp-contrast</url>
 	</scm>
 	<properties>
 		<java.version>17</java.version>
 		<spring-ai.version>1.0.1</spring-ai.version>
+		<maven-release-plugin.version>3.1.1</maven-release-plugin.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -65,10 +66,28 @@
 	</dependencyManagement>
 
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-release-plugin</artifactId>
+				<version>${maven-release-plugin.version}</version>
+				<configuration>
+					<tagNameFormat>v@{project.version}</tagNameFormat>
+					<autoVersionSubmodules>true</autoVersionSubmodules>
+					<releaseProfiles>release</releaseProfiles>
+					<scmCommentPrefix>[maven-release-plugin] [skip ci] </scmCommentPrefix>
+					<goals>install</goals>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
