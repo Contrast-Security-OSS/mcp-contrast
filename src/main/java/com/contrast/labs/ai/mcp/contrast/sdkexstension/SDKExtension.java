@@ -244,28 +244,48 @@ public class SDKExtension {
                 organizationId, applicationId, routeHash);
     }
 
+    /**
+     * Retrieves all applications for an organization.
+     *
+     * <p>When debug logging is enabled, this method will buffer the entire response in memory
+     * to log it before parsing. For organizations with many applications, this could consume
+     * significant memory (approximately 1-2 KB per application). In production environments,
+     * debug logging should be disabled to stream responses directly without buffering.
+     *
+     * @param organizationId The organization ID
+     * @return ApplicationsResponse containing all applications
+     * @throws UnauthorizedException If the request is not authorized
+     * @throws IOException If an I/O error occurs
+     */
     public ApplicationsResponse getApplications(String organizationId)
             throws UnauthorizedException, IOException {
         String url = urlBuilder.getApplicationsUrl(organizationId)+"&expand=metadata,technologies,skip_links";
-        try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url)) {
-            Reader reader;
 
-            // Only buffer the response if debug logging is enabled
-            if (logger.isDebugEnabled()) {
+        // When debug logging is enabled, buffer the response for logging
+        if (logger.isDebugEnabled()) {
+            try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url)) {
                 String responseContent = convertStreamToString(is);
                 logger.debug("Applications API response: {}", responseContent);
-                reader = new StringReader(responseContent);
-            } else {
-                reader = new InputStreamReader(is);
-            }
 
-            return this.gson.fromJson(reader, ApplicationsResponse.class);
+                // Parse the buffered response string
+                try (Reader reader = new StringReader(responseContent)) {
+                    return this.gson.fromJson(reader, ApplicationsResponse.class);
+                }
+            }
+        } else {
+            // Stream response directly without buffering
+            try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
+                 Reader reader = new InputStreamReader(is)) {
+                return this.gson.fromJson(reader, ApplicationsResponse.class);
+            }
         }
     }
 
     /**
-     * Converts an InputStream to String.
-     * Note: This will consume the InputStream but not close it.
+     * Converts an InputStream to String by reading all available data.
+     *
+     * <p>This method fully consumes the InputStream. The caller is responsible for
+     * closing the InputStream after this method returns.
      *
      * @param is The InputStream to convert
      * @return The string content of the stream
@@ -277,10 +297,11 @@ public class SDKExtension {
         }
 
         StringBuilder sb = new StringBuilder();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
-        String line;
-        while ((line = reader.readLine()) != null) {
-            sb.append(line).append("\n");
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line).append("\n");
+            }
         }
         return sb.toString();
     }

@@ -63,8 +63,20 @@ class SDKHelperTest {
 
     @Test
     void testGetProtocolAndServer_WithEmptyString() {
-        String result = SDKHelper.getProtocolAndServer("");
-        assertEquals("https://", result);
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            SDKHelper.getProtocolAndServer("");
+        });
+
+        assertTrue(exception.getMessage().contains("Hostname cannot be empty"));
+    }
+
+    @Test
+    void testGetProtocolAndServer_WithWhitespaceOnly() {
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            SDKHelper.getProtocolAndServer("   ");
+        });
+
+        assertTrue(exception.getMessage().contains("Hostname cannot be empty"));
     }
 
     @Test
@@ -145,5 +157,30 @@ class SDKHelperTest {
         } catch (Exception e) {
             fail("Exception occurred: " + e.getMessage());
         }
+    }
+
+    @Test
+    void testGetProtocolAndServer_WithTrailingSlash() {
+        String result = SDKHelper.getProtocolAndServer("example.com/");
+        assertEquals("https://example.com", result);
+    }
+
+    @Test
+    void testGetProtocolAndServer_WithProtocolAndTrailingSlash() {
+        String result = SDKHelper.getProtocolAndServer("https://example.com/");
+        assertEquals("https://example.com", result);
+    }
+
+    @Test
+    void testGetProtocolAndServer_WithHttpProtocolAndTrailingSlash() {
+        String result = SDKHelper.getProtocolAndServer("http://example.com/");
+        assertEquals("http://example.com", result);
+    }
+
+    @Test
+    void testGetProtocolAndServer_WithMultipleTrailingSlashes() {
+        // Note: Only one trailing slash is removed
+        String result = SDKHelper.getProtocolAndServer("example.com//");
+        assertEquals("https://example.com/", result);
     }
 }

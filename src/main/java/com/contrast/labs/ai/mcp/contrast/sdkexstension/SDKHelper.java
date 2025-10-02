@@ -155,10 +155,11 @@ public class SDKHelper {
      * Constructs a URL with protocol and server.
      * If the hostname already contains a protocol (e.g., "https://host.com"),
      * it returns the hostname as is. Otherwise, it prepends the protocol from properties.
+     * Trailing slashes are removed to ensure consistent URL formatting.
      *
      * @param hostName The hostname, which may or may not include a protocol
-     * @return A URL with protocol and hostname
-     * @throws IllegalArgumentException If the hostname contains an invalid protocol
+     * @return A URL with protocol and hostname (without trailing slash)
+     * @throws IllegalArgumentException If the hostname is empty or contains an invalid protocol
      */
     public static String getProtocolAndServer(String hostName) {
         if (hostName == null) {
@@ -168,6 +169,13 @@ public class SDKHelper {
         // Trim whitespace
         hostName = hostName.trim();
 
+        // Validate hostname is not empty
+        if (hostName.isEmpty()) {
+            throw new IllegalArgumentException("Hostname cannot be empty");
+        }
+
+        String result;
+
         // Check if hostname contains a protocol separator
         if (hostName.contains("://")) {
             // Validate that it's a supported protocol
@@ -175,12 +183,19 @@ public class SDKHelper {
                 throw new IllegalArgumentException("Invalid protocol in hostname: " + hostName +
                     ". Only http:// and https:// are supported.");
             }
-            return hostName;
+            result = hostName;
+        } else {
+            // No protocol specified, prepend from configuration
+            String protocol = SDKHelper.environment.getProperty("contrast.api.protocol", "https");
+            result = protocol + "://" + hostName;
         }
 
-        // No protocol specified, prepend from configuration
-        String protocol = SDKHelper.environment.getProperty("contrast.api.protocol", "https");
-        return protocol + "://" + hostName;
+        // Remove trailing slash to prevent double slashes in URLs
+        if (result.endsWith("/")) {
+            result = result.substring(0, result.length() - 1);
+        }
+
+        return result;
     }
 
     // The withUserAgentProduct will generate a user agent header that looks like
