@@ -1,18 +1,12 @@
 # Contrast MCP Server
 
-$${\color{red} ** WARNING ** WARNING ** WARNING ** WARNING ** WARNING **}$$
+⚠️ CRITICAL SECURITY WARNING: EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A LLM THAT TRAINS ON YOUR DATA CAN POTENTIALLY EXPOSE YOUR VULNERABILITY DATA TO THE OUTSIDE WORLD. Thus, do not use mcp-contrast functions which pull sensitive data with a LLM that trains on your data.  
 
-<h4><code style="color: red;">EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A LLM THAT TRAINS ON YOUR DATA IS DANGEROUS! </code>
-</h4>
-
-Never under any circumstances use mcp-contrast functions which pull sensitive data with a LLM that trains on your data as it will potentially expose your vulnerability data to the outside world.
-
-⚠️ Critical Security Warning: Verify AI Data Privacy
-Before sending vulnerability data to an AI, you must confirm that your service agreement guarantees your data will not be used for model training.
+Verify AI Data Privacy: Before sending vulnerability data to an AI, you must confirm that your service agreement guarantees your data will not be used for model training.
 
 UNSAFE: Public consumer websites (e.g., the free versions of ChatGPT, Gemini, Claude). These services often use your input for training.
 
-POTENTIAL-SAFE: Enterprise-grade services (e.g., Google Cloud AI, AWS Bedrock, Azure OpenAI) or paid plans that contractually ensure data privacy and prevent model training on your prompts, verify with your information security teams.
+POTENTIALLY-SAFE: Enterprise-grade services (e.g. Google Cloud AI, AWS Bedrock, Azure OpenAI) or paid plans that contractually ensure data privacy and prevent model training on your prompts, verify with your information security teams.
   
 <br/><br/>
 
@@ -25,25 +19,35 @@ Contrast's MCP server allows you as a developer or security professional to quic
 ![output.gif](images/output.gif)
 
 ## Table of Contents 
-- [Sample Prompts](#sample-prompts)
-  - [For the Developer](#for-the-developer)
-    - [Remediate Vulnerability in code](#remediate-vulnerability-in-code)
-    - [3rd Party Library Remediation](#3rd-party-library-remediation)
-  - [For the Security Professional](#for-the-security-professional)
-- [Data Privacy](#data-privacy)
-- [Build](#build)
-- [Run](#run)
-- [Docker](#docker)
-  - [Build Docker Image](#build-docker-image)
-  - [Run with Docker](#run-with-docker)
-  - [Using Copilot + Petclinic](#using-copilot--petclinic)
-  - [Install via Link](#install-via-link)
-  - [Manual Install of MCP Server](#manual-install-of-mcp-server)
-  - [Using Cline Plugin](#using-cline-plugin)
-  - [Using oterm](#using-oterm)
-- [Proxy Configuration](#proxy-configuration)
-  - [Java Process](#java-process)
-  - [Docker](#docker-1)
+- [Contrast MCP Server](#contrast-mcp-server)
+  - [Table of Contents](#table-of-contents)
+  - [Sample Prompts](#sample-prompts)
+    - [For the Developer](#for-the-developer)
+      - [Remediate Vulnerability in code](#remediate-vulnerability-in-code)
+      - [3rd Party Library Remediation](#3rd-party-library-remediation)
+      - [Retrieving application based on Tags](#retrieving-application-based-on-tags)
+      - [Retrieving application based on Metadata](#retrieving-application-based-on-metadata)
+      - [Retrieving vulnerabilities based on Session Metadata](#retrieving-vulnerabilities-based-on-session-metadata)
+    - [For the Security Professional](#for-the-security-professional)
+  - [Data Privacy](#data-privacy)
+  - [Build](#build)
+  - [Run](#run)
+  - [Docker](#docker)
+    - [Build Docker Image](#build-docker-image)
+    - [Using Copilot + Petclinic](#using-copilot--petclinic)
+      - [Install via Link in VScode](#install-via-link-in-vscode)
+      - [Manual Install of MCP Server](#manual-install-of-mcp-server)
+      - [Install in Intellij](#install-in-intellij)
+    - [Using Cline Plugin](#using-cline-plugin)
+    - [Using Claude Desktop](#using-claude-desktop)
+    - [Using oterm](#using-oterm)
+  - [Proxy Configuration](#proxy-configuration)
+    - [Java Process](#java-process)
+    - [Docker](#docker-1)
+  - [Common Issues](#common-issues)
+    - [Review Log](#review-log)
+    - [Enable Debug Logging](#enable-debug-logging)
+    - [Certificate Issues](#certificate-issues)
 
 ## Sample Prompts
 ### For the Developer
