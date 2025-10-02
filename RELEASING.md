@@ -151,79 +151,123 @@ The resource filtering in Maven should automatically update `application.propert
 
 ## Testing the Release Process
 
-To test the release process without affecting production users, you have several options:
+To test the release process without affecting production users, test it on a personal fork of the repository. This validates the entire end-to-end workflow safely.
 
-### Option 1: Local Dry-Run (Recommended First Step)
+### Step 1: Fork the Repository
 
-Test the Maven release plugin locally without making any changes:
+1. Go to https://github.com/Contrast-Security-OSS/mcp-contrast
+2. Click **Fork** (top right)
+3. **Uncheck** "Copy the main branch only" to include all branches
+4. Click **Create fork**
+
+### Step 2: Enable GitHub Actions in Your Fork
+
+1. In your fork, go to **Settings** → **Actions** → **General**
+2. Under **Actions permissions**, select **"Allow all actions and reusable workflows"**
+3. Under **Workflow permissions**, select **"Read and write permissions"**
+4. Click **Save**
+
+### Step 3: Set Up Local Environment
 
 ```bash
-# Clean any previous release attempts
-./mvnw release:clean
+# Add your fork as a remote (replace YOUR_USERNAME)
+git remote add fork https://github.com/YOUR_USERNAME/mcp-contrast.git
 
-# Dry-run to test the release process
-./mvnw release:prepare -DdryRun=true -DreleaseVersion=0.0.12 -DdevelopmentVersion=0.0.13-SNAPSHOT
+# Verify remotes
+git remote -v
 
-# Clean up dry-run artifacts
-./mvnw release:clean
+# Fetch your fork
+git fetch fork
 ```
 
-This validates:
-- Version updates in pom.xml
-- Git operations (simulated)
-- Build process
+### Step 4: Merge Changes to Your Fork's Main Branch
 
-**Does NOT:**
-- Push to GitHub
-- Create tags
-- Publish artifacts
+The workflow file must be on the default branch (main) for GitHub to display it in the Actions tab.
 
-### Option 2: Test on a Fork
+```bash
+# Create a branch tracking your fork's main
+git checkout -b fork-main fork/main
 
-For full end-to-end testing:
+# Merge your feature branch
+git merge AIML-82 -m "Add maven-release workflow for testing"
 
-1. Fork the repository to your personal GitHub account
-2. Update the workflow file to push to your fork's main branch
-3. Run the Maven Release workflow
-4. Verify the release process completes successfully
-5. Delete the test release and tags from your fork
+# Push to your fork's main branch
+git push fork fork-main:main
+```
 
-**Pros:** Tests the entire process including GitHub Actions
-**Cons:** Requires fork management and cleanup
+### Step 5: Run the Test Release Workflow
 
-### Option 3: Use Draft Releases (Safest Production Test)
+1. Go to your fork: `https://github.com/YOUR_USERNAME/mcp-contrast`
+2. Click the **Actions** tab
+3. If workflows don't appear, refresh the page
+4. Click **Maven Release** in the left sidebar
+5. Click the green **Run workflow** button
+6. Configure:
+   - **Branch:** `main`
+   - **Release version:** `0.0.12-test`
+   - **Next development version:** `0.0.13-SNAPSHOT`
+7. Click **Run workflow**
 
-Modify the workflow temporarily to create draft releases:
+### Step 6: Verify the Release
 
-1. Edit `.github/workflows/maven-release.yml`
-2. Change line 61: `draft: false` to `draft: true`
-3. Run the workflow with a test version like `0.0.12-test`
-4. Verify everything works
-5. Delete the draft release and test tag
-6. Revert the workflow change
+The workflow will:
+- ✅ Update versions in all files
+- ✅ Build the JAR artifact
+- ✅ Create tag `v0.0.12-test`
+- ✅ Create GitHub release with JAR attached
+- ❌ Docker build will fail (expected - you don't have DockerHub credentials)
 
-**Important:** Draft releases do NOT trigger the Docker build workflow, so users won't be affected.
+Check the results:
 
-### Option 4: Use Pre-release Versions
+1. **Verify JAR artifact:**
+   - Go to **Releases** in your fork
+   - Click on `v0.0.12-test`
+   - Under **Assets**, confirm `mcp-contrast-0.0.12-test.jar` is attached
 
-Create a release with pre-release flag:
+2. **Verify workflow success:**
+   - Go to **Actions** tab
+   - **Maven Release** should show green checkmark ✅
+   - **Build and Push Docker Image** will show red X ❌ (this is expected and okay)
 
-1. Use version like `0.0.12-rc1` (release candidate)
-2. Set `prerelease: true` in the workflow (line 62)
-3. This creates a visible release but marked as "Pre-release"
+3. **Verify version updates:**
+   - Check the `test-release` branch was created
+   - View the release commits to see version changes
 
-**Note:** Pre-releases still trigger Docker builds but are clearly marked as non-stable.
+### Step 7: Cleanup Your Fork
 
-### Recommended Testing Workflow
+After successful testing, clean up:
 
-Before your first production release:
+1. **Delete the test release:**
+   - Go to **Releases**
+   - Click **Edit** on v0.0.12-test
+   - Scroll down and click **Delete this release**
 
-1. **Local dry-run** to validate Maven plugin configuration
-2. **Fork testing** to validate GitHub Actions integration
-3. **Draft release** in production repo to validate permissions and workflows
-4. **Production release** once confident
+2. **Delete the test tag and branch:**
+   ```bash
+   # Delete tag
+   git push fork :refs/tags/v0.0.12-test
 
-For subsequent releases, a local dry-run is usually sufficient.
+   # Delete test-release branch
+   git push fork :refs/heads/test-release
+   ```
+
+3. **Clean up local branches:**
+   ```bash
+   git checkout main
+   git branch -D fork-main
+   ```
+
+### What This Testing Validates
+
+✅ Maven Release Plugin configuration
+✅ Version synchronization across all files (pom.xml, application.properties, SDKHelper.java)
+✅ JAR artifact building with correct version
+✅ Git tagging
+✅ GitHub release creation
+✅ JAR attachment to release
+✅ GitHub Actions workflow execution
+
+**Note:** Docker publishing cannot be fully tested in a fork since it requires DockerHub credentials and signing keys configured in the main repository's secrets.
 
 ## Support
 
