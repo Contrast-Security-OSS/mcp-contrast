@@ -45,13 +45,16 @@ jobs:
             -DpushChanges=false \
             -B
 
-      - name: Build Release Artifact
-        run: ./mvnw clean package -DskipTests
-
       - name: Push Changes and Tags
         run: |
           git push origin HEAD:main
           git push origin v${{ inputs.releaseVersion }}
+
+      - name: Checkout Release Tag
+        run: git checkout v${{ inputs.releaseVersion }}
+
+      - name: Build Release Artifact
+        run: ./mvnw clean package -DskipTests
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
