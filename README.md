@@ -1,18 +1,12 @@
 # Contrast MCP Server
 
-$${\color{red} ** WARNING ** WARNING ** WARNING ** WARNING ** WARNING **}$$
+⚠️ CRITICAL SECURITY WARNING: EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A LLM THAT TRAINS ON YOUR DATA CAN POTENTIALLY EXPOSE YOUR VULNERABILITY DATA TO THE OUTSIDE WORLD. Thus, do not use mcp-contrast functions which pull sensitive data with a LLM that trains on your data.  
 
-<h4><code style="color: red;">EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A LLM THAT TRAINS ON YOUR DATA IS DANGEROUS! </code>
-</h4>
-
-Never under any circumstances use mcp-contrast functions which pull sensitive data with a LLM that trains on your data as it will potentially expose your vulnerability data to the outside world.
-
-⚠️ Critical Security Warning: Verify AI Data Privacy
-Before sending vulnerability data to an AI, you must confirm that your service agreement guarantees your data will not be used for model training.
+Verify AI Data Privacy: Before sending vulnerability data to an AI, you must confirm that your service agreement guarantees your data will not be used for model training.
 
 UNSAFE: Public consumer websites (e.g., the free versions of ChatGPT, Gemini, Claude). These services often use your input for training.
 
-POTENTIAL-SAFE: Enterprise-grade services (e.g., Google Cloud AI, AWS Bedrock, Azure OpenAI) or paid plans that contractually ensure data privacy and prevent model training on your prompts, verify with your information security teams.
+POTENTIALLY-SAFE: Enterprise-grade services (e.g. Google Cloud AI, AWS Bedrock, Azure OpenAI) or paid plans that contractually ensure data privacy and prevent model training on your prompts, verify with your information security teams.
   
 <br/><br/>
 
@@ -24,7 +18,7 @@ POTENTIAL-SAFE: Enterprise-grade services (e.g., Google Cloud AI, AWS Bedrock, A
 Contrast's MCP server allows you as a developer or security professional to quickly remediate vulnerabilities found by Contrast products. By combining the abilities of a LLM and Coding Agent of your choice and Contrast's unique vulnerability data it is possible to easily remediate vulnerabilities in your code or 3rd party libraries.
 ![output.gif](images/output.gif)
 
-## Table of Contents 
+## Table of Contents
 - [Sample Prompts](#sample-prompts)
   - [For the Developer](#for-the-developer)
     - [Remediate Vulnerability in code](#remediate-vulnerability-in-code)
