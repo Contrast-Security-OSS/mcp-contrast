@@ -33,11 +33,16 @@ import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.sdk.ContrastSDK;
 import com.contrastsecurity.sdk.internal.GsonFactory;
 import com.google.gson.Gson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,6 +51,7 @@ public class SDKExtension {
     private final ContrastSDK contrastSDK;
     private final UrlBuilder urlBuilder;
     private final Gson gson;
+    private static final Logger logger = LoggerFactory.getLogger(SDKExtension.class);
 
     public SDKExtension(ContrastSDK contrastSDK) {
         this.contrastSDK = contrastSDK;
@@ -238,14 +244,66 @@ public class SDKExtension {
                 organizationId, applicationId, routeHash);
     }
 
+    /**
+     * Retrieves all applications for an organization.
+     *
+     * <p>When debug logging is enabled, this method will buffer the entire response in memory
+     * to log it before parsing. For organizations with many applications, this could consume
+     * significant memory (approximately 1-2 KB per application). In production environments,
+     * debug logging should be disabled to stream responses directly without buffering.
+     *
+     * @param organizationId The organization ID
+     * @return ApplicationsResponse containing all applications
+     * @throws UnauthorizedException If the request is not authorized
+     * @throws IOException If an I/O error occurs
+     */
     public ApplicationsResponse getApplications(String organizationId)
             throws UnauthorizedException, IOException {
         String url = urlBuilder.getApplicationsUrl(organizationId)+"&expand=metadata,technologies,skip_links";
-        try (InputStream is =
-                     contrastSDK.makeRequest(HttpMethod.GET, url);
-             Reader reader = new InputStreamReader(is)) {
-            return this.gson.fromJson(reader, ApplicationsResponse.class);
+
+        // When debug logging is enabled, buffer the response for logging
+        if (logger.isDebugEnabled()) {
+            try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url)) {
+                String responseContent = convertStreamToString(is);
+                logger.debug("Applications API response: {}", responseContent);
+
+                // Parse the buffered response string
+                try (Reader reader = new StringReader(responseContent)) {
+                    return this.gson.fromJson(reader, ApplicationsResponse.class);
+                }
+            }
+        } else {
+            // Stream response directly without buffering
+            try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
+                 Reader reader = new InputStreamReader(is)) {
+                return this.gson.fromJson(reader, ApplicationsResponse.class);
+            }
         }
+    }
+
+    /**
+     * Converts an InputStream to String by reading all available data.
+     *
+     * <p>This method fully consumes the InputStream. The caller is responsible for
+     * closing the InputStream after this method returns.
+     *
+     * @param is The InputStream to convert
+     * @return The string content of the stream
+     * @throws IOException If an I/O error occurs
+     */
+    private String convertStreamToString(InputStream is) throws IOException {
+        if (is == null) {
+            return "";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                sb.append(line).append("\n");
+            }
+        }
+        return sb.toString();
     }
 
     public Traces getTraces(String organizationId, String appId, TraceFilterBody filters)
