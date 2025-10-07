@@ -1,43 +1,63 @@
 # Contrast MCP Server
 
-⚠️ CRITICAL SECURITY WARNING: EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A LLM THAT TRAINS ON YOUR DATA CAN POTENTIALLY EXPOSE YOUR VULNERABILITY DATA TO THE OUTSIDE WORLD. Thus, do not use mcp-contrast functions which pull sensitive data with a LLM that trains on your data.  
+[![Java CI with Maven](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Maven Central](https://img.shields.io/maven-central/v/com.contrast.labs/mcp-contrast.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.contrast.labs%22%20AND%20a:%22mcp-contrast%22)
+
+Contrast's MCP server allows you as a developer or security professional to quickly remediate vulnerabilities found by Contrast products. By combining the abilities of a LLM and Coding Agent of your choice and Contrast's unique vulnerability data it is possible to easily remediate vulnerabilities in your code or 3rd party libraries.
+
+![output.gif](images/output.gif)
+
+## Quick Install
+
+**VS Code (One-Click Install):**
+[![Install in VS Code](https://img.shields.io/badge/Install_Now-VS_Code-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=contrastmcp&config=%7B%22command%22:%22docker%22,%22args%22:%5B%22run%22,%20%22-e%22,%22CONTRAST_HOST_NAME%22,%20%22-e%22,%22CONTRAST_API_KEY%22,%20%22-e%22,%22CONTRAST_SERVICE_KEY%22,%20%22-e%22,%22CONTRAST_USERNAME%22,%20%22-e%22,%22CONTRAST_ORG_ID%22,%20%20%22-i%22,%20%22--rm%22,%20%22contrast/mcp-contrast:latest%22,%20%22-t%22,%20%22stdio%22%5D,%22env%22:%7B%22CONTRAST_HOST_NAME%22:%22example.contrastsecurity.com%22,%22CONTRAST_API_KEY%22:%22example%22,%22CONTRAST_SERVICE_KEY%22:%22example%22,%22CONTRAST_USERNAME%22:%22example@example.com%22,%22CONTRAST_ORG_ID%22:%22example%22%7D%7D)
+
+**Other Clients:** See [Installation Guide](#docker) below
+
+---
+
+⚠️ **CRITICAL SECURITY WARNING:** EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A LLM THAT TRAINS ON YOUR DATA CAN POTENTIALLY EXPOSE YOUR VULNERABILITY DATA TO THE OUTSIDE WORLD. Thus, do not use mcp-contrast functions which pull sensitive data with a LLM that trains on your data.
 
 Verify AI Data Privacy: Before sending vulnerability data to an AI, you must confirm that your service agreement guarantees your data will not be used for model training.
 
 UNSAFE: Public consumer websites (e.g., the free versions of ChatGPT, Gemini, Claude). These services often use your input for training.
 
 POTENTIALLY-SAFE: Enterprise-grade services (e.g. Google Cloud AI, AWS Bedrock, Azure OpenAI) or paid plans that contractually ensure data privacy and prevent model training on your prompts, verify with your information security teams.
-  
-<br/><br/>
 
-[![Java CI with Maven](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Maven Central](https://img.shields.io/maven-central/v/com.contrast.labs/mcp-contrast.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.contrast.labs%22%20AND%20a:%22mcp-contrast%22)
-[![Install in VS Code Docker](https://img.shields.io/badge/VS_Code-docker-0098FF?style=flat-square&logo=githubcopilot&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=contrastmcp&config=%7B%22command%22:%22docker%22,%22args%22:%5B%22run%22,%20%22-e%22,%22CONTRAST_HOST_NAME%22,%20%22-e%22,%22CONTRAST_API_KEY%22,%20%22-e%22,%22CONTRAST_SERVICE_KEY%22,%20%22-e%22,%22CONTRAST_USERNAME%22,%20%22-e%22,%22CONTRAST_ORG_ID%22,%20%20%22-i%22,%20%22--rm%22,%20%22contrast/mcp-contrast:latest%22,%20%22-t%22,%20%22stdio%22%5D,%22env%22:%7B%22CONTRAST_HOST_NAME%22:%22example.contrastsecurity.com%22,%22CONTRAST_API_KEY%22:%22example%22,%22CONTRAST_SERVICE_KEY%22:%22example%22,%22CONTRAST_USERNAME%22:%22example@example.com%22,%22CONTRAST_ORG_ID%22:%22example%22%7D%7D)
-
-Contrast's MCP server allows you as a developer or security professional to quickly remediate vulnerabilities found by Contrast products. By combining the abilities of a LLM and Coding Agent of your choice and Contrast's unique vulnerability data it is possible to easily remediate vulnerabilities in your code or 3rd party libraries.
-![output.gif](images/output.gif)
+---
 
 ## Table of Contents
-- [Sample Prompts](#sample-prompts)
-  - [For the Developer](#for-the-developer)
-    - [Remediate Vulnerability in code](#remediate-vulnerability-in-code)
-    - [3rd Party Library Remediation](#3rd-party-library-remediation)
-  - [For the Security Professional](#for-the-security-professional)
-- [Data Privacy](#data-privacy)
-- [Build](#build)
-- [Run](#run)
-- [Docker](#docker)
-  - [Build Docker Image](#build-docker-image)
-  - [Run with Docker](#run-with-docker)
-  - [Using Copilot + Petclinic](#using-copilot--petclinic)
-  - [Install via Link](#install-via-link)
-  - [Manual Install of MCP Server](#manual-install-of-mcp-server)
-  - [Using Cline Plugin](#using-cline-plugin)
-  - [Using oterm](#using-oterm)
-- [Proxy Configuration](#proxy-configuration)
-  - [Java Process](#java-process)
-  - [Docker](#docker-1)
+- [Contrast MCP Server](#contrast-mcp-server)
+  - [Quick Install](#quick-install)
+  - [Table of Contents](#table-of-contents)
+  - [Sample Prompts](#sample-prompts)
+    - [For the Developer](#for-the-developer)
+      - [Remediate Vulnerability in code](#remediate-vulnerability-in-code)
+      - [3rd Party Library Remediation](#3rd-party-library-remediation)
+      - [Retrieving application based on Tags](#retrieving-application-based-on-tags)
+      - [Retrieving application based on Metadata](#retrieving-application-based-on-metadata)
+      - [Retrieving vulnerabilities based on Session Metadata](#retrieving-vulnerabilities-based-on-session-metadata)
+    - [For the Security Professional](#for-the-security-professional)
+  - [Data Privacy](#data-privacy)
+  - [Build](#build)
+  - [Run](#run)
+  - [Docker](#docker)
+    - [Build Docker Image](#build-docker-image)
+    - [Using Copilot + Petclinic](#using-copilot--petclinic)
+      - [Install via Link in VScode](#install-via-link-in-vscode)
+      - [Manual Install of MCP Server](#manual-install-of-mcp-server)
+      - [Install in Intellij](#install-in-intellij)
+    - [Using Cline Plugin](#using-cline-plugin)
+    - [Using Claude Desktop](#using-claude-desktop)
+    - [Using oterm](#using-oterm)
+  - [Proxy Configuration](#proxy-configuration)
+    - [Java Process](#java-process)
+    - [Docker](#docker-1)
+  - [Common Issues](#common-issues)
+    - [Review Log](#review-log)
+    - [Enable Debug Logging](#enable-debug-logging)
+    - [Certificate Issues](#certificate-issues)
 
 ## Sample Prompts
 ### For the Developer
