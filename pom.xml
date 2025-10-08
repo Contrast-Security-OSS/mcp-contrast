@@ -1,29 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.4.5</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.contrast.labs.ai.mcp</groupId>
 	<artifactId>mcp-contrast</artifactId>
-	<version>0.0.12-SNAPSHOT</version>
+	<version>0.0.12</version>
 	<name>mcp-contrast</name>
 	<description>MCP Server</description>
 	<url>https://github.com/Contrast-Security-OSS/mcp-contrast</url>
 	<licenses>
-		<license/>
+		<license />
 	</licenses>
 	<developers>
-		<developer/>
+		<developer />
 	</developers>
 	<scm>
 		<connection>scm:git:https://github.com/Contrast-Security-OSS/mcp-contrast.git</connection>
 		<developerConnection>scm:git:https://github.com/Contrast-Security-OSS/mcp-contrast.git</developerConnection>
-		<tag>HEAD</tag>
+		<tag>v0.0.12</tag>
 		<url>https://github.com/Contrast-Security-OSS/mcp-contrast</url>
 	</scm>
 	<properties>
