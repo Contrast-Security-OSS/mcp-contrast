@@ -1,17 +1,21 @@
 # Contrast MCP Server
 
-⚠️ CRITICAL SECURITY WARNING: EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A LLM THAT TRAINS ON YOUR DATA CAN POTENTIALLY EXPOSE YOUR VULNERABILITY DATA TO THE OUTSIDE WORLD. Thus, do not use mcp-contrast functions which pull sensitive data with a LLM that trains on your data.  
+[![Java CI with Maven](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/buil**Recent Changes (v0.0.9+)**:
+- Added comprehensive risk tolerance controls to AssessService, ADRService, and SastService
+- Added risk tolerance controls to SCAService (MEDIUM for library listings, HIGH for CVE data)
+- Added risk tolerance controls to RouteCoverageService (MEDIUM for all route coverage functions)
+- All vulnerability-related functions now require appropriate risk tolerance levels
+- Only one function remains unrestricted: `list_application_libraries_by_app_id` in SCAService
+- Default risk tolerance changed from unrestricted to `NO_RISK` for enhanced security
 
-Verify AI Data Privacy: Before sending vulnerability data to an AI, you must confirm that your service agreement guarantees your data will not be used for model training.
+**Future Considerations**:
+- The remaining unrestricted function may receive risk controls based on data sensitivity analysis
+- Additional granular risk controls may be added based on user feedback
 
-UNSAFE: Public consumer websites (e.g., the free versions of ChatGPT, Gemini, Claude). These services often use your input for training.
-
-POTENTIALLY-SAFE: Enterprise-grade services (e.g. Google Cloud AI, AWS Bedrock, Azure OpenAI) or paid plans that contractually ensure data privacy and prevent model training on your prompts, verify with your information security teams.
-  
-<br/><br/>
-
-[![Java CI with Maven](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml)
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+**Backward Compatibility**:
+- Existing configurations without `ACCEPTED_RISK_TOLERANCE` will default to `NO_RISK`
+- Users must explicitly set risk tolerance to access previously unrestricted functions
+- This change enhances security but may require configuration updates for existing deploymentsse](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Maven Central](https://img.shields.io/maven-central/v/com.contrast.labs/mcp-contrast.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.contrast.labs%22%20AND%20a:%22mcp-contrast%22)
 [![Install in VS Code Docker](https://img.shields.io/badge/VS_Code-docker-0098FF?style=flat-square&logo=githubcopilot&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=contrastmcp&config=%7B%22command%22:%22docker%22,%22args%22:%5B%22run%22,%20%22-e%22,%22CONTRAST_HOST_NAME%22,%20%22-e%22,%22CONTRAST_API_KEY%22,%20%22-e%22,%22CONTRAST_SERVICE_KEY%22,%20%22-e%22,%22CONTRAST_USERNAME%22,%20%22-e%22,%22CONTRAST_ORG_ID%22,%20%20%22-i%22,%20%22--rm%22,%20%22contrast/mcp-contrast:latest%22,%20%22-t%22,%20%22stdio%22%5D,%22env%22:%7B%22CONTRAST_HOST_NAME%22:%22example.contrastsecurity.com%22,%22CONTRAST_API_KEY%22:%22example%22,%22CONTRAST_SERVICE_KEY%22:%22example%22,%22CONTRAST_USERNAME%22:%22example@example.com%22,%22CONTRAST_ORG_ID%22:%22example%22%7D%7D)
 
@@ -81,6 +85,146 @@ Depending on what questions you ask the following information will be provided t
 * Route Coverage data
 * ADR/Protect Attack Event Details
 
+## Risk Tolerance and Data Sensitivity Controls
+
+The Contrast MCP Server implements a risk-based access control system to protect sensitive security data from being inadvertently exposed to public LLMs. This is controlled via the `ACCEPTED_RISK_TOLERANCE` environment variable.
+
+### Risk Levels
+
+The system supports the following risk tolerance levels (from most restrictive to least restrictive):
+
+- **`ACCEPT_NO_RISK`** (0) - Completely safe, no data access allowed
+- **`LOW`** (1) - Minimal potential impact, basic application metadata only
+- **`MEDIUM`** (2) - Moderate potential impact, includes vulnerability listings
+- **`HIGH`** (3) - Significant potential impact, includes detailed vulnerability data
+- **`ACCEPT_ALL_RISK`** (4) - No security restrictions, all data accessible
+
+### Function Risk Requirements
+
+Each MCP function requires a minimum risk tolerance level based on the sensitivity of the data it exposes. The risk tolerance checks are implemented across all service layers:
+
+#### LOW Risk Functions (AssessService)
+- `list_all_applications` - Lists basic application information (name, status, ID, language)
+- `list_applications_with_name` - Searches applications by name
+- `get_applications_by_tag` - Filters applications by tags
+- `get_applications_by_metadata` - Filters applications by metadata
+- `get_applications_by_metadata_name` - Filters applications by metadata name
+- `list_session_metadata_for_application` - Lists session metadata for applications
+
+#### LOW Risk Functions (SastService)
+- `list_Scan_Project` - Returns scan project details
+
+#### MEDIUM Risk Functions (AssessService)
+- `list_vulnerabilities` - Lists vulnerability summaries for applications
+- `list_vulnerabilities_with_id` - Lists vulnerabilities by application ID
+- `list_vulnerabilities_by_application_and_session_metadata` - Filtered vulnerability listings
+- `list_vulnerabilities_by_application_and_latest_session` - Latest session vulnerability data
+
+#### MEDIUM Risk Functions (ADRService)
+- `get_ADR_Protect_Rules` - Returns protection/ADR rules for application by name
+- `get_ADR_Protect_Rules_by_app_id` - Returns protection/ADR rules for application by ID
+
+#### MEDIUM Risk Functions (SCAService)
+- `list_application_libraries` - Returns libraries used in application by name
+- `list_application_libraries_by_app_id` - Returns libraries used in application by ID
+
+#### MEDIUM Risk Functions (RouteCoverageService)
+- `get_application_route_coverage` - Returns route coverage data for application by name
+- `get_application_route_coverage_by_app_id` - Returns route coverage data for application by ID
+- `get_application_route_coverage_by_app_name_and_session_metadata` - Returns route coverage filtered by session metadata
+- `get_application_route_coverage_by_app_id_and_session_metadata` - Returns route coverage by app ID and session metadata
+- `get_application_route_coverage_by_app_name_latest_session` - Returns route coverage for latest session by app name
+- `get_application_route_coverage_by_app_id_latest_session` - Returns route coverage for latest session by app ID
+
+#### HIGH Risk Functions (AssessService)
+- `get_vulnerability_by_id` - Detailed vulnerability information including stack traces
+- `get_vulnerability` - Detailed vulnerability data by name and ID
+
+#### HIGH Risk Functions (SastService)
+- `list_Scan_Results` - Returns latest scan results in SARIF format
+
+#### HIGH Risk Functions (SCAService)
+- `list_applications_vulnerable_to_cve` - Returns applications and servers vulnerable to specific CVE
+
+### Configuration
+
+Set the risk tolerance in your environment configuration:
+
+```bash
+# For maximum security (recommended for public LLMs)
+ACCEPTED_RISK_TOLERANCE=ACCEPT_NO_RISK
+
+# For basic application information only
+ACCEPTED_RISK_TOLERANCE=LOW
+
+# For vulnerability listings (use with caution)
+ACCEPTED_RISK_TOLERANCE=MEDIUM
+
+# For detailed vulnerability data (private LLMs only)
+ACCEPTED_RISK_TOLERANCE=HIGH
+
+# For detail vulnerability data and moving forward anything to be added to always accept
+ACCEPTED_RISK_TOLERANCE=ACCEPT_ALL_RISK
+```
+
+### Security Recommendations
+
+- **Public LLMs**: Use `ACCEPT_NO_RISK` or `LOW` only
+- **Private/Local LLMs**: Use appropriate level based on your security requirements
+- **Development/Testing**: Can use higher levels with proper data handling controls
+- **Production Security Analysis**: Use `HIGH` only with verified private LLM instances
+- **Production Security Analysis**: Use `ACCEPT_ALL_RISK` only with verified private LLM instances and with caution as it will accept everything without review
+
+⚠️ **WARNING**: Never use `MEDIUM` or `HIGH` risk tolerance with public LLMs as this will expose sensitive vulnerability data including stack traces, HTTP requests, and detailed security information to external services.
+
+### Implementation Details
+
+The risk tolerance system is implemented across multiple service classes:
+
+#### Service-Level Risk Controls
+Each service class implements risk tolerance checks at the method level:
+
+- **AssessService**: Comprehensive risk controls for all vulnerability and application functions
+- **ADRService**: Medium-level risk controls for protection rule access  
+- **SastService**: Low and High risk controls for scan data access
+- **SCAService**: Medium and High risk controls for most functions (one function remains unrestricted)
+- **RouteCoverageService**: Medium-level risk controls for all route coverage functions
+
+#### Risk Tolerance Configuration
+The system uses the `RiskLevel` enum which maps string values to integer levels:
+```java
+ACCEPT_NO_RISK(0), LOW(1), MEDIUM(2), HIGH(3), ACCEPT_ALL_RISK(4)
+```
+
+Each protected method includes:
+1. Risk tolerance parsing from environment variable
+2. Logging of current operation and risk level  
+3. Access control check before executing sensitive operations
+4. Appropriate error messages when access is denied
+
+#### Risk Tolerance Defaults
+- **Default Risk Level**: `ACCEPT_NO_RISK` (0) - Most restrictive by default
+- **Environment Variable**: `ACCEPTED_RISK_TOLERANCE`
+- **Fallback Behavior**: If not set or invalid, defaults to `ACCEPT_NO_RISK`
+
+### Migration and Upgrade Notes
+
+**Recent Changes (v0.0.9+)**:
+- Added comprehensive risk tolerance controls to AssessService, ADRService, and SastService
+- All vulnerability-related functions now require appropriate risk tolerance levels
+- SCAService and RouteCoverageService functions remain unrestricted (may be updated in future versions)
+- Default risk tolerance changed from unrestricted to `ACCEPT_NO_RISK` for enhanced security
+
+**Future Considerations**:
+- SCAService functions may be enhanced with risk controls in future versions  
+- RouteCoverageService functions may receive risk controls based on data sensitivity analysis
+- Additional granular risk controls may be added based on user feedback
+
+**Backward Compatibility**:
+- Existing configurations without `ACCEPTED_RISK_TOLERANCE` will default to `ACCEPT_NO_RISK`
+- Users must explicitly set risk tolerance to access previously unrestricted functions
+- This change enhances security but may require configuration updates for existing deployments
+
 ## Build
 Requires Java 17+
 
@@ -92,17 +236,22 @@ To add the MCP Server to your local AI system, modify the config.json file and a
 ```json
 "mcpServers": {
     "contrast-mcp": {
-      "command": "/usr/bin/java", "args": ["-jar","/Users/name/workspace/mcp-contrast/mcp-contrast/target/mcp-contrast-0.0.1-SNAPSHOT.jar",
+      "command": "/usr/bin/java", 
+      "args": [
+        "-jar",
+        "/Users/name/workspace/mcp-contrast/mcp-contrast/target/mcp-contrast-0.0.1-SNAPSHOT.jar",
         "--CONTRAST_HOST_NAME=example.contrastsecurity.com",
         "--CONTRAST_API_KEY=xxx",
         "--CONTRAST_SERVICE_KEY=xxx",
         "--CONTRAST_USERNAME=xxx.xxx@contrastsecurity.com",
-        "--CONTRAST_ORG_ID=xxx"]
+        "--CONTRAST_ORG_ID=xxx",
+        "--ACCEPTED_RISK_TOLERANCE=LOW"
+      ]
     }
 }
 ```
 
-You obviously need to configure the above to match your contrast API Creds.
+You obviously need to configure the above to match your contrast API credentials and set your desired risk tolerance level.
 
 ## Docker
 
@@ -164,6 +313,8 @@ Then add the following to the settings.json file.
             "CONTRAST_USERNAME",
             "-e",
             "CONTRAST_ORG_ID",
+            "-e",
+            "ACCEPTED_RISK_TOLERANCE",
             "-i",
             "--rm",
             "contrast/mcp-contrast:latest",
@@ -175,7 +326,8 @@ Then add the following to the settings.json file.
                 "CONTRAST_API_KEY": "example",
                 "CONTRAST_SERVICE_KEY": "example",
                 "CONTRAST_USERNAME": "example@example.com",
-                "CONTRAST_ORG_ID": "example"
+                "CONTRAST_ORG_ID": "example",
+                "ACCEPTED_RISK_TOLERANCE": "LOW"
             }
     }
 }
@@ -212,6 +364,8 @@ To install the MCP Server in Copilot for Intellij.
         "CONTRAST_USERNAME",
         "-e",
         "CONTRAST_ORG_ID",
+        "-e",
+        "ACCEPTED_RISK_TOLERANCE",
         "-i",
         "--rm",
         "contrast/mcp-contrast:latest",
@@ -223,7 +377,8 @@ To install the MCP Server in Copilot for Intellij.
         "CONTRAST_API_KEY": "example",
         "CONTRAST_SERVICE_KEY": "example",
         "CONTRAST_USERNAME": "example@example.com",
-        "CONTRAST_ORG_ID": "example"
+        "CONTRAST_ORG_ID": "example",
+        "ACCEPTED_RISK_TOLERANCE": "LOW"
       }
     }
   }
@@ -254,6 +409,8 @@ Add the following the json configuration
         "CONTRAST_USERNAME",
         "-e",
         "CONTRAST_ORG_ID",
+        "-e",
+        "ACCEPTED_RISK_TOLERANCE",
         "-i",
         "--rm",
         "contrast/mcp-contrast:latest",
@@ -265,7 +422,8 @@ Add the following the json configuration
         "CONTRAST_API_KEY": "example",
         "CONTRAST_SERVICE_KEY": "example",
         "CONTRAST_USERNAME": "example@example.com",
-        "CONTRAST_ORG_ID": "example"
+        "CONTRAST_ORG_ID": "example",
+        "ACCEPTED_RISK_TOLERANCE": "LOW"
       },
       "disabled": false,
       "autoApprove": []
@@ -300,6 +458,8 @@ Add the following configuration to the `claude_desktop_config.json` file:
         "CONTRAST_USERNAME",
         "-e",
         "CONTRAST_ORG_ID",
+        "-e",
+        "ACCEPTED_RISK_TOLERANCE",
         "-i",
         "--rm",
         "contrast/mcp-contrast:latest",
@@ -311,7 +471,8 @@ Add the following configuration to the `claude_desktop_config.json` file:
         "CONTRAST_API_KEY": "xxx",
         "CONTRAST_SERVICE_KEY": "xxx",
         "CONTRAST_USERNAME": "xxx.xxx@example.com",
-        "CONTRAST_ORG_ID": "xxx"
+        "CONTRAST_ORG_ID": "xxx",
+        "ACCEPTED_RISK_TOLERANCE": "LOW"
       }
     }
   }
@@ -358,7 +519,8 @@ When configuring in your config.json file, include the proxy settings in the arg
       "--CONTRAST_API_KEY=example",
       "--CONTRAST_SERVICE_KEY=example",
       "--CONTRAST_USERNAME=example@example.com",
-      "--CONTRAST_ORG_ID=example"
+      "--CONTRAST_ORG_ID=example",
+      "--ACCEPTED_RISK_TOLERANCE=LOW"
     ]
   }
 }
@@ -377,6 +539,7 @@ docker run \
   -e CONTRAST_SERVICE_KEY=example \
   -e CONTRAST_USERNAME=example \
   -e CONTRAST_ORG_ID=example \
+  -e ACCEPTED_RISK_TOLERANCE=LOW \
   -i \
   contrast/mcp-contrast:latest \
   -t stdio
@@ -403,6 +566,8 @@ For VS Code configuration with Docker and proxy, modify the settings.json like t
         "CONTRAST_USERNAME",
         "-e",
         "CONTRAST_ORG_ID",
+        "-e",
+        "ACCEPTED_RISK_TOLERANCE",
         "-e", "http_proxy_host",
         "-e", "http_proxy_port",
         "-i",
@@ -417,8 +582,9 @@ For VS Code configuration with Docker and proxy, modify the settings.json like t
             "CONTRAST_SERVICE_KEY": "example",
             "CONTRAST_USERNAME": "example@example.com",
             "CONTRAST_ORG_ID": "example",
+            "ACCEPTED_RISK_TOLERANCE": "LOW",
             "http_proxy_host": "proxy.example.com",
-            "http_proxy_port": "8080"
+            "http_proxy_port": "8080"            
         }
     }
   }
@@ -451,5 +617,3 @@ Failed to list applications: PKIX path building failed: sun.security.provider.ce
 If this occurs you will need to add the certificate to the Java Truststore and then add the following to the command line arguments when running the MCP server:
 `-Djavax.net.ssl.trustStore=/loctaion/to/mcp-truststore.jks, -Djavax.net.ssl.trustStorePassword=yourpassword`
 More details on how to do this can be found in the [Java documentation](https://docs.oracle.com/cd/E19509-01/820-3503/6nf1il6er/index.html). Or ask your LLM to help you with this.
-
-

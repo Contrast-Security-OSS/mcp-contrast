@@ -32,7 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 
-### macOS ###
-.DS_Store
-.AppleDouble
-.LSOverride
+### contrast specific items ###
+config.json
+*.ipynb
