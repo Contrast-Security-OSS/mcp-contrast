@@ -22,7 +22,7 @@
 Contrast's MCP server allows you as a developer or security professional to quickly remediate vulnerabilities found by Contrast products. By combining the abilities of a LLM and Coding Agent of your choice and Contrast's unique vulnerability data it is possible to easily remediate vulnerabilities in your code or 3rd party libraries.
 ![output.gif](images/output.gif)
 
-## Table of Contents 
+## Table of Contents
 - [Sample Prompts](#sample-prompts)
   - [For the Developer](#for-the-developer)
     - [Remediate Vulnerability in code](#remediate-vulnerability-in-code)

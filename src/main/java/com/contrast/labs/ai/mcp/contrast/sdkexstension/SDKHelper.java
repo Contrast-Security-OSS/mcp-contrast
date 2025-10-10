@@ -43,7 +43,8 @@ import com.contrastsecurity.exceptions.UnauthorizedException;
 public class SDKHelper {
 
     private static final String MCP_SERVER_NAME = "contrast-mcp";
-    private static final String MCP_VERSION = "0.0.9";
+    private static final String HTTPS_PROTOCOL = "https://";
+    private static final String HTTP_PROTOCOL = "http://";
 
     private static final Logger logger = LoggerFactory.getLogger(SDKHelper.class);
 
@@ -150,14 +151,67 @@ public class SDKHelper {
         return getLibraryObservationsWithCache(libraryId, appId, orgId, 25, extendedSDK);
     }
 
+    /**
+     * Constructs a URL with protocol and server.
+     * If the hostname already contains a protocol (e.g., "https://host.com"),
+     * it returns the hostname as is. Otherwise, it prepends the protocol from properties.
+     * Trailing slashes are removed to ensure consistent URL formatting.
+     *
+     * @param hostName The hostname, which may or may not include a protocol
+     * @return A URL with protocol and hostname (without trailing slash), or null if hostname is null/empty
+     * @throws IllegalArgumentException If the hostname contains an invalid protocol
+     */
+    public static String getProtocolAndServer(String hostName) {
+        if (hostName == null) {
+            return null;
+        }
+
+        // Trim whitespace
+        hostName = hostName.trim();
+
+        // Return null for empty strings (consistent with null handling)
+        if (hostName.isEmpty()) {
+            return null;
+        }
+
+        String result;
+
+        // Check if hostname contains a protocol separator
+        if (hostName.contains("://")) {
+            // Validate that it's a supported protocol
+            if (!hostName.startsWith(HTTP_PROTOCOL) && !hostName.startsWith(HTTPS_PROTOCOL)) {
+                throw new IllegalArgumentException("Invalid protocol in hostname: " + hostName +
+                    ". Only http:// and https:// are supported.");
+            }
+            result = hostName;
+        } else {
+            // No protocol specified, prepend from configuration
+            String protocol = SDKHelper.environment.getProperty("contrast.api.protocol", "https");
+            result = protocol + "://" + hostName;
+        }
+
+        // Remove trailing slash to prevent double slashes in URLs
+        if (result.endsWith("/")) {
+            result = result.substring(0, result.length() - 1);
+        }
+
+        return result;
+    }
+
     // The withUserAgentProduct will generate a user agent header that looks like
     // User-Agent: contrast-mcp/1.0 contrast-sdk-java/3.4.2 Java/19.0.2+7
     public static ContrastSDK getSDK(String hostName, String apiKey, String serviceKey, String userName, String httpProxyHost, String httpProxyPort)  {
         logger.info("Initializing ContrastSDK with username: {}, host: {}", userName, hostName);
 
+        String baseUrl = getProtocolAndServer(hostName);
+        String apiUrl = baseUrl + "/Contrast/api";
+        logger.info("API URL will be : {}", apiUrl);
+
+        String mcpVersion = SDKHelper.environment.getProperty("spring.ai.mcp.server.version", "unknown");
+
         ContrastSDK.Builder builder = new ContrastSDK.Builder(userName, serviceKey, apiKey)
-                .withApiUrl(SDKHelper.environment.getProperty("contrast.api.protocol", "https") + "://" + hostName + "/Contrast/api")
-                .withUserAgentProduct(UserAgentProduct.of(MCP_SERVER_NAME, MCP_VERSION));
+                .withApiUrl(apiUrl)
+                .withUserAgentProduct(UserAgentProduct.of(MCP_SERVER_NAME, mcpVersion));
 
         if (httpProxyHost != null && !httpProxyHost.isEmpty()) {
             int port = httpProxyPort != null && !httpProxyPort.isEmpty() ? Integer.parseInt(httpProxyPort) : 80;

@@ -2,7 +2,6 @@ package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application;
 
 import com.google.gson.annotations.SerializedName;
 
-import javax.validation.Validation;
 import java.util.List;
 
 /**
@@ -65,10 +64,10 @@ public class Application {
     private List<Metadata> metadataEntities;
 
     @SerializedName("validationErrorFields")
-    private List<ValidationErrorFields> validationErrorFields;
+    private List<Field> validationErrorFields;
 
     @SerializedName("missingRequiredFields")
-    private List<String> missingRequiredFields;
+    private List<Field> missingRequiredFields;
 
     @SerializedName("protect")
     private Object protect;
@@ -260,19 +259,19 @@ public class Application {
         this.metadataEntities = metadataEntities;
     }
 
-    public List<ValidationErrorFields> getValidationErrorFields() {
+    public List<Field> getValidationErrorFields() {
         return validationErrorFields;
     }
 
-    public void setValidationErrorFields(List<ValidationErrorFields> validationErrorFields) {
+    public void setValidationErrorFields(List<Field> validationErrorFields) {
         this.validationErrorFields = validationErrorFields;
     }
 
-    public List<String> getMissingRequiredFields() {
+    public List<Field> getMissingRequiredFields() {
         return missingRequiredFields;
     }
 
-    public void setMissingRequiredFields(List<String> missingRequiredFields) {
+    public void setMissingRequiredFields(List<Field> missingRequiredFields) {
         this.missingRequiredFields = missingRequiredFields;
     }
 
