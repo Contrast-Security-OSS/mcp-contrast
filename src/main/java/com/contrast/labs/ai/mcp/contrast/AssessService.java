@@ -29,6 +29,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.SessionMetada
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.TraceExtended;
 import com.contrastsecurity.models.*;
 import com.contrastsecurity.models.TraceFilterBody;
+import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -130,7 +131,7 @@ public class AssessService {
             logger.info("Successfully retrieved vulnerability details for vulnID: {}", vulnID);
             return new Vulnerability(hint, vulnID, trace.getTitle(), trace.getRule(),
                     recommendationResponse.getRecommendation().getText(), stackLibs, new ArrayList<>(libsToReturn), // Convert Set to List
-                    httpRequestText);
+                    httpRequestText, trace.getStatus(), trace.getFirstTimeSeen(), trace.getLastTimeSeen(), trace.getClosedTime());
         } catch (Exception e) {
             logger.error("Error retrieving vulnerability details for vulnID: {}", vulnID, e);
             throw new IOException("Failed to retrieve vulnerability details: " + e.getMessage(), e);
@@ -176,7 +177,7 @@ public class AssessService {
             List<VulnLight> vulns = new ArrayList<>();
             for (TraceExtended trace : traces) {
                 vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
-                        new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen()));
+                        new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen(), trace.getStatus(), trace.getFirstTimeSeen(), trace.getClosedTime()));
             }
 
             logger.info("Successfully retrieved {} vulnerabilities for application ID: {}", vulns.size(), appID);
@@ -252,7 +253,7 @@ public class AssessService {
                 List<VulnLight> vulns = new ArrayList<>();
                 for (TraceExtended trace : traces) {
                     vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
-                            new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen()));
+                            new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen(), trace.getStatus(), trace.getFirstTimeSeen(), trace.getClosedTime()));
                 }
                 return vulns;
             } catch (Exception e) {
@@ -407,6 +408,70 @@ public class AssessService {
         } catch (Exception e) {
             logger.error("Error listing all applications", e);
             throw new IOException("Failed to list applications: " + e.getMessage(), e);
+        }
+    }
+
+    @Tool(name = "list_all_vulnerabilities", description = "Gets all vulnerabilities across all applications in the organization. Returns a list of vulnerabilities with application context, please remember to include the vulnID in the response.")
+    public List<VulnLight> getAllVulnerabilities() throws IOException {
+        logger.info("Listing all vulnerabilities across all applications");
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+        
+        try {
+            // First try the organization-level API
+            TraceFilterForm filterForm = new TraceFilterForm();
+            filterForm.setLimit(1000);
+            filterForm.setOffset(0);
+            
+            Traces traces = contrastSDK.getTracesInOrg(orgID, filterForm);
+            
+            if (traces != null && traces.getTraces() != null && !traces.getTraces().isEmpty()) {
+                // Organization API worked, use it
+                List<VulnLight> allVulnerabilities = new ArrayList<>();
+                
+                for (Trace trace : traces.getTraces()) {
+                    allVulnerabilities.add(new VulnLight(
+                        trace.getTitle(), 
+                        trace.getRule(), 
+                        trace.getUuid(), 
+                        trace.getSeverity(),
+                        new ArrayList<>(), // Session metadata not available at org level
+                        new Date(trace.getLastTimeSeen()).toString(),
+                        trace.getLastTimeSeen(),
+                        trace.getStatus(),
+                        trace.getFirstTimeSeen(),
+                        trace.getClosedTime()
+                    ));
+                }
+                
+                logger.info("Retrieved {} vulnerabilities using organization-level API", allVulnerabilities.size());
+                return allVulnerabilities;
+                
+            } else {
+                // Fallback to application-by-application approach
+                logger.warn("Organization-level API returned no results, using fallback approach");
+                
+                List<Application> applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
+                List<VulnLight> allVulnerabilities = new ArrayList<>();
+                
+                for (Application app : applications) {
+                    try {
+                        List<VulnLight> appVulns = listVulnsByAppId(app.getAppId());
+                        allVulnerabilities.addAll(appVulns);
+                    } catch (Exception e) {
+                        logger.warn("Failed to get vulnerabilities for application {}: {}", 
+                                   app.getName(), e.getMessage());
+                        // Continue processing other applications even if one fails
+                    }
+                }
+                
+                logger.info("Retrieved {} vulnerabilities across {} applications using fallback", 
+                           allVulnerabilities.size(), applications.size());
+                return allVulnerabilities;
+            }
+            
+        } catch (Exception e) {
+            logger.error("Error listing all vulnerabilities", e);
+            throw new IOException("Failed to list all vulnerabilities: " + e.getMessage(), e);
         }
     }
 
