@@ -1,43 +1,67 @@
 # Contrast MCP Server
 
-⚠️ CRITICAL SECURITY WARNING: EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A LLM THAT TRAINS ON YOUR DATA CAN POTENTIALLY EXPOSE YOUR VULNERABILITY DATA TO THE OUTSIDE WORLD. Thus, do not use mcp-contrast functions which pull sensitive data with a LLM that trains on your data.  
-
-Verify AI Data Privacy: Before sending vulnerability data to an AI, you must confirm that your service agreement guarantees your data will not be used for model training.
-
-UNSAFE: Public consumer websites (e.g., the free versions of ChatGPT, Gemini, Claude). These services often use your input for training.
-
-POTENTIALLY-SAFE: Enterprise-grade services (e.g. Google Cloud AI, AWS Bedrock, Azure OpenAI) or paid plans that contractually ensure data privacy and prevent model training on your prompts, verify with your information security teams.
-  
-<br/><br/>
-
 [![Java CI with Maven](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Maven Central](https://img.shields.io/maven-central/v/com.contrast.labs/mcp-contrast.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.contrast.labs%22%20AND%20a:%22mcp-contrast%22)
-[![Install in VS Code Docker](https://img.shields.io/badge/VS_Code-docker-0098FF?style=flat-square&logo=githubcopilot&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=contrastmcp&config=%7B%22command%22:%22docker%22,%22args%22:%5B%22run%22,%20%22-e%22,%22CONTRAST_HOST_NAME%22,%20%22-e%22,%22CONTRAST_API_KEY%22,%20%22-e%22,%22CONTRAST_SERVICE_KEY%22,%20%22-e%22,%22CONTRAST_USERNAME%22,%20%22-e%22,%22CONTRAST_ORG_ID%22,%20%20%22-i%22,%20%22--rm%22,%20%22contrast/mcp-contrast:latest%22,%20%22-t%22,%20%22stdio%22%5D,%22env%22:%7B%22CONTRAST_HOST_NAME%22:%22example.contrastsecurity.com%22,%22CONTRAST_API_KEY%22:%22example%22,%22CONTRAST_SERVICE_KEY%22:%22example%22,%22CONTRAST_USERNAME%22:%22example@example.com%22,%22CONTRAST_ORG_ID%22:%22example%22%7D%7D)
 
-Contrast's MCP server allows you as a developer or security professional to quickly remediate vulnerabilities found by Contrast products. By combining the abilities of a LLM and Coding Agent of your choice and Contrast's unique vulnerability data it is possible to easily remediate vulnerabilities in your code or 3rd party libraries.
+
+The Contrast MCP Server allow you to connect Contrast Security to your AI coding agent to automatically remediate vulnerabilities, update insecure libraries, and analyze security coverage—all through natural language prompts.
+
 ![output.gif](images/output.gif)
 
+## Quick Install
+
+**VS Code (One-Click Install):**
+
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_contrast--mcp-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22contrast-mcp%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22docker%22%2C%22args%22%3A%5B%22run%22%2C%22-e%22%2C%22CONTRAST_HOST_NAME%22%2C%22-e%22%2C%22CONTRAST_API_KEY%22%2C%22-e%22%2C%22CONTRAST_SERVICE_KEY%22%2C%22-e%22%2C%22CONTRAST_USERNAME%22%2C%22-e%22%2C%22CONTRAST_ORG_ID%22%2C%22-i%22%2C%22--rm%22%2C%22contrast%2Fmcp-contrast%3Alatest%22%2C%22-t%22%2C%22stdio%22%5D%2C%22env%22%3A%7B%22CONTRAST_HOST_NAME%22%3A%22%24%7Binput%3Acontrast_host_name%7D%22%2C%22CONTRAST_ORG_ID%22%3A%22%24%7Binput%3Acontrast_org_id%7D%22%2C%22CONTRAST_USERNAME%22%3A%22%24%7Binput%3Acontrast_username%7D%22%2C%22CONTRAST_API_KEY%22%3A%22%24%7Binput%3Acontrast_api_key%7D%22%2C%22CONTRAST_SERVICE_KEY%22%3A%22%24%7Binput%3Acontrast_service_key%7D%22%7D%7D)
+
+**Other Clients:** See [Installation Guide](#docker) below
+
+---
+
+> [!WARNING]
+> **CRITICAL SECURITY WARNING:** 
+> EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A LLM THAT TRAINS ON YOUR DATA CAN POTENTIALLY EXPOSE YOUR VULNERABILITY DATA TO THE OUTSIDE WORLD. 
+> Thus, do not use mcp-contrast functions which pull sensitive data with a LLM that trains on your data.
+>
+> **Verify AI Data Privacy:** Before sending vulnerability data to an AI, you must confirm that your service agreement guarantees your data will not be used for model training.
+>
+> **UNSAFE:** Public consumer websites (e.g., the free versions of ChatGPT, Gemini, Claude). These services often use your input for training.
+>
+> **POTENTIALLY-SAFE:** Enterprise-grade services (e.g. Google Cloud AI, AWS Bedrock, Azure OpenAI) or paid plans that contractually ensure data privacy and prevent model training on your prompts, verify with your information security teams.
+
+---
+
 ## Table of Contents
-- [Sample Prompts](#sample-prompts)
-  - [For the Developer](#for-the-developer)
-    - [Remediate Vulnerability in code](#remediate-vulnerability-in-code)
-    - [3rd Party Library Remediation](#3rd-party-library-remediation)
-  - [For the Security Professional](#for-the-security-professional)
-- [Data Privacy](#data-privacy)
-- [Build](#build)
-- [Run](#run)
-- [Docker](#docker)
-  - [Build Docker Image](#build-docker-image)
-  - [Run with Docker](#run-with-docker)
-  - [Using Copilot + Petclinic](#using-copilot--petclinic)
-  - [Install via Link](#install-via-link)
-  - [Manual Install of MCP Server](#manual-install-of-mcp-server)
-  - [Using Cline Plugin](#using-cline-plugin)
-  - [Using oterm](#using-oterm)
-- [Proxy Configuration](#proxy-configuration)
-  - [Java Process](#java-process)
-  - [Docker](#docker-1)
+- [Contrast MCP Server](#contrast-mcp-server)
+  - [Quick Install](#quick-install)
+  - [Table of Contents](#table-of-contents)
+  - [Sample Prompts](#sample-prompts)
+    - [For the Developer](#for-the-developer)
+      - [Remediate Vulnerability in code](#remediate-vulnerability-in-code)
+      - [3rd Party Library Remediation](#3rd-party-library-remediation)
+      - [Retrieving application based on Tags](#retrieving-application-based-on-tags)
+      - [Retrieving application based on Metadata](#retrieving-application-based-on-metadata)
+      - [Retrieving vulnerabilities based on Session Metadata](#retrieving-vulnerabilities-based-on-session-metadata)
+    - [For the Security Professional](#for-the-security-professional)
+  - [Data Privacy](#data-privacy)
+  - [Build](#build)
+  - [Run](#run)
+  - [Docker](#docker)
+    - [Build Docker Image](#build-docker-image)
+    - [Using Copilot + Petclinic](#using-copilot--petclinic)
+      - [Install via Link in VScode](#install-via-link-in-vscode)
+      - [Manual Install of MCP Server](#manual-install-of-mcp-server)
+      - [Install in Intellij](#install-in-intellij)
+    - [Using Cline Plugin](#using-cline-plugin)
+    - [Using Claude Desktop](#using-claude-desktop)
+    - [Using oterm](#using-oterm)
+  - [Proxy Configuration](#proxy-configuration)
+    - [Java Process](#java-process)
+    - [Docker](#docker-1)
+  - [Common Issues](#common-issues)
+    - [Review Log](#review-log)
+    - [Enable Debug Logging](#enable-debug-logging)
+    - [Certificate Issues](#certificate-issues)
 
 ## Sample Prompts
 ### For the Developer
@@ -132,7 +156,7 @@ To build out the vulnerabilites and attack events run
 `./testscript.sh`
 Select option 25. ( this will exercise the app and perform attacks to populate the vulnerabilities and attack events)
 #### Install via Link in VScode
-Click following link  >>> [![Install in VS Code Docker](https://img.shields.io/badge/VS_Code-docker-0098FF?style=flat-square&logo=githubcopilot&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=contrastmcp&config=%7B%22command%22:%22docker%22,%22args%22:%5B%22run%22,%20%22-e%22,%22CONTRAST_HOST_NAME%22,%20%22-e%22,%22CONTRAST_API_KEY%22,%20%22-e%22,%22CONTRAST_SERVICE_KEY%22,%20%22-e%22,%22CONTRAST_USERNAME%22,%20%22-e%22,%22CONTRAST_ORG_ID%22,%20%20%22-i%22,%20%22--rm%22,%20%22contrast/mcp-contrast:latest%22,%20%22-t%22,%20%22stdio%22%5D,%22env%22:%7B%22CONTRAST_HOST_NAME%22:%22example.contrastsecurity.com%22,%22CONTRAST_API_KEY%22:%22example%22,%22CONTRAST_SERVICE_KEY%22:%22example%22,%22CONTRAST_USERNAME%22:%22example@example.com%22,%22CONTRAST_ORG_ID%22:%22example%22%7D%7D) <<<
+Click following link  >>> [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_contrast--mcp-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22contrast-mcp%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22docker%22%2C%22args%22%3A%5B%22run%22%2C%22-e%22%2C%22CONTRAST_HOST_NAME%22%2C%22-e%22%2C%22CONTRAST_API_KEY%22%2C%22-e%22%2C%22CONTRAST_SERVICE_KEY%22%2C%22-e%22%2C%22CONTRAST_USERNAME%22%2C%22-e%22%2C%22CONTRAST_ORG_ID%22%2C%22-i%22%2C%22--rm%22%2C%22contrast%2Fmcp-contrast%3Alatest%22%2C%22-t%22%2C%22stdio%22%5D%2C%22env%22%3A%7B%22CONTRAST_HOST_NAME%22%3A%22%24%7Binput%3Acontrast_host_name%7D%22%2C%22CONTRAST_ORG_ID%22%3A%22%24%7Binput%3Acontrast_org_id%7D%22%2C%22CONTRAST_USERNAME%22%3A%22%24%7Binput%3Acontrast_username%7D%22%2C%22CONTRAST_API_KEY%22%3A%22%24%7Binput%3Acontrast_api_key%7D%22%2C%22CONTRAST_SERVICE_KEY%22%3A%22%24%7Binput%3Acontrast_service_key%7D%22%7D%7D) <<<
 Allow the extension to be installed in your VSCode instance.
 Select Install Server
 
