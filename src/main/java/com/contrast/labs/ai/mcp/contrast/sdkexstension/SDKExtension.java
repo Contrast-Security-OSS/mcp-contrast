@@ -18,6 +18,8 @@ package com.contrast.labs.ai.mcp.contrast.sdkexstension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibrariesExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.Attack;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksFilterBody;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.ApplicationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservation;
@@ -33,6 +35,10 @@ import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.sdk.ContrastSDK;
 import com.contrastsecurity.sdk.internal.GsonFactory;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +49,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -343,6 +350,79 @@ public class SDKExtension {
              Reader reader = new InputStreamReader(is)) {
             return this.gson.fromJson(reader, com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.TracesExtended.class);
         }
+    }
+
+    // ==== ADR (Attack Detection and Response) Methods ====
+
+    /**
+     * Retrieves attacks from the Contrast platform based on filter criteria.
+     *
+     * @param organizationId The organization ID
+     * @param filterBody Filter criteria for attacks (can be null for default filter)
+     * @param limit Maximum number of attacks to return (default: 1000)
+     * @param offset Pagination offset (default: 0)
+     * @param sort Sort order (default: -startTime)
+     * @return List of Attack objects
+     * @throws IOException If an I/O error occurs
+     * @throws UnauthorizedException If the request is not authorized
+     */
+    public List<Attack> getAttacks(String organizationId, AttacksFilterBody filterBody, 
+                                  Integer limit, Integer offset, String sort) 
+            throws IOException, UnauthorizedException {
+        
+        // Set default values if not provided
+        if (limit == null) limit = 1000;
+        if (offset == null) offset = 0;
+        if (sort == null) sort = "-startTime";
+        if (filterBody == null) filterBody = new AttacksFilterBody();
+        
+        String url = String.format(
+                "/ng/%s/attacks?expand=skip_links&limit=%d&offset=%d&sort=%s",
+                organizationId, limit, offset, sort);
+        
+        try (InputStream is = contrastSDK.makeRequestWithBody(
+                HttpMethod.POST,
+                url,
+                this.gson.toJson(filterBody),
+                MediaType.JSON);
+             Reader reader = new InputStreamReader(is)) {
+            
+            // Parse JSON response and extract attacks array directly
+            JsonObject jsonResponse = this.gson.fromJson(reader, JsonObject.class);
+            if (jsonResponse != null && jsonResponse.has("attacks")) {
+                JsonArray attacksArray = jsonResponse.getAsJsonArray("attacks");
+                Type listType = new TypeToken<List<Attack>>(){}.getType();
+                return this.gson.fromJson(attacksArray, listType);
+            }
+            return new ArrayList<>();
+        }
+    }
+
+    /**
+     * Retrieves attacks with default parameters (limit=1000, offset=0, sort=-startTime).
+     *
+     * @param organizationId The organization ID
+     * @param filterBody Filter criteria for attacks (can be null for default filter)
+     * @return List of Attack objects
+     * @throws IOException If an I/O error occurs
+     * @throws UnauthorizedException If the request is not authorized
+     */
+    public List<Attack> getAttacks(String organizationId, AttacksFilterBody filterBody) 
+            throws IOException, UnauthorizedException {
+        return getAttacks(organizationId, filterBody, null, null, null);
+    }
+
+    /**
+     * Retrieves attacks with default filter and parameters.
+     *
+     * @param organizationId The organization ID
+     * @return List of Attack objects
+     * @throws IOException If an I/O error occurs
+     * @throws UnauthorizedException If the request is not authorized
+     */
+    public List<Attack> getAttacks(String organizationId) 
+            throws IOException, UnauthorizedException {
+        return getAttacks(organizationId, null, null, null, null);
     }
 
 

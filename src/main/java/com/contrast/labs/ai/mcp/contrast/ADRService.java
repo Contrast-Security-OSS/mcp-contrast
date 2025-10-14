@@ -15,9 +15,12 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
+import com.contrast.labs.ai.mcp.contrast.data.AttackSummary;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.Attack;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksFilterBody;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.slf4j.Logger;
@@ -27,7 +30,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ADRService {
@@ -125,6 +130,83 @@ public class ADRService {
             long duration = System.currentTimeMillis() - startTime;
             logger.error("Error retrieving protection rules for application ID: {} (after {} ms): {}",
                     appID, duration, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Tool(name = "get_attacks", description = "Retrieves attacks from Contrast ADR (Attack Detection and Response). Returns a list of attack summaries with key information: dates, rules, status, severity, applications, source IP, and probe count.")
+    public List<AttackSummary> getAttacks() throws IOException {
+        logger.info("Retrieving attacks from Contrast ADR");
+        long startTime = System.currentTimeMillis();
+
+        try {
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+            logger.debug("ContrastSDK initialized successfully for attacks retrieval");
+
+            SDKExtension extendedSDK = new SDKExtension(contrastSDK);
+            logger.debug("SDKExtension initialized successfully for attacks retrieval");
+
+            // Use default filter (ALL attacks)
+            List<Attack> attacks = extendedSDK.getAttacks(orgID);
+            long duration = System.currentTimeMillis() - startTime;
+
+            if (attacks == null || attacks.isEmpty()) {
+                logger.warn("No attacks data returned (took {} ms)", duration);
+                return List.of();
+            }
+
+            List<AttackSummary> summaries = attacks.stream()
+                .map(AttackSummary::fromAttack)
+                .collect(Collectors.toList());
+
+            logger.info("Successfully retrieved {} attacks (took {} ms)", summaries.size(), duration);
+            return summaries;
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            logger.error("Error retrieving attacks (after {} ms): {}", duration, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Tool(name = "get_attacks_filtered", description = "Retrieves attacks from Contrast ADR with custom filtering options. Allows filtering by status, severity, applications, tags, and other criteria. Returns a list of attack summaries with key information: dates, rules, status, severity, applications, source IP, and probe count.")
+    public List<AttackSummary> getAttacksFiltered(String quickFilter, String keyword, Boolean includeSuppressed, 
+                                            Boolean includeBotBlockers, Boolean includeIpBlacklist, 
+                                            Integer limit, Integer offset, String sort) throws IOException {
+        logger.info("Retrieving filtered attacks from Contrast ADR with quickFilter: {}, keyword: {}", quickFilter, keyword);
+        long startTime = System.currentTimeMillis();
+
+        try {
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+            logger.debug("ContrastSDK initialized successfully for filtered attacks retrieval");
+
+            SDKExtension extendedSDK = new SDKExtension(contrastSDK);
+            logger.debug("SDKExtension initialized successfully for filtered attacks retrieval");
+
+            // Create custom filter
+            AttacksFilterBody filterBody = new AttacksFilterBody();
+            if (quickFilter != null) filterBody.setQuickFilter(quickFilter);
+            if (keyword != null) filterBody.setKeyword(keyword);
+            if (includeSuppressed != null) filterBody.setIncludeSuppressed(includeSuppressed);
+            if (includeBotBlockers != null) filterBody.setIncludeBotBlockers(includeBotBlockers);
+            if (includeIpBlacklist != null) filterBody.setIncludeIpBlacklist(includeIpBlacklist);
+
+            List<Attack> attacks = extendedSDK.getAttacks(orgID, filterBody, limit, offset, sort);
+            long duration = System.currentTimeMillis() - startTime;
+
+            if (attacks == null || attacks.isEmpty()) {
+                logger.warn("No filtered attacks data returned (took {} ms)", duration);
+                return List.of();
+            }
+
+            List<AttackSummary> summaries = attacks.stream()
+                .map(AttackSummary::fromAttack)
+                .collect(Collectors.toList());
+
+            logger.info("Successfully retrieved {} filtered attacks (took {} ms)", summaries.size(), duration);
+            return summaries;
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            logger.error("Error retrieving filtered attacks (after {} ms): {}", duration, e.getMessage(), e);
             throw e;
         }
     }
