@@ -43,7 +43,7 @@ public class Attack {
     private String attack_impact; // Valid values: "NONE", "LOW", "MEDIUM", "HIGH"
     private long first_event_time;
     private long last_event_time;
-    private Object user_agents;
+    private List<String> user_agents;
 
     /**
      * Nested class representing an application's involvement in an attack.
@@ -301,11 +301,11 @@ public class Attack {
         this.last_event_time = last_event_time;
     }
 
-    public Object getUser_agents() {
+    public List<String> getUser_agents() {
         return user_agents;
     }
 
-    public void setUser_agents(Object user_agents) {
+    public void setUser_agents(List<String> user_agents) {
         this.user_agents = user_agents;
     }
 }
