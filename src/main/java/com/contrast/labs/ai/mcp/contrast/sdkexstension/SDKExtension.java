@@ -70,7 +70,7 @@ public class SDKExtension {
         try (InputStream is =
                      contrastSDK.makeRequest(
                              HttpMethod.GET, urlBuilder.getLibrariesFilterUrl(organizationId, filterForm));
-             Reader reader = new InputStreamReader(is)) {
+             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             return gson.fromJson(reader, LibrariesExtended.class);
         }
     }
@@ -82,7 +82,7 @@ public class SDKExtension {
                      contrastSDK.makeRequest(
                              HttpMethod.GET,
                              urlBuilder.getLibrariesFilterUrl(organizationId, appId, filterForm));
-             Reader reader = new InputStreamReader(is)) {
+             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             return gson.fromJson(reader, LibrariesExtended.class);
         }
     }
@@ -94,7 +94,7 @@ public class SDKExtension {
                              getProtectDataURL(orgID, appID));
 
         ) {
-            Reader reader = new InputStreamReader(is);
+            Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
             return gson.fromJson(reader, ProtectData.class);
         }
     }
@@ -106,7 +106,7 @@ public class SDKExtension {
                              getCVEDataURL(organizationId, cveID, new FilterForm()));
 
         ) {
-            Reader reader = new InputStreamReader(is);
+            Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
             return gson.fromJson(reader, CveData.class);
         }
     }
@@ -146,10 +146,10 @@ public class SDKExtension {
         
         do {
             String url = getLibraryObservationsUrl(organizationId, applicationId, libraryId, offset, pageSize);
-            
+
             try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
-                 Reader reader = new InputStreamReader(is)) {
-                
+                 Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+
                 LibraryObservationsResponse response = gson.fromJson(reader, LibraryObservationsResponse.class);
                 
                 if (response.getObservations() != null) {
@@ -197,7 +197,7 @@ public class SDKExtension {
         String url = getRouteDetailsUrl(organizationId, applicationId, routeHash);
 
         try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
-             Reader reader = new InputStreamReader(is)) {
+             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             return gson.fromJson(reader, RouteDetailsResponse.class);
         }
     }
@@ -231,7 +231,7 @@ public class SDKExtension {
                         MediaType.JSON);
             }
 
-            try (Reader reader = new InputStreamReader(is)) {
+            try (Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
                 return gson.fromJson(reader, RouteCoverageResponse.class);
             }
         } finally {
@@ -281,7 +281,7 @@ public class SDKExtension {
         } else {
             // Stream response directly without buffering
             try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
-                 Reader reader = new InputStreamReader(is)) {
+                 Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
                 return this.gson.fromJson(reader, ApplicationsResponse.class);
             }
         }
@@ -320,7 +320,7 @@ public class SDKExtension {
                              urlBuilder.getTracesWithBodyUrl(organizationId, appId)+"?expand=session_metadata",
                              this.gson.toJson(filters),
                              MediaType.JSON);
-             Reader reader = new InputStreamReader(is)) {
+             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             return this.gson.fromJson(reader, Traces.class);
         }
     }
@@ -333,7 +333,7 @@ public class SDKExtension {
                 organizationId, appId);
         try (InputStream is =
                      contrastSDK.makeRequest(HttpMethod.GET, url);
-             Reader reader = new InputStreamReader(is)) {
+             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             return this.gson.fromJson(reader, com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata.SessionMetadataResponse.class);
         }
     }
@@ -346,7 +346,7 @@ public class SDKExtension {
                              urlBuilder.getTracesWithBodyUrl(organizationId, appId)+"?expand=session_metadata",
                              this.gson.toJson(filters),
                              MediaType.JSON);
-             Reader reader = new InputStreamReader(is)) {
+             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             return this.gson.fromJson(reader, com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.TracesExtended.class);
         }
     }
@@ -384,7 +384,7 @@ public class SDKExtension {
                 url,
                 this.gson.toJson(filterBody),
                 MediaType.JSON);
-             Reader reader = new InputStreamReader(is)) {
+             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             
             // Parse JSON response and extract attacks array directly
             JsonObject jsonResponse = this.gson.fromJson(reader, JsonObject.class);
