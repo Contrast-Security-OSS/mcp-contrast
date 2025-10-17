@@ -29,6 +29,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.SessionMetada
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.TraceExtended;
 import com.contrastsecurity.models.*;
 import com.contrastsecurity.models.TraceFilterBody;
+import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -130,7 +131,7 @@ public class AssessService {
             logger.info("Successfully retrieved vulnerability details for vulnID: {}", vulnID);
             return new Vulnerability(hint, vulnID, trace.getTitle(), trace.getRule(),
                     recommendationResponse.getRecommendation().getText(), stackLibs, new ArrayList<>(libsToReturn), // Convert Set to List
-                    httpRequestText);
+                    httpRequestText, trace.getStatus(), trace.getFirstTimeSeen(), trace.getLastTimeSeen(), trace.getClosedTime());
         } catch (Exception e) {
             logger.error("Error retrieving vulnerability details for vulnID: {}", vulnID, e);
             throw new IOException("Failed to retrieve vulnerability details: " + e.getMessage(), e);
@@ -176,7 +177,7 @@ public class AssessService {
             List<VulnLight> vulns = new ArrayList<>();
             for (TraceExtended trace : traces) {
                 vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
-                        new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen()));
+                        new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen(), trace.getStatus(), trace.getFirstTimeSeen(), trace.getClosedTime()));
             }
 
             logger.info("Successfully retrieved {} vulnerabilities for application ID: {}", vulns.size(), appID);
@@ -252,7 +253,7 @@ public class AssessService {
                 List<VulnLight> vulns = new ArrayList<>();
                 for (TraceExtended trace : traces) {
                     vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
-                            new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen()));
+                            new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen(), trace.getStatus(), trace.getFirstTimeSeen(), trace.getClosedTime()));
                 }
                 return vulns;
             } catch (Exception e) {
@@ -407,6 +408,182 @@ public class AssessService {
         } catch (Exception e) {
             logger.error("Error listing all applications", e);
             throw new IOException("Failed to list applications: " + e.getMessage(), e);
+        }
+    }
+
+    @Tool(
+        name = "list_all_vulnerabilities",
+        description = """
+            Gets all vulnerabilities across all applications in the organization.
+
+            Pagination: page (default: 1), pageSize (default: 50, max: 100)
+            Returns pagination metadata including totalItems (when available) and hasMorePages.
+            Check 'message' field for validation warnings or empty result info.
+            """
+    )
+    public PaginatedResponse<VulnLight> getAllVulnerabilities(Integer page, Integer pageSize) throws IOException {
+        logger.info("Listing all vulnerabilities - page: {}, pageSize: {}", page, pageSize);
+        long startTime = System.currentTimeMillis();
+
+        // Validate and clamp parameters
+        StringBuilder messageBuilder = new StringBuilder();
+        int actualPage = page != null && page > 0 ? page : 1;
+        if (page != null && page < 1) {
+            logger.warn("Invalid page number {}, clamping to 1", page);
+            messageBuilder.append(String.format("Invalid page number %d, using page 1. ", page));
+            actualPage = 1;
+        }
+
+        int actualPageSize = pageSize != null && pageSize > 0 ? pageSize : 50;
+        if (pageSize != null && pageSize < 1) {
+            logger.warn("Invalid pageSize {}, using default 50", pageSize);
+            messageBuilder.append(String.format("Invalid pageSize %d, using default 50. ", pageSize));
+            actualPageSize = 50;
+        }
+        if (pageSize != null && pageSize > 100) {
+            logger.warn("Requested pageSize {} exceeds maximum 100, capping", pageSize);
+            messageBuilder.append(String.format("Requested pageSize %d exceeds maximum 100, capped to 100. ", pageSize));
+            actualPageSize = 100;
+        }
+
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+
+        try {
+            // Convert to SDK offset (0-based)
+            int offset = (actualPage - 1) * actualPageSize;
+            int limit = actualPageSize;
+
+            // First try the organization-level API
+            TraceFilterForm filterForm = new TraceFilterForm();
+            filterForm.setLimit(limit);
+            filterForm.setOffset(offset);
+
+            Traces traces = contrastSDK.getTracesInOrg(orgID, filterForm);
+
+            if (traces != null && traces.getTraces() != null) {
+                // Organization API worked (empty list with count=0 is valid - means no vulnerabilities or no EAC access)
+                List<VulnLight> vulnerabilities = new ArrayList<>();
+
+                for (Trace trace : traces.getTraces()) {
+                    vulnerabilities.add(new VulnLight(
+                        trace.getTitle(),
+                        trace.getRule(),
+                        trace.getUuid(),
+                        trace.getSeverity(),
+                        new ArrayList<>(), // Session metadata not available at org level
+                        new Date(trace.getLastTimeSeen()).toString(),
+                        trace.getLastTimeSeen(),
+                        trace.getStatus(),
+                        trace.getFirstTimeSeen(),
+                        trace.getClosedTime()
+                    ));
+                }
+
+                // Get totalItems if available from SDK response (don't make extra query)
+                Integer totalItems = (traces.getCount() != null) ? traces.getCount() : null;
+
+                // Calculate hasMorePages
+                boolean hasMorePages;
+                if (totalItems != null) {
+                    hasMorePages = (actualPage * actualPageSize) < totalItems;
+                } else {
+                    // Heuristic: if we got a full page, assume more exist
+                    hasMorePages = vulnerabilities.size() == actualPageSize;
+                }
+
+                // Handle empty results messaging
+                if (vulnerabilities.isEmpty() && actualPage == 1) {
+                    messageBuilder.append("No vulnerabilities found. ");
+                } else if (vulnerabilities.isEmpty() && actualPage > 1) {
+                    if (totalItems != null) {
+                        int totalPages = (int) Math.ceil((double) totalItems / actualPageSize);
+                        messageBuilder.append(String.format(
+                            "Requested page %d exceeds available pages (total: %d). ",
+                            actualPage, totalPages
+                        ));
+                    } else {
+                        messageBuilder.append(String.format(
+                            "Requested page %d returned no results. ",
+                            actualPage
+                        ));
+                    }
+                }
+
+                String message = messageBuilder.length() > 0 ? messageBuilder.toString().trim() : null;
+
+                long duration = System.currentTimeMillis() - startTime;
+                logger.info("Retrieved {} vulnerabilities for page {} (pageSize: {}, totalItems: {}, took {} ms)",
+                           vulnerabilities.size(), actualPage, actualPageSize, totalItems, duration);
+
+                return new PaginatedResponse<>(
+                    vulnerabilities,
+                    actualPage,
+                    actualPageSize,
+                    totalItems,
+                    hasMorePages,
+                    message
+                );
+
+            } else {
+                // Fallback to application-by-application approach
+                logger.warn("Organization-level API returned no results, using fallback approach");
+
+                List<Application> applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
+                List<VulnLight> allVulnerabilities = new ArrayList<>();
+
+                for (Application app : applications) {
+                    try {
+                        List<VulnLight> appVulns = listVulnsByAppId(app.getAppId());
+                        allVulnerabilities.addAll(appVulns);
+                    } catch (Exception e) {
+                        logger.warn("Failed to get vulnerabilities for application {}: {}",
+                                   app.getName(), e.getMessage());
+                        // Continue processing other applications even if one fails
+                    }
+                }
+
+                // Manual pagination for fallback path
+                // totalItems is null because we can't efficiently count without fetching all
+                Integer totalItems = null;
+                int startIdx = offset;
+                int endIdx = Math.min(startIdx + limit, allVulnerabilities.size());
+
+                List<VulnLight> paginatedVulns = (startIdx < allVulnerabilities.size())
+                    ? allVulnerabilities.subList(startIdx, endIdx)
+                    : new ArrayList<>();
+
+                // Heuristic for hasMorePages in fallback mode
+                boolean hasMorePages = endIdx < allVulnerabilities.size();
+
+                // Handle empty results messaging
+                if (paginatedVulns.isEmpty() && actualPage == 1) {
+                    messageBuilder.append("No vulnerabilities found. ");
+                } else if (paginatedVulns.isEmpty() && actualPage > 1) {
+                    messageBuilder.append(String.format(
+                        "Requested page %d returned no results. ",
+                        actualPage
+                    ));
+                }
+
+                String message = messageBuilder.length() > 0 ? messageBuilder.toString().trim() : null;
+
+                long duration = System.currentTimeMillis() - startTime;
+                logger.info("Retrieved {} vulnerabilities for page {} using fallback (pageSize: {}, totalFetched: {}, took {} ms)",
+                           paginatedVulns.size(), actualPage, actualPageSize, allVulnerabilities.size(), duration);
+
+                return new PaginatedResponse<>(
+                    paginatedVulns,
+                    actualPage,
+                    actualPageSize,
+                    totalItems,
+                    hasMorePages,
+                    message
+                );
+            }
+
+        } catch (Exception e) {
+            logger.error("Error listing all vulnerabilities", e);
+            throw new IOException("Failed to list all vulnerabilities: " + e.getMessage(), e);
         }
     }
 
