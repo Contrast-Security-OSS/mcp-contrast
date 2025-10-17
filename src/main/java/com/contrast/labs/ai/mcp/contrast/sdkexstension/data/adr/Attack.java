@@ -29,7 +29,7 @@ public class Attack {
     private List<ApplicationAttackInfo> attacksApplication;
     private List<String> rules;
     private List<Server> servers;
-    private List<Object> attackers; // Can be empty array
+    private List<String> attackers; // List of authenticated user identifiers (usernames/user IDs) involved in the attack
     private int id;
     private String uuid;
     private String attack_label;
@@ -38,9 +38,9 @@ public class Attack {
     private int probes;
     private long attack_duration;
     private int requests_per_second;
-    private Object severity_code;
-    private Object application_importance;
-    private Object attack_impact;
+    private String severity_code; // Valid values: "LOW", "MEDIUM", "HIGH"
+    private String application_importance; // Valid values: "UNIMPORTANT", "LOW", "MEDIUM", "HIGH", "CRITICAL"
+    private String attack_impact; // Valid values: "NONE", "LOW", "MEDIUM", "HIGH"
     private long first_event_time;
     private long last_event_time;
     private Object user_agents;
@@ -189,11 +189,11 @@ public class Attack {
         this.servers = servers;
     }
 
-    public List<Object> getAttackers() {
+    public List<String> getAttackers() {
         return attackers;
     }
 
-    public void setAttackers(List<Object> attackers) {
+    public void setAttackers(List<String> attackers) {
         this.attackers = attackers;
     }
 
@@ -261,27 +261,27 @@ public class Attack {
         this.requests_per_second = requests_per_second;
     }
 
-    public Object getSeverity_code() {
+    public String getSeverity_code() {
         return severity_code;
     }
 
-    public void setSeverity_code(Object severity_code) {
+    public void setSeverity_code(String severity_code) {
         this.severity_code = severity_code;
     }
 
-    public Object getApplication_importance() {
+    public String getApplication_importance() {
         return application_importance;
     }
 
-    public void setApplication_importance(Object application_importance) {
+    public void setApplication_importance(String application_importance) {
         this.application_importance = application_importance;
     }
 
-    public Object getAttack_impact() {
+    public String getAttack_impact() {
         return attack_impact;
     }
 
-    public void setAttack_impact(Object attack_impact) {
+    public void setAttack_impact(String attack_impact) {
         this.attack_impact = attack_impact;
     }
 
