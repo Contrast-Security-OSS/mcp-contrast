@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -37,16 +38,16 @@ public class AttacksFilterBody {
     private List<String> severities;
 
     public AttacksFilterBody() {
-        // Initialize empty lists for default constructor
-        this.tags = List.of();
-        this.statusFilter = List.of();
-        this.protectionRules = List.of();
-        this.applications = List.of();
-        this.applicationImportances = List.of();
-        this.attackers = List.of();
-        this.servers = List.of();
-        this.serverEnvironments = List.of();
-        this.severities = List.of();
+        // Initialize empty mutable lists for default constructor
+        this.tags = new ArrayList<>();
+        this.statusFilter = new ArrayList<>();
+        this.protectionRules = new ArrayList<>();
+        this.applications = new ArrayList<>();
+        this.applicationImportances = new ArrayList<>();
+        this.attackers = new ArrayList<>();
+        this.servers = new ArrayList<>();
+        this.serverEnvironments = new ArrayList<>();
+        this.severities = new ArrayList<>();
     }
 
     public String getQuickFilter() {
