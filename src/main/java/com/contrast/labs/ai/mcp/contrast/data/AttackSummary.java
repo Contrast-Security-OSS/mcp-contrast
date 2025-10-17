@@ -19,6 +19,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.Attack;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -46,7 +47,9 @@ public record AttackSummary(
      * Creates an AttackSummary from a full Attack object, extracting key information.
      */
     public static AttackSummary fromAttack(Attack attack) {
-        List<ApplicationAttackInfo> appInfos = attack.getAttacksApplication().stream()
+        List<ApplicationAttackInfo> appInfos = Optional.ofNullable(attack.getAttacksApplication())
+            .orElse(List.of())
+            .stream()
             .map(ApplicationAttackInfo::fromAttackApplication)
             .collect(Collectors.toList());
             
