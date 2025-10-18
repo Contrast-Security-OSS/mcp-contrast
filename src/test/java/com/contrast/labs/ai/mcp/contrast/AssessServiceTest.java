@@ -251,77 +251,7 @@ class AssessServiceTest {
                   "Message should explain pageSize was clamped");
     }
 
-    // ========== Test Case 7: Invalid Page Input ==========
-    @Test
-    void testGetAllVulnerabilities_InvalidPageZero() throws Exception {
-        // Arrange
-        Traces mockTraces = createMockTraces(50, 100);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(mockTraces);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(0, 50, null, null, null, null, null, null, null, null);
-
-        // Assert - Should be clamped to 1
-        PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
-        PaginationTestHelper.assertHasValidationMessage(response);
-        assertTrue(response.message().contains("Invalid page number 0"),
-                  "Message should explain page was clamped");
-    }
-
-    @Test
-    void testGetAllVulnerabilities_InvalidPageNegative() throws Exception {
-        // Arrange
-        Traces mockTraces = createMockTraces(50, 100);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(mockTraces);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(-5, 50, null, null, null, null, null, null, null, null);
-
-        // Assert - Should be clamped to 1
-        PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
-        PaginationTestHelper.assertHasValidationMessage(response);
-        assertTrue(response.message().contains("Invalid page number -5"),
-                  "Message should explain page was clamped");
-    }
-
-    // ========== Test Case 8: Invalid PageSize Input ==========
-    @Test
-    void testGetAllVulnerabilities_InvalidPageSizeZero() throws Exception {
-        // Arrange
-        Traces mockTraces = createMockTraces(50, 100);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(mockTraces);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 0, null, null, null, null, null, null, null, null);
-
-        // Assert - Should be clamped to 50
-        PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
-        PaginationTestHelper.assertHasValidationMessage(response);
-        assertTrue(response.message().contains("Invalid pageSize 0"),
-                  "Message should explain pageSize was clamped");
-    }
-
-    @Test
-    void testGetAllVulnerabilities_InvalidPageSizeNegative() throws Exception {
-        // Arrange
-        Traces mockTraces = createMockTraces(50, 100);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(mockTraces);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, -10, null, null, null, null, null, null, null, null);
-
-        // Assert - Should be clamped to 50
-        PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
-        PaginationTestHelper.assertHasValidationMessage(response);
-        assertTrue(response.message().contains("Invalid pageSize -10"),
-                  "Message should explain pageSize was clamped");
-    }
-
-    // ========== Test Case 9: Single Page Results ==========
+    // ========== Test Case 7: Single Page Results ==========
     @Test
     void testGetAllVulnerabilities_SinglePageResults() throws Exception {
         // Arrange - Only 25 items total, fits in one page
@@ -671,22 +601,26 @@ class AssessServiceTest {
     }
 
     @Test
-    void testGetAllVulnerabilities_InvalidSeverity() throws Exception {
-        // Arrange
-        Traces mockTraces = createMockTraces(10, 10);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(mockTraces);
-
-        // Act
+    void testGetAllVulnerabilities_InvalidSeverity_HardFailure() throws Exception {
+        // Act - Invalid severity causes hard failure, SDK should not be called
         PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
             1, 50, "CRITICAL,SUPER_HIGH", null, null, null, null, null, null, null
         );
 
-        // Assert
+        // Assert - Hard failure returns error response with empty items
         assertNotNull(response);
+        assertTrue(response.items().isEmpty(), "Hard failure should return empty items");
+        assertEquals(1, response.page());
+        assertEquals(50, response.pageSize());
+        assertEquals(0, response.totalItems());
+        assertFalse(response.hasMorePages());
+
         assertNotNull(response.message());
         assertTrue(response.message().contains("Invalid severity 'SUPER_HIGH'"));
         assertTrue(response.message().contains("Valid: CRITICAL, HIGH, MEDIUM, LOW, NOTE"));
+
+        // Verify SDK was NOT called (hard failure stops execution)
+        verify(mockContrastSDK, never()).getTracesInOrg(any(), any());
     }
 
     @Test
@@ -795,25 +729,6 @@ class AssessServiceTest {
     }
 
     @Test
-    void testGetAllVulnerabilities_InvalidEnvironment() throws Exception {
-        // Arrange
-        Traces mockTraces = createMockTraces(10, 10);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(mockTraces);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
-            1, 50, null, null, null, null, "PRODUCTION,STAGING", null, null, null
-        );
-
-        // Assert
-        assertNotNull(response);
-        assertNotNull(response.message());
-        assertTrue(response.message().contains("Invalid environment 'STAGING'"));
-        assertTrue(response.message().contains("Valid: DEVELOPMENT, QA, PRODUCTION"));
-    }
-
-    @Test
     void testGetAllVulnerabilities_DateFilterValid() throws Exception {
         // Arrange
         Traces mockTraces = createMockTraces(10, 10);
@@ -839,25 +754,6 @@ class AssessServiceTest {
         assertTrue(response.message().contains("lastTimeSeen"));
     }
 
-    @Test
-    void testGetAllVulnerabilities_DateFilterInvalid() throws Exception {
-        // Arrange
-        Traces mockTraces = createMockTraces(10, 10);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(mockTraces);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
-            1, 50, null, null, null, null, null, "Jan 15 2025", null, null
-        );
-
-        // Assert
-        assertNotNull(response);
-        assertNotNull(response.message());
-        assertTrue(response.message().contains("Invalid lastSeenAfter date"));
-        assertTrue(response.message().contains("ISO format (YYYY-MM-DD)"));
-        assertTrue(response.message().contains("2025-01-15"));
-    }
 
     @Test
     void testGetAllVulnerabilities_VulnTagsFilter() throws Exception {

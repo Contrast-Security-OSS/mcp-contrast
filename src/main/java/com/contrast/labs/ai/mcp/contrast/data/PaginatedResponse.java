@@ -51,4 +51,12 @@ public record PaginatedResponse<T>(
     public static <T> PaginatedResponse<T> empty(int page, int pageSize, String message) {
         return new PaginatedResponse<>(List.of(), page, pageSize, 0, false, message);
     }
+
+    /**
+     * Creates an error response for validation failures.
+     * Returns empty items with error message.
+     */
+    public static <T> PaginatedResponse<T> error(int page, int pageSize, String errorMessage) {
+        return new PaginatedResponse<>(List.of(), page, pageSize, 0, false, errorMessage);
+    }
 }

@@ -480,129 +480,32 @@ public class AssessService {
                 page, pageSize, severities, statuses, appId, vulnTypes, environments, lastSeenAfter, lastSeenBefore, vulnTags);
         long startTime = System.currentTimeMillis();
 
-        // Validate and clamp pagination parameters
-        StringBuilder messageBuilder = new StringBuilder();
-        int actualPage = page != null && page > 0 ? page : 1;
-        if (page != null && page < 1) {
-            logger.warn("Invalid page number {}, clamping to 1", page);
-            messageBuilder.append(String.format("Invalid page number %d, using page 1. ", page));
-            actualPage = 1;
+        // Parse and validate inputs
+        PaginationParams pagination = PaginationParams.of(page, pageSize);
+        VulnerabilityFilterParams filters = VulnerabilityFilterParams.of(
+            severities, statuses, appId, vulnTypes, environments,
+            lastSeenAfter, lastSeenBefore, vulnTags
+        );
+
+        // Check for hard failures - return error immediately if invalid
+        if (!filters.isValid()) {
+            String errorMessage = String.join(" ", filters.errors());
+            logger.error("Validation errors: {}", errorMessage);
+            return PaginatedResponse.error(pagination.page(), pagination.pageSize(), errorMessage);
         }
 
-        int actualPageSize = pageSize != null && pageSize > 0 ? pageSize : 50;
-        if (pageSize != null && pageSize < 1) {
-            logger.warn("Invalid pageSize {}, using default 50", pageSize);
-            messageBuilder.append(String.format("Invalid pageSize %d, using default 50. ", pageSize));
-            actualPageSize = 50;
-        }
-        if (pageSize != null && pageSize > 100) {
-            logger.warn("Requested pageSize {} exceeds maximum 100, capping", pageSize);
-            messageBuilder.append(String.format("Requested pageSize %d exceeds maximum 100, capped to 100. ", pageSize));
-            actualPageSize = 100;
-        }
-
-        // Parse filter parameters with validation
-        List<String> severityList = FilterHelper.parseCommaSeparatedUpperCase(severities);
-        List<String> vulnTypeList = FilterHelper.parseCommaSeparatedLowerCase(vulnTypes);
-        List<String> envList = FilterHelper.parseCommaSeparatedUpperCase(environments);
-        List<String> vulnTagList = FilterHelper.parseCommaSeparated(vulnTags); // Case-sensitive
-
-        // Parse dates with validation messages
-        FilterHelper.ParseResult<Date> startDateResult = FilterHelper.parseDateWithValidation(lastSeenAfter, "lastSeenAfter");
-        FilterHelper.ParseResult<Date> endDateResult = FilterHelper.parseDateWithValidation(lastSeenBefore, "lastSeenBefore");
-
-        if (startDateResult.hasValidationMessage()) {
-            messageBuilder.append(startDateResult.getValidationMessage()).append(" ");
-        }
-        if (endDateResult.hasValidationMessage()) {
-            messageBuilder.append(endDateResult.getValidationMessage()).append(" ");
-        }
-
-        // Handle status filter with smart defaults
-        List<String> statusList;
-        boolean usingSmartDefaults = false;
-        if (statuses == null || statuses.trim().isEmpty()) {
-            // Smart defaults: exclude Fixed and Remediated
-            statusList = Arrays.asList("Reported", "Suspicious", "Confirmed");
-            usingSmartDefaults = true;
-            logger.debug("Using smart defaults for status filter: {}", statusList);
-        } else {
-            statusList = FilterHelper.parseCommaSeparated(statuses);
-        }
+        // Accumulate warnings from validation
+        List<String> messages = new ArrayList<>();
+        messages.addAll(pagination.warnings());
+        messages.addAll(filters.warnings());
 
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
 
         try {
-            // Convert to SDK offset (0-based)
-            int offset = (actualPage - 1) * actualPageSize;
-            int limit = actualPageSize;
-
-            // Build filter form with all filters
-            TraceFilterForm filterForm = new TraceFilterForm();
-            filterForm.setLimit(limit);
-            filterForm.setOffset(offset);
-
-            // Apply severity filter
-            if (severityList != null && !severityList.isEmpty()) {
-                EnumSet<RuleSeverity> severitySet = EnumSet.noneOf(RuleSeverity.class);
-                for (String sev : severityList) {
-                    try {
-                        severitySet.add(RuleSeverity.valueOf(sev));
-                    } catch (IllegalArgumentException e) {
-                        logger.warn("Invalid severity value: {}", sev);
-                        messageBuilder.append(String.format("Invalid severity '%s'. Valid: CRITICAL, HIGH, MEDIUM, LOW, NOTE. ", sev));
-                    }
-                }
-                if (!severitySet.isEmpty()) {
-                    filterForm.setSeverities(severitySet);
-                }
-            }
-
-            // Apply status filter
-            if (statusList != null && !statusList.isEmpty()) {
-                filterForm.setStatus(statusList);
-                if (usingSmartDefaults) {
-                    messageBuilder.append("Showing actionable vulnerabilities only (excluding Fixed and Remediated). To see all statuses, specify statuses parameter explicitly. ");
-                }
-            }
-
-            // Apply vulnerability type filter
-            if (vulnTypeList != null && !vulnTypeList.isEmpty()) {
-                filterForm.setVulnTypes(vulnTypeList);
-            }
-
-            // Apply environment filter
-            if (envList != null && !envList.isEmpty()) {
-                EnumSet<ServerEnvironment> envSet = EnumSet.noneOf(ServerEnvironment.class);
-                for (String env : envList) {
-                    try {
-                        envSet.add(ServerEnvironment.valueOf(env));
-                    } catch (IllegalArgumentException e) {
-                        logger.warn("Invalid environment value: {}", env);
-                        messageBuilder.append(String.format("Invalid environment '%s'. Valid: DEVELOPMENT, QA, PRODUCTION. ", env));
-                    }
-                }
-                if (!envSet.isEmpty()) {
-                    filterForm.setEnvironments(envSet);
-                }
-            }
-
-            // Apply date filters
-            if (startDateResult.getValue() != null) {
-                filterForm.setStartDate(startDateResult.getValue());
-                messageBuilder.append("Time filters apply to LAST ACTIVITY DATE (lastTimeSeen), not discovery date. ");
-            }
-            if (endDateResult.getValue() != null) {
-                filterForm.setEndDate(endDateResult.getValue());
-                if (startDateResult.getValue() == null) { // Only add message once
-                    messageBuilder.append("Time filters apply to LAST ACTIVITY DATE (lastTimeSeen), not discovery date. ");
-                }
-            }
-
-            // Apply vulnerability tags filter
-            if (vulnTagList != null && !vulnTagList.isEmpty()) {
-                filterForm.setFilterTags(vulnTagList);
-            }
+            // Configure SDK request with validated params
+            TraceFilterForm filterForm = filters.toTraceFilterForm();
+            filterForm.setLimit(pagination.limit());
+            filterForm.setOffset(pagination.offset());
 
             // Try organization-level API (or app-specific if appId provided)
             Traces traces;
@@ -640,40 +543,40 @@ public class AssessService {
                 // Calculate hasMorePages
                 boolean hasMorePages;
                 if (totalItems != null) {
-                    hasMorePages = (actualPage * actualPageSize) < totalItems;
+                    hasMorePages = (pagination.page() * pagination.pageSize()) < totalItems;
                 } else {
                     // Heuristic: if we got a full page, assume more exist
-                    hasMorePages = vulnerabilities.size() == actualPageSize;
+                    hasMorePages = vulnerabilities.size() == pagination.pageSize();
                 }
 
                 // Handle empty results messaging
-                if (vulnerabilities.isEmpty() && actualPage == 1) {
-                    messageBuilder.append("No vulnerabilities found. ");
-                } else if (vulnerabilities.isEmpty() && actualPage > 1) {
+                if (vulnerabilities.isEmpty() && pagination.page() == 1) {
+                    messages.add("No vulnerabilities found.");
+                } else if (vulnerabilities.isEmpty() && pagination.page() > 1) {
                     if (totalItems != null) {
-                        int totalPages = (int) Math.ceil((double) totalItems / actualPageSize);
-                        messageBuilder.append(String.format(
-                            "Requested page %d exceeds available pages (total: %d). ",
-                            actualPage, totalPages
+                        int totalPages = (int) Math.ceil((double) totalItems / pagination.pageSize());
+                        messages.add(String.format(
+                            "Requested page %d exceeds available pages (total: %d).",
+                            pagination.page(), totalPages
                         ));
                     } else {
-                        messageBuilder.append(String.format(
-                            "Requested page %d returned no results. ",
-                            actualPage
+                        messages.add(String.format(
+                            "Requested page %d returned no results.",
+                            pagination.page()
                         ));
                     }
                 }
 
-                String message = messageBuilder.length() > 0 ? messageBuilder.toString().trim() : null;
+                String message = messages.isEmpty() ? null : String.join(" ", messages);
 
                 long duration = System.currentTimeMillis() - startTime;
                 logger.info("Retrieved {} vulnerabilities for page {} (pageSize: {}, totalItems: {}, took {} ms)",
-                           vulnerabilities.size(), actualPage, actualPageSize, totalItems, duration);
+                           vulnerabilities.size(), pagination.page(), pagination.pageSize(), totalItems, duration);
 
                 return new PaginatedResponse<>(
                     vulnerabilities,
-                    actualPage,
-                    actualPageSize,
+                    pagination.page(),
+                    pagination.pageSize(),
                     totalItems,
                     hasMorePages,
                     message
@@ -700,8 +603,8 @@ public class AssessService {
                 // Manual pagination for fallback path
                 // totalItems is null because we can't efficiently count without fetching all
                 Integer totalItems = null;
-                int startIdx = offset;
-                int endIdx = Math.min(startIdx + limit, allVulnerabilities.size());
+                int startIdx = pagination.offset();
+                int endIdx = Math.min(startIdx + pagination.limit(), allVulnerabilities.size());
 
                 List<VulnLight> paginatedVulns = (startIdx < allVulnerabilities.size())
                     ? allVulnerabilities.subList(startIdx, endIdx)
@@ -711,25 +614,25 @@ public class AssessService {
                 boolean hasMorePages = endIdx < allVulnerabilities.size();
 
                 // Handle empty results messaging
-                if (paginatedVulns.isEmpty() && actualPage == 1) {
-                    messageBuilder.append("No vulnerabilities found. ");
-                } else if (paginatedVulns.isEmpty() && actualPage > 1) {
-                    messageBuilder.append(String.format(
-                        "Requested page %d returned no results. ",
-                        actualPage
+                if (paginatedVulns.isEmpty() && pagination.page() == 1) {
+                    messages.add("No vulnerabilities found.");
+                } else if (paginatedVulns.isEmpty() && pagination.page() > 1) {
+                    messages.add(String.format(
+                        "Requested page %d returned no results.",
+                        pagination.page()
                     ));
                 }
 
-                String message = messageBuilder.length() > 0 ? messageBuilder.toString().trim() : null;
+                String message = messages.isEmpty() ? null : String.join(" ", messages);
 
                 long duration = System.currentTimeMillis() - startTime;
                 logger.info("Retrieved {} vulnerabilities for page {} using fallback (pageSize: {}, totalFetched: {}, took {} ms)",
-                           paginatedVulns.size(), actualPage, actualPageSize, allVulnerabilities.size(), duration);
+                           paginatedVulns.size(), pagination.page(), pagination.pageSize(), allVulnerabilities.size(), duration);
 
                 return new PaginatedResponse<>(
                     paginatedVulns,
-                    actualPage,
-                    actualPageSize,
+                    pagination.page(),
+                    pagination.pageSize(),
                     totalItems,
                     hasMorePages,
                     message
