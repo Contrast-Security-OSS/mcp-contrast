@@ -19,5 +19,17 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.SessionMetada
 
 import java.util.List;
 
-public record VulnLight(String title, String type, String vulnID, String severity, List<SessionMetadata> sessionMetadata, String lastSeenDate, long lastSeenTime, String status, Long firstTimeSeen, Long closedTime ) {
+public record VulnLight(
+    String title,
+    String type,
+    String vulnID,
+    String severity,
+    List<SessionMetadata> sessionMetadata,
+    String lastSeenDate,
+    long lastSeenTime,
+    String status,
+    Long firstTimeSeen,
+    Long closedTime,
+    List<String> environments
+) {
 }

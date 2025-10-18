@@ -178,8 +178,9 @@ public class AssessService {
 
             List<VulnLight> vulns = new ArrayList<>();
             for (TraceExtended trace : traces) {
+                List<String> traceEnvironments = extractEnvironments(trace);
                 vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
-                        new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen(), trace.getStatus(), trace.getFirstTimeSeen(), trace.getClosedTime()));
+                        new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen(), trace.getStatus(), trace.getFirstTimeSeen(), trace.getClosedTime(), traceEnvironments));
             }
 
             logger.info("Successfully retrieved {} vulnerabilities for application ID: {}", vulns.size(), appID);
@@ -254,8 +255,9 @@ public class AssessService {
 
                 List<VulnLight> vulns = new ArrayList<>();
                 for (TraceExtended trace : traces) {
+                    List<String> traceEnvironments = extractEnvironments(trace);
                     vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
-                            new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen(), trace.getStatus(), trace.getFirstTimeSeen(), trace.getClosedTime()));
+                            new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen(), trace.getStatus(), trace.getFirstTimeSeen(), trace.getClosedTime(), traceEnvironments));
                 }
                 return vulns;
             } catch (Exception e) {
@@ -459,6 +461,10 @@ public class AssessService {
 
             Returns pagination metadata including totalItems (when available) and hasMorePages.
             Check 'message' field for validation warnings or empty result info.
+
+            Response fields:
+            - environments: List of all environments (DEVELOPMENT, QA, PRODUCTION) where this vulnerability
+                           has been seen over time. Shows historical presence across environments.
             """
     )
     public PaginatedResponse<VulnLight> getAllVulnerabilities(
@@ -520,6 +526,7 @@ public class AssessService {
                 List<VulnLight> vulnerabilities = new ArrayList<>();
 
                 for (Trace trace : traces.getTraces()) {
+                    List<String> traceEnvironments = extractEnvironments(trace);
                     vulnerabilities.add(new VulnLight(
                         trace.getTitle(),
                         trace.getRule(),
@@ -530,7 +537,8 @@ public class AssessService {
                         trace.getLastTimeSeen(),
                         trace.getStatus(),
                         trace.getFirstTimeSeen(),
-                        trace.getClosedTime()
+                        trace.getClosedTime(),
+                        traceEnvironments
                     ));
                 }
 
@@ -647,6 +655,25 @@ public class AssessService {
         app.getMetadataEntities().stream().map(m-> new Metadata(m.getName(), m.getValue()))
                 .forEach(metadata::add);
         return metadata;
+    }
+
+    /**
+     * Extract unique environments from trace servers.
+     * Returns all environments the vulnerability has been seen in over time.
+     *
+     * @param trace The trace object containing server information
+     * @return List of unique environment names (e.g., ["PRODUCTION", "QA"])
+     */
+    private List<String> extractEnvironments(Trace trace) {
+        if (trace.getServers() == null || trace.getServers().isEmpty()) {
+            return new ArrayList<>();
+        }
+        return trace.getServers().stream()
+                .map(server -> server.getEnvironment())
+                .filter(env -> env != null && !env.isEmpty())
+                .distinct()
+                .sorted()
+                .collect(Collectors.toList());
     }
 
     @Tool(name = "list_vulnerability_types", description = """

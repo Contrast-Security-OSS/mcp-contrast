@@ -23,6 +23,7 @@ import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.models.Trace;
 import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.models.Rules;
+import com.contrastsecurity.models.Server;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -853,5 +854,113 @@ class AssessServiceTest {
         TraceFilterForm form = captor.getValue();
         assertNotNull(form.getSeverities());
         assertEquals(2, form.getSeverities().size());
+    }
+
+    @Test
+    void testGetAllVulnerabilities_EnvironmentsInResponse() throws Exception {
+        // Arrange - Create traces with servers that have different environments
+        Traces mockTraces = new Traces();
+        List<Trace> traces = new ArrayList<>();
+
+        // Trace 1: Multiple servers with different environments
+        Trace trace1 = mock(Trace.class);
+        when(trace1.getTitle()).thenReturn("SQL Injection");
+        when(trace1.getRule()).thenReturn("sql-injection");
+        when(trace1.getUuid()).thenReturn("uuid-1");
+        when(trace1.getSeverity()).thenReturn("HIGH");
+        when(trace1.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+        when(trace1.getStatus()).thenReturn("REPORTED");
+        when(trace1.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
+        when(trace1.getClosedTime()).thenReturn(null);
+
+        // Create servers with different environments
+        Server server1 = mock(Server.class);
+        when(server1.getEnvironment()).thenReturn("PRODUCTION");
+        Server server2 = mock(Server.class);
+        when(server2.getEnvironment()).thenReturn("QA");
+        Server server3 = mock(Server.class);
+        when(server3.getEnvironment()).thenReturn("PRODUCTION"); // Duplicate - should be deduplicated
+
+        List<Server> servers1 = List.of(server1, server2, server3);
+        when(trace1.getServers()).thenReturn(servers1);
+        traces.add(trace1);
+
+        // Trace 2: No servers
+        Trace trace2 = mock(Trace.class);
+        when(trace2.getTitle()).thenReturn("XSS");
+        when(trace2.getRule()).thenReturn("xss-reflected");
+        when(trace2.getUuid()).thenReturn("uuid-2");
+        when(trace2.getSeverity()).thenReturn("MEDIUM");
+        when(trace2.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+        when(trace2.getStatus()).thenReturn("REPORTED");
+        when(trace2.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
+        when(trace2.getClosedTime()).thenReturn(null);
+        when(trace2.getServers()).thenReturn(new ArrayList<>());
+        traces.add(trace2);
+
+        // Trace 3: Single server with one environment
+        Trace trace3 = mock(Trace.class);
+        when(trace3.getTitle()).thenReturn("Path Traversal");
+        when(trace3.getRule()).thenReturn("path-traversal");
+        when(trace3.getUuid()).thenReturn("uuid-3");
+        when(trace3.getSeverity()).thenReturn("CRITICAL");
+        when(trace3.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+        when(trace3.getStatus()).thenReturn("CONFIRMED");
+        when(trace3.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 172800000L);
+        when(trace3.getClosedTime()).thenReturn(null);
+
+        Server server4 = mock(Server.class);
+        when(server4.getEnvironment()).thenReturn("DEVELOPMENT");
+        when(trace3.getServers()).thenReturn(List.of(server4));
+        traces.add(trace3);
+
+        // Set up mockTraces
+        try {
+            java.lang.reflect.Field tracesField = Traces.class.getDeclaredField("traces");
+            tracesField.setAccessible(true);
+            tracesField.set(mockTraces, traces);
+
+            java.lang.reflect.Field countField = Traces.class.getDeclaredField("count");
+            countField.setAccessible(true);
+            countField.set(mockTraces, 3);
+        } catch (Exception e) {
+            fail("Failed to setup mock traces: " + e.getMessage());
+        }
+
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50, null, null, null, null, null, null, null, null
+        );
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(3, response.items().size());
+
+        // Verify trace 1: Multiple environments, deduplicated and sorted
+        VulnLight vuln1 = response.items().get(0);
+        assertEquals("SQL Injection", vuln1.title());
+        assertNotNull(vuln1.environments());
+        assertEquals(2, vuln1.environments().size());
+        assertTrue(vuln1.environments().contains("PRODUCTION"));
+        assertTrue(vuln1.environments().contains("QA"));
+        // Verify sorted order
+        assertEquals("PRODUCTION", vuln1.environments().get(0));
+        assertEquals("QA", vuln1.environments().get(1));
+
+        // Verify trace 2: No servers = empty environments
+        VulnLight vuln2 = response.items().get(1);
+        assertEquals("XSS", vuln2.title());
+        assertNotNull(vuln2.environments());
+        assertEquals(0, vuln2.environments().size());
+
+        // Verify trace 3: Single environment
+        VulnLight vuln3 = response.items().get(2);
+        assertEquals("Path Traversal", vuln3.title());
+        assertNotNull(vuln3.environments());
+        assertEquals(1, vuln3.environments().size());
+        assertEquals("DEVELOPMENT", vuln3.environments().get(0));
     }
 }
