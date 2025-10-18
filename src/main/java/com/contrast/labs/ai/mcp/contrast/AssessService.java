@@ -30,6 +30,8 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.TraceExtended
 import com.contrastsecurity.models.*;
 import com.contrastsecurity.models.TraceFilterBody;
 import com.contrastsecurity.http.TraceFilterForm;
+import com.contrastsecurity.http.RuleSeverity;
+import com.contrastsecurity.http.ServerEnvironment;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +40,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -414,18 +419,68 @@ public class AssessService {
     @Tool(
         name = "list_all_vulnerabilities",
         description = """
-            Gets all vulnerabilities across all applications in the organization.
+            Gets vulnerabilities across all applications with optional filtering.
+
+            Filters (all optional):
+            - severities: Filter by severity level(s). Options: CRITICAL, HIGH, MEDIUM, LOW, NOTE.
+                          Comma-separated for multiple (e.g., "CRITICAL,HIGH").
+                          Default: Returns all severities.
+            - statuses: Filter by vulnerability status(es). Options: Reported, Suspicious, Confirmed, Remediated, Fixed.
+                        Comma-separated for multiple (e.g., "Reported,Confirmed").
+                        Default: Returns Reported, Suspicious, and Confirmed (excludes Fixed and Remediated - focus on actionable items).
+            - appId: Filter to a specific application ID.
+            - vulnTypes: Filter by vulnerability type/rule name(s). Common types:
+                         sql-injection, xss-reflected, xss-stored, path-traversal, cmd-injection,
+                         crypto-bad-mac, crypto-bad-ciphers, trust-boundary-violation, xxe,
+                         untrusted-deserialization, csrf, ssrf, ldap-injection, xpath-injection.
+                         Comma-separated for multiple (e.g., "sql-injection,xss-reflected").
+                         For complete list, use list_vulnerability_types tool.
+                         Default: Returns all vulnerability types.
+            - environments: Filter by server environment(s). Options: DEVELOPMENT, QA, PRODUCTION.
+                            Comma-separated for multiple (e.g., "PRODUCTION,QA").
+                            Default: Returns all environments.
+            - lastSeenAfter: Only include vulnerabilities with activity after this date (ISO format: YYYY-MM-DD or epoch timestamp).
+                             IMPORTANT: Filters on LAST ACTIVITY DATE (lastTimeSeen), not discovery date.
+            - lastSeenBefore: Only include vulnerabilities with activity before this date (ISO format: YYYY-MM-DD or epoch timestamp).
+                              IMPORTANT: Filters on LAST ACTIVITY DATE (lastTimeSeen), not discovery date.
+            - vulnTags: Filter by vulnerability-level tag(s). Comma-separated for multiple (e.g., "SmartFix Remediated,reviewed").
+                        IMPORTANT: Filters on VULNERABILITY TAGS, not application tags.
+                        Use case: Query vulnerabilities with specific tags like "SmartFix Remediated" to find SmartFix-remediated issues.
+                        Default: Returns all vulnerability tags.
 
             Pagination: page (default: 1), pageSize (default: 50, max: 100)
+
+            Examples:
+            - Critical vulnerabilities only: severities="CRITICAL"
+            - High-priority open issues: severities="CRITICAL,HIGH", statuses="Reported,Confirmed"
+            - Production vulnerabilities: environments="PRODUCTION"
+            - Recent activity: lastSeenAfter="2025-01-01"
+            - Production critical issues with recent activity: environments="PRODUCTION", severities="CRITICAL", lastSeenAfter="2025-01-01"
+            - Specific app's SQL injection issues: appId="abc123", vulnTypes="sql-injection"
+            - SmartFix remediated vulnerabilities: vulnTags="SmartFix Remediated", statuses="Remediated"
+            - Reviewed critical vulnerabilities: vulnTags="reviewed", severities="CRITICAL"
+
             Returns pagination metadata including totalItems (when available) and hasMorePages.
             Check 'message' field for validation warnings or empty result info.
             """
     )
-    public PaginatedResponse<VulnLight> getAllVulnerabilities(Integer page, Integer pageSize) throws IOException {
-        logger.info("Listing all vulnerabilities - page: {}, pageSize: {}", page, pageSize);
+    public PaginatedResponse<VulnLight> getAllVulnerabilities(
+            Integer page,
+            Integer pageSize,
+            String severities,
+            String statuses,
+            String appId,
+            String vulnTypes,
+            String environments,
+            String lastSeenAfter,
+            String lastSeenBefore,
+            String vulnTags
+    ) throws IOException {
+        logger.info("Listing all vulnerabilities - page: {}, pageSize: {}, filters: severities={}, statuses={}, appId={}, vulnTypes={}, environments={}, lastSeenAfter={}, lastSeenBefore={}, vulnTags={}",
+                page, pageSize, severities, statuses, appId, vulnTypes, environments, lastSeenAfter, lastSeenBefore, vulnTags);
         long startTime = System.currentTimeMillis();
 
-        // Validate and clamp parameters
+        // Validate and clamp pagination parameters
         StringBuilder messageBuilder = new StringBuilder();
         int actualPage = page != null && page > 0 ? page : 1;
         if (page != null && page < 1) {
@@ -446,6 +501,35 @@ public class AssessService {
             actualPageSize = 100;
         }
 
+        // Parse filter parameters with validation
+        List<String> severityList = FilterHelper.parseCommaSeparatedUpperCase(severities);
+        List<String> vulnTypeList = FilterHelper.parseCommaSeparatedLowerCase(vulnTypes);
+        List<String> envList = FilterHelper.parseCommaSeparatedUpperCase(environments);
+        List<String> vulnTagList = FilterHelper.parseCommaSeparated(vulnTags); // Case-sensitive
+
+        // Parse dates with validation messages
+        FilterHelper.ParseResult<Date> startDateResult = FilterHelper.parseDateWithValidation(lastSeenAfter, "lastSeenAfter");
+        FilterHelper.ParseResult<Date> endDateResult = FilterHelper.parseDateWithValidation(lastSeenBefore, "lastSeenBefore");
+
+        if (startDateResult.hasValidationMessage()) {
+            messageBuilder.append(startDateResult.getValidationMessage()).append(" ");
+        }
+        if (endDateResult.hasValidationMessage()) {
+            messageBuilder.append(endDateResult.getValidationMessage()).append(" ");
+        }
+
+        // Handle status filter with smart defaults
+        List<String> statusList;
+        boolean usingSmartDefaults = false;
+        if (statuses == null || statuses.trim().isEmpty()) {
+            // Smart defaults: exclude Fixed and Remediated
+            statusList = Arrays.asList("Reported", "Suspicious", "Confirmed");
+            usingSmartDefaults = true;
+            logger.debug("Using smart defaults for status filter: {}", statusList);
+        } else {
+            statusList = FilterHelper.parseCommaSeparated(statuses);
+        }
+
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
 
         try {
@@ -453,12 +537,83 @@ public class AssessService {
             int offset = (actualPage - 1) * actualPageSize;
             int limit = actualPageSize;
 
-            // First try the organization-level API
+            // Build filter form with all filters
             TraceFilterForm filterForm = new TraceFilterForm();
             filterForm.setLimit(limit);
             filterForm.setOffset(offset);
 
-            Traces traces = contrastSDK.getTracesInOrg(orgID, filterForm);
+            // Apply severity filter
+            if (severityList != null && !severityList.isEmpty()) {
+                EnumSet<RuleSeverity> severitySet = EnumSet.noneOf(RuleSeverity.class);
+                for (String sev : severityList) {
+                    try {
+                        severitySet.add(RuleSeverity.valueOf(sev));
+                    } catch (IllegalArgumentException e) {
+                        logger.warn("Invalid severity value: {}", sev);
+                        messageBuilder.append(String.format("Invalid severity '%s'. Valid: CRITICAL, HIGH, MEDIUM, LOW, NOTE. ", sev));
+                    }
+                }
+                if (!severitySet.isEmpty()) {
+                    filterForm.setSeverities(severitySet);
+                }
+            }
+
+            // Apply status filter
+            if (statusList != null && !statusList.isEmpty()) {
+                filterForm.setStatus(statusList);
+                if (usingSmartDefaults) {
+                    messageBuilder.append("Showing actionable vulnerabilities only (excluding Fixed and Remediated). To see all statuses, specify statuses parameter explicitly. ");
+                }
+            }
+
+            // Apply vulnerability type filter
+            if (vulnTypeList != null && !vulnTypeList.isEmpty()) {
+                filterForm.setVulnTypes(vulnTypeList);
+            }
+
+            // Apply environment filter
+            if (envList != null && !envList.isEmpty()) {
+                EnumSet<ServerEnvironment> envSet = EnumSet.noneOf(ServerEnvironment.class);
+                for (String env : envList) {
+                    try {
+                        envSet.add(ServerEnvironment.valueOf(env));
+                    } catch (IllegalArgumentException e) {
+                        logger.warn("Invalid environment value: {}", env);
+                        messageBuilder.append(String.format("Invalid environment '%s'. Valid: DEVELOPMENT, QA, PRODUCTION. ", env));
+                    }
+                }
+                if (!envSet.isEmpty()) {
+                    filterForm.setEnvironments(envSet);
+                }
+            }
+
+            // Apply date filters
+            if (startDateResult.getValue() != null) {
+                filterForm.setStartDate(startDateResult.getValue());
+                messageBuilder.append("Time filters apply to LAST ACTIVITY DATE (lastTimeSeen), not discovery date. ");
+            }
+            if (endDateResult.getValue() != null) {
+                filterForm.setEndDate(endDateResult.getValue());
+                if (startDateResult.getValue() == null) { // Only add message once
+                    messageBuilder.append("Time filters apply to LAST ACTIVITY DATE (lastTimeSeen), not discovery date. ");
+                }
+            }
+
+            // Apply vulnerability tags filter
+            if (vulnTagList != null && !vulnTagList.isEmpty()) {
+                filterForm.setFilterTags(vulnTagList);
+            }
+
+            // Try organization-level API (or app-specific if appId provided)
+            Traces traces;
+            if (appId != null && !appId.trim().isEmpty()) {
+                // Use app-specific API for better performance
+                logger.debug("Using app-specific API for appId: {}", appId);
+                traces = contrastSDK.getTraces(orgID, appId, filterForm);
+            } else {
+                // Use org-level API
+                traces = contrastSDK.getTracesInOrg(orgID, filterForm);
+            }
 
             if (traces != null && traces.getTraces() != null) {
                 // Organization API worked (empty list with count=0 is valid - means no vulnerabilities or no EAC access)
@@ -592,6 +747,49 @@ public class AssessService {
         app.getMetadataEntities().stream().map(m-> new Metadata(m.getName(), m.getValue()))
                 .forEach(metadata::add);
         return metadata;
+    }
+
+    @Tool(name = "list_vulnerability_types", description = """
+        Returns the complete list of vulnerability types (rule names) available in Contrast.
+
+        Use this tool to discover all possible values for the vulnTypes filter parameter
+        when calling list_all_vulnerabilities or other vulnerability filtering tools.
+
+        Returns rule names like: sql-injection, xss-reflected, path-traversal, cmd-injection, etc.
+
+        These rule names can be used with the vulnTypes parameter to filter vulnerabilities
+        by specific vulnerability classes.
+
+        Note: The list is fetched dynamically from Contrast and reflects the rules
+        configured for your organization, so it's always current.
+        """)
+    public List<String> listVulnerabilityTypes() throws IOException {
+        logger.info("Retrieving all vulnerability types (rule names) for organization: {}", orgID);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+
+        try {
+            Rules rules = contrastSDK.getRules(orgID);
+
+            if (rules == null || rules.getRules() == null) {
+                logger.warn("No rules returned from Contrast API");
+                return new ArrayList<>();
+            }
+
+            // Extract rule names, trim whitespace, filter out null/empty, and sort alphabetically
+            List<String> ruleNames = rules.getRules().stream()
+                    .map(Rules.Rule::getName)
+                    .filter(name -> name != null && !name.trim().isEmpty())
+                    .map(String::trim)
+                    .sorted()
+                    .collect(Collectors.toList());
+
+            logger.info("Retrieved {} vulnerability types", ruleNames.size());
+            return ruleNames;
+
+        } catch (Exception e) {
+            logger.error("Error retrieving vulnerability types", e);
+            throw new IOException("Failed to retrieve vulnerability types: " + e.getMessage(), e);
+        }
     }
 
 }

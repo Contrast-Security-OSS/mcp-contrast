@@ -22,6 +22,7 @@ import com.contrast.labs.ai.mcp.contrast.utils.PaginationTestHelper;
 import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.models.Trace;
 import com.contrastsecurity.models.Traces;
+import com.contrastsecurity.models.Rules;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -98,14 +99,13 @@ class AssessServiceTest {
             .thenReturn(mockTraces);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, null);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, null, null, null, null, null, null, null, null, null);
 
         // Assert
         PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
         assertEquals(50, response.items().size());
         assertEquals(150, response.totalItems());
         assertTrue(response.hasMorePages());
-        assertNull(response.message());
 
         // Verify correct offset was used
         ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
@@ -123,7 +123,7 @@ class AssessServiceTest {
             .thenReturn(mockTraces);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(2, 50);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(2, 50, null, null, null, null, null, null, null, null);
 
         // Assert
         PaginationTestHelper.assertValidPaginatedResponse(response, 2, 50);
@@ -147,7 +147,7 @@ class AssessServiceTest {
             .thenReturn(mockTraces);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(3, 50);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(3, 50, null, null, null, null, null, null, null, null);
 
         // Assert
         PaginationTestHelper.assertValidPaginatedResponse(response, 3, 50);
@@ -171,7 +171,7 @@ class AssessServiceTest {
             .thenReturn(emptyPage);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(5, 50);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(5, 50, null, null, null, null, null, null, null, null);
 
         // Assert
         PaginationTestHelper.assertValidPaginatedResponse(response, 5, 50);
@@ -192,7 +192,7 @@ class AssessServiceTest {
             .thenReturn(emptyResult);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
 
         // Assert
         PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
@@ -212,7 +212,7 @@ class AssessServiceTest {
             .thenReturn(mockTraces);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
 
         // Assert
         PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
@@ -227,7 +227,7 @@ class AssessServiceTest {
             .thenReturn(mockTraces);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 100);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 100, null, null, null, null, null, null, null, null);
 
         // Assert
         PaginationTestHelper.assertValidPaginatedResponse(response, 1, 100);
@@ -242,7 +242,7 @@ class AssessServiceTest {
             .thenReturn(mockTraces);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 150);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 150, null, null, null, null, null, null, null, null);
 
         // Assert - Should be clamped to 100
         PaginationTestHelper.assertValidPaginatedResponse(response, 1, 100);
@@ -260,7 +260,7 @@ class AssessServiceTest {
             .thenReturn(mockTraces);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(0, 50);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(0, 50, null, null, null, null, null, null, null, null);
 
         // Assert - Should be clamped to 1
         PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
@@ -277,7 +277,7 @@ class AssessServiceTest {
             .thenReturn(mockTraces);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(-5, 50);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(-5, 50, null, null, null, null, null, null, null, null);
 
         // Assert - Should be clamped to 1
         PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
@@ -295,7 +295,7 @@ class AssessServiceTest {
             .thenReturn(mockTraces);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 0);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 0, null, null, null, null, null, null, null, null);
 
         // Assert - Should be clamped to 50
         PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
@@ -312,7 +312,7 @@ class AssessServiceTest {
             .thenReturn(mockTraces);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, -10);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, -10, null, null, null, null, null, null, null, null);
 
         // Assert - Should be clamped to 50
         PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
@@ -330,14 +330,13 @@ class AssessServiceTest {
             .thenReturn(mockTraces);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
 
         // Assert
         PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
         assertEquals(25, response.items().size());
         assertEquals(25, response.totalItems());
         assertFalse(response.hasMorePages(), "Single page should have no more pages");
-        PaginationTestHelper.assertNoValidationMessage(response);
     }
 
     // ========== Test Case 10: Null Parameters ==========
@@ -349,12 +348,11 @@ class AssessServiceTest {
             .thenReturn(mockTraces);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(null, null);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(null, null, null, null, null, null, null, null, null, null);
 
         // Assert - Should use defaults: page=1, pageSize=50
         PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
         assertEquals(50, response.items().size());
-        PaginationTestHelper.assertNoValidationMessage(response);
 
         // Verify defaults were applied
         ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
@@ -372,7 +370,7 @@ class AssessServiceTest {
             .thenReturn(mockTraces);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
 
         // Assert
         assertNotNull(response.totalItems(), "totalItems should be available from SDK");
@@ -388,7 +386,7 @@ class AssessServiceTest {
             .thenReturn(mockTraces);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
 
         // Assert - Should use heuristic: full page = assume more exist
         assertNull(response.totalItems(), "totalItems should be null when not provided by SDK");
@@ -404,7 +402,7 @@ class AssessServiceTest {
             .thenReturn(mockTraces);
 
         // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50);
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
 
         // Assert - Heuristic: partial page = no more pages
         assertNull(response.totalItems(), "totalItems should be null when not provided by SDK");
@@ -450,5 +448,513 @@ class AssessServiceTest {
         }
 
         return mockTraces;
+    }
+
+    // ========== List Vulnerability Types Tests ==========
+
+    @Test
+    void testListVulnerabilityTypes_Success() throws Exception {
+        // Arrange
+        Rules mockRules = createMockRules(
+            "sql-injection",
+            "xss-reflected",
+            "path-traversal",
+            "cmd-injection",
+            "crypto-bad-mac"
+        );
+        when(mockContrastSDK.getRules(TEST_ORG_ID)).thenReturn(mockRules);
+
+        // Act
+        List<String> result = assessService.listVulnerabilityTypes();
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(5, result.size());
+
+        // Verify sorted alphabetically
+        assertEquals("cmd-injection", result.get(0));
+        assertEquals("crypto-bad-mac", result.get(1));
+        assertEquals("path-traversal", result.get(2));
+        assertEquals("sql-injection", result.get(3));
+        assertEquals("xss-reflected", result.get(4));
+
+        verify(mockContrastSDK).getRules(TEST_ORG_ID);
+    }
+
+    @Test
+    void testListVulnerabilityTypes_EmptyRules() throws Exception {
+        // Arrange - SDK returns empty Rules object
+        Rules emptyRules = new Rules();
+        when(mockContrastSDK.getRules(TEST_ORG_ID)).thenReturn(emptyRules);
+
+        // Act
+        List<String> result = assessService.listVulnerabilityTypes();
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.isEmpty(), "Should return empty list when no rules available");
+        verify(mockContrastSDK).getRules(TEST_ORG_ID);
+    }
+
+    @Test
+    void testListVulnerabilityTypes_NullRulesObject() throws Exception {
+        // Arrange - SDK returns null
+        when(mockContrastSDK.getRules(TEST_ORG_ID)).thenReturn(null);
+
+        // Act
+        List<String> result = assessService.listVulnerabilityTypes();
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.isEmpty(), "Should return empty list when Rules object is null");
+        verify(mockContrastSDK).getRules(TEST_ORG_ID);
+    }
+
+    @Test
+    void testListVulnerabilityTypes_FiltersNullAndEmptyNames() throws Exception {
+        // Arrange - Mix of valid, null, and empty names
+        Rules mockRules = createMockRulesWithNulls(
+            "sql-injection",
+            null,
+            "xss-reflected",
+            "",
+            "path-traversal",
+            "   ",  // whitespace only - will be trimmed to empty
+            "cmd-injection"
+        );
+        when(mockContrastSDK.getRules(TEST_ORG_ID)).thenReturn(mockRules);
+
+        // Act
+        List<String> result = assessService.listVulnerabilityTypes();
+
+        // Assert
+        assertNotNull(result);
+        // Should only have the 4 valid names (whitespace-only gets trimmed to empty and filtered)
+        assertEquals(4, result.size());
+        assertTrue(result.contains("sql-injection"));
+        assertTrue(result.contains("xss-reflected"));
+        assertTrue(result.contains("path-traversal"));
+        assertTrue(result.contains("cmd-injection"));
+
+        // Verify sorted
+        assertEquals("cmd-injection", result.get(0));
+        assertEquals("path-traversal", result.get(1));
+        assertEquals("sql-injection", result.get(2));
+        assertEquals("xss-reflected", result.get(3));
+    }
+
+    @Test
+    void testListVulnerabilityTypes_SDKThrowsException() throws Exception {
+        // Arrange
+        when(mockContrastSDK.getRules(TEST_ORG_ID))
+            .thenThrow(new RuntimeException("API connection failed"));
+
+        // Act & Assert
+        Exception exception = assertThrows(Exception.class, () -> {
+            assessService.listVulnerabilityTypes();
+        });
+
+        assertTrue(exception.getMessage().contains("Failed to retrieve vulnerability types"));
+        verify(mockContrastSDK).getRules(TEST_ORG_ID);
+    }
+
+    @Test
+    void testListVulnerabilityTypes_LargeRuleSet() throws Exception {
+        // Arrange - Test with many rules to verify performance
+        List<String> ruleNames = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            ruleNames.add("test-rule-" + i);
+        }
+        Rules mockRules = createMockRules(ruleNames.toArray(new String[0]));
+        when(mockContrastSDK.getRules(TEST_ORG_ID)).thenReturn(mockRules);
+
+        // Act
+        List<String> result = assessService.listVulnerabilityTypes();
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(100, result.size());
+
+        // Verify still sorted
+        for (int i = 0; i < result.size() - 1; i++) {
+            assertTrue(result.get(i).compareTo(result.get(i + 1)) < 0,
+                "Rules should be sorted alphabetically");
+        }
+    }
+
+    /**
+     * Creates a mock Rules object with the specified rule names
+     */
+    private Rules createMockRules(String... ruleNames) {
+        Rules rules = new Rules();
+        List<Rules.Rule> ruleList = new ArrayList<>();
+
+        for (String name : ruleNames) {
+            Rules.Rule rule = rules.new Rule();
+            // Use reflection to set the name since Rule doesn't have setters
+            try {
+                java.lang.reflect.Field nameField = Rules.Rule.class.getDeclaredField("name");
+                nameField.setAccessible(true);
+                nameField.set(rule, name);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to create mock Rule", e);
+            }
+            ruleList.add(rule);
+        }
+
+        // Set the rules list using reflection
+        try {
+            java.lang.reflect.Field rulesField = Rules.class.getDeclaredField("rules");
+            rulesField.setAccessible(true);
+            rulesField.set(rules, ruleList);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set rules list", e);
+        }
+
+        return rules;
+    }
+
+    /**
+     * Creates a mock Rules object that includes null/empty names for testing filtering
+     */
+    private Rules createMockRulesWithNulls(String... ruleNames) {
+        Rules rules = new Rules();
+        List<Rules.Rule> ruleList = new ArrayList<>();
+
+        for (String name : ruleNames) {
+            Rules.Rule rule = rules.new Rule();
+            // Use reflection to set the name (including nulls and empty strings)
+            try {
+                java.lang.reflect.Field nameField = Rules.Rule.class.getDeclaredField("name");
+                nameField.setAccessible(true);
+                nameField.set(rule, name);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to create mock Rule", e);
+            }
+            ruleList.add(rule);
+        }
+
+        // Set the rules list using reflection
+        try {
+            java.lang.reflect.Field rulesField = Rules.class.getDeclaredField("rules");
+            rulesField.setAccessible(true);
+            rulesField.set(rules, ruleList);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to set rules list", e);
+        }
+
+        return rules;
+    }
+
+    // ========== Filter Tests ==========
+
+    @Test
+    void testGetAllVulnerabilities_SeverityFilter() throws Exception {
+        // Arrange
+        Traces mockTraces = createMockTraces(10, 10);
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50, "CRITICAL,HIGH", null, null, null, null, null, null, null
+        );
+
+        // Assert
+        assertNotNull(response);
+        ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+        verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
+
+        TraceFilterForm form = captor.getValue();
+        assertNotNull(form.getSeverities());
+        assertEquals(2, form.getSeverities().size());
+    }
+
+    @Test
+    void testGetAllVulnerabilities_InvalidSeverity() throws Exception {
+        // Arrange
+        Traces mockTraces = createMockTraces(10, 10);
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50, "CRITICAL,SUPER_HIGH", null, null, null, null, null, null, null
+        );
+
+        // Assert
+        assertNotNull(response);
+        assertNotNull(response.message());
+        assertTrue(response.message().contains("Invalid severity 'SUPER_HIGH'"));
+        assertTrue(response.message().contains("Valid: CRITICAL, HIGH, MEDIUM, LOW, NOTE"));
+    }
+
+    @Test
+    void testGetAllVulnerabilities_StatusSmartDefaults() throws Exception {
+        // Arrange
+        Traces mockTraces = createMockTraces(10, 10);
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act - no status provided, should use smart defaults
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50, null, null, null, null, null, null, null, null
+        );
+
+        // Assert
+        assertNotNull(response);
+        ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+        verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
+
+        TraceFilterForm form = captor.getValue();
+        assertNotNull(form.getStatus());
+        assertEquals(3, form.getStatus().size());
+        assertTrue(form.getStatus().contains("Reported"));
+        assertTrue(form.getStatus().contains("Suspicious"));
+        assertTrue(form.getStatus().contains("Confirmed"));
+
+        // Should have message about smart defaults
+        assertTrue(response.message().contains("actionable vulnerabilities only"));
+        assertTrue(response.message().contains("excluding Fixed and Remediated"));
+    }
+
+    @Test
+    void testGetAllVulnerabilities_StatusExplicitOverride() throws Exception {
+        // Arrange
+        Traces mockTraces = createMockTraces(10, 10);
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act - explicitly provide statuses (including Fixed and Remediated)
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50, null, "Reported,Fixed,Remediated", null, null, null, null, null, null
+        );
+
+        // Assert
+        assertNotNull(response);
+        ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+        verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
+
+        TraceFilterForm form = captor.getValue();
+        assertNotNull(form.getStatus());
+        assertEquals(3, form.getStatus().size());
+        assertTrue(form.getStatus().contains("Reported"));
+        assertTrue(form.getStatus().contains("Fixed"));
+        assertTrue(form.getStatus().contains("Remediated"));
+
+        // Should NOT have message about smart defaults when explicitly provided
+        if (response.message() != null) {
+            assertFalse(response.message().contains("actionable vulnerabilities only"));
+        }
+    }
+
+    @Test
+    void testGetAllVulnerabilities_VulnTypesFilter() throws Exception {
+        // Arrange
+        Traces mockTraces = createMockTraces(10, 10);
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50, null, null, null, "sql-injection,xss-reflected", null, null, null, null
+        );
+
+        // Assert
+        assertNotNull(response);
+        ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+        verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
+
+        TraceFilterForm form = captor.getValue();
+        assertNotNull(form.getVulnTypes());
+        assertEquals(2, form.getVulnTypes().size());
+        assertTrue(form.getVulnTypes().contains("sql-injection"));
+        assertTrue(form.getVulnTypes().contains("xss-reflected"));
+    }
+
+    @Test
+    void testGetAllVulnerabilities_EnvironmentFilter() throws Exception {
+        // Arrange
+        Traces mockTraces = createMockTraces(10, 10);
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50, null, null, null, null, "PRODUCTION,QA", null, null, null
+        );
+
+        // Assert
+        assertNotNull(response);
+        ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+        verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
+
+        TraceFilterForm form = captor.getValue();
+        assertNotNull(form.getEnvironments());
+        assertEquals(2, form.getEnvironments().size());
+    }
+
+    @Test
+    void testGetAllVulnerabilities_InvalidEnvironment() throws Exception {
+        // Arrange
+        Traces mockTraces = createMockTraces(10, 10);
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50, null, null, null, null, "PRODUCTION,STAGING", null, null, null
+        );
+
+        // Assert
+        assertNotNull(response);
+        assertNotNull(response.message());
+        assertTrue(response.message().contains("Invalid environment 'STAGING'"));
+        assertTrue(response.message().contains("Valid: DEVELOPMENT, QA, PRODUCTION"));
+    }
+
+    @Test
+    void testGetAllVulnerabilities_DateFilterValid() throws Exception {
+        // Arrange
+        Traces mockTraces = createMockTraces(10, 10);
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50, null, null, null, null, null, "2025-01-01", "2025-12-31", null
+        );
+
+        // Assert
+        assertNotNull(response);
+        ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+        verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
+
+        TraceFilterForm form = captor.getValue();
+        assertNotNull(form.getStartDate());
+        assertNotNull(form.getEndDate());
+
+        // Should have message about time filter applying to lastTimeSeen
+        assertTrue(response.message().contains("LAST ACTIVITY DATE"));
+        assertTrue(response.message().contains("lastTimeSeen"));
+    }
+
+    @Test
+    void testGetAllVulnerabilities_DateFilterInvalid() throws Exception {
+        // Arrange
+        Traces mockTraces = createMockTraces(10, 10);
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50, null, null, null, null, null, "Jan 15 2025", null, null
+        );
+
+        // Assert
+        assertNotNull(response);
+        assertNotNull(response.message());
+        assertTrue(response.message().contains("Invalid lastSeenAfter date"));
+        assertTrue(response.message().contains("ISO format (YYYY-MM-DD)"));
+        assertTrue(response.message().contains("2025-01-15"));
+    }
+
+    @Test
+    void testGetAllVulnerabilities_VulnTagsFilter() throws Exception {
+        // Arrange
+        Traces mockTraces = createMockTraces(10, 10);
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50, null, null, null, null, null, null, null, "SmartFix Remediated,reviewed"
+        );
+
+        // Assert
+        assertNotNull(response);
+        ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+        verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
+
+        TraceFilterForm form = captor.getValue();
+        assertNotNull(form.getFilterTags());
+        assertEquals(2, form.getFilterTags().size());
+        assertTrue(form.getFilterTags().contains("SmartFix Remediated"));
+        assertTrue(form.getFilterTags().contains("reviewed"));
+    }
+
+    @Test
+    void testGetAllVulnerabilities_MultipleFilters() throws Exception {
+        // Arrange
+        Traces mockTraces = createMockTraces(10, 10);
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act - combine severity, status, vulnTypes, and environment
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50,
+            "CRITICAL,HIGH",
+            "Reported,Confirmed",
+            null,
+            "sql-injection,cmd-injection",
+            "PRODUCTION",
+            "2025-01-01",
+            null,
+            null
+        );
+
+        // Assert
+        assertNotNull(response);
+        ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+        verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
+
+        TraceFilterForm form = captor.getValue();
+        assertNotNull(form.getSeverities());
+        assertNotNull(form.getStatus());
+        assertNotNull(form.getVulnTypes());
+        assertNotNull(form.getEnvironments());
+        assertNotNull(form.getStartDate());
+    }
+
+    @Test
+    void testGetAllVulnerabilities_AppIdRouting() throws Exception {
+        // Arrange
+        Traces mockTraces = createMockTraces(10, 10);
+        String testAppId = "test-app-123";
+        when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(testAppId), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50, null, null, testAppId, null, null, null, null, null
+        );
+
+        // Assert
+        assertNotNull(response);
+        // Verify it used app-specific API, not org-level
+        verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(testAppId), any(TraceFilterForm.class));
+        verify(mockContrastSDK, never()).getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class));
+    }
+
+    @Test
+    void testGetAllVulnerabilities_WhitespaceInFilters() throws Exception {
+        // Arrange
+        Traces mockTraces = createMockTraces(10, 10);
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act - test whitespace handling: "CRITICAL , HIGH" instead of "CRITICAL,HIGH"
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50, "CRITICAL , HIGH , ", null, null, null, null, null, null, null
+        );
+
+        // Assert
+        assertNotNull(response);
+        ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+        verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
+
+        TraceFilterForm form = captor.getValue();
+        assertNotNull(form.getSeverities());
+        assertEquals(2, form.getSeverities().size());
     }
 }
