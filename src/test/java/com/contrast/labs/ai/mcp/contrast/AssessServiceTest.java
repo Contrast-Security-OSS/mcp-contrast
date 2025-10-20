@@ -15,11 +15,12 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
+import com.contrast.labs.ai.mcp.contrast.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
-import com.contrast.labs.ai.mcp.contrast.utils.PaginationTestHelper;
+import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
 import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.models.Trace;
 import com.contrastsecurity.models.Traces;
@@ -57,6 +58,9 @@ class AssessServiceTest {
     @Mock
     private ContrastSDK mockContrastSDK;
 
+    @Mock
+    private PaginationHandler mockPaginationHandler;
+
     private VulnerabilityMapper vulnerabilityMapper;
 
     private MockedStatic<SDKHelper> mockedSDKHelper;
@@ -69,11 +73,30 @@ class AssessServiceTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        // Create real VulnerabilityMapper instance
+        // Create real VulnerabilityMapper, mock PaginationHandler
         vulnerabilityMapper = new VulnerabilityMapper();
 
-        // Create AssessService with real mapper
-        assessService = new AssessService(vulnerabilityMapper);
+        // Create AssessService with real mapper and mocked pagination handler
+        assessService = new AssessService(vulnerabilityMapper, mockPaginationHandler);
+
+        // Setup simplified mock behavior for PaginationHandler
+        // PaginationHandler logic is tested in its own test class
+        lenient().when(mockPaginationHandler.wrapApiPaginatedItems(anyList(), any(PaginationParams.class), any(), anyList()))
+            .thenAnswer(invocation -> {
+                List<?> items = invocation.getArgument(0);
+                PaginationParams params = invocation.getArgument(1);
+                Integer totalItems = invocation.getArgument(2);
+                // Return simple response - pagination logic tested in PaginationHandlerTest
+                return new PaginatedResponse<>(items, params.page(), params.pageSize(), totalItems, false, null);
+            });
+
+        lenient().when(mockPaginationHandler.paginateInMemory(anyList(), any(PaginationParams.class), anyList()))
+            .thenAnswer(invocation -> {
+                List<?> allItems = invocation.getArgument(0);
+                PaginationParams params = invocation.getArgument(1);
+                // Return simple response - pagination logic tested in PaginationHandlerTest
+                return new PaginatedResponse<>(allItems, params.page(), params.pageSize(), allItems.size(), false, null);
+            });
 
         // Mock the static SDKHelper.getSDK() method
         mockedSDKHelper = mockStatic(SDKHelper.class);
@@ -99,254 +122,77 @@ class AssessServiceTest {
         }
     }
 
-    // ========== Test Case 1: First Page ==========
+    // ========== SDK Integration Tests ==========
+
     @Test
-    void testGetAllVulnerabilities_FirstPage_DefaultPageSize() throws Exception {
-        // Arrange
+    void testGetAllVulnerabilities_PassesCorrectParametersToSDK() throws Exception {
+        // Given
         Traces mockTraces = createMockTraces(50, 150);
         when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
             .thenReturn(mockTraces);
 
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, null, null, null, null, null, null, null, null, null);
+        // When
+        assessService.getAllVulnerabilities(2, 75, null, null, null, null, null, null, null, null);
 
-        // Assert
-        PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
-        assertEquals(50, response.items().size());
-        assertEquals(150, response.totalItems());
-        assertTrue(response.hasMorePages());
-
-        // Verify correct offset was used
+        // Then - Verify SDK received correct parameters
         ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
         verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
-        assertEquals(0, captor.getValue().getOffset());
-        assertEquals(50, captor.getValue().getLimit());
+
+        TraceFilterForm form = captor.getValue();
+        assertEquals(75, form.getOffset());  // (page 2 - 1) * 75
+        assertEquals(75, form.getLimit());
     }
 
-    // ========== Test Case 2: Middle Page ==========
     @Test
-    void testGetAllVulnerabilities_MiddlePage() throws Exception {
-        // Arrange
+    void testGetAllVulnerabilities_CallsPaginationHandlerCorrectly() throws Exception {
+        // Given
         Traces mockTraces = createMockTraces(50, 150);
         when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
             .thenReturn(mockTraces);
 
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(2, 50, null, null, null, null, null, null, null, null);
+        // When
+        assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
 
-        // Assert
-        PaginationTestHelper.assertValidPaginatedResponse(response, 2, 50);
-        assertEquals(50, response.items().size());
-        assertEquals(150, response.totalItems());
-        assertTrue(response.hasMorePages());
-
-        // Verify correct offset (page 2 = offset 50)
-        ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
-        verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
-        assertEquals(50, captor.getValue().getOffset());
-        assertEquals(50, captor.getValue().getLimit());
+        // Then - Verify PaginationHandler received correct arguments
+        verify(mockPaginationHandler).wrapApiPaginatedItems(
+            argThat(list -> list.size() == 50),           // items
+            argThat(p -> p.page() == 1 && p.pageSize() == 50), // params
+            eq(150),                                       // totalItems
+            anyList()                                      // warnings
+        );
     }
 
-    // ========== Test Case 3: Last Page ==========
+    // ========== Routing Tests ==========
+
     @Test
-    void testGetAllVulnerabilities_LastPage() throws Exception {
-        // Arrange - 125 total items, page 3 with pageSize 50 = last page (25 items)
-        Traces mockTraces = createMockTraces(25, 125);
+    void testGetAllVulnerabilities_RoutesToAppSpecificAPI_WhenAppIdProvided() throws Exception {
+        // Given
+        String appId = "test-app-123";
+        Traces mockTraces = createMockTraces(10, 10);
+        when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(appId), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // When
+        assessService.getAllVulnerabilities(1, 50, null, null, appId, null, null, null, null, null);
+
+        // Then - Verify app-specific API was used
+        verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(appId), any(TraceFilterForm.class));
+        verify(mockContrastSDK, never()).getTracesInOrg(any(), any());
+    }
+
+    @Test
+    void testGetAllVulnerabilities_RoutesToOrgAPI_WhenNoAppId() throws Exception {
+        // Given
+        Traces mockTraces = createMockTraces(10, 10);
         when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
             .thenReturn(mockTraces);
 
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(3, 50, null, null, null, null, null, null, null, null);
+        // When
+        assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
 
-        // Assert
-        PaginationTestHelper.assertValidPaginatedResponse(response, 3, 50);
-        assertEquals(25, response.items().size());
-        assertEquals(125, response.totalItems());
-        assertFalse(response.hasMorePages(), "Last page should have no more pages");
-
-        // Verify correct offset (page 3 = offset 100)
-        ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
-        verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
-        assertEquals(100, captor.getValue().getOffset());
-    }
-
-    // ========== Test Case 4: Beyond Last Page ==========
-    @Test
-    void testGetAllVulnerabilities_BeyondLastPage() throws Exception {
-        // Arrange - 100 total items, requesting page 5 (way beyond available - only 2 pages exist)
-        // Page 5 offset=200 is beyond the data, org API returns empty result
-        Traces emptyPage = createMockTraces(0, 100);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(emptyPage);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(5, 50, null, null, null, null, null, null, null, null);
-
-        // Assert
-        PaginationTestHelper.assertValidPaginatedResponse(response, 5, 50);
-        PaginationTestHelper.assertEmptyPage(response);
-        PaginationTestHelper.assertHasValidationMessage(response);
-        assertTrue(response.message().contains("exceeds available pages"),
-                  "Message should explain page exceeds available pages (total: 2)");
-        assertTrue(response.message().contains("total: 2"),
-                  "Message should show total pages available");
-    }
-
-    // ========== Test Case 5: Empty Results ==========
-    @Test
-    void testGetAllVulnerabilities_EmptyResults() throws Exception {
-        // Arrange - Organization API returns valid empty response (empty list + count=0 is valid per teamserver)
-        Traces emptyResult = createMockTraces(0, 0);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(emptyResult);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
-
-        // Assert
-        PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
-        PaginationTestHelper.assertEmptyPage(response);
-        assertEquals(0, response.totalItems(), "Empty result should have totalItems=0");
-        PaginationTestHelper.assertHasValidationMessage(response);
-        assertTrue(response.message().contains("No vulnerabilities found"),
-                  "Message should explain no results found");
-    }
-
-    // ========== Test Case 6: Page Size Boundaries ==========
-    @Test
-    void testGetAllVulnerabilities_PageSizeDefault() throws Exception {
-        // Arrange
-        Traces mockTraces = createMockTraces(50, 200);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(mockTraces);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
-
-        // Assert
-        PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
-        assertEquals(50, response.items().size());
-    }
-
-    @Test
-    void testGetAllVulnerabilities_PageSizeMaximum() throws Exception {
-        // Arrange
-        Traces mockTraces = createMockTraces(100, 200);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(mockTraces);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 100, null, null, null, null, null, null, null, null);
-
-        // Assert
-        PaginationTestHelper.assertValidPaginatedResponse(response, 1, 100);
-        assertEquals(100, response.items().size());
-    }
-
-    @Test
-    void testGetAllVulnerabilities_PageSizeExceedsMaximum() throws Exception {
-        // Arrange
-        Traces mockTraces = createMockTraces(100, 200);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(mockTraces);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 150, null, null, null, null, null, null, null, null);
-
-        // Assert - Should be clamped to 100
-        PaginationTestHelper.assertValidPaginatedResponse(response, 1, 100);
-        PaginationTestHelper.assertHasValidationMessage(response);
-        assertTrue(response.message().contains("exceeds maximum 100"),
-                  "Message should explain pageSize was clamped");
-    }
-
-    // ========== Test Case 7: Single Page Results ==========
-    @Test
-    void testGetAllVulnerabilities_SinglePageResults() throws Exception {
-        // Arrange - Only 25 items total, fits in one page
-        Traces mockTraces = createMockTraces(25, 25);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(mockTraces);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
-
-        // Assert
-        PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
-        assertEquals(25, response.items().size());
-        assertEquals(25, response.totalItems());
-        assertFalse(response.hasMorePages(), "Single page should have no more pages");
-    }
-
-    // ========== Test Case 10: Null Parameters ==========
-    @Test
-    void testGetAllVulnerabilities_NullParameters() throws Exception {
-        // Arrange
-        Traces mockTraces = createMockTraces(50, 100);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(mockTraces);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(null, null, null, null, null, null, null, null, null, null);
-
-        // Assert - Should use defaults: page=1, pageSize=50
-        PaginationTestHelper.assertValidPaginatedResponse(response, 1, 50);
-        assertEquals(50, response.items().size());
-
-        // Verify defaults were applied
-        ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
-        verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
-        assertEquals(0, captor.getValue().getOffset()); // page 1 = offset 0
-        assertEquals(50, captor.getValue().getLimit()); // default pageSize
-    }
-
-    // ========== Test Case 11: totalItems Scenarios ==========
-    @Test
-    void testGetAllVulnerabilities_TotalItemsAvailable() throws Exception {
-        // Arrange - SDK provides totalItems
-        Traces mockTraces = createMockTraces(50, 200);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(mockTraces);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
-
-        // Assert
-        assertNotNull(response.totalItems(), "totalItems should be available from SDK");
-        assertEquals(200, response.totalItems());
-        PaginationTestHelper.assertHasMorePagesLogic(response);
-    }
-
-    @Test
-    void testGetAllVulnerabilities_TotalItemsNull_FullPage() throws Exception {
-        // Arrange - SDK doesn't provide count (null)
-        Traces mockTraces = createMockTraces(50, null);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(mockTraces);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
-
-        // Assert - Should use heuristic: full page = assume more exist
-        assertNull(response.totalItems(), "totalItems should be null when not provided by SDK");
-        assertTrue(response.hasMorePages(),
-                  "Heuristic: full page should assume more pages exist");
-    }
-
-    @Test
-    void testGetAllVulnerabilities_TotalItemsNull_PartialPage() throws Exception {
-        // Arrange - SDK doesn't provide count, partial page returned
-        Traces mockTraces = createMockTraces(25, null);
-        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
-            .thenReturn(mockTraces);
-
-        // Act
-        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
-
-        // Assert - Heuristic: partial page = no more pages
-        assertNull(response.totalItems(), "totalItems should be null when not provided by SDK");
-        assertFalse(response.hasMorePages(),
-                   "Heuristic: partial page should assume no more pages");
+        // Then - Verify org-level API was used
+        verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class));
+        verify(mockContrastSDK, never()).getTraces(any(), any(), any(TraceFilterForm.class));
     }
 
     // ========== Helper Methods ==========
@@ -622,7 +468,6 @@ class AssessServiceTest {
         assertEquals(1, response.page());
         assertEquals(50, response.pageSize());
         assertEquals(0, response.totalItems());
-        assertFalse(response.hasMorePages());
 
         assertNotNull(response.message());
         assertTrue(response.message().contains("Invalid severity 'SUPER_HIGH'"));
@@ -656,9 +501,7 @@ class AssessServiceTest {
         assertTrue(form.getStatus().contains("Suspicious"));
         assertTrue(form.getStatus().contains("Confirmed"));
 
-        // Should have message about smart defaults
-        assertTrue(response.message().contains("actionable vulnerabilities only"));
-        assertTrue(response.message().contains("excluding Fixed and Remediated"));
+        // Message content is tested in VulnerabilityFilterParamsTest
     }
 
     @Test
@@ -684,11 +527,6 @@ class AssessServiceTest {
         assertTrue(form.getStatus().contains("Reported"));
         assertTrue(form.getStatus().contains("Fixed"));
         assertTrue(form.getStatus().contains("Remediated"));
-
-        // Should NOT have message about smart defaults when explicitly provided
-        if (response.message() != null) {
-            assertFalse(response.message().contains("actionable vulnerabilities only"));
-        }
     }
 
     @Test
@@ -758,9 +596,7 @@ class AssessServiceTest {
         assertNotNull(form.getStartDate());
         assertNotNull(form.getEndDate());
 
-        // Should have message about time filter applying to lastTimeSeen
-        assertTrue(response.message().contains("LAST ACTIVITY DATE"));
-        assertTrue(response.message().contains("lastTimeSeen"));
+        // Message content is tested in VulnerabilityFilterParamsTest
     }
 
 

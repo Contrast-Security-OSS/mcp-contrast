@@ -21,6 +21,7 @@ import com.contrast.labs.ai.mcp.contrast.hints.HintGenerator;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityContext;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
+import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
@@ -51,9 +52,11 @@ public class AssessService {
     private static final Logger logger = LoggerFactory.getLogger(AssessService.class);
 
     private final VulnerabilityMapper vulnerabilityMapper;
+    private final PaginationHandler paginationHandler;
 
-    public AssessService(VulnerabilityMapper vulnerabilityMapper) {
+    public AssessService(VulnerabilityMapper vulnerabilityMapper, PaginationHandler paginationHandler) {
         this.vulnerabilityMapper = vulnerabilityMapper;
+        this.paginationHandler = paginationHandler;
     }
     
 
@@ -504,11 +507,6 @@ public class AssessService {
             return PaginatedResponse.error(pagination.page(), pagination.pageSize(), errorMessage);
         }
 
-        // Accumulate warnings from validation
-        List<String> messages = new ArrayList<>();
-        messages.addAll(pagination.warnings());
-        messages.addAll(filters.warnings());
-
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
 
         try {
@@ -537,47 +535,19 @@ public class AssessService {
                 // Get totalItems if available from SDK response (don't make extra query)
                 Integer totalItems = (traces.getCount() != null) ? traces.getCount() : null;
 
-                // Calculate hasMorePages
-                boolean hasMorePages;
-                if (totalItems != null) {
-                    hasMorePages = (pagination.page() * pagination.pageSize()) < totalItems;
-                } else {
-                    // Heuristic: if we got a full page, assume more exist
-                    hasMorePages = vulnerabilities.size() == pagination.pageSize();
-                }
-
-                // Handle empty results messaging
-                if (vulnerabilities.isEmpty() && pagination.page() == 1) {
-                    messages.add("No vulnerabilities found.");
-                } else if (vulnerabilities.isEmpty() && pagination.page() > 1) {
-                    if (totalItems != null) {
-                        int totalPages = (int) Math.ceil((double) totalItems / pagination.pageSize());
-                        messages.add(String.format(
-                            "Requested page %d exceeds available pages (total: %d).",
-                            pagination.page(), totalPages
-                        ));
-                    } else {
-                        messages.add(String.format(
-                            "Requested page %d returned no results.",
-                            pagination.page()
-                        ));
-                    }
-                }
-
-                String message = messages.isEmpty() ? null : String.join(" ", messages);
+                // Use PaginationHandler to create paginated response with all warnings
+                PaginatedResponse<VulnLight> response = paginationHandler.wrapApiPaginatedItems(
+                    vulnerabilities,
+                    pagination,
+                    totalItems,
+                    filters.warnings()
+                );
 
                 long duration = System.currentTimeMillis() - startTime;
                 logger.info("Retrieved {} vulnerabilities for page {} (pageSize: {}, totalItems: {}, took {} ms)",
-                           vulnerabilities.size(), pagination.page(), pagination.pageSize(), totalItems, duration);
+                           response.items().size(), response.page(), response.pageSize(), response.totalItems(), duration);
 
-                return new PaginatedResponse<>(
-                    vulnerabilities,
-                    pagination.page(),
-                    pagination.pageSize(),
-                    totalItems,
-                    hasMorePages,
-                    message
-                );
+                return response;
 
             } else {
                 // Fallback to application-by-application approach
@@ -597,43 +567,18 @@ public class AssessService {
                     }
                 }
 
-                // Manual pagination for fallback path
-                // totalItems is null because we can't efficiently count without fetching all
-                Integer totalItems = null;
-                int startIdx = pagination.offset();
-                int endIdx = Math.min(startIdx + pagination.limit(), allVulnerabilities.size());
-
-                List<VulnLight> paginatedVulns = (startIdx < allVulnerabilities.size())
-                    ? allVulnerabilities.subList(startIdx, endIdx)
-                    : new ArrayList<>();
-
-                // Heuristic for hasMorePages in fallback mode
-                boolean hasMorePages = endIdx < allVulnerabilities.size();
-
-                // Handle empty results messaging
-                if (paginatedVulns.isEmpty() && pagination.page() == 1) {
-                    messages.add("No vulnerabilities found.");
-                } else if (paginatedVulns.isEmpty() && pagination.page() > 1) {
-                    messages.add(String.format(
-                        "Requested page %d returned no results.",
-                        pagination.page()
-                    ));
-                }
-
-                String message = messages.isEmpty() ? null : String.join(" ", messages);
+                // Use PaginationHandler for in-memory pagination with all warnings
+                PaginatedResponse<VulnLight> response = paginationHandler.paginateInMemory(
+                    allVulnerabilities,
+                    pagination,
+                    filters.warnings()
+                );
 
                 long duration = System.currentTimeMillis() - startTime;
                 logger.info("Retrieved {} vulnerabilities for page {} using fallback (pageSize: {}, totalFetched: {}, took {} ms)",
-                           paginatedVulns.size(), pagination.page(), pagination.pageSize(), allVulnerabilities.size(), duration);
+                           response.items().size(), response.page(), response.pageSize(), allVulnerabilities.size(), duration);
 
-                return new PaginatedResponse<>(
-                    paginatedVulns,
-                    pagination.page(),
-                    pagination.pageSize(),
-                    totalItems,
-                    hasMorePages,
-                    message
-                );
+                return response;
             }
 
         } catch (Exception e) {
