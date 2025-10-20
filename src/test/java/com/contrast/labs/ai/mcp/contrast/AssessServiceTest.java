@@ -17,6 +17,7 @@ package com.contrast.labs.ai.mcp.contrast;
 
 import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
+import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.utils.PaginationTestHelper;
 import com.contrastsecurity.http.TraceFilterForm;
@@ -51,11 +52,12 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AssessServiceTest {
 
-    @InjectMocks
     private AssessService assessService;
 
     @Mock
     private ContrastSDK mockContrastSDK;
+
+    private VulnerabilityMapper vulnerabilityMapper;
 
     private MockedStatic<SDKHelper> mockedSDKHelper;
 
@@ -67,6 +69,12 @@ class AssessServiceTest {
 
     @BeforeEach
     void setUp() throws Exception {
+        // Create real VulnerabilityMapper instance
+        vulnerabilityMapper = new VulnerabilityMapper();
+
+        // Create AssessService with real mapper
+        assessService = new AssessService(vulnerabilityMapper);
+
         // Mock the static SDKHelper.getSDK() method
         mockedSDKHelper = mockStatic(SDKHelper.class);
         mockedSDKHelper.when(() -> SDKHelper.getSDK(

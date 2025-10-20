@@ -18,6 +18,8 @@ package com.contrast.labs.ai.mcp.contrast;
 
 import com.contrast.labs.ai.mcp.contrast.data.*;
 import com.contrast.labs.ai.mcp.contrast.hints.HintGenerator;
+import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityContext;
+import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
@@ -47,6 +49,12 @@ import java.util.stream.Collectors;
 public class AssessService {
 
     private static final Logger logger = LoggerFactory.getLogger(AssessService.class);
+
+    private final VulnerabilityMapper vulnerabilityMapper;
+
+    public AssessService(VulnerabilityMapper vulnerabilityMapper) {
+        this.vulnerabilityMapper = vulnerabilityMapper;
+    }
     
 
     @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
@@ -129,11 +137,16 @@ public class AssessService {
             if( requestResponse.getHttpRequest()!=null) {
                 httpRequestText =  requestResponse.getHttpRequest().getText();
             }
-            String hint = HintGenerator.generateVulnerabilityFixHint(trace.getRule());
+
+            VulnerabilityContext context = VulnerabilityContext.builder()
+                .recommendation(recommendationResponse.getRecommendation().getText())
+                .stackLibs(stackLibs)
+                .libraries(new ArrayList<>(libsToReturn)) // Convert Set to List
+                .httpRequest(httpRequestText)
+                .build();
+
             logger.info("Successfully retrieved vulnerability details for vulnID: {}", vulnID);
-            return new Vulnerability(hint, vulnID, trace.getTitle(), trace.getRule(),
-                    recommendationResponse.getRecommendation().getText(), stackLibs, new ArrayList<>(libsToReturn), // Convert Set to List
-                    httpRequestText, trace.getStatus(), trace.getFirstTimeSeen(), trace.getLastTimeSeen(), trace.getClosedTime());
+            return vulnerabilityMapper.toFullVulnerability(trace, context);
         } catch (Exception e) {
             logger.error("Error retrieving vulnerability details for vulnID: {}", vulnID, e);
             throw new IOException("Failed to retrieve vulnerability details: " + e.getMessage(), e);
@@ -176,12 +189,9 @@ public class AssessService {
             List<TraceExtended> traces = new SDKExtension(contrastSDK).getTracesExtended(orgID, appID, new TraceFilterBody()).getTraces();
             logger.debug("Found {} vulnerability traces for application ID: {}", traces.size(), appID);
 
-            List<VulnLight> vulns = new ArrayList<>();
-            for (TraceExtended trace : traces) {
-                List<String> traceEnvironments = extractEnvironments(trace);
-                vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
-                        FilterHelper.formatTimestamp(trace.getLastTimeSeen()), trace.getStatus(), FilterHelper.formatTimestamp(trace.getFirstTimeSeen()), FilterHelper.formatTimestamp(trace.getClosedTime()), traceEnvironments));
-            }
+            List<VulnLight> vulns = traces.stream()
+                .map(vulnerabilityMapper::toVulnLight)
+                .collect(Collectors.toList());
 
             logger.info("Successfully retrieved {} vulnerabilities for application ID: {}", vulns.size(), appID);
             return vulns;
@@ -253,12 +263,9 @@ public class AssessService {
                 }
                 List<TraceExtended> traces = new SDKExtension(contrastSDK).getTracesExtended(orgID, application.get().getAppId(), tfilter).getTraces();
 
-                List<VulnLight> vulns = new ArrayList<>();
-                for (TraceExtended trace : traces) {
-                    List<String> traceEnvironments = extractEnvironments(trace);
-                    vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
-                            FilterHelper.formatTimestamp(trace.getLastTimeSeen()), trace.getStatus(), FilterHelper.formatTimestamp(trace.getFirstTimeSeen()), FilterHelper.formatTimestamp(trace.getClosedTime()), traceEnvironments));
-                }
+                List<VulnLight> vulns = traces.stream()
+                    .map(vulnerabilityMapper::toVulnLight)
+                    .collect(Collectors.toList());
                 return vulns;
             } catch (Exception e) {
                 logger.error("Error listing vulnerabilities for application: {}", app_name, e);
@@ -523,23 +530,9 @@ public class AssessService {
 
             if (traces != null && traces.getTraces() != null) {
                 // Organization API worked (empty list with count=0 is valid - means no vulnerabilities or no EAC access)
-                List<VulnLight> vulnerabilities = new ArrayList<>();
-
-                for (Trace trace : traces.getTraces()) {
-                    List<String> traceEnvironments = extractEnvironments(trace);
-                    vulnerabilities.add(new VulnLight(
-                        trace.getTitle(),
-                        trace.getRule(),
-                        trace.getUuid(),
-                        trace.getSeverity(),
-                        new ArrayList<>(), // Session metadata not available at org level
-                        FilterHelper.formatTimestamp(trace.getLastTimeSeen()),
-                        trace.getStatus(),
-                        FilterHelper.formatTimestamp(trace.getFirstTimeSeen()),
-                        FilterHelper.formatTimestamp(trace.getClosedTime()),
-                        traceEnvironments
-                    ));
-                }
+                List<VulnLight> vulnerabilities = traces.getTraces().stream()
+                    .map(vulnerabilityMapper::toVulnLight)
+                    .collect(Collectors.toList());
 
                 // Get totalItems if available from SDK response (don't make extra query)
                 Integer totalItems = (traces.getCount() != null) ? traces.getCount() : null;
@@ -656,24 +649,6 @@ public class AssessService {
         return metadata;
     }
 
-    /**
-     * Extract unique environments from trace servers.
-     * Returns all environments the vulnerability has been seen in over time.
-     *
-     * @param trace The trace object containing server information
-     * @return List of unique environment names (e.g., ["PRODUCTION", "QA"])
-     */
-    private List<String> extractEnvironments(Trace trace) {
-        if (trace.getServers() == null || trace.getServers().isEmpty()) {
-            return new ArrayList<>();
-        }
-        return trace.getServers().stream()
-                .map(server -> server.getEnvironment())
-                .filter(env -> env != null && !env.isEmpty())
-                .distinct()
-                .sorted()
-                .collect(Collectors.toList());
-    }
 
     @Tool(name = "list_vulnerability_types", description = """
         Returns the complete list of vulnerability types (rule names) available in Contrast.
