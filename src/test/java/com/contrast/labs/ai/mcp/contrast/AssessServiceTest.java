@@ -963,4 +963,101 @@ class AssessServiceTest {
         assertEquals(1, vuln3.environments().size());
         assertEquals("DEVELOPMENT", vuln3.environments().get(0));
     }
+
+    @Test
+    void testVulnLight_TimestampFields_ISO8601Format() throws Exception {
+        // Arrange - Create trace with known timestamp values
+        long lastSeen = 1736938200000L;      // Jan 15, 2025 10:30:00 UTC
+        long firstSeen = 1704067200000L;     // Jan 1, 2024 00:00:00 UTC
+        long closed = 1740000000000L;        // Feb 19, 2025 13:20:00 UTC
+
+        Trace trace = mock(Trace.class);
+        when(trace.getTitle()).thenReturn("Test Vulnerability");
+        when(trace.getRule()).thenReturn("test-rule");
+        when(trace.getUuid()).thenReturn("test-uuid-123");
+        when(trace.getSeverity()).thenReturn("HIGH");
+        when(trace.getStatus()).thenReturn("Reported");
+        when(trace.getLastTimeSeen()).thenReturn(lastSeen);
+        when(trace.getFirstTimeSeen()).thenReturn(firstSeen);
+        when(trace.getClosedTime()).thenReturn(closed);
+        when(trace.getServers()).thenReturn(new ArrayList<>());
+
+        Traces mockTraces = mock(Traces.class);
+        when(mockTraces.getTraces()).thenReturn(List.of(trace));
+        when(mockTraces.getCount()).thenReturn(1);
+
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50, null, null, null, null, null, null, null, null
+        );
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(1, response.items().size());
+
+        VulnLight vuln = response.items().get(0);
+
+        // Verify field names use *At convention
+        assertNotNull(vuln.lastSeenAt(), "lastSeenAt field should exist");
+        assertNotNull(vuln.firstSeenAt(), "firstSeenAt field should exist");
+        assertNotNull(vuln.closedAt(), "closedAt field should exist");
+
+        // Verify ISO 8601 format with timezone offset (YYYY-MM-DDTHH:MM:SS+/-HH:MM)
+        String iso8601Pattern = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}";
+        assertTrue(vuln.lastSeenAt().matches(iso8601Pattern),
+            "lastSeenAt should be ISO 8601 with timezone: " + vuln.lastSeenAt());
+        assertTrue(vuln.firstSeenAt().matches(iso8601Pattern),
+            "firstSeenAt should be ISO 8601 with timezone: " + vuln.firstSeenAt());
+        assertTrue(vuln.closedAt().matches(iso8601Pattern),
+            "closedAt should be ISO 8601 with timezone: " + vuln.closedAt());
+
+        // Verify timestamps include timezone offset
+        assertTrue(vuln.lastSeenAt().contains("+") || vuln.lastSeenAt().contains("-"),
+            "lastSeenAt should include timezone offset");
+        assertTrue(vuln.firstSeenAt().contains("+") || vuln.firstSeenAt().contains("-"),
+            "firstSeenAt should include timezone offset");
+        assertTrue(vuln.closedAt().contains("+") || vuln.closedAt().contains("-"),
+            "closedAt should include timezone offset");
+    }
+
+    @Test
+    void testVulnLight_TimestampFields_NullHandling() throws Exception {
+        // Arrange - Create trace with null timestamps
+        Trace trace = mock(Trace.class);
+        when(trace.getTitle()).thenReturn("Test Vulnerability");
+        when(trace.getRule()).thenReturn("test-rule");
+        when(trace.getUuid()).thenReturn("test-uuid-123");
+        when(trace.getSeverity()).thenReturn("HIGH");
+        when(trace.getStatus()).thenReturn("Reported");
+        when(trace.getLastTimeSeen()).thenReturn(1736938200000L);  // lastSeen is required
+        when(trace.getFirstTimeSeen()).thenReturn(null);  // optional
+        when(trace.getClosedTime()).thenReturn(null);  // optional
+        when(trace.getServers()).thenReturn(new ArrayList<>());
+
+        Traces mockTraces = mock(Traces.class);
+        when(mockTraces.getTraces()).thenReturn(List.of(trace));
+        when(mockTraces.getCount()).thenReturn(1);
+
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // Act
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1, 50, null, null, null, null, null, null, null, null
+        );
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(1, response.items().size());
+
+        VulnLight vuln = response.items().get(0);
+
+        // Verify null timestamps are handled correctly
+        assertNotNull(vuln.lastSeenAt(), "lastSeenAt should always be present");
+        assertNull(vuln.firstSeenAt(), "firstSeenAt should be null when not set");
+        assertNull(vuln.closedAt(), "closedAt should be null when not set");
+    }
 }

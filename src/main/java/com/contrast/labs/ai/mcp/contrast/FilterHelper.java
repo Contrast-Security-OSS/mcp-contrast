@@ -18,8 +18,10 @@ package com.contrast.labs.ai.mcp.contrast;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Date;
@@ -171,5 +173,25 @@ public class FilterHelper {
         return parsed.stream()
                 .map(String::toLowerCase)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Format epoch milliseconds as ISO 8601 timestamp with timezone offset.
+     * Uses system default timezone (user's local timezone since MCP server runs locally).
+     * Returns null for null input.
+     *
+     * @param epochMillis Epoch timestamp in milliseconds
+     * @return ISO 8601 formatted timestamp (e.g., "2025-01-15T10:30:00-05:00"), or null if input is null
+     *
+     * @example formatTimestamp(1705328400000L) → "2025-01-15T10:30:00-05:00"
+     * @example formatTimestamp(null) → null
+     */
+    public static String formatTimestamp(Long epochMillis) {
+        if (epochMillis == null) {
+            return null;
+        }
+        return Instant.ofEpochMilli(epochMillis)
+                .atZone(ZoneId.systemDefault())
+                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
     }
 }

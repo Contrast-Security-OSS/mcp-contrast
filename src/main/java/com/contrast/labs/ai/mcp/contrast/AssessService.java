@@ -180,7 +180,7 @@ public class AssessService {
             for (TraceExtended trace : traces) {
                 List<String> traceEnvironments = extractEnvironments(trace);
                 vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
-                        new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen(), trace.getStatus(), trace.getFirstTimeSeen(), trace.getClosedTime(), traceEnvironments));
+                        FilterHelper.formatTimestamp(trace.getLastTimeSeen()), trace.getStatus(), FilterHelper.formatTimestamp(trace.getFirstTimeSeen()), FilterHelper.formatTimestamp(trace.getClosedTime()), traceEnvironments));
             }
 
             logger.info("Successfully retrieved {} vulnerabilities for application ID: {}", vulns.size(), appID);
@@ -257,7 +257,7 @@ public class AssessService {
                 for (TraceExtended trace : traces) {
                     List<String> traceEnvironments = extractEnvironments(trace);
                     vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
-                            new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen(), trace.getStatus(), trace.getFirstTimeSeen(), trace.getClosedTime(), traceEnvironments));
+                            FilterHelper.formatTimestamp(trace.getLastTimeSeen()), trace.getStatus(), FilterHelper.formatTimestamp(trace.getFirstTimeSeen()), FilterHelper.formatTimestamp(trace.getClosedTime()), traceEnvironments));
                 }
                 return vulns;
             } catch (Exception e) {
@@ -315,8 +315,8 @@ public class AssessService {
             List<ApplicationData> filteredApps = new ArrayList<>();
             for(Application app : applications) {
                 if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-                    filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(), app.getLastSeen(),
-                            new Date(app.getLastSeen()).toString(), app.getLanguage(), getMetadataFromApp(app), app.getTags(),app.getTechs()));
+                    filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(),
+                            FilterHelper.formatTimestamp(app.getLastSeen()), app.getLanguage(), getMetadataFromApp(app), app.getTags(),app.getTechs()));
                     logger.debug("Found matching application - ID: {}, Name: {}, Status: {}",
                             app.getAppId(), app.getName(), app.getStatus());
                 }
@@ -325,8 +325,8 @@ public class AssessService {
                 SDKHelper.clearApplicationsCache();
                 for(Application app : applications) {
                     if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-                        filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(), app.getLastSeen(),
-                                new Date(app.getLastSeen()).toString(), app.getLanguage(), getMetadataFromApp(app), app.getTags(),app.getTechs()));
+                        filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(),
+                                FilterHelper.formatTimestamp(app.getLastSeen()), app.getLanguage(), getMetadataFromApp(app), app.getTags(),app.getTechs()));
                         logger.debug("Found matching application - ID: {}, Name: {}, Status: {}",
                                 app.getAppId(), app.getName(), app.getStatus());
                     }
@@ -402,7 +402,7 @@ public class AssessService {
             List<ApplicationData> returnedApps = new ArrayList<>();
             for(Application app : applications) {
                 returnedApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(),
-                        app.getLastSeen(), new Date(app.getLastSeen()).toString(),app.getLanguage(),getMetadataFromApp(app),app.getTags(),
+                        FilterHelper.formatTimestamp(app.getLastSeen()),app.getLanguage(),getMetadataFromApp(app),app.getTags(),
                         app.getTechs()));
             }
             
@@ -533,11 +533,10 @@ public class AssessService {
                         trace.getUuid(),
                         trace.getSeverity(),
                         new ArrayList<>(), // Session metadata not available at org level
-                        new Date(trace.getLastTimeSeen()).toString(),
-                        trace.getLastTimeSeen(),
+                        FilterHelper.formatTimestamp(trace.getLastTimeSeen()),
                         trace.getStatus(),
-                        trace.getFirstTimeSeen(),
-                        trace.getClosedTime(),
+                        FilterHelper.formatTimestamp(trace.getFirstTimeSeen()),
+                        FilterHelper.formatTimestamp(trace.getClosedTime()),
                         traceEnvironments
                     ));
                 }

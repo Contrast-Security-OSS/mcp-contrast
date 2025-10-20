@@ -25,11 +25,10 @@ public record VulnLight(
     String vulnID,
     String severity,
     List<SessionMetadata> sessionMetadata,
-    String lastSeenDate,
-    long lastSeenTime,
+    String lastSeenAt,
     String status,
-    Long firstTimeSeen,
-    Long closedTime,
+    String firstSeenAt,
+    String closedAt,
     List<String> environments
 ) {
 }
