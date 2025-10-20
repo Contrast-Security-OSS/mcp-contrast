@@ -38,6 +38,8 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -70,6 +72,14 @@ class AssessServiceTest {
     private static final String TEST_API_KEY = "test-api-key";
     private static final String TEST_SERVICE_KEY = "test-service-key";
     private static final String TEST_USERNAME = "test-user";
+
+    // Named constants for test timestamps
+    private static final long JAN_15_2025_10_30_UTC = LocalDateTime.of(2025, 1, 15, 10, 30)
+            .toInstant(ZoneOffset.UTC).toEpochMilli(); // 1736938200000L
+    private static final long JAN_1_2024_00_00_UTC = LocalDateTime.of(2024, 1, 1, 0, 0)
+            .toInstant(ZoneOffset.UTC).toEpochMilli(); // 1704067200000L
+    private static final long FEB_19_2025_13_20_UTC = LocalDateTime.of(2025, 2, 19, 13, 20)
+            .toInstant(ZoneOffset.UTC).toEpochMilli(); // 1740000000000L
 
     @BeforeEach
     void setUp() throws Exception {
@@ -811,9 +821,9 @@ class AssessServiceTest {
     @Test
     void testVulnLight_TimestampFields_ISO8601Format() throws Exception {
         // Arrange - Create trace with known timestamp values
-        long lastSeen = 1736938200000L;      // Jan 15, 2025 10:30:00 UTC
-        long firstSeen = 1704067200000L;     // Jan 1, 2024 00:00:00 UTC
-        long closed = 1740000000000L;        // Feb 19, 2025 13:20:00 UTC
+        long lastSeen = JAN_15_2025_10_30_UTC;
+        long firstSeen = JAN_1_2024_00_00_UTC;
+        long closed = FEB_19_2025_13_20_UTC;
 
         Trace trace = mock(Trace.class);
         when(trace.getTitle()).thenReturn("Test Vulnerability");
@@ -876,7 +886,7 @@ class AssessServiceTest {
         when(trace.getUuid()).thenReturn("test-uuid-123");
         when(trace.getSeverity()).thenReturn("HIGH");
         when(trace.getStatus()).thenReturn("Reported");
-        when(trace.getLastTimeSeen()).thenReturn(1736938200000L);  // lastSeen is required
+        when(trace.getLastTimeSeen()).thenReturn(JAN_15_2025_10_30_UTC);  // lastSeen is required
         when(trace.getFirstTimeSeen()).thenReturn(null);  // optional
         when(trace.getClosedTime()).thenReturn(null);  // optional
         when(trace.getServers()).thenReturn(new ArrayList<>());

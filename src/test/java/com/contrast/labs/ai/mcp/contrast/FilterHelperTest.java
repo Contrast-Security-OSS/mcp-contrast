@@ -17,7 +17,10 @@ package com.contrast.labs.ai.mcp.contrast;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -28,10 +31,23 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class FilterHelperTest {
 
+    // Named constants for test timestamps
+    private static final long JAN_15_2025_10_30_UTC = LocalDateTime.of(2025, 1, 15, 10, 30)
+            .toInstant(ZoneOffset.UTC).toEpochMilli(); // 1736938200000L
+
+    private static final long JAN_1_2030_00_00_UTC = LocalDateTime.of(2030, 1, 1, 0, 0)
+            .toInstant(ZoneOffset.UTC).toEpochMilli(); // 1893456000000L
+
+    private static final long SEP_9_2001_01_46_UTC = LocalDateTime.of(2001, 9, 9, 1, 46, 40)
+            .toInstant(ZoneOffset.UTC).toEpochMilli(); // 1000000000000L
+
+    private static final long JUL_14_2017_02_40_UTC = LocalDateTime.of(2017, 7, 14, 2, 40)
+            .toInstant(ZoneOffset.UTC).toEpochMilli(); // 1500000000000L
+
     @Test
     void testFormatTimestamp_ValidTimestamp() {
         // Given: A known epoch timestamp (Jan 15, 2025 10:30:00 UTC)
-        long epochMillis = 1736938200000L;
+        long epochMillis = JAN_15_2025_10_30_UTC;
 
         // When: Formatting the timestamp
         String result = FilterHelper.formatTimestamp(epochMillis);
@@ -78,7 +94,7 @@ class FilterHelperTest {
     @Test
     void testFormatTimestamp_FutureDate() {
         // Given: A future timestamp (Jan 1, 2030 00:00:00 UTC)
-        long epochMillis = 1893456000000L;
+        long epochMillis = JAN_1_2030_00_00_UTC;
 
         // When: Formatting the timestamp
         String result = FilterHelper.formatTimestamp(epochMillis);
@@ -94,7 +110,7 @@ class FilterHelperTest {
     @Test
     void testFormatTimestamp_UsesSystemDefaultTimezone() {
         // Given: A known timestamp
-        long epochMillis = 1736938200000L;
+        long epochMillis = JAN_15_2025_10_30_UTC;
 
         // When: Formatting the timestamp
         String result = FilterHelper.formatTimestamp(epochMillis);
@@ -113,7 +129,7 @@ class FilterHelperTest {
     @Test
     void testFormatTimestamp_PreservesTimezone() {
         // Given: A timestamp
-        long epochMillis = 1736938200000L;
+        long epochMillis = JAN_15_2025_10_30_UTC;
 
         // When: Formatting the timestamp
         String result = FilterHelper.formatTimestamp(epochMillis);
@@ -132,9 +148,9 @@ class FilterHelperTest {
     void testFormatTimestamp_ConsistentFormat() {
         // Given: Multiple different timestamps
         long[] timestamps = {
-                1000000000000L,  // Sep 9, 2001
-                1500000000000L,  // Jul 14, 2017
-                1736938200000L   // Jan 15, 2025
+                SEP_9_2001_01_46_UTC,
+                JUL_14_2017_02_40_UTC,
+                JAN_15_2025_10_30_UTC
         };
 
         // When: Formatting all timestamps
