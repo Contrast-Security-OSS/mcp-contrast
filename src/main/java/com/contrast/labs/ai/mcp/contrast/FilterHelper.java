@@ -178,6 +178,7 @@ public class FilterHelper {
     /**
      * Format epoch milliseconds as ISO 8601 timestamp with timezone offset.
      * Uses system default timezone (user's local timezone since MCP server runs locally).
+     * Always uses numeric timezone offsets (e.g., "+00:00" instead of "Z").
      * Returns null for null input.
      *
      * @param epochMillis Epoch timestamp in milliseconds
@@ -190,8 +191,10 @@ public class FilterHelper {
         if (epochMillis == null) {
             return null;
         }
+        // Use a custom formatter that always outputs numeric timezone offsets (never "Z")
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
         return Instant.ofEpochMilli(epochMillis)
                 .atZone(ZoneId.systemDefault())
-                .format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+                .format(formatter);
     }
 }
