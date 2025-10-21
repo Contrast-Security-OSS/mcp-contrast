@@ -20,6 +20,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibrariesExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.Attack;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksFilterBody;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.ApplicationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservation;
@@ -361,39 +362,46 @@ public class SDKExtension {
      * @param limit Maximum number of attacks to return (default: 1000)
      * @param offset Pagination offset (default: 0)
      * @param sort Sort order (default: -startTime)
-     * @return List of Attack objects
+     * @return AttacksResponse containing attacks list and pagination metadata (count)
      * @throws IOException If an I/O error occurs
      * @throws UnauthorizedException If the request is not authorized
      */
-    public List<Attack> getAttacks(String organizationId, AttacksFilterBody filterBody, 
-                                  Integer limit, Integer offset, String sort) 
+    public AttacksResponse getAttacks(String organizationId, AttacksFilterBody filterBody,
+                                      Integer limit, Integer offset, String sort)
             throws IOException, UnauthorizedException {
-        
+
         // Set default values if not provided
         if (limit == null) limit = 1000;
         if (offset == null) offset = 0;
         if (sort == null) sort = "-startTime";
         if (filterBody == null) filterBody = new AttacksFilterBody.Builder().build();
-        
+
         String url = String.format(
                 "/ng/%s/attacks?expand=skip_links&limit=%d&offset=%d&sort=%s",
                 organizationId, limit, offset, sort);
-        
+
         try (InputStream is = contrastSDK.makeRequestWithBody(
                 HttpMethod.POST,
                 url,
                 this.gson.toJson(filterBody),
                 MediaType.JSON);
              Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-            
-            // Parse JSON response and extract attacks array directly
-            JsonObject jsonResponse = this.gson.fromJson(reader, JsonObject.class);
-            if (jsonResponse != null && jsonResponse.has("attacks")) {
-                JsonArray attacksArray = jsonResponse.getAsJsonArray("attacks");
-                Type listType = new TypeToken<List<Attack>>(){}.getType();
-                return this.gson.fromJson(attacksArray, listType);
+
+            // Parse complete JSON response including metadata
+            AttacksResponse response = this.gson.fromJson(reader, AttacksResponse.class);
+
+            // Handle null response gracefully
+            if (response == null) {
+                response = new AttacksResponse();
+                response.setAttacks(new ArrayList<>());
             }
-            return new ArrayList<>();
+
+            // Ensure attacks list is never null
+            if (response.getAttacks() == null) {
+                response.setAttacks(new ArrayList<>());
+            }
+
+            return response;
         }
     }
 
@@ -402,11 +410,11 @@ public class SDKExtension {
      *
      * @param organizationId The organization ID
      * @param filterBody Filter criteria for attacks (can be null for default filter)
-     * @return List of Attack objects
+     * @return AttacksResponse containing attacks list and pagination metadata
      * @throws IOException If an I/O error occurs
      * @throws UnauthorizedException If the request is not authorized
      */
-    public List<Attack> getAttacks(String organizationId, AttacksFilterBody filterBody) 
+    public AttacksResponse getAttacks(String organizationId, AttacksFilterBody filterBody)
             throws IOException, UnauthorizedException {
         return getAttacks(organizationId, filterBody, null, null, null);
     }
@@ -415,11 +423,11 @@ public class SDKExtension {
      * Retrieves attacks with default filter and parameters.
      *
      * @param organizationId The organization ID
-     * @return List of Attack objects
+     * @return AttacksResponse containing attacks list and pagination metadata
      * @throws IOException If an I/O error occurs
      * @throws UnauthorizedException If the request is not authorized
      */
-    public List<Attack> getAttacks(String organizationId) 
+    public AttacksResponse getAttacks(String organizationId)
             throws IOException, UnauthorizedException {
         return getAttacks(organizationId, null, null, null, null);
     }
