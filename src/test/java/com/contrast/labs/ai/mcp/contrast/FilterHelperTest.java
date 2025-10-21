@@ -120,7 +120,9 @@ class FilterHelperTest {
                 java.time.Instant.ofEpochMilli(epochMillis),
                 ZoneId.systemDefault()
         );
-        String expectedFormat = expected.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+        // Use the same formatter pattern as production code (lowercase 'xxx' always uses numeric offsets)
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssxxx");
+        String expectedFormat = expected.format(formatter);
 
         assertEquals(expectedFormat, result,
                 "Should format timestamp using system default timezone");
