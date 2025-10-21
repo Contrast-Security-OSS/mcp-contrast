@@ -191,8 +191,9 @@ public class FilterHelper {
         if (epochMillis == null) {
             return null;
         }
-        // Use a custom formatter that always outputs numeric timezone offsets (never "Z")
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
+        // Use lowercase 'xxx' pattern which always outputs numeric offsets, never "Z"
+        // Uppercase 'XXX' would output "Z" for UTC, but lowercase 'xxx' guarantees numeric format
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssxxx");
         return Instant.ofEpochMilli(epochMillis)
                 .atZone(ZoneId.systemDefault())
                 .format(formatter);
