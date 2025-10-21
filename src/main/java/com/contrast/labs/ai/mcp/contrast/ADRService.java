@@ -148,13 +148,14 @@ public class ADRService {
             SDKExtension extendedSDK = new SDKExtension(contrastSDK);
             logger.debug("SDKExtension initialized successfully for attacks retrieval");
 
-            // Create filter body - will handle null parameters gracefully
-            AttacksFilterBody filterBody = new AttacksFilterBody();
-            if (quickFilter != null) filterBody.setQuickFilter(quickFilter);
-            if (keyword != null) filterBody.setKeyword(keyword);
-            if (includeSuppressed != null) filterBody.setIncludeSuppressed(includeSuppressed);
-            if (includeBotBlockers != null) filterBody.setIncludeBotBlockers(includeBotBlockers);
-            if (includeIpBlacklist != null) filterBody.setIncludeIpBlacklist(includeIpBlacklist);
+            // Create filter body using Builder pattern - handles null parameters gracefully
+            AttacksFilterBody.Builder filterBuilder = new AttacksFilterBody.Builder();
+            if (quickFilter != null) filterBuilder.quickFilter(quickFilter);
+            if (keyword != null) filterBuilder.keyword(keyword);
+            if (includeSuppressed != null) filterBuilder.includeSuppressed(includeSuppressed);
+            if (includeBotBlockers != null) filterBuilder.includeBotBlockers(includeBotBlockers);
+            if (includeIpBlacklist != null) filterBuilder.includeIpBlacklist(includeIpBlacklist);
+            AttacksFilterBody filterBody = filterBuilder.build();
 
             List<Attack> attacks = extendedSDK.getAttacks(orgID, filterBody, limit, offset, sort);
             long duration = System.currentTimeMillis() - startTime;

@@ -20,145 +20,188 @@ import java.util.List;
 
 /**
  * Request body for filtering attacks in the attacks API.
+ * This class is immutable - use the Builder to construct instances.
  */
 public class AttacksFilterBody {
-    private String quickFilter = "ALL";
-    private String keyword = "";
-    private boolean includeSuppressed = false;
-    private boolean includeBotBlockers = false;
-    private boolean includeIpBlacklist = false;
-    private List<String> tags;
-    private List<String> statusFilter;
-    private List<String> protectionRules;
-    private List<String> applications;
-    private List<String> applicationImportances;
-    private List<String> attackers;
-    private List<String> servers;
-    private List<String> serverEnvironments;
-    private List<String> severities;
+    private final String quickFilter;
+    private final String keyword;
+    private final boolean includeSuppressed;
+    private final boolean includeBotBlockers;
+    private final boolean includeIpBlacklist;
+    private final List<String> tags;
+    private final List<String> statusFilter;
+    private final List<String> protectionRules;
+    private final List<String> applications;
+    private final List<String> applicationImportances;
+    private final List<String> attackers;
+    private final List<String> servers;
+    private final List<String> serverEnvironments;
+    private final List<String> severities;
 
-    public AttacksFilterBody() {
-        // Initialize empty mutable lists for default constructor
-        this.tags = new ArrayList<>();
-        this.statusFilter = new ArrayList<>();
-        this.protectionRules = new ArrayList<>();
-        this.applications = new ArrayList<>();
-        this.applicationImportances = new ArrayList<>();
-        this.attackers = new ArrayList<>();
-        this.servers = new ArrayList<>();
-        this.serverEnvironments = new ArrayList<>();
-        this.severities = new ArrayList<>();
+    private AttacksFilterBody(Builder builder) {
+        this.quickFilter = builder.quickFilter;
+        this.keyword = builder.keyword;
+        this.includeSuppressed = builder.includeSuppressed;
+        this.includeBotBlockers = builder.includeBotBlockers;
+        this.includeIpBlacklist = builder.includeIpBlacklist;
+        this.tags = List.copyOf(builder.tags);
+        this.statusFilter = List.copyOf(builder.statusFilter);
+        this.protectionRules = List.copyOf(builder.protectionRules);
+        this.applications = List.copyOf(builder.applications);
+        this.applicationImportances = List.copyOf(builder.applicationImportances);
+        this.attackers = List.copyOf(builder.attackers);
+        this.servers = List.copyOf(builder.servers);
+        this.serverEnvironments = List.copyOf(builder.serverEnvironments);
+        this.severities = List.copyOf(builder.severities);
     }
 
     public String getQuickFilter() {
         return quickFilter;
     }
 
-    public void setQuickFilter(String quickFilter) {
-        this.quickFilter = quickFilter;
-    }
-
     public String getKeyword() {
         return keyword;
-    }
-
-    public void setKeyword(String keyword) {
-        this.keyword = keyword;
     }
 
     public boolean isIncludeSuppressed() {
         return includeSuppressed;
     }
 
-    public void setIncludeSuppressed(boolean includeSuppressed) {
-        this.includeSuppressed = includeSuppressed;
-    }
-
     public boolean isIncludeBotBlockers() {
         return includeBotBlockers;
-    }
-
-    public void setIncludeBotBlockers(boolean includeBotBlockers) {
-        this.includeBotBlockers = includeBotBlockers;
     }
 
     public boolean isIncludeIpBlacklist() {
         return includeIpBlacklist;
     }
 
-    public void setIncludeIpBlacklist(boolean includeIpBlacklist) {
-        this.includeIpBlacklist = includeIpBlacklist;
-    }
-
     public List<String> getTags() {
         return tags;
-    }
-
-    public void setTags(List<String> tags) {
-        this.tags = tags;
     }
 
     public List<String> getStatusFilter() {
         return statusFilter;
     }
 
-    public void setStatusFilter(List<String> statusFilter) {
-        this.statusFilter = statusFilter;
-    }
-
     public List<String> getProtectionRules() {
         return protectionRules;
-    }
-
-    public void setProtectionRules(List<String> protectionRules) {
-        this.protectionRules = protectionRules;
     }
 
     public List<String> getApplications() {
         return applications;
     }
 
-    public void setApplications(List<String> applications) {
-        this.applications = applications;
-    }
-
     public List<String> getApplicationImportances() {
         return applicationImportances;
-    }
-
-    public void setApplicationImportances(List<String> applicationImportances) {
-        this.applicationImportances = applicationImportances;
     }
 
     public List<String> getAttackers() {
         return attackers;
     }
 
-    public void setAttackers(List<String> attackers) {
-        this.attackers = attackers;
-    }
-
     public List<String> getServers() {
         return servers;
-    }
-
-    public void setServers(List<String> servers) {
-        this.servers = servers;
     }
 
     public List<String> getServerEnvironments() {
         return serverEnvironments;
     }
 
-    public void setServerEnvironments(List<String> serverEnvironments) {
-        this.serverEnvironments = serverEnvironments;
-    }
-
     public List<String> getSeverities() {
         return severities;
     }
 
-    public void setSeverities(List<String> severities) {
-        this.severities = severities;
+    /**
+     * Builder for creating immutable AttacksFilterBody instances.
+     */
+    public static class Builder {
+        private String quickFilter = "ALL";
+        private String keyword = "";
+        private boolean includeSuppressed = false;
+        private boolean includeBotBlockers = false;
+        private boolean includeIpBlacklist = false;
+        private List<String> tags = new ArrayList<>();
+        private List<String> statusFilter = new ArrayList<>();
+        private List<String> protectionRules = new ArrayList<>();
+        private List<String> applications = new ArrayList<>();
+        private List<String> applicationImportances = new ArrayList<>();
+        private List<String> attackers = new ArrayList<>();
+        private List<String> servers = new ArrayList<>();
+        private List<String> serverEnvironments = new ArrayList<>();
+        private List<String> severities = new ArrayList<>();
+
+        public Builder quickFilter(String quickFilter) {
+            this.quickFilter = quickFilter;
+            return this;
+        }
+
+        public Builder keyword(String keyword) {
+            this.keyword = keyword;
+            return this;
+        }
+
+        public Builder includeSuppressed(boolean includeSuppressed) {
+            this.includeSuppressed = includeSuppressed;
+            return this;
+        }
+
+        public Builder includeBotBlockers(boolean includeBotBlockers) {
+            this.includeBotBlockers = includeBotBlockers;
+            return this;
+        }
+
+        public Builder includeIpBlacklist(boolean includeIpBlacklist) {
+            this.includeIpBlacklist = includeIpBlacklist;
+            return this;
+        }
+
+        public Builder tags(List<String> tags) {
+            this.tags = new ArrayList<>(tags);
+            return this;
+        }
+
+        public Builder statusFilter(List<String> statusFilter) {
+            this.statusFilter = new ArrayList<>(statusFilter);
+            return this;
+        }
+
+        public Builder protectionRules(List<String> protectionRules) {
+            this.protectionRules = new ArrayList<>(protectionRules);
+            return this;
+        }
+
+        public Builder applications(List<String> applications) {
+            this.applications = new ArrayList<>(applications);
+            return this;
+        }
+
+        public Builder applicationImportances(List<String> applicationImportances) {
+            this.applicationImportances = new ArrayList<>(applicationImportances);
+            return this;
+        }
+
+        public Builder attackers(List<String> attackers) {
+            this.attackers = new ArrayList<>(attackers);
+            return this;
+        }
+
+        public Builder servers(List<String> servers) {
+            this.servers = new ArrayList<>(servers);
+            return this;
+        }
+
+        public Builder serverEnvironments(List<String> serverEnvironments) {
+            this.serverEnvironments = new ArrayList<>(serverEnvironments);
+            return this;
+        }
+
+        public Builder severities(List<String> severities) {
+            this.severities = new ArrayList<>(severities);
+            return this;
+        }
+
+        public AttacksFilterBody build() {
+            return new AttacksFilterBody(this);
+        }
     }
 }
