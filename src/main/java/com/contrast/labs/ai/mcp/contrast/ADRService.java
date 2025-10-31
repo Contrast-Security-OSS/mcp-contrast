@@ -223,7 +223,7 @@ public class ADRService {
             // Get totalItems from API response if available
             Integer totalItems = attacksResponse.getTotalCount();
 
-            PaginatedResponse<AttackSummary> response = paginationHandler.wrapApiPaginatedItems(
+            PaginatedResponse<AttackSummary> response = paginationHandler.createPaginatedResponse(
                 summaries,
                 pagination,
                 totalItems,

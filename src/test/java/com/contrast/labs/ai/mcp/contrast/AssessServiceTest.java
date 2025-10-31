@@ -90,21 +90,13 @@ class AssessServiceTest {
 
         // Setup simplified mock behavior for PaginationHandler
         // PaginationHandler logic is tested in its own test class
-        lenient().when(mockPaginationHandler.wrapApiPaginatedItems(anyList(), any(PaginationParams.class), any(), anyList()))
+        lenient().when(mockPaginationHandler.createPaginatedResponse(anyList(), any(PaginationParams.class), any(), anyList()))
             .thenAnswer(invocation -> {
                 List<?> items = invocation.getArgument(0);
                 PaginationParams params = invocation.getArgument(1);
                 Integer totalItems = invocation.getArgument(2);
                 // Return simple response - pagination logic tested in PaginationHandlerTest
                 return new PaginatedResponse<>(items, params.page(), params.pageSize(), totalItems, false, null);
-            });
-
-        lenient().when(mockPaginationHandler.paginateInMemory(anyList(), any(PaginationParams.class), anyList()))
-            .thenAnswer(invocation -> {
-                List<?> allItems = invocation.getArgument(0);
-                PaginationParams params = invocation.getArgument(1);
-                // Return simple response - pagination logic tested in PaginationHandlerTest
-                return new PaginatedResponse<>(allItems, params.page(), params.pageSize(), allItems.size(), false, null);
             });
 
         // Mock the static SDKHelper.getSDK() method
@@ -163,7 +155,7 @@ class AssessServiceTest {
         assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
 
         // Then - Verify PaginationHandler received correct arguments
-        verify(mockPaginationHandler).wrapApiPaginatedItems(
+        verify(mockPaginationHandler).createPaginatedResponse(
             argThat(list -> list.size() == 50),           // items
             argThat(p -> p.page() == 1 && p.pageSize() == 50), // params
             eq(150),                                       // totalItems
@@ -214,7 +206,7 @@ class AssessServiceTest {
             .thenReturn(emptyTraces);
 
         // Mock PaginationHandler to return "No items found." message like the real implementation
-        when(mockPaginationHandler.wrapApiPaginatedItems(anyList(), any(PaginationParams.class), any(), anyList()))
+        when(mockPaginationHandler.createPaginatedResponse(anyList(), any(PaginationParams.class), any(), anyList()))
             .thenAnswer(invocation -> {
                 List<?> items = invocation.getArgument(0);
                 PaginationParams params = invocation.getArgument(1);
@@ -230,7 +222,7 @@ class AssessServiceTest {
         );
 
         // Then: Verify empty list was passed to PaginationHandler
-        verify(mockPaginationHandler).wrapApiPaginatedItems(
+        verify(mockPaginationHandler).createPaginatedResponse(
             argThat(list -> list.isEmpty()),                  // empty items list
             argThat(p -> p.page() == 1 && p.pageSize() == 50), // params
             eq(0),                                             // totalItems

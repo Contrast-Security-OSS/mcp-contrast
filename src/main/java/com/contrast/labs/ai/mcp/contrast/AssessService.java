@@ -536,7 +536,7 @@ public class AssessService {
                 Integer totalItems = (traces.getCount() != null) ? traces.getCount() : null;
 
                 // Use PaginationHandler to create paginated response with all warnings
-                PaginatedResponse<VulnLight> response = paginationHandler.wrapApiPaginatedItems(
+                PaginatedResponse<VulnLight> response = paginationHandler.createPaginatedResponse(
                     vulnerabilities,
                     pagination,
                     totalItems,

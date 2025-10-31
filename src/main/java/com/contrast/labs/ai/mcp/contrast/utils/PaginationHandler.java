@@ -27,14 +27,13 @@ import java.util.List;
  * Provides consistent pagination logic including:
  * - hasMorePages calculation (based on totalCount or heuristic)
  * - Empty result messaging
- * - Manual pagination of in-memory lists
  * - Response construction with validation messages
  */
 @Component
 public class PaginationHandler {
 
     /**
-     * Wraps API-paginated items in a PaginatedResponse.
+     * Creates a PaginatedResponse from API-paginated items.
      * Use this when the API has already paginated the data (e.g., SDK returns page of results).
      *
      * @param items The items returned by the API for this page
@@ -43,16 +42,16 @@ public class PaginationHandler {
      * @param <T> Type of items
      * @return PaginatedResponse with calculated hasMorePages and messages
      */
-    public <T> PaginatedResponse<T> wrapApiPaginatedItems(
+    public <T> PaginatedResponse<T> createPaginatedResponse(
         List<T> items,
         PaginationParams params,
         Integer totalCount
     ) {
-        return wrapApiPaginatedItems(items, params, totalCount, List.of());
+        return createPaginatedResponse(items, params, totalCount, List.of());
     }
 
     /**
-     * Wraps API-paginated items in a PaginatedResponse with additional warnings.
+     * Creates a PaginatedResponse from API-paginated items with additional warnings.
      * Use this when the API has already paginated the data (e.g., SDK returns page of results).
      *
      * @param items The items returned by the API for this page
@@ -62,7 +61,7 @@ public class PaginationHandler {
      * @param <T> Type of items
      * @return PaginatedResponse with calculated hasMorePages and messages
      */
-    public <T> PaginatedResponse<T> wrapApiPaginatedItems(
+    public <T> PaginatedResponse<T> createPaginatedResponse(
         List<T> items,
         PaginationParams params,
         Integer totalCount,
@@ -79,65 +78,6 @@ public class PaginationHandler {
 
         return new PaginatedResponse<>(
             items,
-            params.page(),
-            params.pageSize(),
-            totalCount,
-            hasMorePages,
-            finalMessage
-        );
-    }
-
-    /**
-     * Manually paginate a full list of items.
-     * Use this when you have all items in memory and need to slice them for pagination.
-     *
-     * @param allItems Complete list of items to paginate
-     * @param params Validated pagination parameters
-     * @param <T> Type of items
-     * @return PaginatedResponse with sliced items and metadata
-     */
-    public <T> PaginatedResponse<T> paginateInMemory(
-        List<T> allItems,
-        PaginationParams params
-    ) {
-        return paginateInMemory(allItems, params, List.of());
-    }
-
-    /**
-     * Manually paginate a full list of items with additional warnings.
-     * Use this when you have all items in memory and need to slice them for pagination.
-     *
-     * @param allItems Complete list of items to paginate
-     * @param params Validated pagination parameters
-     * @param additionalWarnings Extra warnings to include (e.g., filter validation warnings)
-     * @param <T> Type of items
-     * @return PaginatedResponse with sliced items and metadata
-     */
-    public <T> PaginatedResponse<T> paginateInMemory(
-        List<T> allItems,
-        PaginationParams params,
-        List<String> additionalWarnings
-    ) {
-        int startIdx = params.offset();
-        int endIdx = Math.min(startIdx + params.limit(), allItems.size());
-
-        List<T> pageItems = (startIdx < allItems.size())
-            ? allItems.subList(startIdx, endIdx)
-            : new ArrayList<>();
-
-        // In-memory pagination knows exact total, so totalCount is always available
-        Integer totalCount = allItems.size();
-        boolean hasMorePages = endIdx < allItems.size();
-        String message = buildEmptyResultMessage(pageItems, params, totalCount);
-
-        // Merge all warnings with result messages
-        String finalMessage = mergeMessages(
-            List.of(params.warnings(), additionalWarnings),
-            message
-        );
-
-        return new PaginatedResponse<>(
-            pageItems,
             params.page(),
             params.pageSize(),
             totalCount,
