@@ -214,10 +214,6 @@ public class ADRService {
                 ? attacksResponse.getAttacks()
                 : List.of();
 
-            if (safeAttacks.isEmpty()) {
-                logger.debug("No attacks data returned (took {} ms)", duration);
-            }
-
             List<AttackSummary> summaries = safeAttacks.stream()
                 .map(AttackSummary::fromAttack)
                 .collect(Collectors.toList());

@@ -252,6 +252,9 @@ class ADRServiceTest {
         assertNotNull(result);
         assertTrue(result.items().isEmpty());
         assertFalse(result.hasMorePages());
+        assertNotNull(result.message(), "Empty results should have explanatory message");
+        assertTrue(result.message().contains("No items found"),
+            "Message should explain empty results to AI");
     }
 
     // ========== Test: Null Results ==========

@@ -204,6 +204,47 @@ class AssessServiceTest {
         verify(mockContrastSDK, never()).getTraces(any(), any(), any(TraceFilterForm.class));
     }
 
+    // ========== Empty Results Tests ==========
+
+    @Test
+    void testGetAllVulnerabilities_EmptyResults_PassesEmptyListToPaginationHandler() throws Exception {
+        // Given: SDK returns empty Traces (0 vulnerabilities)
+        Traces emptyTraces = createMockTraces(0, 0);
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(emptyTraces);
+
+        // Mock PaginationHandler to return "No items found." message like the real implementation
+        when(mockPaginationHandler.wrapApiPaginatedItems(anyList(), any(PaginationParams.class), any(), anyList()))
+            .thenAnswer(invocation -> {
+                List<?> items = invocation.getArgument(0);
+                PaginationParams params = invocation.getArgument(1);
+                Integer totalItems = invocation.getArgument(2);
+                // Real PaginationHandler returns "No items found." for empty page 1 results
+                String message = items.isEmpty() && params.page() == 1 ? "No items found." : null;
+                return new PaginatedResponse<>(items, params.page(), params.pageSize(), totalItems, false, message);
+            });
+
+        // When
+        PaginatedResponse<VulnLight> result = assessService.getAllVulnerabilities(
+            1, 50, null, null, null, null, null, null, null, null
+        );
+
+        // Then: Verify empty list was passed to PaginationHandler
+        verify(mockPaginationHandler).wrapApiPaginatedItems(
+            argThat(list -> list.isEmpty()),                  // empty items list
+            argThat(p -> p.page() == 1 && p.pageSize() == 50), // params
+            eq(0),                                             // totalItems
+            anyList()                                          // warnings
+        );
+
+        // Verify result contains helpful message for AI
+        assertNotNull(result);
+        assertTrue(result.items().isEmpty());
+        assertNotNull(result.message(), "Empty results should have explanatory message");
+        assertEquals("No items found.", result.message(),
+            "Message should explain empty results to AI");
+    }
+
     // ========== Helper Methods ==========
 
     /**
