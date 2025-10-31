@@ -25,49 +25,6 @@ public class AttacksResponse {
     private List<Attack> attacks;
     private Integer count;
     private Integer total;
-    private Links links;
-
-    /**
-     * Nested class for pagination links (not currently used but part of API response)
-     */
-    public static class Links {
-        private String first;
-        private String last;
-        private String next;
-        private String prev;
-
-        public String getFirst() {
-            return first;
-        }
-
-        public void setFirst(String first) {
-            this.first = first;
-        }
-
-        public String getLast() {
-            return last;
-        }
-
-        public void setLast(String last) {
-            this.last = last;
-        }
-
-        public String getNext() {
-            return next;
-        }
-
-        public void setNext(String next) {
-            this.next = next;
-        }
-
-        public String getPrev() {
-            return prev;
-        }
-
-        public void setPrev(String prev) {
-            this.prev = prev;
-        }
-    }
 
     // Getters and Setters
 
@@ -101,14 +58,6 @@ public class AttacksResponse {
 
     public void setTotal(Integer total) {
         this.total = total;
-    }
-
-    public Links getLinks() {
-        return links;
-    }
-
-    public void setLinks(Links links) {
-        this.links = links;
     }
 
     /**
