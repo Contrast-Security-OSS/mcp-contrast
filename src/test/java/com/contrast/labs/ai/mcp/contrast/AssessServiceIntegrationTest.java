@@ -28,7 +28,7 @@ import java.io.IOException;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Integration test for verifying environments and tags are populated from real TeamServer.
+ * Integration test for AssessService that validates vulnerability data from real TeamServer.
  *
  * This test only runs if CONTRAST_HOST_NAME environment variable is set.
  *
@@ -52,7 +52,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest
 @EnabledIfEnvironmentVariable(named = "CONTRAST_HOST_NAME", matches = ".+")
-public class EnvironmentsIT {
+public class AssessServiceIntegrationTest {
 
     @Autowired
     private AssessService assessService;
