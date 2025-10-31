@@ -88,6 +88,29 @@
 					<goals>install</goals>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<version>3.5.3</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>integration-test</goal>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
+				<configuration>
+					<systemPropertyVariables>
+						<!-- Pass environment variables to tests -->
+						<CONTRAST_HOST_NAME>${env.CONTRAST_HOST_NAME}</CONTRAST_HOST_NAME>
+						<CONTRAST_API_KEY>${env.CONTRAST_API_KEY}</CONTRAST_API_KEY>
+						<CONTRAST_SERVICE_KEY>${env.CONTRAST_SERVICE_KEY}</CONTRAST_SERVICE_KEY>
+						<CONTRAST_USERNAME>${env.CONTRAST_USERNAME}</CONTRAST_USERNAME>
+						<CONTRAST_ORG_ID>${env.CONTRAST_ORG_ID}</CONTRAST_ORG_ID>
+					</systemPropertyVariables>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 

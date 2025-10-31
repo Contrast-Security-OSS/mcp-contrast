@@ -514,6 +514,7 @@ public class AssessService {
             TraceFilterForm filterForm = filters.toTraceFilterForm();
             filterForm.setLimit(pagination.limit());
             filterForm.setOffset(pagination.offset());
+            filterForm.setExpand(EnumSet.of(TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS));
 
             // Try organization-level API (or app-specific if appId provided)
             Traces traces;
