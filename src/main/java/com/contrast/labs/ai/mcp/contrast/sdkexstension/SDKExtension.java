@@ -374,7 +374,7 @@ public class SDKExtension {
         if (limit == null) limit = 1000;
         if (offset == null) offset = 0;
         if (sort == null) sort = "-startTime";
-        if (filterBody == null) filterBody = new AttacksFilterBody.Builder().build();
+        if (filterBody == null) filterBody = AttacksFilterBody.builder().build();
 
         String url = String.format(
                 "/ng/%s/attacks?expand=skip_links&limit=%d&offset=%d&sort=%s",

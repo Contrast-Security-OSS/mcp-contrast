@@ -33,7 +33,7 @@ class AttacksFilterBodyTest {
     @Test
     void testBuilder_DefaultValues_AreCorrect() {
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder().build();
+        AttacksFilterBody filterBody = AttacksFilterBody.builder().build();
 
         // Then
         assertEquals("ALL", filterBody.getQuickFilter());
@@ -66,7 +66,7 @@ class AttacksFilterBodyTest {
     @Test
     void testBuilder_QuickFilter_SetsCorrectly() {
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .quickFilter("PROBED")
                 .build();
 
@@ -77,7 +77,7 @@ class AttacksFilterBodyTest {
     @Test
     void testBuilder_Keyword_SetsCorrectly() {
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .keyword("sql injection")
                 .build();
 
@@ -90,7 +90,7 @@ class AttacksFilterBodyTest {
     @Test
     void testBuilder_IncludeSuppressed_SetsCorrectly() {
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .includeSuppressed(true)
                 .build();
 
@@ -101,7 +101,7 @@ class AttacksFilterBodyTest {
     @Test
     void testBuilder_IncludeBotBlockers_SetsCorrectly() {
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .includeBotBlockers(true)
                 .build();
 
@@ -112,7 +112,7 @@ class AttacksFilterBodyTest {
     @Test
     void testBuilder_IncludeIpBlacklist_SetsCorrectly() {
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .includeIpBlacklist(true)
                 .build();
 
@@ -128,7 +128,7 @@ class AttacksFilterBodyTest {
         List<String> tags = Arrays.asList("tag1", "tag2");
 
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .tags(tags)
                 .build();
 
@@ -144,7 +144,7 @@ class AttacksFilterBodyTest {
         List<String> statuses = Arrays.asList("status1", "status2");
 
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .statusFilter(statuses)
                 .build();
 
@@ -159,7 +159,7 @@ class AttacksFilterBodyTest {
         List<String> rules = Arrays.asList("rule1", "rule2");
 
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .protectionRules(rules)
                 .build();
 
@@ -174,7 +174,7 @@ class AttacksFilterBodyTest {
         List<String> apps = Arrays.asList("app1", "app2");
 
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .applications(apps)
                 .build();
 
@@ -189,7 +189,7 @@ class AttacksFilterBodyTest {
         List<String> importances = Arrays.asList("CRITICAL", "HIGH");
 
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .applicationImportances(importances)
                 .build();
 
@@ -204,7 +204,7 @@ class AttacksFilterBodyTest {
         List<String> attackers = Arrays.asList("10.0.0.1", "10.0.0.2");
 
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .attackers(attackers)
                 .build();
 
@@ -219,7 +219,7 @@ class AttacksFilterBodyTest {
         List<String> servers = Arrays.asList("server1", "server2");
 
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .servers(servers)
                 .build();
 
@@ -234,7 +234,7 @@ class AttacksFilterBodyTest {
         List<String> envs = Arrays.asList("PRODUCTION", "QA");
 
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .serverEnvironments(envs)
                 .build();
 
@@ -249,7 +249,7 @@ class AttacksFilterBodyTest {
         List<String> severities = Arrays.asList("HIGH", "CRITICAL");
 
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .severities(severities)
                 .build();
 
@@ -264,7 +264,7 @@ class AttacksFilterBodyTest {
     void testBuilder_ReturnedLists_AreImmutable() {
         // Given
         List<String> tags = Arrays.asList("tag1", "tag2");
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .tags(tags)
                 .build();
 
@@ -282,7 +282,7 @@ class AttacksFilterBodyTest {
         tags.add("tag2");
 
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .tags(tags)
                 .build();
 
@@ -299,7 +299,7 @@ class AttacksFilterBodyTest {
     @Test
     void testBuilder_FluentAPI_ChainsCorrectly() {
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .quickFilter("EXPLOITED")
                 .keyword("xss")
                 .includeSuppressed(true)
@@ -324,7 +324,7 @@ class AttacksFilterBodyTest {
     @Test
     void testBuilder_AllFieldsSet_BuildsCorrectly() {
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .quickFilter("PROBED")
                 .keyword("sql")
                 .includeSuppressed(true)
@@ -361,7 +361,7 @@ class AttacksFilterBodyTest {
     @Test
     void testBuilder_EmptyLists_BuildsCorrectly() {
         // When
-        AttacksFilterBody filterBody = new AttacksFilterBody.Builder()
+        AttacksFilterBody filterBody = AttacksFilterBody.builder()
                 .tags(new ArrayList<>())
                 .statusFilter(new ArrayList<>())
                 .build();

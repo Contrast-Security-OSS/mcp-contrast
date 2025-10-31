@@ -66,7 +66,7 @@ public record AttackFilterParams(
     ) {
         List<String> messages = new ArrayList<>();
         List<String> errors = new ArrayList<>();
-        AttacksFilterBody.Builder filterBuilder = new AttacksFilterBody.Builder();
+        AttacksFilterBody.AttacksFilterBodyBuilder filterBuilder = AttacksFilterBody.builder();
 
         // Parse quickFilter (HARD FAILURE - invalid values are errors)
         if (quickFilter != null && !quickFilter.trim().isEmpty()) {
