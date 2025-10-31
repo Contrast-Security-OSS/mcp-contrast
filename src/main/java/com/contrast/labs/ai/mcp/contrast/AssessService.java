@@ -445,38 +445,10 @@ public class AssessService {
     @Tool(
         name = "list_all_vulnerabilities",
         description = """
-            Gets vulnerabilities across all applications with optional filtering.
+            Gets vulnerabilities across all applications with optional filtering by severity, status,
+            environment, vulnerability type, date range, application, and tags.
 
-            Filters (all optional):
-            - severities: Filter by severity level(s). Options: CRITICAL, HIGH, MEDIUM, LOW, NOTE.
-                          Comma-separated for multiple (e.g., "CRITICAL,HIGH").
-                          Default: Returns all severities.
-            - statuses: Filter by vulnerability status(es). Options: Reported, Suspicious, Confirmed, Remediated, Fixed.
-                        Comma-separated for multiple (e.g., "Reported,Confirmed").
-                        Default: Returns Reported, Suspicious, and Confirmed (excludes Fixed and Remediated - focus on actionable items).
-            - appId: Filter to a specific application ID.
-            - vulnTypes: Filter by vulnerability type/rule name(s). Common types:
-                         sql-injection, xss-reflected, xss-stored, path-traversal, cmd-injection,
-                         crypto-bad-mac, crypto-bad-ciphers, trust-boundary-violation, xxe,
-                         untrusted-deserialization, csrf, ssrf, ldap-injection, xpath-injection.
-                         Comma-separated for multiple (e.g., "sql-injection,xss-reflected").
-                         For complete list, use list_vulnerability_types tool.
-                         Default: Returns all vulnerability types.
-            - environments: Filter by server environment(s). Options: DEVELOPMENT, QA, PRODUCTION.
-                            Comma-separated for multiple (e.g., "PRODUCTION,QA").
-                            Default: Returns all environments.
-            - lastSeenAfter: Only include vulnerabilities with activity after this date (ISO format: YYYY-MM-DD or epoch timestamp).
-                             IMPORTANT: Filters on LAST ACTIVITY DATE (lastTimeSeen), not discovery date.
-            - lastSeenBefore: Only include vulnerabilities with activity before this date (ISO format: YYYY-MM-DD or epoch timestamp).
-                              IMPORTANT: Filters on LAST ACTIVITY DATE (lastTimeSeen), not discovery date.
-            - vulnTags: Filter by vulnerability-level tag(s). Comma-separated for multiple (e.g., "SmartFix Remediated,reviewed").
-                        IMPORTANT: Filters on VULNERABILITY TAGS, not application tags.
-                        Use case: Query vulnerabilities with specific tags like "SmartFix Remediated" to find SmartFix-remediated issues.
-                        Default: Returns all vulnerability tags.
-
-            Pagination: page (default: 1), pageSize (default: 50, max: 100)
-
-            Examples:
+            Common usage examples:
             - Critical vulnerabilities only: severities="CRITICAL"
             - High-priority open issues: severities="CRITICAL,HIGH", statuses="Reported,Confirmed"
             - Production vulnerabilities: environments="PRODUCTION"
@@ -486,7 +458,7 @@ public class AssessService {
             - SmartFix remediated vulnerabilities: vulnTags="SmartFix Remediated", statuses="Remediated"
             - Reviewed critical vulnerabilities: vulnTags="reviewed", severities="CRITICAL"
 
-            Returns pagination metadata including totalItems (when available) and hasMorePages.
+            Returns paginated results with metadata including totalItems (when available) and hasMorePages.
             Check 'message' field for validation warnings or empty result info.
 
             Response fields:
@@ -499,21 +471,21 @@ public class AssessService {
             Integer page,
             @ToolParam(description = "Items per page (max 100), default: 50", required = false)
             Integer pageSize,
-            @ToolParam(description = "Comma-separated severities: CRITICAL,HIGH,MEDIUM,LOW,NOTE", required = false)
+            @ToolParam(description = "Comma-separated severities: CRITICAL,HIGH,MEDIUM,LOW,NOTE. Default: all severities", required = false)
             String severities,
-            @ToolParam(description = "Comma-separated statuses: Reported,Suspicious,Confirmed,Remediated,Fixed. Default: Reported,Suspicious,Confirmed", required = false)
+            @ToolParam(description = "Comma-separated statuses: Reported,Suspicious,Confirmed,Remediated,Fixed. Default: Reported,Suspicious,Confirmed (excludes Fixed and Remediated to focus on actionable items)", required = false)
             String statuses,
             @ToolParam(description = "Application ID to filter by", required = false)
             String appId,
-            @ToolParam(description = "Comma-separated vulnerability types (e.g., sql-injection,xss-reflected). Use list_vulnerability_types for full list", required = false)
+            @ToolParam(description = "Comma-separated vulnerability types (e.g., sql-injection,xss-reflected). Use list_vulnerability_types tool for complete list. Default: all types", required = false)
             String vulnTypes,
-            @ToolParam(description = "Comma-separated environments: DEVELOPMENT,QA,PRODUCTION", required = false)
+            @ToolParam(description = "Comma-separated environments: DEVELOPMENT,QA,PRODUCTION. Default: all environments", required = false)
             String environments,
-            @ToolParam(description = "Only include vulnerabilities with activity after this date (ISO format: YYYY-MM-DD or epoch timestamp)", required = false)
+            @ToolParam(description = "Only include vulnerabilities with LAST ACTIVITY after this date (ISO format: YYYY-MM-DD or epoch timestamp). Filters on lastTimeSeen, not discovery date", required = false)
             String lastSeenAfter,
-            @ToolParam(description = "Only include vulnerabilities with activity before this date (ISO format: YYYY-MM-DD or epoch timestamp)", required = false)
+            @ToolParam(description = "Only include vulnerabilities with LAST ACTIVITY before this date (ISO format: YYYY-MM-DD or epoch timestamp). Filters on lastTimeSeen, not discovery date", required = false)
             String lastSeenBefore,
-            @ToolParam(description = "Comma-separated vulnerability-level tags (e.g., 'SmartFix Remediated,reviewed')", required = false)
+            @ToolParam(description = "Comma-separated VULNERABILITY-LEVEL tags (e.g., 'SmartFix Remediated,reviewed'). Note: These are vulnerability tags, not application tags. Use to find vulnerabilities tagged during remediation workflows", required = false)
             String vulnTags
     ) throws IOException {
         logger.info("Listing all vulnerabilities - page: {}, pageSize: {}, filters: severities={}, statuses={}, appId={}, vulnTypes={}, environments={}, lastSeenAfter={}, lastSeenBefore={}, vulnTags={}",

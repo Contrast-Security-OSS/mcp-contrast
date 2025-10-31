@@ -148,20 +148,11 @@ public class ADRService {
     @Tool(
         name = "get_attacks",
         description = """
-            Retrieves attacks from Contrast ADR (Attack Detection and Response).
+            Retrieves attacks from Contrast ADR (Attack Detection and Response) with optional filtering
+            and sorting. Supports filtering by status/severity presets, keywords, and attack types.
 
-            Filters (all optional):
-            - quickFilter: status/severity presets (e.g., EXPLOITED, PROBED)
-            - keyword: match against rule names, sources, or notes
-            - includeSuppressed: include suppressed attacks when true
-            - includeBotBlockers: include attacks flagged as bot blockers
-            - includeIpBlacklist: include attacks from blacklisted IPs
-            - sort: sort order (default: -startTime, prefix '-' for descending)
-
-            Pagination: page (default: 1), pageSize (default: 50, max: 100)
-
-            Returns a paginated list of attack summaries with key information:
-            rule names, status, severity, affected applications, source IP, and probe counts.
+            Returns a paginated list of attack summaries with key information including rule names,
+            status, severity, affected applications, source IP, and probe counts.
             """
     )
     public PaginatedResponse<AttackSummary> getAttacks(
