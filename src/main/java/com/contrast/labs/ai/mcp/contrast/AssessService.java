@@ -551,35 +551,15 @@ public class AssessService {
                 return response;
 
             } else {
-                // Fallback to application-by-application approach
-                logger.warn("Organization-level API returned no results, using fallback approach");
-
-                List<Application> applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
-                List<VulnLight> allVulnerabilities = new ArrayList<>();
-
-                for (Application app : applications) {
-                    try {
-                        List<VulnLight> appVulns = listVulnsByAppId(app.getAppId());
-                        allVulnerabilities.addAll(appVulns);
-                    } catch (Exception e) {
-                        logger.warn("Failed to get vulnerabilities for application {}: {}",
-                                   app.getName(), e.getMessage());
-                        // Continue processing other applications even if one fails
-                    }
-                }
-
-                // Use PaginationHandler for in-memory pagination with all warnings
-                PaginatedResponse<VulnLight> response = paginationHandler.paginateInMemory(
-                    allVulnerabilities,
-                    pagination,
-                    filters.warnings()
+                // Org-level API returned null - unexpected condition
+                String errorMsg = String.format(
+                    "Org-level vulnerability API returned null for org %s. " +
+                    "This is unexpected - the API should return an empty list if no vulnerabilities exist. " +
+                    "Please check API connectivity and permissions.",
+                    orgID
                 );
-
-                long duration = System.currentTimeMillis() - startTime;
-                logger.info("Retrieved {} vulnerabilities for page {} using fallback (pageSize: {}, totalFetched: {}, took {} ms)",
-                           response.items().size(), response.page(), response.pageSize(), allVulnerabilities.size(), duration);
-
-                return response;
+                logger.error(errorMsg);
+                return PaginatedResponse.error(pagination.page(), pagination.pageSize(), errorMsg);
             }
 
         } catch (Exception e) {
