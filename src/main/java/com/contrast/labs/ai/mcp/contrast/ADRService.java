@@ -16,12 +16,15 @@
 package com.contrast.labs.ai.mcp.contrast;
 
 import com.contrast.labs.ai.mcp.contrast.data.AttackSummary;
+import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.Attack;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksFilterBody;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
+import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +42,11 @@ public class ADRService {
 
     private static final Logger logger = LoggerFactory.getLogger(ADRService.class);
 
+    private final PaginationHandler paginationHandler;
+
+    public ADRService(PaginationHandler paginationHandler) {
+        this.paginationHandler = paginationHandler;
+    }
 
     @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
     private String hostName;
@@ -134,9 +142,41 @@ public class ADRService {
         }
     }
 
-    @Tool(name = "get_attacks", description = "Retrieves attacks from Contrast ADR (Attack Detection and Response). Returns a list of attack summaries with key information: dates, rules, status, severity, applications, source IP, and probe count.")
-    public List<AttackSummary> getAttacks() throws IOException {
-        logger.info("Retrieving attacks from Contrast ADR");
+    @Tool(
+        name = "get_attacks",
+        description = """
+            Retrieves attacks from Contrast ADR (Attack Detection and Response).
+
+            Filters (all optional):
+            - quickFilter: status/severity presets (e.g., EXPLOITED, PROBED)
+            - keyword: match against rule names, sources, or notes
+            - includeSuppressed: include suppressed attacks when true
+            - includeBotBlockers: include attacks flagged as bot blockers
+            - includeIpBlacklist: include attacks from blacklisted IPs
+            - sort: sort order (default: -startTime, prefix '-' for descending)
+
+            Pagination: page (default: 1), pageSize (default: 50, max: 100)
+
+            Returns a paginated list of attack summaries with key information:
+            rule names, status, severity, affected applications, source IP, and probe counts.
+            """
+    )
+    public PaginatedResponse<AttackSummary> getAttacks(
+            String quickFilter,
+            String keyword,
+            Boolean includeSuppressed,
+            Boolean includeBotBlockers,
+            Boolean includeIpBlacklist,
+            String sort,
+            Integer page,
+            Integer pageSize
+    ) throws IOException {
+        PaginationParams pagination = PaginationParams.of(page, pageSize);
+
+        logger.info(
+            "Retrieving attacks from Contrast ADR (quickFilter: {}, keyword: {}, sort: {}, page: {}, pageSize: {})",
+            quickFilter, keyword, sort, pagination.page(), pagination.pageSize()
+        );
         long startTime = System.currentTimeMillis();
 
         try {
@@ -146,67 +186,59 @@ public class ADRService {
             SDKExtension extendedSDK = new SDKExtension(contrastSDK);
             logger.debug("SDKExtension initialized successfully for attacks retrieval");
 
-            // Use default filter (ALL attacks)
-            List<Attack> attacks = extendedSDK.getAttacks(orgID);
+            // Create filter body using Builder pattern - handles null parameters gracefully
+            AttacksFilterBody.Builder filterBuilder = new AttacksFilterBody.Builder();
+            if (quickFilter != null) filterBuilder.quickFilter(quickFilter);
+            if (keyword != null) filterBuilder.keyword(keyword);
+            if (includeSuppressed != null) filterBuilder.includeSuppressed(includeSuppressed);
+            if (includeBotBlockers != null) filterBuilder.includeBotBlockers(includeBotBlockers);
+            if (includeIpBlacklist != null) filterBuilder.includeIpBlacklist(includeIpBlacklist);
+            AttacksFilterBody filterBody = filterBuilder.build();
+
+            AttacksResponse attacksResponse = extendedSDK.getAttacks(
+                orgID,
+                filterBody,
+                pagination.limit(),
+                pagination.offset(),
+                sort
+            );
             long duration = System.currentTimeMillis() - startTime;
 
-            if (attacks == null || attacks.isEmpty()) {
-                logger.warn("No attacks data returned (took {} ms)", duration);
-                return List.of();
+            List<Attack> safeAttacks = (attacksResponse.getAttacks() != null)
+                ? attacksResponse.getAttacks()
+                : List.of();
+
+            if (safeAttacks.isEmpty()) {
+                logger.debug("No attacks data returned (took {} ms)", duration);
             }
 
-            List<AttackSummary> summaries = attacks.stream()
+            List<AttackSummary> summaries = safeAttacks.stream()
                 .map(AttackSummary::fromAttack)
                 .collect(Collectors.toList());
 
-            logger.info("Successfully retrieved {} attacks (took {} ms)", summaries.size(), duration);
-            return summaries;
+            // Get totalItems from API response if available
+            Integer totalItems = attacksResponse.getTotalCount();
+
+            PaginatedResponse<AttackSummary> response = paginationHandler.wrapApiPaginatedItems(
+                summaries,
+                pagination,
+                totalItems
+            );
+
+            logger.info(
+                "Successfully retrieved {} attacks (page: {}, pageSize: {}, totalItems: {}, hasMorePages: {}, took {} ms)",
+                response.items().size(),
+                response.page(),
+                response.pageSize(),
+                response.totalItems(),
+                response.hasMorePages(),
+                duration
+            );
+
+            return response;
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;
             logger.error("Error retrieving attacks (after {} ms): {}", duration, e.getMessage(), e);
-            throw e;
-        }
-    }
-
-    @Tool(name = "get_attacks_filtered", description = "Retrieves attacks from Contrast ADR with custom filtering options. Allows filtering by status, severity, applications, tags, and other criteria. Returns a list of attack summaries with key information: dates, rules, status, severity, applications, source IP, and probe count.")
-    public List<AttackSummary> getAttacksFiltered(String quickFilter, String keyword, Boolean includeSuppressed, 
-                                            Boolean includeBotBlockers, Boolean includeIpBlacklist, 
-                                            Integer limit, Integer offset, String sort) throws IOException {
-        logger.info("Retrieving filtered attacks from Contrast ADR with quickFilter: {}, keyword: {}", quickFilter, keyword);
-        long startTime = System.currentTimeMillis();
-
-        try {
-            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-            logger.debug("ContrastSDK initialized successfully for filtered attacks retrieval");
-
-            SDKExtension extendedSDK = new SDKExtension(contrastSDK);
-            logger.debug("SDKExtension initialized successfully for filtered attacks retrieval");
-
-            // Create custom filter
-            AttacksFilterBody filterBody = new AttacksFilterBody();
-            if (quickFilter != null) filterBody.setQuickFilter(quickFilter);
-            if (keyword != null) filterBody.setKeyword(keyword);
-            if (includeSuppressed != null) filterBody.setIncludeSuppressed(includeSuppressed);
-            if (includeBotBlockers != null) filterBody.setIncludeBotBlockers(includeBotBlockers);
-            if (includeIpBlacklist != null) filterBody.setIncludeIpBlacklist(includeIpBlacklist);
-
-            List<Attack> attacks = extendedSDK.getAttacks(orgID, filterBody, limit, offset, sort);
-            long duration = System.currentTimeMillis() - startTime;
-
-            if (attacks == null || attacks.isEmpty()) {
-                logger.warn("No filtered attacks data returned (took {} ms)", duration);
-                return List.of();
-            }
-
-            List<AttackSummary> summaries = attacks.stream()
-                .map(AttackSummary::fromAttack)
-                .collect(Collectors.toList());
-
-            logger.info("Successfully retrieved {} filtered attacks (took {} ms)", summaries.size(), duration);
-            return summaries;
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            logger.error("Error retrieving filtered attacks (after {} ms): {}", duration, e.getMessage(), e);
             throw e;
         }
     }
