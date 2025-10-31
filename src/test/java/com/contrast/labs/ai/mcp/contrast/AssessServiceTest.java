@@ -629,8 +629,8 @@ class AssessServiceTest {
         TraceFilterForm form = captor.getValue();
         assertNotNull(form.getFilterTags());
         assertEquals(2, form.getFilterTags().size());
-        // Tags are URL-encoded to workaround SDK bug
-        assertTrue(form.getFilterTags().contains("SmartFix+Remediated"));
+        // SDK now handles URL encoding (AIML-193 complete) - tags passed through as-is
+        assertTrue(form.getFilterTags().contains("SmartFix Remediated"));
         assertTrue(form.getFilterTags().contains("reviewed"));
     }
 
