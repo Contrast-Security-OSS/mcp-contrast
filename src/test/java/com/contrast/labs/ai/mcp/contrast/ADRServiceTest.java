@@ -441,6 +441,101 @@ class ADRServiceTest {
         assertFalse(result.hasMorePages(), "Heuristic: partial page suggests no more pages");
     }
 
+    // ========== Test: Smart Defaults and Messages ==========
+
+    @Test
+    void testGetAttacks_SmartDefaults_ReturnsMessages() throws Exception {
+        // Given: No filters provided, should use smart defaults
+        AttacksResponse mockResponse = createMockAttacksResponse(10, null);
+
+        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
+            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                .thenReturn(mockResponse);
+        });
+
+        // When: No filters provided
+        PaginatedResponse<AttackSummary> result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
+
+        // Then: Should have messages about smart defaults
+        assertNotNull(result.message(), "Should have messages about smart defaults");
+        assertTrue(result.message().contains("No quickFilter applied"),
+            "Should have message about quickFilter default");
+        assertTrue(result.message().contains("Excluding suppressed attacks by default"),
+            "Should have message about includeSuppressed default");
+    }
+
+    @Test
+    void testGetAttacks_ExplicitFilters_NoSmartDefaultMessages() throws Exception {
+        // Given: Explicit filters provided
+        AttacksResponse mockResponse = createMockAttacksResponse(5, null);
+
+        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
+            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                .thenReturn(mockResponse);
+        });
+
+        // When: Explicit filters provided
+        PaginatedResponse<AttackSummary> result = adrService.getAttacks(
+            "EXPLOITED", null, true, null, null, null, 1, 50
+        );
+
+        // Then: Should NOT have smart default messages
+        if (result.message() != null) {
+            assertFalse(result.message().contains("No quickFilter applied"),
+                "Should not have quickFilter message when explicitly provided");
+            assertFalse(result.message().contains("Excluding suppressed attacks by default"),
+                "Should not have includeSuppressed message when explicitly provided");
+        }
+    }
+
+    @Test
+    void testGetAttacks_InvalidQuickFilter_ReturnsError() throws Exception {
+        // When: Invalid quickFilter provided
+        PaginatedResponse<AttackSummary> result = adrService.getAttacks(
+            "INVALID_FILTER", null, null, null, null, null, 1, 50
+        );
+
+        // Then: Should return error response with descriptive message
+        assertNotNull(result.message(), "Should have error message");
+        assertTrue(result.message().contains("Invalid quickFilter 'INVALID_FILTER'"),
+            "Should explain the invalid quickFilter");
+        assertTrue(result.message().contains("Valid: EXPLOITED, PROBED, BLOCKED, INEFFECTIVE, ALL"),
+            "Should list valid options");
+        assertEquals(0, result.items().size(), "Should return empty items on error");
+    }
+
+    @Test
+    void testGetAttacks_InvalidSort_ReturnsError() throws Exception {
+        // When: Invalid sort format provided
+        PaginatedResponse<AttackSummary> result = adrService.getAttacks(
+            "EXPLOITED", null, false, null, null, "invalid sort!", 1, 50
+        );
+
+        // Then: Should return error response with descriptive message
+        assertNotNull(result.message(), "Should have error message");
+        assertTrue(result.message().contains("Invalid sort format 'invalid sort!'"),
+            "Should explain the invalid sort format");
+        assertTrue(result.message().contains("Must be a field name with optional '-' prefix"),
+            "Should explain the correct format");
+        assertEquals(0, result.items().size(), "Should return empty items on error");
+    }
+
+    @Test
+    void testGetAttacks_MultipleValidationErrors_CombinesErrors() throws Exception {
+        // When: Multiple invalid parameters provided
+        PaginatedResponse<AttackSummary> result = adrService.getAttacks(
+            "BAD_FILTER", null, null, null, null, "bad-format!", 1, 50
+        );
+
+        // Then: Should return combined error messages
+        assertNotNull(result.message(), "Should have error message");
+        assertTrue(result.message().contains("Invalid quickFilter"),
+            "Should include quickFilter error");
+        assertTrue(result.message().contains("Invalid sort format"),
+            "Should include sort error");
+        assertEquals(0, result.items().size(), "Should return empty items on error");
+    }
+
     // ========== Helper Methods ==========
 
     /**

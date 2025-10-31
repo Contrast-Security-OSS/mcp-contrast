@@ -179,6 +179,21 @@ public class ADRService {
         );
         long startTime = System.currentTimeMillis();
 
+        // Parse and validate filter parameters
+        AttackFilterParams filters = AttackFilterParams.of(
+            quickFilter, keyword, includeSuppressed,
+            includeBotBlockers, includeIpBlacklist, sort
+        );
+
+        if (!filters.isValid()) {
+            logger.warn("Invalid attack filter parameters: {}", String.join("; ", filters.errors()));
+            return PaginatedResponse.error(
+                pagination.page(),
+                pagination.pageSize(),
+                String.join(" ", filters.errors())
+            );
+        }
+
         try {
             ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
             logger.debug("ContrastSDK initialized successfully for attacks retrieval");
@@ -186,18 +201,9 @@ public class ADRService {
             SDKExtension extendedSDK = new SDKExtension(contrastSDK);
             logger.debug("SDKExtension initialized successfully for attacks retrieval");
 
-            // Create filter body using Builder pattern - handles null parameters gracefully
-            AttacksFilterBody.Builder filterBuilder = new AttacksFilterBody.Builder();
-            if (quickFilter != null) filterBuilder.quickFilter(quickFilter);
-            if (keyword != null) filterBuilder.keyword(keyword);
-            if (includeSuppressed != null) filterBuilder.includeSuppressed(includeSuppressed);
-            if (includeBotBlockers != null) filterBuilder.includeBotBlockers(includeBotBlockers);
-            if (includeIpBlacklist != null) filterBuilder.includeIpBlacklist(includeIpBlacklist);
-            AttacksFilterBody filterBody = filterBuilder.build();
-
             AttacksResponse attacksResponse = extendedSDK.getAttacks(
                 orgID,
-                filterBody,
+                filters.toAttacksFilterBody(),
                 pagination.limit(),
                 pagination.offset(),
                 sort
@@ -222,7 +228,8 @@ public class ADRService {
             PaginatedResponse<AttackSummary> response = paginationHandler.wrapApiPaginatedItems(
                 summaries,
                 pagination,
-                totalItems
+                totalItems,
+                filters.messages()
             );
 
             logger.info(
