@@ -81,3 +81,29 @@ This codebase handles sensitive vulnerability data. The README contains critical
 - Default log location: `/tmp/mcp-contrast.log`
 - Debug logging: Add `--logging.level.root=DEBUG` to startup arguments
 - Console logging is minimal by design for MCP protocol compatibility
+
+## Beads Workflow Requirements
+
+This project uses Beads (bd) for issue tracking. See the MCP resource `beads://quickstart` for usage details.
+
+### Managing Bead Dependencies
+
+**Command syntax:** `bd dep add <dependent-task> <prerequisite-task>`
+
+Example: If B must be done after A completes, use `bd dep add B A` (not `bd dep add A B`).
+
+Verify with `bd show <task-id>` - dependent tasks show "Depends on", prerequisites show "Blocks".
+
+### Testing Requirements Before Closing Beads
+
+**CRITICAL: Before closing any bead, you MUST:**
+
+1. **Write tests for ALL code changes** - No exceptions
+2. **Run unit tests** - `mvn test` must pass with 0 failures
+3. **Run integration tests** - `mvn verify` must pass (requires credentials in `.env.integration-test`)
+   - If credentials unavailable, verify integration tests pass in CI/CD
+4. **Verify new tests are included** - Ensure your tests ran and passed
+
+All code changes require corresponding test coverage. Do not close beads without tests.
+
+See INTEGRATION_TESTS.md for integration test setup and credentials.

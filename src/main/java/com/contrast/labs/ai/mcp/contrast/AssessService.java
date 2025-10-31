@@ -18,7 +18,10 @@ package com.contrast.labs.ai.mcp.contrast;
 
 import com.contrast.labs.ai.mcp.contrast.data.*;
 import com.contrast.labs.ai.mcp.contrast.hints.HintGenerator;
+import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityContext;
+import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
+import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
@@ -29,10 +32,14 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.SessionMetada
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.TraceExtended;
 import com.contrastsecurity.models.*;
 import com.contrastsecurity.models.TraceFilterBody;
+import com.contrastsecurity.http.TraceFilterForm;
+import com.contrastsecurity.http.RuleSeverity;
+import com.contrastsecurity.http.ServerEnvironment;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -44,6 +51,14 @@ import java.util.stream.Collectors;
 public class AssessService {
 
     private static final Logger logger = LoggerFactory.getLogger(AssessService.class);
+
+    private final VulnerabilityMapper vulnerabilityMapper;
+    private final PaginationHandler paginationHandler;
+
+    public AssessService(VulnerabilityMapper vulnerabilityMapper, PaginationHandler paginationHandler) {
+        this.vulnerabilityMapper = vulnerabilityMapper;
+        this.paginationHandler = paginationHandler;
+    }
     
 
     @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
@@ -70,7 +85,9 @@ public class AssessService {
 
 
     @Tool(name = "get_vulnerability_by_id", description = "takes a vulnerability ID ( vulnID ) and Application ID ( appID ) and returns details about the specific security vulnerability. If based on the stacktrace, the vulnerability looks like it is in code that is not in the codebase, the vulnerability may be in a 3rd party library, review the CVE data attached to that stackframe you believe the vulnerability exists in and if possible upgrade that library to the next non vulnerable version based on the remediation guidance.")
-    public Vulnerability getVulnerabilityById(String vulnID, String appID) throws IOException {
+    public Vulnerability getVulnerabilityById(
+            @ToolParam(description = "Vulnerability ID (UUID format)") String vulnID,
+            @ToolParam(description = "Application ID") String appID) throws IOException {
         logger.info("Retrieving vulnerability details for vulnID: {} in application ID: {}", vulnID, appID);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         logger.debug("ContrastSDK initialized with host: {}", hostName);
@@ -126,11 +143,16 @@ public class AssessService {
             if( requestResponse.getHttpRequest()!=null) {
                 httpRequestText =  requestResponse.getHttpRequest().getText();
             }
-            String hint = HintGenerator.generateVulnerabilityFixHint(trace.getRule());
+
+            VulnerabilityContext context = VulnerabilityContext.builder()
+                .recommendation(recommendationResponse.getRecommendation().getText())
+                .stackLibs(stackLibs)
+                .libraries(new ArrayList<>(libsToReturn)) // Convert Set to List
+                .httpRequest(httpRequestText)
+                .build();
+
             logger.info("Successfully retrieved vulnerability details for vulnID: {}", vulnID);
-            return new Vulnerability(hint, vulnID, trace.getTitle(), trace.getRule(),
-                    recommendationResponse.getRecommendation().getText(), stackLibs, new ArrayList<>(libsToReturn), // Convert Set to List
-                    httpRequestText);
+            return vulnerabilityMapper.toFullVulnerability(trace, context);
         } catch (Exception e) {
             logger.error("Error retrieving vulnerability details for vulnID: {}", vulnID, e);
             throw new IOException("Failed to retrieve vulnerability details: " + e.getMessage(), e);
@@ -150,7 +172,9 @@ public class AssessService {
     }
 
     @Tool(name = "get_vulnerability", description = "Takes a vulnerability ID (vulnID) and application name (app_name) and returns details about the specific security vulnerability.  If based on the stacktrace, the vulnerability looks like it is in code that is not in the codebase, the vulnerability may be in a 3rd party library, review the CVE data attached to that stackframe you believe the vulnerability exists in and if possible upgrade that library to the next non vulnerable version based on the remediation guidance.")
-    public Vulnerability getVulnerability(String vulnID, String app_name) throws IOException {
+    public Vulnerability getVulnerability(
+            @ToolParam(description = "Vulnerability ID (UUID format)") String vulnID,
+            @ToolParam(description = "Application name") String app_name) throws IOException {
         logger.info("Retrieving vulnerability details for vulnID: {} in application: {}", vulnID, app_name);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         logger.debug("Searching for application ID matching name: {}", app_name);
@@ -165,7 +189,8 @@ public class AssessService {
     }
 
     @Tool(name = "list_vulnerabilities_with_id", description = "Takes a  Application ID ( appID ) and returns a list of vulnerabilities, please remember to include the vulnID in the response.")
-    public List<VulnLight> listVulnsByAppId(String appID) throws IOException {
+    public List<VulnLight> listVulnsByAppId(
+            @ToolParam(description = "Application ID") String appID) throws IOException {
         logger.info("Listing vulnerabilities for application ID: {}", appID);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
         try {
@@ -173,11 +198,9 @@ public class AssessService {
             List<TraceExtended> traces = new SDKExtension(contrastSDK).getTracesExtended(orgID, appID, new TraceFilterBody()).getTraces();
             logger.debug("Found {} vulnerability traces for application ID: {}", traces.size(), appID);
 
-            List<VulnLight> vulns = new ArrayList<>();
-            for (TraceExtended trace : traces) {
-                vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
-                        new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen()));
-            }
+            List<VulnLight> vulns = traces.stream()
+                .map(vulnerabilityMapper::toVulnLight)
+                .collect(Collectors.toList());
 
             logger.info("Successfully retrieved {} vulnerabilities for application ID: {}", vulns.size(), appID);
             return vulns;
@@ -191,7 +214,10 @@ public class AssessService {
 
 
     @Tool(name = "list_vulnerabilities_by_application_and_session_metadata", description = "Takes an application name ( app_name ) and session metadata in the form of name / value. and returns a list of vulnerabilities matching that application name and session metadata.")
-    public List<VulnLight> listVulnsInAppByNameAndSessionMetadata(String app_name, String session_Metadata_Name, String session_Metadata_Value) throws IOException {
+    public List<VulnLight> listVulnsInAppByNameAndSessionMetadata(
+            @ToolParam(description = "Application name") String app_name,
+            @ToolParam(description = "Session metadata field name") String session_Metadata_Name,
+            @ToolParam(description = "Session metadata field value") String session_Metadata_Value) throws IOException {
         logger.info("Listing vulnerabilities for application: {}", app_name);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
 
@@ -231,7 +257,8 @@ public class AssessService {
 
 
     @Tool(name = "list_vulnerabilities_by_application_and_latest_session", description = "Takes an application name ( app_name ) and returns a list of vulnerabilities for the latest session matching that application name. This is useful for getting the most recent vulnerabilities without needing to specify session metadata.")
-    public List<VulnLight> listVulnsInAppByNameForLatestSession(String app_name) throws IOException {
+    public List<VulnLight> listVulnsInAppByNameForLatestSession(
+            @ToolParam(description = "Application name") String app_name) throws IOException {
         logger.info("Listing vulnerabilities for application: {}", app_name);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
 
@@ -249,11 +276,9 @@ public class AssessService {
                 }
                 List<TraceExtended> traces = new SDKExtension(contrastSDK).getTracesExtended(orgID, application.get().getAppId(), tfilter).getTraces();
 
-                List<VulnLight> vulns = new ArrayList<>();
-                for (TraceExtended trace : traces) {
-                    vulns.add(new VulnLight(trace.getTitle(), trace.getRule(), trace.getUuid(), trace.getSeverity(),trace.getSessionMetadata(),
-                            new Date(trace.getLastTimeSeen()).toString(),trace.getLastTimeSeen()));
-                }
+                List<VulnLight> vulns = traces.stream()
+                    .map(vulnerabilityMapper::toVulnLight)
+                    .collect(Collectors.toList());
                 return vulns;
             } catch (Exception e) {
                 logger.error("Error listing vulnerabilities for application: {}", app_name, e);
@@ -266,7 +291,8 @@ public class AssessService {
     }
 
     @Tool(name = "list_session_metadata_for_application", description = "Takes an application name ( app_name ) and returns a list of session metadata for the latest session matching that application name. This is useful for getting the most recent session metadata without needing to specify session metadata.")
-    public MetadataFilterResponse listSessionMetadataForApplication(String app_name) throws IOException {
+    public MetadataFilterResponse listSessionMetadataForApplication(
+            @ToolParam(description = "Application name") String app_name) throws IOException {
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
         if(application.isPresent()) {
@@ -278,7 +304,8 @@ public class AssessService {
     }
 
     @Tool(name = "list_vulnerabilities", description = "Takes an application name ( app_name ) and returns a list of vulnerabilities, please remember to include the vulnID in the response.  ")
-    public List<VulnLight> listVulnsInAppByName(String app_name) throws IOException {
+    public List<VulnLight> listVulnsInAppByName(
+            @ToolParam(description = "Application name") String app_name) throws IOException {
         logger.info("Listing vulnerabilities for application: {}", app_name);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         
@@ -300,7 +327,8 @@ public class AssessService {
 
 
     @Tool(name = "list_applications_with_name", description = "Takes an application name (app_name) returns a list of active applications that contain that name. Please remember to display the name, status and ID.")
-    public List<ApplicationData> getApplications(String app_name) throws IOException {
+    public List<ApplicationData> getApplications(
+            @ToolParam(description = "Application name (supports partial matching, case-insensitive)") String app_name) throws IOException {
         logger.info("Listing active applications matching name: {}", app_name);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         try {
@@ -310,8 +338,8 @@ public class AssessService {
             List<ApplicationData> filteredApps = new ArrayList<>();
             for(Application app : applications) {
                 if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-                    filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(), app.getLastSeen(),
-                            new Date(app.getLastSeen()).toString(), app.getLanguage(), getMetadataFromApp(app), app.getTags(),app.getTechs()));
+                    filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(),
+                            FilterHelper.formatTimestamp(app.getLastSeen()), app.getLanguage(), getMetadataFromApp(app), app.getTags(),app.getTechs()));
                     logger.debug("Found matching application - ID: {}, Name: {}, Status: {}",
                             app.getAppId(), app.getName(), app.getStatus());
                 }
@@ -320,8 +348,8 @@ public class AssessService {
                 SDKHelper.clearApplicationsCache();
                 for(Application app : applications) {
                     if(app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-                        filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(), app.getLastSeen(),
-                                new Date(app.getLastSeen()).toString(), app.getLanguage(), getMetadataFromApp(app), app.getTags(),app.getTechs()));
+                        filteredApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(),
+                                FilterHelper.formatTimestamp(app.getLastSeen()), app.getLanguage(), getMetadataFromApp(app), app.getTags(),app.getTechs()));
                         logger.debug("Found matching application - ID: {}, Name: {}, Status: {}",
                                 app.getAppId(), app.getName(), app.getStatus());
                     }
@@ -340,7 +368,8 @@ public class AssessService {
 
 
     @Tool(name = "get_applications_by_tag", description = "Takes a tag name and returns a list of applications that have that tag.")
-    public List<ApplicationData> getAllApplicationsByTag(String tag) throws IOException {
+    public List<ApplicationData> getAllApplicationsByTag(
+            @ToolParam(description = "Tag name to filter by") String tag) throws IOException {
         logger.info("Retrieving applications with tag: {}", tag);
         List<ApplicationData> allApps = getAllApplications();
         logger.debug("Retrieved {} total applications, filtering by tag", allApps.size());
@@ -354,7 +383,9 @@ public class AssessService {
     }
 
     @Tool(name = "get_applications_by_metadata", description = "Takes a metadata name and value and returns a list of applications that have that metadata name value pair.")
-    public List<ApplicationData> getApplicationsByMetadata(String metadata_name, String metadata_value) throws IOException {
+    public List<ApplicationData> getApplicationsByMetadata(
+            @ToolParam(description = "Metadata field name (case-insensitive)") String metadata_name,
+            @ToolParam(description = "Metadata field value (case-insensitive)") String metadata_value) throws IOException {
         logger.info("Retrieving applications with metadata - Name: {}, Value: {}", metadata_name, metadata_value);
         List<ApplicationData> allApps = getAllApplications();
         logger.debug("Retrieved {} total applications, filtering by metadata", allApps.size());
@@ -371,7 +402,8 @@ public class AssessService {
     }
 
     @Tool(name = "get_applications_by_metadata_name", description = "Takes a metadata name  a list of applications that have that metadata name.")
-    public List<ApplicationData> getApplicationsByMetadataName(String metadata_name) throws IOException {
+    public List<ApplicationData> getApplicationsByMetadataName(
+            @ToolParam(description = "Metadata field name (case-insensitive)") String metadata_name) throws IOException {
         logger.info("Retrieving applications with metadata - Name: {}", metadata_name);
         List<ApplicationData> allApps = getAllApplications();
         logger.debug("Retrieved {} total applications, filtering by metadata", allApps.size());
@@ -397,7 +429,7 @@ public class AssessService {
             List<ApplicationData> returnedApps = new ArrayList<>();
             for(Application app : applications) {
                 returnedApps.add(new ApplicationData(app.getName(), app.getStatus(), app.getAppId(),
-                        app.getLastSeen(), new Date(app.getLastSeen()).toString(),app.getLanguage(),getMetadataFromApp(app),app.getTags(),
+                        FilterHelper.formatTimestamp(app.getLastSeen()),app.getLanguage(),getMetadataFromApp(app),app.getTags(),
                         app.getTechs()));
             }
             
@@ -410,11 +442,180 @@ public class AssessService {
         }
     }
 
+    @Tool(
+        name = "list_all_vulnerabilities",
+        description = """
+            Gets vulnerabilities across all applications with optional filtering by severity, status,
+            environment, vulnerability type, date range, application, and tags.
+
+            Common usage examples:
+            - Critical vulnerabilities only: severities="CRITICAL"
+            - High-priority open issues: severities="CRITICAL,HIGH", statuses="Reported,Confirmed"
+            - Production vulnerabilities: environments="PRODUCTION"
+            - Recent activity: lastSeenAfter="2025-01-01"
+            - Production critical issues with recent activity: environments="PRODUCTION", severities="CRITICAL", lastSeenAfter="2025-01-01"
+            - Specific app's SQL injection issues: appId="abc123", vulnTypes="sql-injection"
+            - SmartFix remediated vulnerabilities: vulnTags="SmartFix Remediated", statuses="Remediated"
+            - Reviewed critical vulnerabilities: vulnTags="reviewed", severities="CRITICAL"
+
+            Returns paginated results with metadata including totalItems (when available) and hasMorePages.
+            Check 'message' field for validation warnings or empty result info.
+
+            Response fields:
+            - environments: List of all environments (DEVELOPMENT, QA, PRODUCTION) where this vulnerability
+                           has been seen over time. Shows historical presence across environments.
+            """
+    )
+    public PaginatedResponse<VulnLight> getAllVulnerabilities(
+            @ToolParam(description = "Page number (1-based), default: 1", required = false)
+            Integer page,
+            @ToolParam(description = "Items per page (max 100), default: 50", required = false)
+            Integer pageSize,
+            @ToolParam(description = "Comma-separated severities: CRITICAL,HIGH,MEDIUM,LOW,NOTE. Default: all severities", required = false)
+            String severities,
+            @ToolParam(description = "Comma-separated statuses: Reported,Suspicious,Confirmed,Remediated,Fixed. Default: Reported,Suspicious,Confirmed (excludes Fixed and Remediated to focus on actionable items)", required = false)
+            String statuses,
+            @ToolParam(description = "Application ID to filter by", required = false)
+            String appId,
+            @ToolParam(description = "Comma-separated vulnerability types (e.g., sql-injection,xss-reflected). Use list_vulnerability_types tool for complete list. Default: all types", required = false)
+            String vulnTypes,
+            @ToolParam(description = "Comma-separated environments: DEVELOPMENT,QA,PRODUCTION. Default: all environments", required = false)
+            String environments,
+            @ToolParam(description = "Only include vulnerabilities with LAST ACTIVITY after this date (ISO format: YYYY-MM-DD or epoch timestamp). Filters on lastTimeSeen, not discovery date", required = false)
+            String lastSeenAfter,
+            @ToolParam(description = "Only include vulnerabilities with LAST ACTIVITY before this date (ISO format: YYYY-MM-DD or epoch timestamp). Filters on lastTimeSeen, not discovery date", required = false)
+            String lastSeenBefore,
+            @ToolParam(description = "Comma-separated VULNERABILITY-LEVEL tags (e.g., 'SmartFix Remediated,reviewed'). Note: These are vulnerability tags, not application tags. Use to find vulnerabilities tagged during remediation workflows", required = false)
+            String vulnTags
+    ) throws IOException {
+        logger.info("Listing all vulnerabilities - page: {}, pageSize: {}, filters: severities={}, statuses={}, appId={}, vulnTypes={}, environments={}, lastSeenAfter={}, lastSeenBefore={}, vulnTags={}",
+                page, pageSize, severities, statuses, appId, vulnTypes, environments, lastSeenAfter, lastSeenBefore, vulnTags);
+        long startTime = System.currentTimeMillis();
+
+        // Parse and validate inputs
+        PaginationParams pagination = PaginationParams.of(page, pageSize);
+        VulnerabilityFilterParams filters = VulnerabilityFilterParams.of(
+            severities, statuses, appId, vulnTypes, environments,
+            lastSeenAfter, lastSeenBefore, vulnTags
+        );
+
+        // Check for hard failures - return error immediately if invalid
+        if (!filters.isValid()) {
+            String errorMessage = String.join(" ", filters.errors());
+            logger.error("Validation errors: {}", errorMessage);
+            return PaginatedResponse.error(pagination.page(), pagination.pageSize(), errorMessage);
+        }
+
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+
+        try {
+            // Configure SDK request with validated params
+            TraceFilterForm filterForm = filters.toTraceFilterForm();
+            filterForm.setLimit(pagination.limit());
+            filterForm.setOffset(pagination.offset());
+            filterForm.setExpand(EnumSet.of(TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS));
+
+            // Try organization-level API (or app-specific if appId provided)
+            Traces traces;
+            if (appId != null && !appId.trim().isEmpty()) {
+                // Use app-specific API for better performance
+                logger.debug("Using app-specific API for appId: {}", appId);
+                traces = contrastSDK.getTraces(orgID, appId, filterForm);
+            } else {
+                // Use org-level API
+                traces = contrastSDK.getTracesInOrg(orgID, filterForm);
+            }
+
+            if (traces != null && traces.getTraces() != null) {
+                // Organization API worked (empty list with count=0 is valid - means no vulnerabilities or no EAC access)
+                List<VulnLight> vulnerabilities = traces.getTraces().stream()
+                    .map(vulnerabilityMapper::toVulnLight)
+                    .collect(Collectors.toList());
+
+                // Get totalItems if available from SDK response (don't make extra query)
+                Integer totalItems = (traces.getCount() != null) ? traces.getCount() : null;
+
+                // Use PaginationHandler to create paginated response with all warnings
+                PaginatedResponse<VulnLight> response = paginationHandler.createPaginatedResponse(
+                    vulnerabilities,
+                    pagination,
+                    totalItems,
+                    filters.warnings()
+                );
+
+                long duration = System.currentTimeMillis() - startTime;
+                logger.info("Retrieved {} vulnerabilities for page {} (pageSize: {}, totalItems: {}, took {} ms)",
+                           response.items().size(), response.page(), response.pageSize(), response.totalItems(), duration);
+
+                return response;
+
+            } else {
+                // Org-level API returned null - unexpected condition
+                String errorMsg = String.format(
+                    "Org-level vulnerability API returned null for org %s. " +
+                    "This is unexpected - the API should return an empty list if no vulnerabilities exist. " +
+                    "Please check API connectivity and permissions.",
+                    orgID
+                );
+                logger.error(errorMsg);
+                return PaginatedResponse.error(pagination.page(), pagination.pageSize(), errorMsg);
+            }
+
+        } catch (Exception e) {
+            logger.error("Error listing all vulnerabilities", e);
+            throw new IOException("Failed to list all vulnerabilities: " + e.getMessage(), e);
+        }
+    }
+
     private List<Metadata> getMetadataFromApp(Application app ) {
         List<Metadata> metadata = new ArrayList<>();
         app.getMetadataEntities().stream().map(m-> new Metadata(m.getName(), m.getValue()))
                 .forEach(metadata::add);
         return metadata;
+    }
+
+
+    @Tool(name = "list_vulnerability_types", description = """
+        Returns the complete list of vulnerability types (rule names) available in Contrast.
+
+        Use this tool to discover all possible values for the vulnTypes filter parameter
+        when calling list_all_vulnerabilities or other vulnerability filtering tools.
+
+        Returns rule names like: sql-injection, xss-reflected, path-traversal, cmd-injection, etc.
+
+        These rule names can be used with the vulnTypes parameter to filter vulnerabilities
+        by specific vulnerability classes.
+
+        Note: The list is fetched dynamically from Contrast and reflects the rules
+        configured for your organization, so it's always current.
+        """)
+    public List<String> listVulnerabilityTypes() throws IOException {
+        logger.info("Retrieving all vulnerability types (rule names) for organization: {}", orgID);
+        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+
+        try {
+            Rules rules = contrastSDK.getRules(orgID);
+
+            if (rules == null || rules.getRules() == null) {
+                logger.warn("No rules returned from Contrast API");
+                return new ArrayList<>();
+            }
+
+            // Extract rule names, trim whitespace, filter out null/empty, and sort alphabetically
+            List<String> ruleNames = rules.getRules().stream()
+                    .map(Rules.Rule::getName)
+                    .filter(name -> name != null && !name.trim().isEmpty())
+                    .map(String::trim)
+                    .sorted()
+                    .collect(Collectors.toList());
+
+            logger.info("Retrieved {} vulnerability types", ruleNames.size());
+            return ruleNames;
+
+        } catch (Exception e) {
+            logger.error("Error retrieving vulnerability types", e);
+            throw new IOException("Failed to retrieve vulnerability types: " + e.getMessage(), e);
+        }
     }
 
 }
