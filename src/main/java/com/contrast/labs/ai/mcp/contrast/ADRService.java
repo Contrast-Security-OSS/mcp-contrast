@@ -29,6 +29,7 @@ import com.contrastsecurity.sdk.ContrastSDK;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -71,7 +72,8 @@ public class ADRService {
 
 
     @Tool(name = "get_ADR_Protect_Rules", description = "takes a application name and returns the protect / adr rules for the application")
-    public ProtectData getProtectData(String applicationName) throws IOException {
+    public ProtectData getProtectData(
+            @ToolParam(description = "Application name") String applicationName) throws IOException {
         logger.info("Starting retrieval of protection rules for application: {}", applicationName);
         long startTime = System.currentTimeMillis();
 
@@ -102,7 +104,8 @@ public class ADRService {
 
 
     @Tool(name = "get_ADR_Protect_Rules_by_app_id", description = "takes a application ID and returns the protect / adr rules for the application")
-    public ProtectData getProtectDataByAppID(String appID) throws IOException {
+    public ProtectData getProtectDataByAppID(
+            @ToolParam(description = "Application ID") String appID) throws IOException {
         if (appID == null || appID.isEmpty()) {
             logger.error("Cannot retrieve protection rules - application ID is null or empty");
             throw new IllegalArgumentException("Application ID cannot be null or empty");
@@ -162,13 +165,21 @@ public class ADRService {
             """
     )
     public PaginatedResponse<AttackSummary> getAttacks(
+            @ToolParam(description = "Quick filter preset (e.g., EXPLOITED, PROBED) for status/severity filtering", required = false)
             String quickFilter,
+            @ToolParam(description = "Keyword to match against rule names, sources, or notes", required = false)
             String keyword,
+            @ToolParam(description = "Include suppressed attacks when true", required = false)
             Boolean includeSuppressed,
+            @ToolParam(description = "Include attacks flagged as bot blockers", required = false)
             Boolean includeBotBlockers,
+            @ToolParam(description = "Include attacks from blacklisted IPs", required = false)
             Boolean includeIpBlacklist,
+            @ToolParam(description = "Sort order (default: -startTime, prefix '-' for descending)", required = false)
             String sort,
+            @ToolParam(description = "Page number (1-based), default: 1", required = false)
             Integer page,
+            @ToolParam(description = "Items per page (max 100), default: 50", required = false)
             Integer pageSize
     ) throws IOException {
         PaginationParams pagination = PaginationParams.of(page, pageSize);
