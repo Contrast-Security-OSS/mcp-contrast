@@ -142,4 +142,53 @@ public class AssessServiceIntegrationTest {
 
         System.out.println("✓ All vulnerabilities have required fields");
     }
+
+    @Test
+    void testVulnTagsWithSpacesHandledBySDK() throws IOException {
+        System.out.println("\n=== Integration Test: VulnTags with Spaces ===");
+        System.out.println("Testing that SDK properly handles URL encoding of tags with spaces");
+
+        // Query with a tag that contains spaces - this should work now that AIML-193 is complete
+        // The SDK should handle URL encoding internally
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1,      // page
+            50,     // pageSize (larger to increase chance of finding tagged vulns)
+            null,   // severities
+            null,   // statuses
+            null,   // appId
+            null,   // vulnTypes
+            null,   // environments
+            null,   // lastSeenAfter
+            null,   // lastSeenBefore
+            "SmartFix Remediated"  // vulnTags with space - SDK should handle encoding
+        );
+
+        assertNotNull(response, "Response should not be null");
+        System.out.println("Query completed successfully (returned " + response.items().size() + " vulnerabilities)");
+
+        // The query should complete without error - whether we get results depends on the org's data
+        // The important thing is that the SDK properly encoded the tag with spaces
+        if (response.items().size() > 0) {
+            System.out.println("✓ Found vulnerabilities with 'SmartFix Remediated' tag:");
+            for (VulnLight vuln : response.items()) {
+                System.out.println("  - " + vuln.vulnID() + ": " + vuln.title());
+                System.out.println("    Tags: " + vuln.tags());
+            }
+        } else {
+            System.out.println("ℹ No vulnerabilities found with 'SmartFix Remediated' tag (this is OK)");
+        }
+
+        // Try with multiple tags including spaces and special characters
+        System.out.println("\nTesting multiple tags with spaces:");
+        response = assessService.getAllVulnerabilities(
+            1, 10, null, null, null, null, null, null, null,
+            "Tag With Spaces,another-tag"
+        );
+
+        assertNotNull(response, "Response should not be null");
+        System.out.println("✓ Query with multiple tags completed successfully");
+        System.out.println("  (returned " + response.items().size() + " vulnerabilities)");
+
+        System.out.println("\n✓ Integration test passed: SDK properly handles vulnTags with spaces");
+    }
 }
