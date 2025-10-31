@@ -29,6 +29,7 @@ public record VulnLight(
     String status,
     String firstSeenAt,
     String closedAt,
-    List<String> environments
+    List<String> environments,
+    List<String> tags
 ) {
 }

@@ -318,7 +318,7 @@ public class SDKExtension {
         try (InputStream is =
                      contrastSDK.makeRequestWithBody(
                              HttpMethod.POST,
-                             urlBuilder.getTracesWithBodyUrl(organizationId, appId)+"?expand=session_metadata",
+                             urlBuilder.getTracesWithBodyUrl(organizationId, appId)+"?expand=session_metadata,server_environments",
                              this.gson.toJson(filters),
                              MediaType.JSON);
              Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
@@ -344,7 +344,7 @@ public class SDKExtension {
         try (InputStream is =
                      contrastSDK.makeRequestWithBody(
                              HttpMethod.POST,
-                             urlBuilder.getTracesWithBodyUrl(organizationId, appId)+"?expand=session_metadata",
+                             urlBuilder.getTracesWithBodyUrl(organizationId, appId)+"?expand=session_metadata,server_environments",
                              this.gson.toJson(filters),
                              MediaType.JSON);
              Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {

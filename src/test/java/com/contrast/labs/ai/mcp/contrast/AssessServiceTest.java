@@ -25,7 +25,6 @@ import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.models.Trace;
 import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.models.Rules;
-import com.contrastsecurity.models.Server;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -727,16 +726,9 @@ class AssessServiceTest {
         when(trace1.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
         when(trace1.getClosedTime()).thenReturn(null);
 
-        // Create servers with different environments
-        Server server1 = mock(Server.class);
-        when(server1.getEnvironment()).thenReturn("PRODUCTION");
-        Server server2 = mock(Server.class);
-        when(server2.getEnvironment()).thenReturn("QA");
-        Server server3 = mock(Server.class);
-        when(server3.getEnvironment()).thenReturn("PRODUCTION"); // Duplicate - should be deduplicated
-
-        List<Server> servers1 = List.of(server1, server2, server3);
-        when(trace1.getServers()).thenReturn(servers1);
+        // Set server_environments with different environments
+        when(trace1.getServerEnvironments()).thenReturn(List.of("PRODUCTION", "QA", "PRODUCTION")); // Duplicate - should be deduplicated
+        when(trace1.getTags()).thenReturn(new ArrayList<>());
         traces.add(trace1);
 
         // Trace 2: No servers
@@ -749,7 +741,8 @@ class AssessServiceTest {
         when(trace2.getStatus()).thenReturn("REPORTED");
         when(trace2.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
         when(trace2.getClosedTime()).thenReturn(null);
-        when(trace2.getServers()).thenReturn(new ArrayList<>());
+        when(trace2.getServerEnvironments()).thenReturn(new ArrayList<>());
+        when(trace2.getTags()).thenReturn(new ArrayList<>());
         traces.add(trace2);
 
         // Trace 3: Single server with one environment
@@ -762,10 +755,8 @@ class AssessServiceTest {
         when(trace3.getStatus()).thenReturn("CONFIRMED");
         when(trace3.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 172800000L);
         when(trace3.getClosedTime()).thenReturn(null);
-
-        Server server4 = mock(Server.class);
-        when(server4.getEnvironment()).thenReturn("DEVELOPMENT");
-        when(trace3.getServers()).thenReturn(List.of(server4));
+        when(trace3.getServerEnvironments()).thenReturn(List.of("DEVELOPMENT"));
+        when(trace3.getTags()).thenReturn(new ArrayList<>());
         traces.add(trace3);
 
         // Set up mockTraces
@@ -834,7 +825,8 @@ class AssessServiceTest {
         when(trace.getLastTimeSeen()).thenReturn(lastSeen);
         when(trace.getFirstTimeSeen()).thenReturn(firstSeen);
         when(trace.getClosedTime()).thenReturn(closed);
-        when(trace.getServers()).thenReturn(new ArrayList<>());
+        when(trace.getServerEnvironments()).thenReturn(new ArrayList<>());
+        when(trace.getTags()).thenReturn(new ArrayList<>());
 
         Traces mockTraces = mock(Traces.class);
         when(mockTraces.getTraces()).thenReturn(List.of(trace));
@@ -889,7 +881,8 @@ class AssessServiceTest {
         when(trace.getLastTimeSeen()).thenReturn(JAN_15_2025_10_30_UTC);  // lastSeen is required
         when(trace.getFirstTimeSeen()).thenReturn(null);  // optional
         when(trace.getClosedTime()).thenReturn(null);  // optional
-        when(trace.getServers()).thenReturn(new ArrayList<>());
+        when(trace.getServerEnvironments()).thenReturn(new ArrayList<>());
+        when(trace.getTags()).thenReturn(new ArrayList<>());
 
         Traces mockTraces = mock(Traces.class);
         when(mockTraces.getTraces()).thenReturn(List.of(trace));
