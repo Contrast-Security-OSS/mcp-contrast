@@ -86,6 +86,14 @@ This codebase handles sensitive vulnerability data. The README contains critical
 
 This project uses Beads (bd) for issue tracking. See the MCP resource `beads://quickstart` for usage details.
 
+### Managing Bead Dependencies
+
+**Command syntax:** `bd dep add <dependent-task> <prerequisite-task>`
+
+Example: If B must be done after A completes, use `bd dep add B A` (not `bd dep add A B`).
+
+Verify with `bd show <task-id>` - dependent tasks show "Depends on", prerequisites show "Blocks".
+
 ### Testing Requirements Before Closing Beads
 
 **CRITICAL: Before closing any bead, you MUST:**
