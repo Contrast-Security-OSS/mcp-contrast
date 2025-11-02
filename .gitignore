@@ -37,3 +37,6 @@ build/
 .AppleDouble
 .LSOverride
 .env.integration-test
+
+### Beads ###
+.beads/
