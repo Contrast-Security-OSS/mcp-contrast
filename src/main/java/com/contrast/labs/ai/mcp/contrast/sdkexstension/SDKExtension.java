@@ -18,6 +18,9 @@ package com.contrast.labs.ai.mcp.contrast.sdkexstension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibrariesExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.Attack;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksFilterBody;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.ApplicationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservation;
@@ -33,6 +36,9 @@ import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.sdk.ContrastSDK;
 import com.contrastsecurity.sdk.internal.GsonFactory;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
+import com.google.gson.reflect.TypeToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +49,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -64,7 +71,7 @@ public class SDKExtension {
         try (InputStream is =
                      contrastSDK.makeRequest(
                              HttpMethod.GET, urlBuilder.getLibrariesFilterUrl(organizationId, filterForm));
-             Reader reader = new InputStreamReader(is)) {
+             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             return gson.fromJson(reader, LibrariesExtended.class);
         }
     }
@@ -76,7 +83,7 @@ public class SDKExtension {
                      contrastSDK.makeRequest(
                              HttpMethod.GET,
                              urlBuilder.getLibrariesFilterUrl(organizationId, appId, filterForm));
-             Reader reader = new InputStreamReader(is)) {
+             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             return gson.fromJson(reader, LibrariesExtended.class);
         }
     }
@@ -88,7 +95,7 @@ public class SDKExtension {
                              getProtectDataURL(orgID, appID));
 
         ) {
-            Reader reader = new InputStreamReader(is);
+            Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
             return gson.fromJson(reader, ProtectData.class);
         }
     }
@@ -100,7 +107,7 @@ public class SDKExtension {
                              getCVEDataURL(organizationId, cveID, new FilterForm()));
 
         ) {
-            Reader reader = new InputStreamReader(is);
+            Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
             return gson.fromJson(reader, CveData.class);
         }
     }
@@ -140,10 +147,10 @@ public class SDKExtension {
         
         do {
             String url = getLibraryObservationsUrl(organizationId, applicationId, libraryId, offset, pageSize);
-            
+
             try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
-                 Reader reader = new InputStreamReader(is)) {
-                
+                 Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+
                 LibraryObservationsResponse response = gson.fromJson(reader, LibraryObservationsResponse.class);
                 
                 if (response.getObservations() != null) {
@@ -191,7 +198,7 @@ public class SDKExtension {
         String url = getRouteDetailsUrl(organizationId, applicationId, routeHash);
 
         try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
-             Reader reader = new InputStreamReader(is)) {
+             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             return gson.fromJson(reader, RouteDetailsResponse.class);
         }
     }
@@ -225,7 +232,7 @@ public class SDKExtension {
                         MediaType.JSON);
             }
 
-            try (Reader reader = new InputStreamReader(is)) {
+            try (Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
                 return gson.fromJson(reader, RouteCoverageResponse.class);
             }
         } finally {
@@ -275,7 +282,7 @@ public class SDKExtension {
         } else {
             // Stream response directly without buffering
             try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
-                 Reader reader = new InputStreamReader(is)) {
+                 Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
                 return this.gson.fromJson(reader, ApplicationsResponse.class);
             }
         }
@@ -311,10 +318,10 @@ public class SDKExtension {
         try (InputStream is =
                      contrastSDK.makeRequestWithBody(
                              HttpMethod.POST,
-                             urlBuilder.getTracesWithBodyUrl(organizationId, appId)+"?expand=session_metadata",
+                             urlBuilder.getTracesWithBodyUrl(organizationId, appId)+"?expand=session_metadata,server_environments",
                              this.gson.toJson(filters),
                              MediaType.JSON);
-             Reader reader = new InputStreamReader(is)) {
+             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             return this.gson.fromJson(reader, Traces.class);
         }
     }
@@ -327,7 +334,7 @@ public class SDKExtension {
                 organizationId, appId);
         try (InputStream is =
                      contrastSDK.makeRequest(HttpMethod.GET, url);
-             Reader reader = new InputStreamReader(is)) {
+             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             return this.gson.fromJson(reader, com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata.SessionMetadataResponse.class);
         }
     }
@@ -337,12 +344,92 @@ public class SDKExtension {
         try (InputStream is =
                      contrastSDK.makeRequestWithBody(
                              HttpMethod.POST,
-                             urlBuilder.getTracesWithBodyUrl(organizationId, appId)+"?expand=session_metadata",
+                             urlBuilder.getTracesWithBodyUrl(organizationId, appId)+"?expand=session_metadata,server_environments",
                              this.gson.toJson(filters),
                              MediaType.JSON);
-             Reader reader = new InputStreamReader(is)) {
+             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             return this.gson.fromJson(reader, com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.TracesExtended.class);
         }
+    }
+
+    // ==== ADR (Attack Detection and Response) Methods ====
+
+    /**
+     * Retrieves attacks from the Contrast platform based on filter criteria.
+     *
+     * @param organizationId The organization ID
+     * @param filterBody Filter criteria for attacks (can be null for default filter)
+     * @param limit Maximum number of attacks to return (default: 1000)
+     * @param offset Pagination offset (default: 0)
+     * @param sort Sort order (default: -startTime)
+     * @return AttacksResponse containing attacks list and pagination metadata (count)
+     * @throws IOException If an I/O error occurs
+     * @throws UnauthorizedException If the request is not authorized
+     */
+    public AttacksResponse getAttacks(String organizationId, AttacksFilterBody filterBody,
+                                      Integer limit, Integer offset, String sort)
+            throws IOException, UnauthorizedException {
+
+        // Set default values if not provided
+        if (limit == null) limit = 1000;
+        if (offset == null) offset = 0;
+        if (sort == null) sort = "-startTime";
+        if (filterBody == null) filterBody = AttacksFilterBody.builder().build();
+
+        String url = String.format(
+                "/ng/%s/attacks?expand=skip_links&limit=%d&offset=%d&sort=%s",
+                organizationId, limit, offset, sort);
+
+        try (InputStream is = contrastSDK.makeRequestWithBody(
+                HttpMethod.POST,
+                url,
+                this.gson.toJson(filterBody),
+                MediaType.JSON);
+             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+
+            // Parse complete JSON response including metadata
+            AttacksResponse response = this.gson.fromJson(reader, AttacksResponse.class);
+
+            // Handle null response gracefully
+            if (response == null) {
+                response = new AttacksResponse();
+                response.setAttacks(new ArrayList<>());
+            }
+
+            // Ensure attacks list is never null
+            if (response.getAttacks() == null) {
+                response.setAttacks(new ArrayList<>());
+            }
+
+            return response;
+        }
+    }
+
+    /**
+     * Retrieves attacks with default parameters (limit=1000, offset=0, sort=-startTime).
+     *
+     * @param organizationId The organization ID
+     * @param filterBody Filter criteria for attacks (can be null for default filter)
+     * @return AttacksResponse containing attacks list and pagination metadata
+     * @throws IOException If an I/O error occurs
+     * @throws UnauthorizedException If the request is not authorized
+     */
+    public AttacksResponse getAttacks(String organizationId, AttacksFilterBody filterBody)
+            throws IOException, UnauthorizedException {
+        return getAttacks(organizationId, filterBody, null, null, null);
+    }
+
+    /**
+     * Retrieves attacks with default filter and parameters.
+     *
+     * @param organizationId The organization ID
+     * @return AttacksResponse containing attacks list and pagination metadata
+     * @throws IOException If an I/O error occurs
+     * @throws UnauthorizedException If the request is not authorized
+     */
+    public AttacksResponse getAttacks(String organizationId)
+            throws IOException, UnauthorizedException {
+        return getAttacks(organizationId, null, null, null, null);
     }
 
 

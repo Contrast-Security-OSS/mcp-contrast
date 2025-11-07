@@ -15,25 +15,39 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
+import com.contrast.labs.ai.mcp.contrast.data.AttackSummary;
+import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.Attack;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksFilterBody;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
+import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ADRService {
 
     private static final Logger logger = LoggerFactory.getLogger(ADRService.class);
 
+    private final PaginationHandler paginationHandler;
+
+    public ADRService(PaginationHandler paginationHandler) {
+        this.paginationHandler = paginationHandler;
+    }
 
     @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
     private String hostName;
@@ -58,7 +72,8 @@ public class ADRService {
 
 
     @Tool(name = "get_ADR_Protect_Rules", description = "takes a application name and returns the protect / adr rules for the application")
-    public ProtectData getProtectData(String applicationName) throws IOException {
+    public ProtectData getProtectData(
+            @ToolParam(description = "Application name") String applicationName) throws IOException {
         logger.info("Starting retrieval of protection rules for application: {}", applicationName);
         long startTime = System.currentTimeMillis();
 
@@ -89,7 +104,8 @@ public class ADRService {
 
 
     @Tool(name = "get_ADR_Protect_Rules_by_app_id", description = "takes a application ID and returns the protect / adr rules for the application")
-    public ProtectData getProtectDataByAppID(String appID) throws IOException {
+    public ProtectData getProtectDataByAppID(
+            @ToolParam(description = "Application ID") String appID) throws IOException {
         if (appID == null || appID.isEmpty()) {
             logger.error("Cannot retrieve protection rules - application ID is null or empty");
             throw new IllegalArgumentException("Application ID cannot be null or empty");
@@ -125,6 +141,109 @@ public class ADRService {
             long duration = System.currentTimeMillis() - startTime;
             logger.error("Error retrieving protection rules for application ID: {} (after {} ms): {}",
                     appID, duration, e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    @Tool(
+        name = "get_attacks",
+        description = """
+            Retrieves attacks from Contrast ADR (Attack Detection and Response) with optional filtering
+            and sorting. Supports filtering by status/severity presets, keywords, and attack types.
+
+            Returns a paginated list of attack summaries with key information including rule names,
+            status, severity, affected applications, source IP, and probe counts.
+            """
+    )
+    public PaginatedResponse<AttackSummary> getAttacks(
+            @ToolParam(description = "Quick filter preset (e.g., EXPLOITED, PROBED) for status/severity filtering", required = false)
+            String quickFilter,
+            @ToolParam(description = "Keyword to match against rule names, sources, or notes", required = false)
+            String keyword,
+            @ToolParam(description = "Include suppressed attacks when true", required = false)
+            Boolean includeSuppressed,
+            @ToolParam(description = "Include attacks flagged as bot blockers", required = false)
+            Boolean includeBotBlockers,
+            @ToolParam(description = "Include attacks from blacklisted IPs", required = false)
+            Boolean includeIpBlacklist,
+            @ToolParam(description = "Sort order (default: -startTime, prefix '-' for descending)", required = false)
+            String sort,
+            @ToolParam(description = "Page number (1-based), default: 1", required = false)
+            Integer page,
+            @ToolParam(description = "Items per page (max 100), default: 50", required = false)
+            Integer pageSize
+    ) throws IOException {
+        PaginationParams pagination = PaginationParams.of(page, pageSize);
+
+        logger.info(
+            "Retrieving attacks from Contrast ADR (quickFilter: {}, keyword: {}, sort: {}, page: {}, pageSize: {})",
+            quickFilter, keyword, sort, pagination.page(), pagination.pageSize()
+        );
+        long startTime = System.currentTimeMillis();
+
+        // Parse and validate filter parameters
+        AttackFilterParams filters = AttackFilterParams.of(
+            quickFilter, keyword, includeSuppressed,
+            includeBotBlockers, includeIpBlacklist, sort
+        );
+
+        if (!filters.isValid()) {
+            logger.warn("Invalid attack filter parameters: {}", String.join("; ", filters.errors()));
+            return PaginatedResponse.error(
+                pagination.page(),
+                pagination.pageSize(),
+                String.join(" ", filters.errors())
+            );
+        }
+
+        try {
+            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+            logger.debug("ContrastSDK initialized successfully for attacks retrieval");
+
+            SDKExtension extendedSDK = new SDKExtension(contrastSDK);
+            logger.debug("SDKExtension initialized successfully for attacks retrieval");
+
+            AttacksResponse attacksResponse = extendedSDK.getAttacks(
+                orgID,
+                filters.toAttacksFilterBody(),
+                pagination.limit(),
+                pagination.offset(),
+                sort
+            );
+            long duration = System.currentTimeMillis() - startTime;
+
+            List<Attack> safeAttacks = (attacksResponse.getAttacks() != null)
+                ? attacksResponse.getAttacks()
+                : List.of();
+
+            List<AttackSummary> summaries = safeAttacks.stream()
+                .map(AttackSummary::fromAttack)
+                .collect(Collectors.toList());
+
+            // Get totalItems from API response if available
+            Integer totalItems = attacksResponse.getTotalCount();
+
+            PaginatedResponse<AttackSummary> response = paginationHandler.createPaginatedResponse(
+                summaries,
+                pagination,
+                totalItems,
+                filters.messages()
+            );
+
+            logger.info(
+                "Successfully retrieved {} attacks (page: {}, pageSize: {}, totalItems: {}, hasMorePages: {}, took {} ms)",
+                response.items().size(),
+                response.page(),
+                response.pageSize(),
+                response.totalItems(),
+                response.hasMorePages(),
+                duration
+            );
+
+            return response;
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            logger.error("Error retrieving attacks (after {} ms): {}", duration, e.getMessage(), e);
             throw e;
         }
     }
