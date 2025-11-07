@@ -3,6 +3,12 @@ name: Maven Release
 on:
   workflow_dispatch:
 
+env:
+  DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: "${{secrets.DIGICERT_PKEY_PASSPHRASE}}"
+  DOCKER_CONTENT_TRUST_KEY_FILENAME: "${{secrets.DIGICERT_PKEY_FILENAME}}"
+  DOCKER_CONTENT_TRUST_PKEY_ROLE: "${{secrets.DIGICERT_PKEY_ROLE}}"
+  DOCKER_CONTENT_TRUST: 1
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -78,3 +84,58 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create the trust keys folder
+        shell: sh
+        run: mkdir -p ~/.docker/trust/private/
+
+      - name: Save PKEY to file
+        shell: sh
+        run: echo "${{secrets.DIGICERT_PKEY}}" > ~/.docker/trust/private/"${{secrets.DIGICERT_PKEY_FILENAME}}"
+
+      - name: Chmod key
+        shell: sh
+        run: chmod 600 ~/.docker/trust/private/"${{secrets.DIGICERT_PKEY_FILENAME}}"
+
+      - name: Docker load PKEY
+        run: docker trust key load ~/.docker/trust/private/"${{secrets.DIGICERT_PKEY_FILENAME}}" --name "${{secrets.DIGICERT_PKEY_ROLE}}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: contrast/mcp-contrast
+          tags: |
+            type=raw,value=${{ steps.versions.outputs.release }}
+            type=raw,value=latest
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker image (without pushing)
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Push and sign Docker image with DCT
+        run: |
+          # The tags are newline-separated, not comma-separated
+          echo "${{ steps.meta.outputs.tags }}" | while read -r tag; do
+            echo "Pushing and signing $tag"
+            docker push $tag
+          done

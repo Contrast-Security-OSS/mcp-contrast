@@ -45,9 +45,13 @@ The Contrast MCP Server allow you to connect Contrast Security to your AI coding
     - [For the Security Professional](#for-the-security-professional)
   - [Data Privacy](#data-privacy)
   - [Build](#build)
+  - [Testing](#testing)
+    - [Unit Tests](#unit-tests)
+    - [Integration Tests](#integration-tests)
   - [Run](#run)
   - [Docker](#docker)
     - [Build Docker Image](#build-docker-image)
+    - [Run with Docker](#run-with-docker)
     - [Using Copilot + Petclinic](#using-copilot--petclinic)
       - [Install via Link in VScode](#install-via-link-in-vscode)
       - [Manual Install of MCP Server](#manual-install-of-mcp-server)
@@ -109,6 +113,33 @@ Depending on what questions you ask the following information will be provided t
 Requires Java 17+
 
 `mvn clean install`
+
+## Testing
+
+### Unit Tests
+Run unit tests during development:
+```bash
+mvn test
+```
+
+### Integration Tests
+Integration tests validate against a real TeamServer instance. See [INTEGRATION_TESTS.md](INTEGRATION_TESTS.md) for detailed setup instructions.
+
+Quick start:
+```bash
+# 1. Set up credentials
+cp .env.integration-test.template .env.integration-test
+# Edit .env.integration-test with your credentials
+
+# 2. Run integration tests
+source .env.integration-test
+mvn verify
+
+# 3. Skip integration tests
+mvn verify -DskipITs
+```
+
+Integration tests only run when `CONTRAST_HOST_NAME` environment variable is set.
 
 ## Run
 To add the MCP Server to your local AI system, modify the config.json file and add the following
