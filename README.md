@@ -3,50 +3,44 @@
 [![Java CI with Maven](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
+The Contrast MCP Server allows you to connect Contrast Security to your AI coding agent to automatically remediate vulnerabilities, update insecure libraries, and analyze security coverage—all through natural language prompts.
 
-The Contrast MCP Server allow you to connect Contrast Security to your AI coding agent to automatically remediate vulnerabilities, update insecure libraries, and analyze security coverage—all through natural language prompts.
+- Remediate vulnerabilities directly from Contrast Assess data
+- Identify and update insecure third-party libraries with Contrast SCA insights
+- Review route coverage, Protect/ADR findings, and other security metadata on demand
 
-![output.gif](images/output.gif)
+> [!WARNING]
+> **CRITICAL SECURITY WARNING:** Exposing Contrast vulnerability data to an AI service that trains on your prompts can leak sensitive information. Only use mcp-contrast with environments that contractually guarantee data isolation and prohibit model training on your inputs.
+>
+> **Verify AI Data Privacy:** Confirm that your service agreement prevents model training on your prompts and consult your security team before sharing Contrast data.
+>
+> **UNSAFE:** Public consumer LLM sites (e.g., free ChatGPT, Gemini, Claude) that use prompts for training.
+>
+> **POTENTIALLY SAFE:** Enterprise services with contractual privacy guarantees (e.g., Google Cloud AI, AWS Bedrock, Azure OpenAI).
 
-## Quick Install
+## Quick Start
 
-**VS Code (One-Click Install):**
+**VS Code Users - One-Click Install:**
 
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_contrast--mcp-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22contrast-mcp%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22docker%22%2C%22args%22%3A%5B%22run%22%2C%22-e%22%2C%22CONTRAST_HOST_NAME%22%2C%22-e%22%2C%22CONTRAST_API_KEY%22%2C%22-e%22%2C%22CONTRAST_SERVICE_KEY%22%2C%22-e%22%2C%22CONTRAST_USERNAME%22%2C%22-e%22%2C%22CONTRAST_ORG_ID%22%2C%22-i%22%2C%22--rm%22%2C%22contrast%2Fmcp-contrast%3Alatest%22%2C%22-t%22%2C%22stdio%22%5D%2C%22env%22%3A%7B%22CONTRAST_HOST_NAME%22%3A%22%24%7Binput%3Acontrast_host_name%7D%22%2C%22CONTRAST_ORG_ID%22%3A%22%24%7Binput%3Acontrast_org_id%7D%22%2C%22CONTRAST_USERNAME%22%3A%22%24%7Binput%3Acontrast_username%7D%22%2C%22CONTRAST_API_KEY%22%3A%22%24%7Binput%3Acontrast_api_key%7D%22%2C%22CONTRAST_SERVICE_KEY%22%3A%22%24%7Binput%3Acontrast_service_key%7D%22%7D%7D)
 
-**Other Clients:** See [Installation Guide](#docker) below
+**Other IDEs:**
 
----
+1. Get your [Contrast API credentials](https://docs.contrastsecurity.com/en/personal-keys.html)
+2. Copy the Docker configuration for your IDE below
+3. Verify: Ask your AI assistant "List applications in Contrast"
 
-> [!WARNING]
-> **CRITICAL SECURITY WARNING:** 
-> EXPOSING YOUR CONTRAST VULNERABILITY DATA TO A LLM THAT TRAINS ON YOUR DATA CAN POTENTIALLY EXPOSE YOUR VULNERABILITY DATA TO THE OUTSIDE WORLD. 
-> Thus, do not use mcp-contrast functions which pull sensitive data with a LLM that trains on your data.
->
-> **Verify AI Data Privacy:** Before sending vulnerability data to an AI, you must confirm that your service agreement guarantees your data will not be used for model training.
->
-> **UNSAFE:** Public consumer websites (e.g., the free versions of ChatGPT, Gemini, Claude). These services often use your input for training.
->
-> **POTENTIALLY-SAFE:** Enterprise-grade services (e.g. Google Cloud AI, AWS Bedrock, Azure OpenAI) or paid plans that contractually ensure data privacy and prevent model training on your prompts, verify with your information security teams.
+## Navigation
 
----
-
-## Table of Contents
-- [Contrast MCP Server](#contrast-mcp-server)
-  - [Quick Install](#quick-install)
-  - [Table of Contents](#table-of-contents)
-  - [Sample Prompts](#sample-prompts)
-    - [For the Developer](#for-the-developer)
-    - [For the Security Professional](#for-the-security-professional)
-  - [Data Privacy](#data-privacy)
-  - [Installation](#installation)
-    - [Prerequisites](#prerequisites)
-    - [Install in VS Code / GitHub Copilot](#install-in-vs-code--github-copilot-recommended)
-    - [Install in Other MCP Hosts](#install-in-other-mcp-hosts)
-  - [Download](#download)
-  - [Build from Source](#build-from-source)
-  - [Proxy Configuration](#proxy-configuration)
-  - [Common Issues](#common-issues)
+| Section | Highlights |
+| --- | --- |
+| [Quick Start](#quick-start) | One-click VS Code install or Docker configs for IntelliJ/VS Code |
+| [Installation](#installation) | Complete Docker configurations and detailed guides |
+| [Usage](#sample-prompts) | Example prompts for developers and security teams |
+| [Download & Build](#download) | Pre-built JARs and source build instructions |
+| [Configuration](#proxy-configuration) | Proxy, logging, and certificate tuning |
+| [Troubleshooting](#common-issues) | Log locations, debug tips, and certificate fixes |
+| [Reference](teamserver-routes-used-by-mcp-server.md) | TeamServer API routes required by the MCP server |
 
 ## Sample Prompts
 ### For the Developer
@@ -92,32 +86,126 @@ Depending on what questions you ask the following information will be provided t
 
 ### Prerequisites
 
-- Java 17+ (for JAR deployment)
-- Docker (for Docker deployment - recommended)
+- Docker (recommended) or Java 17+ for JAR deployment
 - Contrast API credentials ([how to get API credentials](https://docs.contrastsecurity.com/en/personal-keys.html))
 
-### Install in VS Code / GitHub Copilot (Recommended)
+### IntelliJ IDEA + GitHub Copilot
 
-#### One-Click Install
+**Docker Configuration (Recommended):**
 
-Click the button below for automatic installation in VS Code:
+```json
+{
+  "servers": {
+    "contrastmcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-e",
+        "CONTRAST_HOST_NAME",
+        "-e",
+        "CONTRAST_API_KEY",
+        "-e",
+        "CONTRAST_SERVICE_KEY",
+        "-e",
+        "CONTRAST_USERNAME",
+        "-e",
+        "CONTRAST_ORG_ID",
+        "-i",
+        "--rm",
+        "contrast/mcp-contrast:latest",
+        "-t",
+        "stdio"
+      ],
+      "env": {
+        "CONTRAST_HOST_NAME": "example.contrastsecurity.com",
+        "CONTRAST_API_KEY": "example",
+        "CONTRAST_SERVICE_KEY": "example",
+        "CONTRAST_USERNAME": "example@example.com",
+        "CONTRAST_ORG_ID": "example"
+      }
+    }
+  }
+}
+```
 
-[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_contrast--mcp-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22contrast-mcp%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22docker%22%2C%22args%22%3A%5B%22run%22%2C%22-e%22%2C%22CONTRAST_HOST_NAME%22%2C%22-e%22%2C%22CONTRAST_API_KEY%22%2C%22-e%22%2C%22CONTRAST_SERVICE_KEY%22%2C%22-e%22%2C%22CONTRAST_USERNAME%22%2C%22-e%22%2C%22CONTRAST_ORG_ID%22%2C%22-i%22%2C%22--rm%22%2C%22contrast%2Fmcp-contrast%3Alatest%22%2C%22-t%22%2C%22stdio%22%5D%2C%22env%22%3A%7B%22CONTRAST_HOST_NAME%22%3A%22%24%7Binput%3Acontrast_host_name%7D%22%2C%22CONTRAST_ORG_ID%22%3A%22%24%7Binput%3Acontrast_org_id%7D%22%2C%22CONTRAST_USERNAME%22%3A%22%24%7Binput%3Acontrast_username%7D%22%2C%22CONTRAST_API_KEY%22%3A%22%24%7Binput%3Acontrast_api_key%7D%22%2C%22CONTRAST_SERVICE_KEY%22%3A%22%24%7Binput%3Acontrast_service_key%7D%22%7D%7D)
+📖 [Full IntelliJ Installation Guide](docs/installation-guides/install-intellij.md) - Includes step-by-step setup and JAR deployment option
 
-This will automatically configure VS Code with secure input variables for your credentials.
+### VS Code + GitHub Copilot
 
-#### Manual VS Code Installation
+**Manual Docker Configuration:**
 
-See the complete [VS Code Installation Guide](docs/installation-guides/install-vscode.md) for manual setup instructions.
+```json
+{
+  "contrastmcp": {
+    "inputs": [
+      {
+        "type": "promptString",
+        "id": "contrast_host_name",
+        "description": "Your Contrast Server's host name (without https://)"
+      },
+      {
+        "type": "promptString",
+        "id": "contrast_org_id",
+        "description": "Your Contrast Organization ID."
+      },
+      {
+        "type": "promptString",
+        "id": "contrast_username",
+        "description": "Your Contrast User Name (Usually your email)."
+      },
+      {
+        "type": "promptString",
+        "id": "contrast_api_key",
+        "description": "API key for you Contrast Installation.",
+        "password": true
+      },
+      {
+        "type": "promptString",
+        "id": "contrast_service_key",
+        "description": "Service key for you Contrast Installation.",
+        "password": true
+      }
+    ],
+    "command": "docker",
+    "args": [
+      "run",
+      "-e",
+      "CONTRAST_HOST_NAME",
+      "-e",
+      "CONTRAST_API_KEY",
+      "-e",
+      "CONTRAST_SERVICE_KEY",
+      "-e",
+      "CONTRAST_USERNAME",
+      "-e",
+      "CONTRAST_ORG_ID",
+      "-i",
+      "--rm",
+      "contrast/mcp-contrast:latest",
+      "-t",
+      "stdio"
+    ],
+    "env": {
+      "CONTRAST_HOST_NAME": "${input:contrast_host_name}",
+      "CONTRAST_ORG_ID": "${input:contrast_org_id}",
+      "CONTRAST_USERNAME": "${input:contrast_username}",
+      "CONTRAST_API_KEY": "${input:contrast_api_key}",
+      "CONTRAST_SERVICE_KEY": "${input:contrast_service_key}"
+    }
+  }
+}
+```
 
-### Install in Other MCP Hosts
+📖 [Full VS Code Installation Guide](docs/installation-guides/install-vscode.md) - Includes step-by-step setup and JAR deployment option
 
-The Contrast MCP Server can be installed in any MCP-compatible host. Each guide includes both Docker and JAR installation options:
+### Other MCP Hosts
 
-- **[IntelliJ IDEA](docs/installation-guides/install-intellij.md)** - GitHub Copilot integration
-- **[Cline Plugin](docs/installation-guides/install-cline.md)** - VS Code extension
-- **[Claude Desktop](docs/installation-guides/install-claude-desktop.md)** - Standalone application
+For other AI assistants and environments, see our complete installation guides:
+
+- **[Claude Desktop](docs/installation-guides/install-claude-desktop.md)** - Standalone Claude application
+- **[Cline Plugin](docs/installation-guides/install-cline.md)** - VS Code alternative AI assistant
 - **[oterm](docs/installation-guides/install-oterm.md)** - Terminal wrapper for Ollama
+- **[All Installation Guides](docs/installation-guides/)** - Complete list with Docker and JAR options
 
 ## Download
 
@@ -255,5 +343,3 @@ Failed to list applications: PKIX path building failed: sun.security.provider.ce
 If this occurs you will need to add the certificate to the Java Truststore and then add the following to the command line arguments when running the MCP server:
 `-Djavax.net.ssl.trustStore=/loctaion/to/mcp-truststore.jks, -Djavax.net.ssl.trustStorePassword=yourpassword`
 More details on how to do this can be found in the [Java documentation](https://docs.oracle.com/cd/E19509-01/820-3503/6nf1il6er/index.html). Or ask your LLM to help you with this.
-
-
