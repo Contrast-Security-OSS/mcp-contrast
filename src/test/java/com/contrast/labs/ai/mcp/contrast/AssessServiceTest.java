@@ -145,6 +145,28 @@ class AssessServiceTest {
     }
 
     @Test
+    void testGetAllVulnerabilities_SetsExpandParametersCorrectly() throws Exception {
+        // Given - Test that SESSION_METADATA and SERVER_ENVIRONMENTS expand are set
+        Traces mockTraces = createMockTraces(10, 10);
+        when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
+            .thenReturn(mockTraces);
+
+        // When
+        assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
+
+        // Then - Verify expand parameters include SESSION_METADATA and SERVER_ENVIRONMENTS
+        ArgumentCaptor<TraceFilterForm> captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+        verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
+
+        TraceFilterForm form = captor.getValue();
+        assertNotNull(form.getExpand());
+        assertTrue(form.getExpand().contains(TraceFilterForm.TraceExpandValue.SESSION_METADATA),
+            "Expand should include SESSION_METADATA");
+        assertTrue(form.getExpand().contains(TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS),
+            "Expand should include SERVER_ENVIRONMENTS");
+    }
+
+    @Test
     void testGetAllVulnerabilities_CallsPaginationHandlerCorrectly() throws Exception {
         // Given
         Traces mockTraces = createMockTraces(50, 150);

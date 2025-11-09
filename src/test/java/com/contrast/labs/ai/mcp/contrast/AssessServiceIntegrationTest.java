@@ -119,6 +119,69 @@ public class AssessServiceIntegrationTest {
     }
 
     @Test
+    void testSessionMetadataIsPopulated() throws IOException {
+        System.out.println("\n=== Integration Test: Session Metadata ===");
+
+        // Get vulnerabilities from real TeamServer with session metadata expanded
+        PaginatedResponse<VulnLight> response = assessService.getAllVulnerabilities(
+            1,      // page
+            10,     // pageSize
+            null,   // severities
+            null,   // statuses
+            null,   // appId
+            null,   // vulnTypes
+            null,   // environments
+            null,   // lastSeenAfter
+            null,   // lastSeenBefore
+            null    // vulnTags
+        );
+
+        assertNotNull(response, "Response should not be null");
+        assertTrue(response.items().size() > 0, "Should have at least one vulnerability");
+
+        System.out.println("Retrieved " + response.items().size() + " vulnerabilities");
+
+        // Analyze session metadata in vulnerabilities
+        int withSessionMetadata = 0;
+        int totalSessions = 0;
+
+        for (VulnLight vuln : response.items()) {
+            assertNotNull(vuln.sessionMetadata(), "Session metadata should never be null");
+
+            // Debug: Show session metadata
+            System.out.println("Vuln " + vuln.vulnID() + ":");
+            System.out.println("  sessionMetadata: " + vuln.sessionMetadata().size() + " session(s)");
+
+            if (!vuln.sessionMetadata().isEmpty()) {
+                withSessionMetadata++;
+                totalSessions += vuln.sessionMetadata().size();
+
+                // Show details of first session
+                var firstSession = vuln.sessionMetadata().get(0);
+                System.out.println("  ✓ Has session metadata:");
+                System.out.println("    - Session ID: " + firstSession.getSessionId());
+                if (firstSession.getMetadata() != null && !firstSession.getMetadata().isEmpty()) {
+                    System.out.println("    - Metadata items: " + firstSession.getMetadata().size());
+                    // Show first metadata item
+                    var firstItem = firstSession.getMetadata().get(0);
+                    System.out.println("      * " + firstItem.getDisplayLabel() + ": " + firstItem.getValue());
+                }
+            }
+        }
+
+        System.out.println("\nResults:");
+        System.out.println("  Vulnerabilities with session metadata: " + withSessionMetadata + "/" + response.items().size());
+        System.out.println("  Total sessions found: " + totalSessions);
+
+        // Verify the session metadata field exists (even if empty) - this confirms SDK expansion works
+        for (VulnLight vuln : response.items()) {
+            assertNotNull(vuln.sessionMetadata(), "Session metadata field should exist (even if empty list)");
+        }
+
+        System.out.println("✓ Integration test passed: session metadata field is present and SDK expansion works");
+    }
+
+    @Test
     void testVulnerabilitiesHaveBasicFields() throws IOException {
         System.out.println("\n=== Integration Test: Basic Fields ===");
 

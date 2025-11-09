@@ -15,25 +15,16 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces;
 
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.SessionMetadata;
 import com.contrastsecurity.models.Trace;
-import com.google.gson.annotations.SerializedName;
-
-import java.util.List;
 
 /**
  * Extended Trace class that includes session metadata information.
  * This extends the standard Trace class from the Contrast SDK.
+ *
+ * Note: As of SDK 3.4.4, the base Trace class now includes session metadata support,
+ * so this class now just extends Trace without overriding anything.
+ * This class is kept for backward compatibility with code that references TraceExtended.
  */
 public class TraceExtended extends Trace {
-    @SerializedName("session_metadata")
-    private List<SessionMetadata> sessionMetadata;
-
-    public List<SessionMetadata> getSessionMetadata() {
-        return sessionMetadata;
-    }
-
-    public void setSessionMetadata(List<SessionMetadata> sessionMetadata) {
-        this.sessionMetadata = sessionMetadata;
-    }
+    // No additional fields needed - SDK Trace now has getSessionMetadata()
 }

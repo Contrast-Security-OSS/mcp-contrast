@@ -27,8 +27,6 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservation;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata.SessionMetadataResponse;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.MetadataItem;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.SessionMetadata;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.TraceExtended;
 import com.contrastsecurity.models.*;
 import com.contrastsecurity.models.TraceFilterBody;
@@ -513,7 +511,10 @@ public class AssessService {
             TraceFilterForm filterForm = filters.toTraceFilterForm();
             filterForm.setLimit(pagination.limit());
             filterForm.setOffset(pagination.offset());
-            filterForm.setExpand(EnumSet.of(TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS));
+            filterForm.setExpand(EnumSet.of(
+                TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
+                TraceFilterForm.TraceExpandValue.SESSION_METADATA
+            ));
 
             // Try organization-level API (or app-specific if appId provided)
             Traces traces;
