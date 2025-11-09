@@ -27,7 +27,6 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservati
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteDetailsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata.SessionMetadataResponse;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.TracesExtended;
 import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.http.*;
 import com.contrastsecurity.models.RouteCoverageBySessionIDAndMetadataRequest;
@@ -336,19 +335,6 @@ public class SDKExtension {
                      contrastSDK.makeRequest(HttpMethod.GET, url);
              Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
             return this.gson.fromJson(reader, com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata.SessionMetadataResponse.class);
-        }
-    }
-
-    public TracesExtended getTracesExtended(String organizationId, String appId, TraceFilterBody filters)
-            throws IOException, UnauthorizedException {
-        try (InputStream is =
-                     contrastSDK.makeRequestWithBody(
-                             HttpMethod.POST,
-                             urlBuilder.getTracesWithBodyUrl(organizationId, appId)+"?expand=session_metadata,server_environments",
-                             this.gson.toJson(filters),
-                             MediaType.JSON);
-             Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-            return this.gson.fromJson(reader, com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.TracesExtended.class);
         }
     }
 

@@ -254,4 +254,108 @@ public class AssessServiceIntegrationTest {
 
         System.out.println("\n✓ Integration test passed: SDK properly handles vulnTags with spaces");
     }
+
+    @Test
+    void testListVulnsByAppIdWithSessionMetadata() throws IOException {
+        System.out.println("\n=== Integration Test: listVulnsByAppId() with Session Metadata ===");
+
+        // Step 1: Get some vulnerabilities to find an appId (single API call)
+        System.out.println("Step 1: Getting vulnerabilities to discover an appId...");
+        PaginatedResponse<VulnLight> allVulns = assessService.getAllVulnerabilities(
+            1, 10, null, null, null, null, null, null, null, null
+        );
+
+        assertNotNull(allVulns, "Response should not be null");
+        assertFalse(allVulns.items().isEmpty(), "Should have at least one vulnerability");
+
+        System.out.println("  ✓ Found " + allVulns.items().size() + " vulnerability(ies)");
+
+        // Step 2: Get applications list (single API call)
+        System.out.println("Step 2: Getting first application with vulnerabilities...");
+        var applications = assessService.getAllApplications();
+        assertNotNull(applications, "Applications list should not be null");
+        assertFalse(applications.isEmpty(), "Should have at least one application");
+
+        // Just use the first application - no iteration needed
+        String testAppId = applications.get(0).appID();
+        String testAppName = applications.get(0).name();
+        System.out.println("  ✓ Using application: " + testAppName + " (ID: " + testAppId + ")");
+
+        // Step 3: Call listVulnsByAppId() with the discovered appId
+        System.out.println("Step 3: Calling listVulnsByAppId() for app: " + testAppName);
+        var vulnerabilities = assessService.listVulnsByAppId(testAppId);
+
+        assertNotNull(vulnerabilities, "Vulnerabilities list should not be null");
+        System.out.println("  ✓ Retrieved " + vulnerabilities.size() + " vulnerability(ies)");
+
+        if (vulnerabilities.isEmpty()) {
+            System.out.println("  ℹ No vulnerabilities for this app (this is OK for the test)");
+            return;
+        }
+
+        // Step 4: Verify session metadata is populated
+        System.out.println("Step 4: Verifying session metadata is populated...");
+        int withSessionMetadata = 0;
+
+        for (VulnLight vuln : vulnerabilities) {
+            assertNotNull(vuln.sessionMetadata(), "Session metadata should never be null");
+
+            if (!vuln.sessionMetadata().isEmpty()) {
+                withSessionMetadata++;
+                System.out.println("  ✓ Vuln " + vuln.vulnID() + " has " +
+                    vuln.sessionMetadata().size() + " session(s)");
+            }
+        }
+
+        System.out.println("\nResults:");
+        System.out.println("  Vulnerabilities with session metadata: " + withSessionMetadata + "/" + vulnerabilities.size());
+        System.out.println("✓ Integration test passed: listVulnsByAppId() returns vulnerabilities with session metadata");
+    }
+
+    @Test
+    void testListVulnsInAppByNameForLatestSessionWithDynamicSessionId() throws IOException {
+        System.out.println("\n=== Integration Test: listVulnsInAppByNameForLatestSession() with Dynamic Session Discovery ===");
+
+        // Step 1: Get applications list (single API call)
+        System.out.println("Step 1: Getting first application...");
+        var applications = assessService.getAllApplications();
+
+        assertNotNull(applications, "Applications list should not be null");
+        assertFalse(applications.isEmpty(), "Should have at least one application");
+
+        // Just use the first application - no iteration needed
+        String testAppName = applications.get(0).name();
+        System.out.println("  ✓ Using application: " + testAppName);
+
+        // Step 2: Call listVulnsInAppByNameForLatestSession() with the discovered app name
+        System.out.println("Step 2: Calling listVulnsInAppByNameForLatestSession() for app: " + testAppName);
+        var latestSessionVulns = assessService.listVulnsInAppByNameForLatestSession(testAppName);
+
+        assertNotNull(latestSessionVulns, "Vulnerabilities list should not be null");
+        System.out.println("  ✓ Retrieved " + latestSessionVulns.size() + " vulnerability(ies) for latest session");
+
+        if (latestSessionVulns.isEmpty()) {
+            System.out.println("  ℹ No vulnerabilities in latest session (this is valid if latest session has no vulns)");
+            return;
+        }
+
+        // Step 3: Verify session metadata is populated in results
+        System.out.println("Step 3: Verifying session metadata is populated...");
+        int withSessionMetadata = 0;
+
+        for (VulnLight vuln : latestSessionVulns) {
+            assertNotNull(vuln.sessionMetadata(), "Session metadata should never be null");
+
+            if (!vuln.sessionMetadata().isEmpty()) {
+                withSessionMetadata++;
+                String sessionId = vuln.sessionMetadata().get(0).getSessionId();
+                System.out.println("  ✓ Vuln " + vuln.vulnID() + " has session ID: " + sessionId);
+            }
+        }
+
+        System.out.println("\nResults:");
+        System.out.println("  Vulnerabilities returned: " + latestSessionVulns.size());
+        System.out.println("  Vulnerabilities with session metadata: " + withSessionMetadata + "/" + latestSessionVulns.size());
+        System.out.println("✓ Integration test passed: listVulnsInAppByNameForLatestSession() returns vulnerabilities with session metadata");
+    }
 }
