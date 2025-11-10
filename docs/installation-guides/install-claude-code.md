@@ -2,6 +2,9 @@
 
 This guide covers how to install and configure the Contrast MCP Server with Claude Code.
 
+> [!NOTE] Official Claude Code Documentation Reference
+> Anthropic's full Claude Code documentation for adding MCP servers can be found here: https://code.claude.com/docs/en/mcp
+
 ## Prerequisites
 
 - Claude Code installed ([download](https://claude.ai/code))
@@ -51,13 +54,14 @@ claude mcp add --transport stdio contrast \
   --CONTRAST_ORG_ID=your_org_id
 ```
 
+Replace the placeholder values with your actual Contrast credentials.
+
+Replace `/path/to/mcp-contrast-X.X.X.jar` with the actual path to your downloaded or built JAR file, and replace the credential values with your actual Contrast credentials.
+
 **Getting the JAR file:**
 - **Download** from [GitHub Releases](https://github.com/Contrast-Security-OSS/mcp-contrast/releases/latest) (recommended)
 - **Build** from source ([instructions](../../README.md#build-from-source))
 
-Replace `/path/to/mcp-contrast-X.X.X.jar` with the actual path to your downloaded or built JAR file, and replace the credential values with your actual Contrast credentials.
-
-> ⚠️ **Security Note:** Replace all `example` and placeholder values with your actual Contrast credentials. The credentials here are the API Credentials, not Agent credentials.
 
 ## Configuration Scopes
 

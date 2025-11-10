@@ -63,6 +63,8 @@ Add the following configuration to your `claude_desktop_config.json` file. If th
 }
 ```
 
+Replace the placeholder values with your actual Contrast credentials.
+
 ### Option 2: JAR Deployment
 
 If you prefer to run the JAR directly (requires Java 17+):
@@ -86,17 +88,16 @@ If you prefer to run the JAR directly (requires Java 17+):
 }
 ```
 
+Replace the placeholder values with your actual Contrast credentials.
+
+Replace `/path/to/mcp-contrast-X.X.X.jar` with the path to your downloaded or built JAR file.
+
 **Getting the JAR file:**
 - **Download** from [GitHub Releases](https://github.com/Contrast-Security-OSS/mcp-contrast/releases/latest) (recommended)
 - **Build** from source ([instructions](../../README.md#build-from-source))
 
-Replace `/path/to/mcp-contrast-X.X.X.jar` with the path to your downloaded or built JAR file.
 
-> ⚠️ **Security Note:** Replace all placeholder values (`example`, `xxx`) with your actual Contrast credentials. The credentials here are the API Credentials, not Agent credentials.
-
-3. **Restart Claude Desktop**
-
-   After saving the configuration, completely quit and restart Claude Desktop for the changes to take effect.
+After saving the configuration, completely quit and restart Claude Desktop for the changes to take effect.
 
 ## Verify Installation
 
@@ -111,41 +112,7 @@ Replace `/path/to/mcp-contrast-X.X.X.jar` with the path to your downloaded or bu
 - **CONTRAST_SERVICE_KEY**: Your service key from Contrast
 - **CONTRAST_USERNAME**: Your Contrast username (usually your email)
 - **CONTRAST_ORG_ID**: Your organization ID from Contrast
-
-## Alternative: Using Environment Variables
-
-Claude Desktop can read environment variables. For better security, you can set credentials as environment variables:
-
-**macOS/Linux:**
-```bash
-# Add to ~/.zshrc or ~/.bashrc
-export CONTRAST_HOST_NAME="your-instance.contrastsecurity.com"
-export CONTRAST_API_KEY="your_api_key"
-export CONTRAST_SERVICE_KEY="your_service_key"
-export CONTRAST_USERNAME="your@email.com"
-export CONTRAST_ORG_ID="your_org_id"
-```
-
-Then reference them in your config:
-```json
-{
-  "mcpServers": {
-    "contrastmcp": {
-      "command": "docker",
-      "args": ["run", "-e", "CONTRAST_HOST_NAME", "-e", "CONTRAST_API_KEY", "-e", "CONTRAST_SERVICE_KEY", "-e", "CONTRAST_USERNAME", "-e", "CONTRAST_ORG_ID", "-i", "--rm", "contrast/mcp-contrast:latest", "-t", "stdio"],
-      "env": {
-        "CONTRAST_HOST_NAME": "${CONTRAST_HOST_NAME}",
-        "CONTRAST_API_KEY": "${CONTRAST_API_KEY}",
-        "CONTRAST_SERVICE_KEY": "${CONTRAST_SERVICE_KEY}",
-        "CONTRAST_USERNAME": "${CONTRAST_USERNAME}",
-        "CONTRAST_ORG_ID": "${CONTRAST_ORG_ID}"
-      }
-    }
-  }
-}
-```
-
-**Note:** You'll need to restart Claude Desktop after setting environment variables.
+  
 
 ## Troubleshooting
 

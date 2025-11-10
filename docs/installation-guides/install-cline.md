@@ -68,6 +68,8 @@ Add the following configuration to the JSON file and replace the placeholder val
 }
 ```
 
+Replace the placeholder values with your actual Contrast credentials.
+
 ### Option 2: JAR Deployment
 
 If you prefer to run the JAR directly (requires Java 17+):
@@ -93,17 +95,18 @@ If you prefer to run the JAR directly (requires Java 17+):
 }
 ```
 
+Replace the placeholder values with your actual Contrast credentials.
+
+Replace `/path/to/mcp-contrast-X.X.X.jar` with the path to your downloaded or built JAR file.
+
 **Getting the JAR file:**
 - **Download** from [GitHub Releases](https://github.com/Contrast-Security-OSS/mcp-contrast/releases/latest) (recommended)
 - **Build** from source ([instructions](../../README.md#build-from-source))
 
-Replace `/path/to/mcp-contrast-X.X.X.jar` with the path to your downloaded or built JAR file.
 
-> ⚠️ **Security Note:** Replace all `example` values with your actual Contrast credentials. The credentials here are the API Credentials, not Agent credentials.
-
-4. **Save Configuration**
-   - Save the configuration file
-   - The Contrast MCP server should now appear in the list of MCP servers
+**Save Configuration**
+- Save the configuration file
+- The Contrast MCP server should now appear in the list of MCP servers
 
 ## Verify Installation
 
