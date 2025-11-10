@@ -149,7 +149,4 @@ If you're behind a corporate proxy, see the [Proxy Configuration](../../README.m
 ## Related Documentation
 
 - [Main README](../../README.md)
-- [VS Code Installation](./install-vscode.md)
-- [IntelliJ Installation](./install-intellij.md)
-- [Claude Desktop Installation](./install-claude-desktop.md)
-- [oterm Installation](./install-oterm.md)
+- [All Installation Guides](./README.md)

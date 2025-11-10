@@ -6,6 +6,23 @@ Each guide provides **both Docker and JAR deployment options**, allowing you to 
 
 ## Available Guides
 
+### [Claude Code](./install-claude-code.md)
+Install Contrast MCP Server in Claude Code, Anthropic's official CLI tool.
+
+**Best For:** CLI users, developers using Claude Code terminal interface
+
+**Deployment Options:**
+- ✅ Simple CLI command to add server
+- ✅ Docker (recommended)
+- ✅ JAR deployment
+
+**Key Features:**
+- One-command installation via `claude mcp add`
+- Three configuration scopes (local, project, user)
+- Built-in server management commands
+
+---
+
 ### [VS Code / GitHub Copilot](./install-vscode.md)
 Install Contrast MCP Server in Visual Studio Code with GitHub Copilot.
 
@@ -23,7 +40,7 @@ Install Contrast MCP Server in Visual Studio Code with GitHub Copilot.
 
 ---
 
-### [IntelliJ IDEA](./install-intellij.md)
+### [IntelliJ IDEA (GitHub Copilot)](./install-intellij.md)
 Install Contrast MCP Server in IntelliJ IDEA using GitHub Copilot's Agent Mode.
 
 **Best For:** IntelliJ users, Java/Kotlin developers

@@ -1,4 +1,4 @@
-# Installing Contrast MCP Server in IntelliJ
+# Installing Contrast MCP Server in IntelliJ IDEA (GitHub Copilot)
 
 This guide covers how to install and configure the Contrast MCP Server in IntelliJ IDEA using GitHub Copilot.
 
@@ -134,7 +134,4 @@ If you're behind a corporate proxy, see the [Proxy Configuration](../../README.m
 ## Related Documentation
 
 - [Main README](../../README.md)
-- [VS Code Installation](./install-vscode.md)
-- [Cline Installation](./install-cline.md)
-- [Claude Desktop Installation](./install-claude-desktop.md)
-- [oterm Installation](./install-oterm.md)
+- [All Installation Guides](./README.md)

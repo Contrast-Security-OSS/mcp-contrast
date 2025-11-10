@@ -184,7 +184,4 @@ If you're behind a corporate proxy, see the [Proxy Configuration](../../README.m
 ## Related Documentation
 
 - [Main README](../../README.md)
-- [VS Code Installation](./install-vscode.md)
-- [IntelliJ Installation](./install-intellij.md)
-- [Cline Installation](./install-cline.md)
-- [oterm Installation](./install-oterm.md)
+- [All Installation Guides](./README.md)

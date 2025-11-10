@@ -1,4 +1,4 @@
-# Installing Contrast MCP Server in VS Code
+# Installing Contrast MCP Server in VS Code (GitHub Copilot)
 
 This guide covers how to install and configure the Contrast MCP Server in VS Code with GitHub Copilot.
 
@@ -20,7 +20,7 @@ Click the button below to automatically install the Contrast MCP Server in VS Co
 
 This will automatically configure VS Code to use input variables for secure credential handling.
 
-### Option 2: Manual Installation
+### Option 2: Manual Installation (Docker)
 
 #### Step 1: Open VS Code Settings
 
@@ -204,7 +204,4 @@ If you're behind a corporate proxy, see the [Proxy Configuration](../../README.m
 ## Related Documentation
 
 - [Main README](../../README.md)
-- [IntelliJ Installation](./install-intellij.md)
-- [Cline Installation](./install-cline.md)
-- [Claude Desktop Installation](./install-claude-desktop.md)
-- [oterm Installation](./install-oterm.md)
+- [All Installation Guides](./README.md)
