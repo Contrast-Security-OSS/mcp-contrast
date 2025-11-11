@@ -476,4 +476,54 @@ class RouteCoverageServiceTest {
         verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull());
         verify(mockSDKExtension, never()).getLatestSessionMetadata(anyString(), anyString());
     }
+
+    @Test
+    void testGetRouteCoverage_EmptyStringParameters_TreatedAsNull() throws Exception {
+        // Arrange - Empty strings should be treated as null and trigger GET endpoint
+        // This fixes bug MCP-OU8 where empty strings were incorrectly treated as valid filters
+        RouteCoverageResponse mockResponse = createMockRouteCoverageResponse(2);
+        when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull()))
+            .thenReturn(mockResponse);
+        when(mockSDKExtension.getRouteDetails(any(), any(), any()))
+            .thenReturn(createMockRouteDetailsResponse());
+
+        // Act - Pass empty strings for sessionMetadataName and sessionMetadataValue
+        RouteCoverageResponse result = routeCoverageService.getRouteCoverage(TEST_APP_ID, "", "", false);
+
+        // Assert - Should call SDK with null (unfiltered query), not with empty metadata filter
+        assertNotNull(result);
+        assertTrue(result.isSuccess());
+        assertEquals(2, result.getRoutes().size());
+
+        // Verify SDK was called with null metadata (unfiltered query) - GET endpoint
+        verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull());
+
+        // Verify it did NOT try to create a metadata filter request with empty strings
+        verify(mockSDKExtension, never()).getRouteCoverage(
+            eq(TEST_ORG_ID),
+            eq(TEST_APP_ID),
+            any(RouteCoverageBySessionIDAndMetadataRequestExtended.class)
+        );
+
+        // Verify route details were fetched
+        verify(mockSDKExtension, times(2)).getRouteDetails(eq(TEST_ORG_ID), eq(TEST_APP_ID), anyString());
+    }
+
+    @Test
+    void testGetRouteCoverage_EmptySessionMetadataNameOnly_TreatedAsNull() throws Exception {
+        // Arrange - Empty sessionMetadataName with null value should also trigger unfiltered query
+        RouteCoverageResponse mockResponse = createMockRouteCoverageResponse(1);
+        when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull()))
+            .thenReturn(mockResponse);
+        when(mockSDKExtension.getRouteDetails(any(), any(), any()))
+            .thenReturn(createMockRouteDetailsResponse());
+
+        // Act
+        RouteCoverageResponse result = routeCoverageService.getRouteCoverage(TEST_APP_ID, "", null, null);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.isSuccess());
+        verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull());
+    }
 }

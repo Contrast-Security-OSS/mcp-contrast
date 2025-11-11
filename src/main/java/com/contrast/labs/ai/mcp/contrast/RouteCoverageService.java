@@ -51,9 +51,10 @@ public class RouteCoverageService {
      * - EXERCISED: Has received at least one HTTP request
      *
      * @param appId Required - The application ID to retrieve route coverage for
-     * @param sessionMetadataName Optional - Filter by session metadata field name (e.g., "branch")
+     * @param sessionMetadataName Optional - Filter by session metadata field name (e.g., "branch").
+     *                            Empty strings are treated as null (no filter).
      * @param sessionMetadataValue Optional - Filter by session metadata field value (e.g., "main").
-     *                             Required if sessionMetadataName is provided.
+     *                             Required if sessionMetadataName is provided. Empty strings are treated as null.
      * @param useLatestSession Optional - If true, only return routes from the latest session
      * @return RouteCoverageResponse containing route coverage data with details for each route
      * @throws IOException If an error occurs while retrieving data from Contrast
@@ -61,9 +62,9 @@ public class RouteCoverageService {
      */
     @Tool(name = "get_route_coverage",
           description = "Retrieves route coverage data for an application. Routes can be DISCOVERED (found but not exercised) " +
-                  "or EXERCISED (received HTTP traffic). Supports optional filtering by session metadata name/value or latest session. " +
-                  "Parameters: appId (required), sessionMetadataName (optional), sessionMetadataValue (optional - required if " +
-                  "sessionMetadataName provided), useLatestSession (optional).")
+                  "or EXERCISED (received HTTP traffic). All filter parameters are truly optional - if none provided (null or empty strings), " +
+                  "returns all routes across all sessions. Parameters: appId (required), sessionMetadataName (optional), " +
+                  "sessionMetadataValue (optional - required if sessionMetadataName provided), useLatestSession (optional).")
     public RouteCoverageResponse getRouteCoverage(
             String appId,
             String sessionMetadataName,
@@ -72,8 +73,9 @@ public class RouteCoverageService {
 
         logger.info("Retrieving route coverage for application ID: {}", appId);
 
-        // Validate parameters
-        if (sessionMetadataName != null && sessionMetadataValue == null) {
+        // Validate parameters - treat empty strings as null
+        if (sessionMetadataName != null && !sessionMetadataName.isEmpty() &&
+            (sessionMetadataValue == null || sessionMetadataValue.isEmpty())) {
             String errorMsg = "sessionMetadataValue is required when sessionMetadataName is provided";
             logger.error(errorMsg);
             throw new IllegalArgumentException(errorMsg);
@@ -103,7 +105,7 @@ public class RouteCoverageService {
             requestExtended.setSessionId(latest.getAgentSession().getAgentSessionId());
             logger.debug("Using latest session ID: {}", latest.getAgentSession().getAgentSessionId());
 
-        } else if (sessionMetadataName != null) {
+        } else if (sessionMetadataName != null && !sessionMetadataName.isEmpty()) {
             // Filter by session metadata
             logger.debug("Filtering by session metadata: {}={}", sessionMetadataName, sessionMetadataValue);
             requestExtended = new RouteCoverageBySessionIDAndMetadataRequestExtended();

@@ -505,4 +505,51 @@ public class RouteCoverageServiceIntegrationTest {
 
         assertTrue(caughtException || true, "Either exception thrown or graceful handling - both are acceptable");
     }
+
+    @Test
+    void testGetRouteCoverage_EmptyStrings_TreatedAsNull() throws Exception {
+        System.out.println("\n=== Integration Test: Empty string parameters (MCP-OU8 bug fix) ===");
+
+        // This test validates the fix for MCP-OU8: empty strings should be treated as null
+        // and trigger the GET endpoint (unfiltered query) instead of the POST endpoint with empty filters
+
+        // Act - Call with empty strings for sessionMetadataName and sessionMetadataValue
+        RouteCoverageResponse response = routeCoverageService.getRouteCoverage(
+            testData.appId, "", "", false
+        );
+
+        // Assert
+        assertNotNull(response, "Response should not be null");
+        assertTrue(response.isSuccess(), "Response should be successful");
+
+        System.out.println("✓ Response successful: " + response.isSuccess());
+        System.out.println("✓ Routes returned: " + response.getRoutes().size());
+
+        // The key assertion: empty strings should NOT return "No sessions found" message
+        // This message indicates the POST endpoint was called incorrectly
+        if (response.getMessages() != null && !response.getMessages().isEmpty()) {
+            String combinedMessages = String.join(", ", response.getMessages());
+            assertFalse(
+                combinedMessages.contains("No sessions found with the provided filters"),
+                "Empty strings should not trigger POST endpoint - messages should not contain 'No sessions found'"
+            );
+            System.out.println("✓ Messages: " + combinedMessages);
+        }
+
+        // Should return routes (assuming the app has route coverage)
+        if (testData.hasRouteCoverage) {
+            assertTrue(response.getRoutes().size() > 0,
+                "Empty strings should return all routes (unfiltered query) when app has route coverage");
+            System.out.println("✓ Routes found via unfiltered query (empty strings treated as null)");
+
+            // Verify route details are populated
+            for (Route route : response.getRoutes()) {
+                assertNotNull(route.getRouteDetailsResponse(),
+                    "Each route should have details populated");
+                assertTrue(route.getRouteDetailsResponse().isSuccess(),
+                    "Route details should be successfully loaded");
+            }
+            System.out.println("✓ All routes have valid route details");
+        }
+    }
 }
