@@ -108,15 +108,19 @@ Add this to your `mcp.json` configuration file and replace the placeholder value
 * Please list the libraries for application named xxx and tell me what version of commons-collections is being used
 * Which Vulnerabilities in application X are being blocked by a Protect / ADR Rule?
 
-## Download
+## Getting the JAR File
+
+If you're using JAR deployment (instead of Docker), you'll need the JAR file:
+
+### Download (Recommended)
 
 Download the latest pre-built JAR from [GitHub Releases](https://github.com/Contrast-Security-OSS/mcp-contrast/releases/latest).
 
 The JAR file will be named `mcp-contrast-X.X.X.jar`.
 
-## Build from Source
+### Build from Source
 
-For developers who want to build locally, requires Java 17+:
+Alternatively, you can build from source if you need the latest development version. Requires Java 17+:
 
 ```bash
 mvn clean install
@@ -129,38 +133,37 @@ The built JAR will be located at `target/mcp-contrast-0.0.X-SNAPSHOT.jar`
 
 ## Proxy Configuration
 
-### Java Process
+If you're behind a corporate firewall or proxy, you'll need to configure proxy settings for the MCP server to reach your Contrast instance. The configuration differs depending on whether you're using Docker or JAR deployment.
+
+### Java Process (JAR Deployment)
 If you need to configure a proxy for your Java process when using the standalone JAR, you can set the Java system properties for HTTP and HTTPS proxies:
 
 ```bash
 java -Dhttp_proxy_host=proxy.example.com -Dhttp_proxy_port=8080 -jar /path/to/mcp-contrast-X.X.X.jar --CONTRAST_HOST_NAME=example.contrastsecurity.com --CONTRAST_API_KEY=example --CONTRAST_SERVICE_KEY=example --CONTRAST_USERNAME=example@example.com --CONTRAST_ORG_ID=example
 ```
 
-When configuring in your config.json file, include the proxy settings in the args array:
+When configuring in your MCP config file, add the proxy settings to the beginning of the args array:
 
 ```json
-"mcpServers": {
-  "contrast-assess": {
-    "command": "/usr/bin/java", 
-    "args": [
-      "-Dhttp_proxy_host=proxy.example.com", 
-      "-Dhttp_proxy_port=8080",
-      "-jar",
-      "/path/to/mcp-contrast-X.X.X.jar",
-      "--CONTRAST_HOST_NAME=example.contrastsecurity.com",
-      "--CONTRAST_API_KEY=example",
-      "--CONTRAST_SERVICE_KEY=example",
-      "--CONTRAST_USERNAME=example@example.com",
-      "--CONTRAST_ORG_ID=example"
-    ]
-  }
-}
+"args": [
+  "-Dhttp_proxy_host=proxy.example.com",
+  "-Dhttp_proxy_port=8080",
+  "-jar",
+  "/path/to/mcp-contrast-X.X.X.jar",
+  ...
+]
 ```
 
-### Docker
-When running the MCP server in Docker, you can configure the proxy by passing the relevant environment variables:
+### Docker (Docker Deployment)
+When running the MCP server in Docker, configure the proxy by adding these environment variables to your Docker command:
 
+**Add these lines to your `docker run` command:**
+```bash
+-e http_proxy_host="proxy.example.com" \
+-e http_proxy_port="8080" \
+```
 
+**Complete example:**
 ```bash
 docker run \
   -e http_proxy_host="proxy.example.com" \
@@ -170,53 +173,26 @@ docker run \
   -e CONTRAST_SERVICE_KEY=example \
   -e CONTRAST_USERNAME=example \
   -e CONTRAST_ORG_ID=example \
-  -i \
+  -i --rm \
   contrast/mcp-contrast:latest \
   -t stdio
-
 ```
 
-For VS Code configuration with Docker and proxy, modify the settings.json like this:
+**For VS Code with Docker and proxy**, add these lines to your configuration:
 
+Add to the `args` array (after the Contrast credentials):
 ```json
-"mcp": {
-  "inputs": [],
-  "servers": {
-    "contrast-mcp": {
-      "command": "docker",
-        "args": [
-        "run",
-        "-e",
-        "CONTRAST_HOST_NAME",
-        "-e",
-        "CONTRAST_API_KEY",
-        "-e",
-        "CONTRAST_SERVICE_KEY",
-        "-e",
-        "CONTRAST_USERNAME",
-        "-e",
-        "CONTRAST_ORG_ID",
-        "-e", "http_proxy_host",
-        "-e", "http_proxy_port",
-        "-i",
-        "--rm",
-        "contrast/mcp-contrast:latest",
-        "-t",
-        "stdio"
-        ],
-        "env": {
-            "CONTRAST_HOST_NAME": "example.contrastsecurity.com",
-            "CONTRAST_API_KEY": "example",
-            "CONTRAST_SERVICE_KEY": "example",
-            "CONTRAST_USERNAME": "example@example.com",
-            "CONTRAST_ORG_ID": "example",
-            "http_proxy_host": "proxy.example.com",
-            "http_proxy_port": "8080"
-        }
-    }
-  }
-}
+"-e", "http_proxy_host",
+"-e", "http_proxy_port",
 ```
+
+Add to the `env` object:
+```json
+"http_proxy_host": "proxy.example.com",
+"http_proxy_port": "8080"
+```
+
+See the [VS Code Installation Guide](docs/installation-guides/install-vscode.md) for the complete configuration structure with input variables.
 
 ## Common Issues
 If you are experiencing issues with the MCP server, here are some common troubleshooting steps:
