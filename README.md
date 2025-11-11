@@ -136,28 +136,66 @@ The built JAR will be located at `target/mcp-contrast-0.0.X-SNAPSHOT.jar`
 If you're behind a corporate firewall or proxy, you'll need to configure proxy settings for the MCP server to reach your Contrast instance. The configuration differs depending on whether you're using Docker or JAR deployment.
 
 ### Java Process (JAR Deployment)
-If you need to configure a proxy for your Java process when using the standalone JAR, you can set the Java system properties for HTTP and HTTPS proxies:
 
-```bash
-java -Dhttp_proxy_host=proxy.example.com -Dhttp_proxy_port=8080 -jar /path/to/mcp-contrast-X.X.X.jar --CONTRAST_HOST_NAME=example.contrastsecurity.com --CONTRAST_API_KEY=example --CONTRAST_SERVICE_KEY=example --CONTRAST_USERNAME=example@example.com --CONTRAST_ORG_ID=example
+#### Direct Java Command
+
+Add these two system properties to your `java` command:
+
+```
+-Dhttp_proxy_host=proxy.example.com
+-Dhttp_proxy_port=8080
 ```
 
-When configuring in your MCP config file, add the proxy settings to the beginning of the args array:
+**Complete example:**
+```bash
+java \
+  -Dhttp_proxy_host=proxy.example.com \
+  -Dhttp_proxy_port=8080 \
+  -jar /path/to/mcp-contrast-X.X.X.jar \
+  --CONTRAST_HOST_NAME=example.contrastsecurity.com \
+  --CONTRAST_API_KEY=example \
+  --CONTRAST_SERVICE_KEY=example \
+  --CONTRAST_USERNAME=example@example.com \
+  --CONTRAST_ORG_ID=example
+```
+
+#### MCP Configuration File
+
+Add these two lines to the beginning of your `args` array:
 
 ```json
-"args": [
-  "-Dhttp_proxy_host=proxy.example.com",
-  "-Dhttp_proxy_port=8080",
-  "-jar",
-  "/path/to/mcp-contrast-X.X.X.jar",
-  ...
-]
+"-Dhttp_proxy_host=proxy.example.com",
+"-Dhttp_proxy_port=8080",
+```
+
+**Complete example using IntelliJ's `mcp.json`:**
+```json
+{
+  "servers": {
+    "contrastmcp": {
+      "command": "java",
+      "args": [
+        "-Dhttp_proxy_host=proxy.example.com",
+        "-Dhttp_proxy_port=8080",
+        "-jar",
+        "/path/to/mcp-contrast-X.X.X.jar",
+        "--CONTRAST_HOST_NAME=example.contrastsecurity.com",
+        "--CONTRAST_API_KEY=example",
+        "--CONTRAST_SERVICE_KEY=example",
+        "--CONTRAST_USERNAME=example@example.com",
+        "--CONTRAST_ORG_ID=example"
+      ]
+    }
+  }
+}
 ```
 
 ### Docker (Docker Deployment)
-When running the MCP server in Docker, configure the proxy by adding these environment variables to your Docker command:
 
-**Add these lines to your `docker run` command:**
+#### Direct Docker Run Command
+
+Add these two environment variables to your `docker run` command:
+
 ```bash
 -e http_proxy_host="proxy.example.com" \
 -e http_proxy_port="8080" \
@@ -178,7 +216,9 @@ docker run \
   -t stdio
 ```
 
-**For MCP configuration files** (works with any MCP host: IntelliJ, VS Code, Claude Desktop, Cline, etc.), add these proxy settings:
+#### MCP Configuration File
+
+For MCP configuration files (works with any MCP host: IntelliJ, VS Code, Claude Desktop, Cline, etc.), add these proxy settings:
 
 Add to the `args` array (after the Contrast credentials):
 ```json
