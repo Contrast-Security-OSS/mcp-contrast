@@ -4,12 +4,12 @@ Choose your MCP host to get started. Each guide provides step-by-step instructio
 
 ## Quick Links
 
-- **[VS Code / GitHub Copilot](./install-vscode.md)** - One-click Docker installation available
-- **[IntelliJ IDEA (GitHub Copilot)](./install-intellij.md)** - Simple mcp.json configuration
-- **[Claude Code](./install-claude-code.md)** - One-command installation via CLI
-- **[Claude Desktop](./install-claude-desktop.md)** - Standalone desktop application
-- **[Cline Plugin](./install-cline.md)** - VS Code AI assistant with visual MCP management
-- **[oterm](./install-oterm.md)** - Terminal interface for local Ollama models
+- **[VS Code (GitHub Copilot)](./install-vscode.md)**
+- **[IntelliJ IDEA (GitHub Copilot)](./install-intellij.md)**
+- **[Claude Code](./install-claude-code.md)**
+- **[Claude Desktop](./install-claude-desktop.md)**
+- **[Cline](./install-cline.md)**
+- **[oterm](./install-oterm.md)**
 
 ## Deployment Methods
 
