@@ -38,6 +38,8 @@ This will automatically configure VS Code to use input variables for secure cred
 - Click "Edit in settings.json" for user-level configuration (applies to all workspaces)
 - Or click "Modify in workspace" to enable the MCP server just for the current workspace
 
+See [Workspace vs User Settings](#workspace-vs-user-settings) for more details on choosing the right scope.
+
 #### Step 3: Add Configuration
 
 Add the following configuration to your `settings.json`:
