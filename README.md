@@ -178,7 +178,7 @@ docker run \
   -t stdio
 ```
 
-**For VS Code with Docker and proxy**, add these lines to your configuration:
+**For MCP configuration files** (works with any MCP host: IntelliJ, VS Code, Claude Desktop, Cline, etc.), add these proxy settings:
 
 Add to the `args` array (after the Contrast credentials):
 ```json
@@ -192,7 +192,40 @@ Add to the `env` object:
 "http_proxy_port": "8080"
 ```
 
-See the [VS Code Installation Guide](docs/installation-guides/install-vscode.md) for the complete configuration structure with input variables.
+**Complete example using IntelliJ's `mcp.json`:**
+```json
+{
+  "servers": {
+    "contrastmcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-e", "CONTRAST_HOST_NAME",
+        "-e", "CONTRAST_API_KEY",
+        "-e", "CONTRAST_SERVICE_KEY",
+        "-e", "CONTRAST_USERNAME",
+        "-e", "CONTRAST_ORG_ID",
+        "-e", "http_proxy_host",
+        "-e", "http_proxy_port",
+        "-i", "--rm",
+        "contrast/mcp-contrast:latest",
+        "-t", "stdio"
+      ],
+      "env": {
+        "CONTRAST_HOST_NAME": "example.contrastsecurity.com",
+        "CONTRAST_API_KEY": "example",
+        "CONTRAST_SERVICE_KEY": "example",
+        "CONTRAST_USERNAME": "example@example.com",
+        "CONTRAST_ORG_ID": "example",
+        "http_proxy_host": "proxy.example.com",
+        "http_proxy_port": "8080"
+      }
+    }
+  }
+}
+```
+
+For VS Code with input variables, see the [VS Code Installation Guide](docs/installation-guides/install-vscode.md).
 
 ## Common Issues
 If you are experiencing issues with the MCP server, here are some common troubleshooting steps:
