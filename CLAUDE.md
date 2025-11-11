@@ -86,6 +86,31 @@ This codebase handles sensitive vulnerability data. The README contains critical
 
 This project uses Beads (bd) for issue tracking. See the MCP resource `beads://quickstart` for usage details.
 
+### Bead Status Management
+
+**IMPORTANT: Update bead status as you work:**
+
+1. **When starting work on a bead**: Immediately set status to `in_progress`
+   ```
+   bd update <bead-id> status=in_progress
+   ```
+   Or use the MCP tool:
+   ```
+   mcp__plugin_beads_beads__update(issue_id="<bead-id>", status="in_progress")
+   ```
+
+2. **While working**: Keep the bead `in_progress` until all work is complete, tested, and ready to close
+
+3. **When work is complete**: Close the bead only after all acceptance criteria are met
+   ```
+   bd close <bead-id>
+   ```
+
+**Status lifecycle:**
+- `open` → Task not yet started
+- `in_progress` → Actively working on task (SET THIS WHEN YOU START!)
+- `closed` → Task complete, tested, and merged
+
 ### Managing Bead Dependencies
 
 **Command syntax:** `bd dep add <dependent-task> <prerequisite-task>`
