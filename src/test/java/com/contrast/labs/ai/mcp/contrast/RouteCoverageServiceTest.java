@@ -286,6 +286,20 @@ class RouteCoverageServiceTest {
         verify(mockSDKExtension, never()).getRouteCoverage(anyString(), anyString(), any());
     }
 
+    @Test
+    void testGetRouteCoverage_SessionMetadataFilter_EmptyValue() throws Exception {
+        // Test validation with empty string for sessionMetadataValue (MCP-3EG)
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            routeCoverageService.getRouteCoverage(TEST_APP_ID, TEST_METADATA_NAME, "", null);
+        });
+
+        assertTrue(exception.getMessage().contains("sessionMetadataValue is required"));
+
+        // Verify SDK was never called
+        verify(mockSDKExtension, never()).getRouteCoverage(anyString(), anyString(), any());
+    }
+
     // ========== Test Case 3: Latest Session Filter ==========
 
     @Test
