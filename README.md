@@ -126,7 +126,7 @@ Alternatively, you can build from source if you need the latest development vers
 mvn clean install
 ```
 
-The built JAR will be located at `target/mcp-contrast-0.0.X-SNAPSHOT.jar`
+The built JAR will be located at `target/mcp-contrast-X.X.X-SNAPSHOT.jar`
 
 
 
@@ -137,7 +137,11 @@ If you're behind a corporate firewall or proxy, you'll need to configure proxy s
 
 ### Java Process (JAR Deployment)
 
+Choose ONE of the following based on how you're running the JAR:
+
 #### Direct Java Command
+
+Use this if you're running the JAR directly from the command line or a script.
 
 Add these two system properties to your `java` command:
 
@@ -160,6 +164,8 @@ java \
 ```
 
 #### MCP Configuration File
+
+Use this if you're running the JAR through an MCP host (IntelliJ, Claude Desktop, Cline, etc.).
 
 Add these two lines to the beginning of your `args` array:
 
@@ -192,7 +198,11 @@ Add these two lines to the beginning of your `args` array:
 
 ### Docker (Docker Deployment)
 
+Choose ONE of the following based on how you're running Docker:
+
 #### Direct Docker Run Command
+
+Use this if you're running Docker directly from the command line.
 
 Add these two environment variables to your `docker run` command:
 
@@ -218,7 +228,9 @@ docker run \
 
 #### MCP Configuration File
 
-For MCP configuration files (works with any MCP host: IntelliJ, VS Code, Claude Desktop, Cline, etc.), add these proxy settings:
+Use this if you're running Docker through an MCP host (IntelliJ, VS Code, Claude Desktop, Cline, etc.).
+
+Add these proxy settings:
 
 Add to the `args` array (after the Contrast credentials):
 ```json
