@@ -2,6 +2,9 @@
 
 This guide covers how to install and configure the Contrast MCP Server in VS Code with GitHub Copilot.
 
+> [!NOTE] Official VS Code Documentation Reference
+> VS Code's full documentation for MCP servers can be found here: https://code.visualstudio.com/docs/copilot/customization/mcp-servers
+
 ## Prerequisites
 
 - VS Code with GitHub Copilot installed
