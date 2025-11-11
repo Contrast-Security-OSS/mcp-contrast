@@ -2,6 +2,9 @@
 
 This guide covers how to install and configure the Contrast MCP Server with the Cline plugin for VS Code.
 
+> [!NOTE] Official Cline Documentation Reference
+> Cline's full documentation for configuring MCP servers can be found here: https://docs.cline.bot/mcp/configuring-mcp-servers
+
 ## Prerequisites
 
 - VS Code with Cline plugin installed
@@ -143,13 +146,3 @@ For more troubleshooting help, see the [Common Issues](../../README.md#common-is
 ## Proxy Configuration
 
 If you're behind a corporate proxy, see the [Proxy Configuration](../../README.md#proxy-configuration) section in the main README.
-
-## Next Steps
-
-- See [Sample Prompts](../../README.md#sample-prompts) for example queries
-- Review [Data Privacy](../../README.md#data-privacy) considerations
-
-## Related Documentation
-
-- [Main README](../../README.md)
-- [All Installation Guides](./README.md)
