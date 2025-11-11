@@ -65,13 +65,13 @@ Add the following configuration to your `settings.json`:
     {
       "type": "promptString",
       "id": "contrast_api_key",
-      "description": "API key for you Contrast Installation.",
+      "description": "API key for your Contrast Installation.",
       "password": true
     },
     {
       "type": "promptString",
       "id": "contrast_service_key",
-      "description": "Service key for you Contrast Installation.",
+      "description": "Service key for your Contrast Installation.",
       "password": true
     }
   ],

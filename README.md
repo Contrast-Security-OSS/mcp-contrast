@@ -80,33 +80,33 @@ Add this to your `mcp.json` configuration file and replace the placeholder value
 
 ## Sample Prompts
 ### For the Developer
-#### Remediate Vulnerability in code
-* Please list vulnerabilities for Application Y
-* Give me details about vulnerability X on Application Y
-* Review the vulnerability X and fix it.
+#### Remediate Vulnerabilities in Code
+* Please list vulnerabilities for Application Y.
+* Give me details about vulnerability X in Application Y.
+* Review vulnerability X and fix it.
 
-#### 3rd Party Library Remediation
-* Which libraries in Application X have vulnerabilities High or Critical and are also being actively used.
-* Update library X with Critical vulnerability to the Safe version.
+#### Third-Party Library Remediation
+* Which libraries in Application X have high or critical vulnerabilities and are actively used?
+* Update library X, which has a critical vulnerability, to the safe version.
 * Which libraries in Application X are not being used?
 
-#### Retrieving application based on Tags
-* Please give me the applications tagged with "backend"
+#### Retrieve Applications by Tag
+* Please give me the applications tagged with "backend."
 
-#### Retrieving application based on Metadata
-* Please give me the applications with metadata  "dev-team" "backend-team"
+#### Retrieve Applications by Metadata
+* Please give me the applications with metadata "dev-team" and "backend-team."
 
-#### Retrieving vulnerabilities based on Session Metadata
-* Give me the sesssion metadata for application x
-* Give me the vulnerabilities in the latest session for application X
-* Give me the vulnerabilities for session metadata "Branch Name" "feature/some-new-fix" for application X
-* Give me the route coverage for the latest session for application X
-* Give me the route coverage for session metadata "Branch Name" "feature/some-new-fix" for application X
+#### Retrieve Vulnerabilities by Session Metadata
+* Give me the session metadata for Application X.
+* Give me the vulnerabilities in the latest session for Application X.
+* Give me the vulnerabilities for session metadata "Branch Name" "feature/some-new-fix" for Application X.
+* Give me the route coverage for the latest session for Application X.
+* Give me the route coverage for session metadata "Branch Name" "feature/some-new-fix" for Application X.
 
 ### For the Security Professional
-* Please give me a breakdown of applications and servers vulnerable to CVE-xxxx-xxxx
-* Please list the libraries for application named xxx and tell me what version of commons-collections is being used
-* Which Vulnerabilities in application X are being blocked by a Protect / ADR Rule?
+* Please give me a breakdown of applications and servers vulnerable to CVE-xxxx-xxxx.
+* Please list the libraries for the application named xxx and tell me what version of commons-collections is being used.
+* Which vulnerabilities in Application X are being blocked by a Protect or ADR rule?
 
 ## Getting the JAR File
 
@@ -282,17 +282,17 @@ For VS Code with input variables, see the [VS Code Installation Guide](docs/inst
 ## Common Issues
 If you are experiencing issues with the MCP server, here are some common troubleshooting steps:
 ### Review Log
-A log will be created, by default under `/tmp/mcp-contrast.log` either locally or witin the docker container. You can view this log to see if there are any errors or issues with the MCP server.
+A log will be created, by default under `/tmp/mcp-contrast.log` either locally or within the Docker container. You can view this log to see if there are any errors or issues with the MCP server.
 
 ### Enable Debug Logging
 To enable debug logging you can add the following flag to the command line arguments when running the MCP server:
 `--logging.level.root=DEBUG`
-This can be added at this part of the docker command 
+This can be added at this part of the docker command
 ```
         "--rm",
         "contrast/mcp-contrast:latest",
         "-t",
-         "--logging.level.root=DEBUG",
+        "--logging.level.root=DEBUG",
         "stdio"
         ],
 ```
@@ -303,7 +303,7 @@ If the SSL Certificate for the Teamserver URL is not trusted, you may see the fo
 Failed to list applications: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
 ```
 If this occurs you will need to add the certificate to the Java Truststore and then add the following to the command line arguments when running the MCP server:
-`-Djavax.net.ssl.trustStore=/loctaion/to/mcp-truststore.jks, -Djavax.net.ssl.trustStorePassword=yourpassword`
+`-Djavax.net.ssl.trustStore=/location/to/mcp-truststore.jks, -Djavax.net.ssl.trustStorePassword=yourpassword`
 More details on how to do this can be found in the [Java documentation](https://docs.oracle.com/cd/E19509-01/820-3503/6nf1il6er/index.html). Or ask your LLM to help you with this.
 
 ## Data Privacy
