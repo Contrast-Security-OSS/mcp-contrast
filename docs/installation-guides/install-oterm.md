@@ -147,18 +147,8 @@ If you're behind a corporate proxy, see the [Proxy Configuration](../../README.m
 - **Terminal Interface**: Fast, keyboard-driven interface
 - **Model Flexibility**: Switch between different Ollama models easily
 
-## Next Steps
-
-- See [Sample Prompts](../../README.md#sample-prompts) for example queries
-- Review [Data Privacy](../../README.md#data-privacy) considerations
-- Explore [oterm documentation](https://ggozad.github.io/oterm/) for advanced features
-
 ## Additional Resources
 
 - [oterm GitHub Repository](https://github.com/ggozad/oterm)
 - [Ollama Documentation](https://ollama.ai/docs)
 
-## Related Documentation
-
-- [Main README](../../README.md)
-- [All Installation Guides](./README.md)

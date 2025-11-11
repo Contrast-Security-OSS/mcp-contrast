@@ -146,11 +146,6 @@ For more troubleshooting help, see the [Common Issues](../../README.md#common-is
 
 If you're behind a corporate proxy, you'll need to configure Docker or Java to use your proxy settings. See the [Proxy Configuration](../../README.md#proxy-configuration) section in the main README for details.
 
-## Next Steps
-
-- See [Sample Prompts](../../README.md#sample-prompts) for example queries
-- Review [Data Privacy](../../README.md#data-privacy) considerations
-
 ## Windows Users
 
 On native Windows (not WSL), you need to use the `cmd /c` wrapper for Docker commands:
@@ -160,8 +155,3 @@ claude mcp add --transport stdio contrast \
   --env CONTRAST_HOST_NAME=... \
   -- cmd /c docker run -e CONTRAST_HOST_NAME ... contrast/mcp-contrast:latest -t stdio
 ```
-
-## Related Documentation
-
-- [Main README](../../README.md)
-- [All Installation Guides](./README.md)

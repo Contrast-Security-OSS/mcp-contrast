@@ -2,8 +2,8 @@
 
 This guide covers how to install and configure the Contrast MCP Server with Claude Desktop.
 
-> [!NOTE] Official Claude Desktop Documentation Reference
-> Anthropic's full documentation for connecting local MCP servers can be found here: https://modelcontextprotocol.io/docs/develop/connect-local-servers
+> [!NOTE] Claude Desktop Documentation Reference
+> Anthropic's documentation for connecting local MCP servers can be found here: https://modelcontextprotocol.io/docs/develop/connect-local-servers
 
 ## Prerequisites
 
@@ -140,8 +140,3 @@ For more troubleshooting help, see the [Common Issues](../../README.md#common-is
 ## Proxy Configuration
 
 If you're behind a corporate proxy, see the [Proxy Configuration](../../README.md#proxy-configuration) section in the main README.
-
-## Additional Resources
-
-- [Model Context Protocol Documentation](https://modelcontextprotocol.io/docs/develop/connect-local-servers)
-- [Claude Desktop Documentation](https://claude.ai/docs)
