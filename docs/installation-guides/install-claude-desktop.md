@@ -31,7 +31,7 @@ Add the following configuration to your `claude_desktop_config.json` file. If th
 ```json
 {
   "mcpServers": {
-    "contrastmcp": {
+    "contrast": {
       "command": "docker",
       "args": [
         "run",
@@ -72,7 +72,7 @@ If you prefer to run the JAR directly (requires Java 17+):
 ```json
 {
   "mcpServers": {
-    "contrastmcp": {
+    "contrast": {
       "command": "java",
       "args": [
         "-jar",

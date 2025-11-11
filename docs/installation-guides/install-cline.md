@@ -34,7 +34,7 @@ Add the following configuration to the JSON file and replace the placeholder val
 ```json
 {
   "mcpServers": {
-    "contrastmcp": {
+    "contrast": {
       "command": "docker",
       "args": [
         "run",
@@ -77,7 +77,7 @@ If you prefer to run the JAR directly (requires Java 17+):
 ```json
 {
   "mcpServers": {
-    "contrastmcp": {
+    "contrast": {
       "command": "java",
       "args": [
         "-jar",
