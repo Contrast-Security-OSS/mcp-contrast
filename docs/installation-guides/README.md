@@ -2,7 +2,7 @@
 
 Choose your MCP host to get started. Each guide provides step-by-step instructions for both Docker and JAR deployment.
 
-## Quick Links
+## MCP Hosts
 
 - **[VS Code (GitHub Copilot)](./install-vscode.md)**
 - **[IntelliJ IDEA (GitHub Copilot)](./install-intellij.md)**
@@ -10,6 +10,8 @@ Choose your MCP host to get started. Each guide provides step-by-step instructio
 - **[Claude Desktop](./install-claude-desktop.md)**
 - **[Cline](./install-cline.md)**
 - **[oterm](./install-oterm.md)**
+
+> **Using a different MCP host?** The Contrast MCP Server works with any MCP-compatible client. If your host isn't listed above, you can adapt the Docker or JAR configuration from any of these guides to your client's MCP configuration format.
 
 ## Deployment Methods
 
