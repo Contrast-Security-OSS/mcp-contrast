@@ -278,10 +278,14 @@ public class AssessService {
                 orgID,
                 appID,
                 filterBody,
+<<<<<<< HEAD
                 EnumSet.of(
                     TraceFilterForm.TraceExpandValue.SESSION_METADATA,
                     TraceFilterForm.TraceExpandValue.APPLICATION
                 )
+=======
+                EnumSet.of(TraceFilterForm.TraceExpandValue.SESSION_METADATA)
+>>>>>>> 3fb6af3 (Fix mcp-6bs: Change list_vulns_by_app tools to use appID parameter)
             );
 
             List<VulnLight> vulns = tracesResponse.getTraces().stream()
