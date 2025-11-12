@@ -83,6 +83,11 @@ Required environment variables/arguments:
 4. **Defensive Design**: All external API calls include proper resource management (try-with-resources), error handling, and logging
 5. **Pagination Handling**: SDK extension methods handle pagination automatically (see `getLibraryObservations` for pattern)
 
+### Coding Standards
+
+- **Prefer `var`** for local variables when the type is obvious from the right-hand side
+- **Use `isEmpty()`** instead of `size() > 0` or `size() == 0` for collection checks
+
 ### Security Considerations
 
 This codebase handles sensitive vulnerability data. The README contains critical warnings about data privacy when using with AI models. Never expose Contrast credentials or vulnerability data to untrusted AI services.
