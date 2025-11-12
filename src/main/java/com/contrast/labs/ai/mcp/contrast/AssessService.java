@@ -221,7 +221,7 @@ public class AssessService {
 
 
 
-    @Tool(name = "list_vulnerabilities_by_application_and_session_metadata", description = "Takes an application name ( app_name ) and session metadata in the form of name / value. and returns a list of vulnerabilities matching that application name and session metadata.")
+    @Tool(name = "list_vulns_by_app_and_metadata", description = "Takes an application name ( app_name ) and session metadata in the form of name / value. and returns a list of vulnerabilities matching that application name and session metadata.")
     public List<VulnLight> listVulnsInAppByNameAndSessionMetadata(
             @ToolParam(description = "Application name") String app_name,
             @ToolParam(description = "Session metadata field name") String session_Metadata_Name,
@@ -264,7 +264,7 @@ public class AssessService {
     }
 
 
-    @Tool(name = "list_vulnerabilities_by_application_and_latest_session", description = "Takes an application name ( app_name ) and returns a list of vulnerabilities for the latest session matching that application name. This is useful for getting the most recent vulnerabilities without needing to specify session metadata.")
+    @Tool(name = "list_vulns_by_app_latest_session", description = "Takes an application name ( app_name ) and returns a list of vulnerabilities for the latest session matching that application name. This is useful for getting the most recent vulnerabilities without needing to specify session metadata.")
     public List<VulnLight> listVulnsInAppByNameForLatestSession(
             @ToolParam(description = "Application name") String app_name) throws IOException {
         logger.info("Listing vulnerabilities for application: {}", app_name);
