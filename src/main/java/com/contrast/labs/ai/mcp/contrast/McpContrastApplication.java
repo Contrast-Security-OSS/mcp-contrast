@@ -15,10 +15,15 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Bean;
 
 import java.util.List;
@@ -28,8 +33,19 @@ import static java.util.List.of;
 @SpringBootApplication
 public class McpContrastApplication {
 
+	private static final Logger logger = LoggerFactory.getLogger(McpContrastApplication.class);
+
 	public static void main(String[] args)  {
 		SpringApplication.run(McpContrastApplication.class, args);
+	}
+
+	@Bean
+	public ApplicationRunner logVersion(BuildProperties buildProperties) {
+		return args -> {
+			logger.info("=".repeat(60));
+			logger.info("Contrast MCP Server - Version {}", buildProperties.getVersion());
+			logger.info("=".repeat(60));
+		};
 	}
 
 	@Bean
