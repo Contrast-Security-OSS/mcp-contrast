@@ -16,7 +16,13 @@
 package com.contrast.labs.ai.mcp.contrast;
 
 
-import com.contrast.labs.ai.mcp.contrast.data.*;
+import com.contrast.labs.ai.mcp.contrast.data.ApplicationData;
+import com.contrast.labs.ai.mcp.contrast.data.LibraryLibraryObservation;
+import com.contrast.labs.ai.mcp.contrast.data.Metadata;
+import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
+import com.contrast.labs.ai.mcp.contrast.data.StackLib;
+import com.contrast.labs.ai.mcp.contrast.data.Vulnerability;
+import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.hints.HintGenerator;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityContext;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
@@ -27,11 +33,18 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservation;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata.SessionMetadataResponse;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.MetadataItem;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.SessionMetadata;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.TraceExtended;
-import com.contrastsecurity.models.*;
+import com.contrastsecurity.models.EventResource;
+import com.contrastsecurity.models.EventSummaryResponse;
+import com.contrastsecurity.models.HttpRequestResponse;
+import com.contrastsecurity.models.MetadataFilterResponse;
+import com.contrastsecurity.models.MetadataItem;
+import com.contrastsecurity.models.RecommendationResponse;
+import com.contrastsecurity.models.Rules;
+import com.contrastsecurity.models.SessionMetadata;
+import com.contrastsecurity.models.Stacktrace;
+import com.contrastsecurity.models.Trace;
 import com.contrastsecurity.models.TraceFilterBody;
+import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.http.ServerEnvironment;
@@ -44,7 +57,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -194,11 +212,18 @@ public class AssessService {
         logger.info("Listing vulnerabilities for application ID: {}", appID);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
         try {
-            TraceFilterBody traceFilterBody = new TraceFilterBody();
-            List<TraceExtended> traces = new SDKExtension(contrastSDK).getTracesExtended(orgID, appID, new TraceFilterBody()).getTraces();
-            logger.debug("Found {} vulnerability traces for application ID: {}", traces.size(), appID);
+            // Use SDK native API with SESSION_METADATA expand
+            TraceFilterForm form = new TraceFilterForm();
+            form.setExpand(EnumSet.of(
+                TraceFilterForm.TraceExpandValue.SESSION_METADATA,
+                TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS
+            ));
 
-            List<VulnLight> vulns = traces.stream()
+            Traces traces = contrastSDK.getTraces(orgID, appID, form);
+            logger.debug("Found {} vulnerability traces for application ID: {}",
+                traces.getTraces() != null ? traces.getTraces().size() : 0, appID);
+
+            List<VulnLight> vulns = traces.getTraces().stream()
                 .map(vulnerabilityMapper::toVulnLight)
                 .collect(Collectors.toList());
 
@@ -270,13 +295,22 @@ public class AssessService {
             try {
                 SDKExtension extension = new SDKExtension(contrastSDK);
                 SessionMetadataResponse latest = extension.getLatestSessionMetadata(orgID,application.get().getAppId());
-                com.contrast.labs.ai.mcp.contrast.data.TraceFilterBody tfilter = new com.contrast.labs.ai.mcp.contrast.data.TraceFilterBody();
-                if(latest!=null&&latest.getAgentSession()!=null&&latest.getAgentSession().getAgentSessionId()!=null) {
-                    tfilter.setAgentSessionId(latest.getAgentSession().getAgentSessionId());
-                }
-                List<TraceExtended> traces = new SDKExtension(contrastSDK).getTracesExtended(orgID, application.get().getAppId(), tfilter).getTraces();
 
-                List<VulnLight> vulns = traces.stream()
+                // Use SDK's native TraceFilterBody with agentSessionId field
+                var filterBody = new com.contrastsecurity.models.TraceFilterBody();
+                if (latest != null && latest.getAgentSession() != null && latest.getAgentSession().getAgentSessionId() != null) {
+                    filterBody.setAgentSessionId(latest.getAgentSession().getAgentSessionId());
+                }
+
+                // Use SDK's native getTraces() with expand parameter
+                Traces tracesResponse = contrastSDK.getTraces(
+                    orgID,
+                    application.get().getAppId(),
+                    filterBody,
+                    EnumSet.of(TraceFilterForm.TraceExpandValue.SESSION_METADATA)
+                );
+
+                List<VulnLight> vulns = tracesResponse.getTraces().stream()
                     .map(vulnerabilityMapper::toVulnLight)
                     .collect(Collectors.toList());
                 return vulns;
@@ -513,7 +547,10 @@ public class AssessService {
             TraceFilterForm filterForm = filters.toTraceFilterForm();
             filterForm.setLimit(pagination.limit());
             filterForm.setOffset(pagination.offset());
-            filterForm.setExpand(EnumSet.of(TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS));
+            filterForm.setExpand(EnumSet.of(
+                TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
+                TraceFilterForm.TraceExpandValue.SESSION_METADATA
+            ));
 
             // Try organization-level API (or app-specific if appId provided)
             Traces traces;

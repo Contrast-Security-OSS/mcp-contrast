@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.data;
 
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.traces.SessionMetadata;
+import com.contrastsecurity.models.SessionMetadata;
 
 import java.util.List;
 

@@ -107,3 +107,19 @@ Verify with `bd show <task-id>` - dependent tasks show "Depends on", prerequisit
 All code changes require corresponding test coverage. Do not close beads without tests.
 
 See INTEGRATION_TESTS.md for integration test setup and credentials.
+
+## Project Management
+
+### Jira Issue Tracking
+
+This project is tracked in Jira under the **AIML** project. When creating Jira tickets for this codebase:
+
+**Standard Configuration:**
+- **Project**: `AIML`
+- **Component**: `Contrast MCP Server` (always use this component for work on this repository)
+- **Issue Type**:
+  - `Story` - for features and improvements
+  - `Task` - for simple non-feature changes (refactoring, documentation, bug fixes)
+  - `Epic` - for large features with many dependent tasks (typically managed by Product Management)
+
+**Access**: Use the Atlassian MCP server to read or write Jira tickets programmatically.
