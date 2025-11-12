@@ -328,6 +328,143 @@ EOF
 2. This PR is rebased onto main
 3. CI/CD passes on the rebased code
 
+### Promoting Stacked PR to Ready for Review
+
+**When user says "move stacked PR to ready for review", "promote stacked PR", or "finalize stacked PR":**
+
+This workflow promotes a draft stacked PR to ready-for-review after its base PR has been merged to main.
+
+**Prerequisites:**
+- Base PR must be merged to main
+- All tests must be passing on the stacked branch
+- PR is currently in draft status targeting the base PR's branch
+
+**Steps:**
+
+**1. Identify PR context:**
+   - Determine which PR to promote (by PR number or current branch)
+   - Identify the base PR it depends on
+   - Example: "Which PR should I promote?" or infer from current branch
+
+**2. Verify base PR is merged:**
+   ```bash
+   gh pr view <base-pr-number> --json state,mergedAt,baseRefName
+   ```
+   - Must show `state: "MERGED"`
+   - Note when it was merged for reference
+   - If NOT merged, inform user and wait
+
+**3. Fetch and rebase onto main:**
+   ```bash
+   git fetch origin
+   git checkout <feature-branch>
+   git rebase origin/main
+   ```
+   - Handle conflicts if they arise (pause and ask user for guidance)
+   - Clean rebase expected for well-structured stacks
+
+**4. Force push safely:**
+   ```bash
+   git push --force-with-lease origin <feature-branch>
+   ```
+   - Use `--force-with-lease` (NOT `--force`) for safety
+   - Prevents overwriting if branch was updated elsewhere
+
+**5. Update PR base branch:**
+   ```bash
+   gh pr edit <pr-number> --base main
+   ```
+   - Changes PR from targeting base branch to targeting main
+   - GitHub will update the diff automatically
+
+**6. Update PR description:**
+   - Remove "DO NOT MERGE" and dependency warnings
+   - Remove stacked PR notes about targeting other branches
+   - Add line confirming rebase: "Rebased onto main after #<base-pr> merged"
+   - Update test counts if they changed
+   - Keep all other content (Why/What/How/Testing)
+
+   Example:
+   ```bash
+   # Create updated description in temp file
+   gh pr view <pr-number> --json body -q .body > /tmp/pr_body.txt
+   # Edit to remove warnings and add rebase note
+   gh pr edit <pr-number> --body-file /tmp/updated_pr_body.txt
+   ```
+
+**7. Mark PR ready for review:**
+   ```bash
+   gh pr ready <pr-number>
+   ```
+   - Removes draft status
+   - PR is now visible in review queue
+   - CI/CD should trigger automatically
+
+**8. Verify tests pass:**
+   ```bash
+   mvn clean verify
+   ```
+   - Run full test suite to verify rebase didn't break anything
+   - Address any failures before proceeding
+   - Check CI status on GitHub
+
+**9. Update bead (if applicable):**
+   - Update bead notes with PR status: "Rebased onto main, ready for review"
+   - Keep bead in `in_progress` status with `in-review` label
+   - Don't close until PR is merged
+
+**10. Confirm completion:**
+   - Provide PR URL to user
+   - Confirm tests passing
+   - Note CI status
+   - Summary: "PR #<number> rebased onto main and ready for review"
+
+**Example full workflow:**
+```bash
+# Check base PR merged
+gh pr view 24 --json state,mergedAt
+# Output: {"state":"MERGED","mergedAt":"2025-11-12T21:44:33Z"}
+
+# Fetch and rebase
+git fetch origin
+git checkout AIML-224-consolidate-route-coverage
+git rebase origin/main
+# Output: Successfully rebased and updated refs/heads/AIML-224-consolidate-route-coverage
+
+# Force push
+git push --force-with-lease origin AIML-224-consolidate-route-coverage
+
+# Update PR
+gh pr edit 25 --base main
+gh pr edit 25 --body-file /tmp/updated_description.txt
+gh pr ready 25
+
+# Verify
+mvn clean verify
+```
+
+**Common Issues:**
+
+**Rebase conflicts:**
+- Pause and show user the conflicts
+- Ask for guidance on resolution
+- Don't attempt to auto-resolve without user input
+
+**Base PR not merged:**
+- Inform user: "Base PR #<number> is not yet merged (status: <state>)"
+- Wait for user instruction
+- Don't proceed with promotion
+
+**Tests fail after rebase:**
+- Report failures to user
+- Keep PR in draft until tests pass
+- Investigate if rebase introduced issues
+
+**CI not triggering:**
+- GitHub CI may take a few minutes to start
+- Verify workflow configuration targets main branch
+- Check `.github/workflows/` for PR triggers
+
 ### Landing the Plane
 
 **When user says "let's land the plane":**
