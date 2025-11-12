@@ -88,6 +88,11 @@ Required environment variables/arguments:
 - **Prefer `var`** for local variables when the type is obvious from the right-hand side
 - **Use `isEmpty()`** instead of `size() > 0` or `size() == 0` for collection checks
 
+### Coding Standards
+
+- **Prefer `var`** for local variables when the type is obvious from the right-hand side
+- **Use `isEmpty()`** instead of `size() > 0` or `size() == 0` for collection checks
+
 ### Security Considerations
 
 This codebase handles sensitive vulnerability data. The README contains critical warnings about data privacy when using with AI models. Never expose Contrast credentials or vulnerability data to untrusted AI services.
