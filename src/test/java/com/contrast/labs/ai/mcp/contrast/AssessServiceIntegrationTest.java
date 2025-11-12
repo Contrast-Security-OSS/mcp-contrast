@@ -76,7 +76,7 @@ public class AssessServiceIntegrationTest {
         );
 
         assertNotNull(response, "Response should not be null");
-        assertTrue(response.items().size() > 0, "Should have at least one vulnerability");
+        assertTrue(!response.items().isEmpty(), "Should have at least one vulnerability");
 
         System.out.println("Retrieved " + response.items().size() + " vulnerabilities");
 
@@ -137,7 +137,7 @@ public class AssessServiceIntegrationTest {
         );
 
         assertNotNull(response, "Response should not be null");
-        assertTrue(response.items().size() > 0, "Should have at least one vulnerability");
+        assertTrue(!response.items().isEmpty(), "Should have at least one vulnerability");
 
         System.out.println("Retrieved " + response.items().size() + " vulnerabilities");
 

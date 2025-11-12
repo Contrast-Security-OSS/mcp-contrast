@@ -28,7 +28,11 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservati
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteDetailsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata.SessionMetadataResponse;
 import com.contrastsecurity.exceptions.UnauthorizedException;
-import com.contrastsecurity.http.*;
+import com.contrastsecurity.http.FilterForm;
+import com.contrastsecurity.http.HttpMethod;
+import com.contrastsecurity.http.LibraryFilterForm;
+import com.contrastsecurity.http.MediaType;
+import com.contrastsecurity.http.UrlBuilder;
 import com.contrastsecurity.models.RouteCoverageBySessionIDAndMetadataRequest;
 import com.contrastsecurity.models.TraceFilterBody;
 import com.contrastsecurity.models.Traces;

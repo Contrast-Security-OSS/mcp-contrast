@@ -16,7 +16,13 @@
 package com.contrast.labs.ai.mcp.contrast;
 
 
-import com.contrast.labs.ai.mcp.contrast.data.*;
+import com.contrast.labs.ai.mcp.contrast.data.ApplicationData;
+import com.contrast.labs.ai.mcp.contrast.data.LibraryLibraryObservation;
+import com.contrast.labs.ai.mcp.contrast.data.Metadata;
+import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
+import com.contrast.labs.ai.mcp.contrast.data.StackLib;
+import com.contrast.labs.ai.mcp.contrast.data.Vulnerability;
+import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.hints.HintGenerator;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityContext;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
@@ -27,8 +33,18 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservation;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata.SessionMetadataResponse;
-import com.contrastsecurity.models.*;
+import com.contrastsecurity.models.EventResource;
+import com.contrastsecurity.models.EventSummaryResponse;
+import com.contrastsecurity.models.HttpRequestResponse;
+import com.contrastsecurity.models.MetadataFilterResponse;
+import com.contrastsecurity.models.MetadataItem;
+import com.contrastsecurity.models.RecommendationResponse;
+import com.contrastsecurity.models.Rules;
+import com.contrastsecurity.models.SessionMetadata;
+import com.contrastsecurity.models.Stacktrace;
+import com.contrastsecurity.models.Trace;
 import com.contrastsecurity.models.TraceFilterBody;
+import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.http.ServerEnvironment;
@@ -41,7 +57,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -276,8 +297,8 @@ public class AssessService {
                 SessionMetadataResponse latest = extension.getLatestSessionMetadata(orgID,application.get().getAppId());
 
                 // Use SDK's native TraceFilterBody with agentSessionId field
-                com.contrastsecurity.models.TraceFilterBody filterBody = new com.contrastsecurity.models.TraceFilterBody();
-                if(latest!=null&&latest.getAgentSession()!=null&&latest.getAgentSession().getAgentSessionId()!=null) {
+                var filterBody = new com.contrastsecurity.models.TraceFilterBody();
+                if (latest != null && latest.getAgentSession() != null && latest.getAgentSession().getAgentSessionId() != null) {
                     filterBody.setAgentSessionId(latest.getAgentSession().getAgentSessionId());
                 }
 
