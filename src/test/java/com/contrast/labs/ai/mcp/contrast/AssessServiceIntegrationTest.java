@@ -199,11 +199,15 @@ public class AssessServiceIntegrationTest {
             assertNotNull(vuln.vulnID(), "VulnID should not be null");
             assertNotNull(vuln.severity(), "Severity should not be null");
             assertNotNull(vuln.status(), "Status should not be null");
+            assertNotNull(vuln.appID(), "appID should not be null (APPLICATION expand should be included)");
+            assertNotNull(vuln.appName(), "appName should not be null (APPLICATION expand should be included)");
+            assertFalse(vuln.appID().isEmpty(), "appID should not be empty");
+            assertFalse(vuln.appName().isEmpty(), "appName should not be empty");
 
-            System.out.println("✓ " + vuln.vulnID() + ": " + vuln.title() + " (" + vuln.severity() + ")");
+            System.out.println("✓ " + vuln.vulnID() + ": " + vuln.title() + " (" + vuln.severity() + ") - App: " + vuln.appName() + " (" + vuln.appID() + ")");
         }
 
-        System.out.println("✓ All vulnerabilities have required fields");
+        System.out.println("✓ All vulnerabilities have required fields including appID and appName");
     }
 
     @Test
