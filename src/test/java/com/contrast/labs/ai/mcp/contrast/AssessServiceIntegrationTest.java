@@ -314,7 +314,7 @@ public class AssessServiceIntegrationTest {
 
     @Test
     void testListVulnsInAppByNameForLatestSessionWithDynamicSessionId() throws IOException {
-        System.out.println("\n=== Integration Test: listVulnsInAppByNameForLatestSession() with Dynamic Session Discovery ===");
+        System.out.println("\n=== Integration Test: listVulnsByAppIdForLatestSession() with Dynamic Session Discovery ===");
 
         // Step 1: Get applications list (single API call)
         System.out.println("Step 1: Getting first application...");
@@ -324,12 +324,13 @@ public class AssessServiceIntegrationTest {
         assertFalse(applications.isEmpty(), "Should have at least one application");
 
         // Just use the first application - no iteration needed
+        String testAppID = applications.get(0).appID();
         String testAppName = applications.get(0).name();
-        System.out.println("  ✓ Using application: " + testAppName);
+        System.out.println("  ✓ Using application: " + testAppName + " (ID: " + testAppID + ")");
 
-        // Step 2: Call listVulnsInAppByNameForLatestSession() with the discovered app name
-        System.out.println("Step 2: Calling listVulnsInAppByNameForLatestSession() for app: " + testAppName);
-        var latestSessionVulns = assessService.listVulnsInAppByNameForLatestSession(testAppName);
+        // Step 2: Call listVulnsByAppIdForLatestSession() with the discovered app ID
+        System.out.println("Step 2: Calling listVulnsByAppIdForLatestSession() for appID: " + testAppID);
+        var latestSessionVulns = assessService.listVulnsByAppIdForLatestSession(testAppID);
 
         assertNotNull(latestSessionVulns, "Vulnerabilities list should not be null");
         System.out.println("  ✓ Retrieved " + latestSessionVulns.size() + " vulnerability(ies) for latest session");
@@ -356,6 +357,6 @@ public class AssessServiceIntegrationTest {
         System.out.println("\nResults:");
         System.out.println("  Vulnerabilities returned: " + latestSessionVulns.size());
         System.out.println("  Vulnerabilities with session metadata: " + withSessionMetadata + "/" + latestSessionVulns.size());
-        System.out.println("✓ Integration test passed: listVulnsInAppByNameForLatestSession() returns vulnerabilities with session metadata");
+        System.out.println("✓ Integration test passed: listVulnsByAppIdForLatestSession() returns vulnerabilities with session metadata");
     }
 }
