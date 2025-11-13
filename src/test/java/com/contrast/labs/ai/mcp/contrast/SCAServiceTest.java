@@ -227,7 +227,7 @@ class SCAServiceTest {
     var mockLibraries = createMockLibrariesWithClassUsage();
 
     // Mock SDKExtension.getAppsForCVE
-    var mockExtension = mock(SDKExtension.class);
+    SDKExtension mockExtension = mock();
     when(mockExtension.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(mockCveData);
 
     // Replace mockedSDKExtension to return our configured mock
@@ -320,7 +320,7 @@ class SCAServiceTest {
   private List<LibraryExtended> createMockLibraries(int count) {
     var libraries = new ArrayList<LibraryExtended>();
     for (int i = 0; i < count; i++) {
-      var lib = mock(LibraryExtended.class);
+      LibraryExtended lib = mock();
       when(lib.getFilename()).thenReturn("library-" + i + ".jar");
       when(lib.getHash()).thenReturn("hash-" + i);
       when(lib.getVersion()).thenReturn("1.0." + i);
@@ -335,7 +335,7 @@ class SCAServiceTest {
     var libraries = new ArrayList<LibraryExtended>();
 
     // Library 1: Actively used (classesUsed > 0)
-    var lib1 = mock(LibraryExtended.class);
+    LibraryExtended lib1 = mock();
     when(lib1.getFilename()).thenReturn("actively-used-lib.jar");
     when(lib1.getHash()).thenReturn("hash-active-123");
     when(lib1.getVersion()).thenReturn("2.1.0");
@@ -344,7 +344,7 @@ class SCAServiceTest {
     libraries.add(lib1);
 
     // Library 2: Likely unused (classesUsed = 0)
-    var lib2 = mock(LibraryExtended.class);
+    LibraryExtended lib2 = mock();
     when(lib2.getFilename()).thenReturn("unused-lib.jar");
     when(lib2.getHash()).thenReturn("hash-unused-456");
     when(lib2.getVersion()).thenReturn("1.5.2");
@@ -358,7 +358,7 @@ class SCAServiceTest {
   private List<LibraryExtended> createMockLibrariesWithMatchingHash() {
     var libraries = new ArrayList<LibraryExtended>();
 
-    var lib = mock(LibraryExtended.class);
+    LibraryExtended lib = mock();
     when(lib.getFilename()).thenReturn("vulnerable-lib.jar");
     when(lib.getHash()).thenReturn("matching-hash-789");
     when(lib.getVersion()).thenReturn("1.0.0");

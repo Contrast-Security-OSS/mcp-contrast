@@ -284,7 +284,7 @@ class AssessServiceTest {
     var traces = new ArrayList<Trace>();
 
     for (int i = 0; i < traceCount; i++) {
-      var trace = mock(Trace.class);
+      Trace trace = mock();
       when(trace.getTitle()).thenReturn("Test Vulnerability " + i);
       when(trace.getRule()).thenReturn("test-rule-" + i);
       when(trace.getUuid()).thenReturn("uuid-" + i);
@@ -778,7 +778,7 @@ class AssessServiceTest {
     var traces = new ArrayList<Trace>();
 
     // Trace 1: Multiple servers with different environments
-    var trace1 = mock(Trace.class);
+    Trace trace1 = mock();
     when(trace1.getTitle()).thenReturn("SQL Injection");
     when(trace1.getRule()).thenReturn("sql-injection");
     when(trace1.getUuid()).thenReturn("uuid-1");
@@ -796,7 +796,7 @@ class AssessServiceTest {
     traces.add(trace1);
 
     // Trace 2: No servers
-    var trace2 = mock(Trace.class);
+    Trace trace2 = mock();
     when(trace2.getTitle()).thenReturn("XSS");
     when(trace2.getRule()).thenReturn("xss-reflected");
     when(trace2.getUuid()).thenReturn("uuid-2");
@@ -810,7 +810,7 @@ class AssessServiceTest {
     traces.add(trace2);
 
     // Trace 3: Single server with one environment
-    var trace3 = mock(Trace.class);
+    Trace trace3 = mock();
     when(trace3.getTitle()).thenReturn("Path Traversal");
     when(trace3.getRule()).thenReturn("path-traversal");
     when(trace3.getUuid()).thenReturn("uuid-3");
@@ -879,7 +879,7 @@ class AssessServiceTest {
     var firstSeen = JAN_1_2024_00_00_UTC;
     var closed = FEB_19_2025_13_20_UTC;
 
-    var trace = mock(Trace.class);
+    Trace trace = mock();
     when(trace.getTitle()).thenReturn("Test Vulnerability");
     when(trace.getRule()).thenReturn("test-rule");
     when(trace.getUuid()).thenReturn("test-uuid-123");
@@ -891,7 +891,7 @@ class AssessServiceTest {
     when(trace.getServerEnvironments()).thenReturn(new ArrayList<>());
     when(trace.getTags()).thenReturn(new ArrayList<>());
 
-    var mockTraces = mock(Traces.class);
+    Traces mockTraces = mock();
     when(mockTraces.getTraces()).thenReturn(List.of(trace));
     when(mockTraces.getCount()).thenReturn(1);
 
@@ -940,7 +940,7 @@ class AssessServiceTest {
   @Test
   void testVulnLight_TimestampFields_NullHandling() throws Exception {
     // Arrange - Create trace with null timestamps
-    var trace = mock(Trace.class);
+    Trace trace = mock();
     when(trace.getTitle()).thenReturn("Test Vulnerability");
     when(trace.getRule()).thenReturn("test-rule");
     when(trace.getUuid()).thenReturn("test-uuid-123");
@@ -952,7 +952,7 @@ class AssessServiceTest {
     when(trace.getServerEnvironments()).thenReturn(new ArrayList<>());
     when(trace.getTags()).thenReturn(new ArrayList<>());
 
-    var mockTraces = mock(Traces.class);
+    Traces mockTraces = mock();
     when(mockTraces.getTraces()).thenReturn(List.of(trace));
     when(mockTraces.getCount()).thenReturn(1);
 

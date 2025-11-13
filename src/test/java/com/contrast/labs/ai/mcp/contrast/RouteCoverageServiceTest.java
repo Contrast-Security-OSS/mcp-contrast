@@ -71,8 +71,8 @@ class RouteCoverageServiceTest {
   @BeforeEach
   void setUp() throws Exception {
     routeCoverageService = new RouteCoverageService();
-    mockContrastSDK = mock(ContrastSDK.class);
-    mockSDKExtension = mock(SDKExtension.class);
+    mockContrastSDK = mock();
+    mockSDKExtension = mock();
 
     // Mock the static SDKHelper.getSDK() method
     mockedSDKHelper = mockStatic(SDKHelper.class);

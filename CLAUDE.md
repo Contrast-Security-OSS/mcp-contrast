@@ -81,6 +81,7 @@ Required environment variables/arguments:
 - **Prefer `var`** for local variables when the type is obvious from the right-hand side
 - **Use `isEmpty()`** instead of `size() > 0` or `size() == 0` for collection checks
 - **No wildcard imports** - All imports must be explicit. Do not use `import package.*` syntax
+- **Simplified mock() syntax** - Use `mock()` without class parameter (Mockito 5.x+). When using `var`, specify the type explicitly: `ClassName mock = mock();` instead of `var mock = mock(ClassName.class);`. For explicit types: `ClassName mock = mock();` instead of `ClassName mock = mock(ClassName.class);`
 
 ### Security Considerations
 

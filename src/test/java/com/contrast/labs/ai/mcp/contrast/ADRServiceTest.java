@@ -57,7 +57,7 @@ class ADRServiceTest {
   @BeforeEach
   void setUp() throws Exception {
     adrService = new ADRService(new PaginationHandler());
-    mockContrastSDK = mock(ContrastSDK.class);
+    mockContrastSDK = mock();
 
     // Mock static SDKHelper
     mockedSDKHelper = mockStatic(SDKHelper.class);
