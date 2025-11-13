@@ -121,7 +121,7 @@ Test with a query like: "List applications in Contrast"
 
 ## Configuration Notes
 
-- **CONTRAST_HOST_NAME**: Your Contrast instance hostname (without `https://`)
+- **CONTRAST_HOST_NAME**: Your Contrast instance hostname (with or without `https://`)
 - **CONTRAST_API_KEY**: Your API key from Contrast
 - **CONTRAST_SERVICE_KEY**: Your service key from Contrast
 - **CONTRAST_USERNAME**: Your Contrast username (usually your email)
