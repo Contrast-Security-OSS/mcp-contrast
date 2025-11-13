@@ -50,7 +50,7 @@ Add the following configuration to your `settings.json`:
     {
       "type": "promptString",
       "id": "contrast_host_name",
-      "description": "Your Contrast Server's host name (without https://)"
+      "description": "Your Contrast Server's host name (with or without https://)"
     },
     {
       "type": "promptString",
@@ -156,7 +156,7 @@ VS Code supports input variables with the `password: true` flag, which provides 
 
 ### Credential Types
 
-- **CONTRAST_HOST_NAME**: Your Contrast instance hostname (without `https://`)
+- **CONTRAST_HOST_NAME**: Your Contrast instance hostname (with or without `https://`)
 - **CONTRAST_API_KEY**: Your API key from Contrast (marked as password)
 - **CONTRAST_SERVICE_KEY**: Your service key from Contrast (marked as password)
 - **CONTRAST_USERNAME**: Your Contrast username (usually your email)
