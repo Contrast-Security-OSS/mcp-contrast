@@ -22,6 +22,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
 import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -46,6 +47,7 @@ import org.springframework.boot.test.context.SpringBootTest;
  *
  * <p>Or skip integration tests: mvn verify -DskipITs
  */
+@Slf4j
 @SpringBootTest
 @EnabledIfEnvironmentVariable(named = "CONTRAST_HOST_NAME", matches = ".+")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -104,12 +106,10 @@ public class RouteCoverageServiceIntegrationTest {
 
   @BeforeAll
   void discoverTestData() {
-    System.out.println(
+    log.info(
         "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-    System.out.println(
-        "║   Route Coverage Integration Test - Discovering Test Data                     ║");
-    System.out.println(
-        "╚════════════════════════════════════════════════════════════════════════════════╝");
+    log.info("║   Route Coverage Integration Test - Discovering Test Data                     ║");
+    log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
 
     try {
       var sdk =
@@ -117,26 +117,26 @@ public class RouteCoverageServiceIntegrationTest {
       var sdkExtension = new SDKExtension(sdk);
 
       // Get all applications
-      System.out.println("\n🔍 Step 1: Fetching all applications...");
+      log.info("\n🔍 Step 1: Fetching all applications...");
       var appsResponse = sdkExtension.getApplications(orgID);
       var applications = appsResponse.getApplications();
-      System.out.println("   Found " + applications.size() + " application(s) in organization");
+      log.info("   Found {} application(s) in organization", applications.size());
 
       if (applications.isEmpty()) {
-        System.out.println("\n⚠️  NO APPLICATIONS FOUND");
-        System.out.println("   The integration tests require at least one application with:");
-        System.out.println("   1. Route coverage data (routes discovered or exercised)");
-        System.out.println("   2. Session metadata (optional but recommended)");
-        System.out.println("\n   To create test data:");
-        System.out.println("   - Deploy an application with Contrast agent");
-        System.out.println("   - Exercise some routes (make HTTP requests)");
-        System.out.println("   - Optionally: Configure session metadata in agent");
+        log.info("\n⚠️  NO APPLICATIONS FOUND");
+        log.info("   The integration tests require at least one application with:");
+        log.info("   1. Route coverage data (routes discovered or exercised)");
+        log.info("   2. Session metadata (optional but recommended)");
+        log.info("\n   To create test data:");
+        log.info("   - Deploy an application with Contrast agent");
+        log.info("   - Exercise some routes (make HTTP requests)");
+        log.info("   - Optionally: Configure session metadata in agent");
         return;
       }
 
       // Search for suitable test application - prioritize apps with BOTH routes AND session
       // metadata
-      System.out.println(
+      log.info(
           "\n🔍 Step 2: Searching for application with route coverage AND session metadata...");
       TestData bestCandidate = null;
       TestData fallbackCandidate = null; // App with routes but no session metadata
@@ -145,22 +145,17 @@ public class RouteCoverageServiceIntegrationTest {
 
       for (Application app : applications) {
         if (appsChecked >= maxAppsToCheck) {
-          System.out.println(
-              "   Reached max apps to check (" + maxAppsToCheck + "), stopping search");
+          log.info("   Reached max apps to check ({}), stopping search", maxAppsToCheck);
           break;
         }
         appsChecked++;
 
-        System.out.println(
-            "   Checking app "
-                + appsChecked
-                + "/"
-                + maxAppsToCheck
-                + ": "
-                + app.getName()
-                + " (ID: "
-                + app.getAppId()
-                + ")");
+        log.info(
+            "   Checking app {}/{}: {} (ID: {})",
+            appsChecked,
+            maxAppsToCheck,
+            app.getName(),
+            app.getAppId());
 
         try {
           // Check for route coverage
@@ -168,7 +163,7 @@ public class RouteCoverageServiceIntegrationTest {
           if (routeResponse != null
               && routeResponse.getRoutes() != null
               && !routeResponse.getRoutes().isEmpty()) {
-            System.out.println("      ✓ Has " + routeResponse.getRoutes().size() + " route(s)");
+            log.info("      ✓ Has {} route(s)", routeResponse.getRoutes().size());
 
             var candidate = new TestData();
             candidate.appId = app.getAppId();
@@ -192,15 +187,14 @@ public class RouteCoverageServiceIntegrationTest {
                     candidate.sessionMetadataName =
                         firstMetadata.getMetadataField().getAgentLabel();
                     candidate.sessionMetadataValue = firstMetadata.getValue();
-                    System.out.println("      ✓ Has session metadata");
-                    System.out.println(
-                        "      ✓ Session metadata field: "
-                            + candidate.sessionMetadataName
-                            + "="
-                            + candidate.sessionMetadataValue);
+                    log.info("      ✓ Has session metadata");
+                    log.info(
+                        "      ✓ Session metadata field: {}={}",
+                        candidate.sessionMetadataName,
+                        candidate.sessionMetadataValue);
 
                     // Found perfect candidate with both routes and session metadata!
-                    System.out.println(
+                    log.info(
                         "\n   ✅ Found PERFECT test application with routes AND session metadata!");
                     bestCandidate = candidate;
                     break; // Stop searching - we found what we need
@@ -208,19 +202,18 @@ public class RouteCoverageServiceIntegrationTest {
                 }
               }
             } catch (Exception e) {
-              System.out.println("      ℹ No session metadata: " + e.getMessage());
+              log.info("      ℹ No session metadata: {}", e.getMessage());
             }
 
             // Save as fallback if we haven't found a perfect candidate yet
             if (!candidate.hasSessionMetadata && fallbackCandidate == null) {
-              System.out.println(
-                  "      ℹ Saving as fallback candidate (has routes but no session metadata)");
+              log.info("      ℹ Saving as fallback candidate (has routes but no session metadata)");
               fallbackCandidate = candidate;
             }
           }
         } catch (Exception e) {
           // Skip this app, continue searching
-          System.out.println("      ℹ No route coverage or error: " + e.getMessage());
+          log.info("      ℹ No route coverage or error: {}", e.getMessage());
         }
       }
 
@@ -229,34 +222,33 @@ public class RouteCoverageServiceIntegrationTest {
 
       if (candidate != null) {
         testData = candidate;
-        System.out.println(
+        log.info(
             "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-        System.out.println(
+        log.info(
             "║   Test Data Discovery Complete                                                 ║");
-        System.out.println(
+        log.info(
             "╚════════════════════════════════════════════════════════════════════════════════╝");
-        System.out.println(testData);
-        System.out.println();
+        log.info("{}", testData);
+        log.info("");
 
         // Validate that we have session metadata for complete testing
         if (!candidate.hasSessionMetadata) {
-          System.err.println(
-              "\n⚠️  WARNING: Application has route coverage but NO SESSION METADATA");
-          System.err.println("   Some tests will fail. To fix this:");
-          System.err.println("   1. Configure session metadata in your Contrast agent");
-          System.err.println("   2. Restart the application");
-          System.err.println("   3. Make some HTTP requests to exercise routes");
-          System.err.println("   4. Re-run the integration tests");
+          log.error("\n⚠️  WARNING: Application has route coverage but NO SESSION METADATA");
+          log.error("   Some tests will fail. To fix this:");
+          log.error("   1. Configure session metadata in your Contrast agent");
+          log.error("   2. Restart the application");
+          log.error("   3. Make some HTTP requests to exercise routes");
+          log.error("   4. Re-run the integration tests");
         }
       } else {
         String errorMsg = buildTestDataErrorMessage(appsChecked);
-        System.err.println(errorMsg);
+        log.error(errorMsg);
         fail(errorMsg);
       }
 
     } catch (Exception e) {
       String errorMsg = "❌ ERROR during test data discovery: " + e.getMessage();
-      System.err.println("\n" + errorMsg);
+      log.error("\n{}", errorMsg);
       e.printStackTrace();
       fail(errorMsg);
     }
@@ -319,25 +311,25 @@ public class RouteCoverageServiceIntegrationTest {
 
   @Test
   void testDiscoveredTestDataExists() {
-    System.out.println("\n=== Integration Test: Validate test data discovery ===");
+    log.info("\n=== Integration Test: Validate test data discovery ===");
 
     assertNotNull(testData, "Test data should have been discovered in @BeforeAll");
     assertNotNull(testData.appId, "Test application ID should be set");
     assertTrue(testData.hasRouteCoverage, "Test application should have route coverage");
     assertTrue(testData.routeCount > 0, "Test application should have at least 1 route");
 
-    System.out.println("✓ Test data validated:");
-    System.out.println("  App ID: " + testData.appId);
-    System.out.println("  App Name: " + testData.appName);
-    System.out.println("  Route Count: " + testData.routeCount);
-    System.out.println("  Has Session Metadata: " + testData.hasSessionMetadata);
+    log.info("✓ Test data validated:");
+    log.info("  App ID: {}", testData.appId);
+    log.info("  App Name: {}", testData.appName);
+    log.info("  Route Count: {}", testData.routeCount);
+    log.info("  Has Session Metadata: {}", testData.hasSessionMetadata);
   }
 
   // ========== Test Case 2: Unfiltered Query ==========
 
   @Test
   void testGetRouteCoverage_Unfiltered_Success() throws IOException {
-    System.out.println("\n=== Integration Test: get_route_coverage (unfiltered) ===");
+    log.info("\n=== Integration Test: get_route_coverage (unfiltered) ===");
 
     assertNotNull(testData, "Test data must be discovered before running tests");
 
@@ -350,7 +342,7 @@ public class RouteCoverageServiceIntegrationTest {
     assertNotNull(response.getRoutes(), "Routes should not be null");
     assertTrue(response.getRoutes().size() > 0, "Should have at least 1 route");
 
-    System.out.println(
+    log.info(
         "✓ Retrieved "
             + response.getRoutes().size()
             + " routes for application: "
@@ -361,8 +353,8 @@ public class RouteCoverageServiceIntegrationTest {
         response.getRoutes().stream().filter(route -> route.getExercised() > 0).count();
     long discoveredCount = response.getRoutes().size() - exercisedCount;
 
-    System.out.println("  Exercised routes: " + exercisedCount);
-    System.out.println("  Discovered routes: " + discoveredCount);
+    log.info("  Exercised routes: {}", exercisedCount);
+    log.info("  Discovered routes: {}", discoveredCount);
 
     // Verify all routes have details
     for (Route route : response.getRoutes()) {
@@ -376,7 +368,7 @@ public class RouteCoverageServiceIntegrationTest {
 
   @Test
   void testGetRouteCoverage_SessionMetadataFilter_Success() throws IOException {
-    System.out.println("\n=== Integration Test: get_route_coverage (session metadata filter) ===");
+    log.info("\n=== Integration Test: get_route_coverage (session metadata filter) ===");
 
     assertNotNull(testData, "Test data must be discovered before running tests");
     assertTrue(
@@ -396,12 +388,12 @@ public class RouteCoverageServiceIntegrationTest {
     assertTrue(response.isSuccess(), "Response should indicate success");
     assertNotNull(response.getRoutes(), "Routes should not be null");
 
-    System.out.println(
+    log.info(
         "✓ Retrieved "
             + response.getRoutes().size()
             + " routes for application: "
             + testData.appName);
-    System.out.println(
+    log.info(
         "  Filtered by session metadata: "
             + testData.sessionMetadataName
             + "="
@@ -414,10 +406,10 @@ public class RouteCoverageServiceIntegrationTest {
     }
 
     if (response.getRoutes().size() > 0) {
-      System.out.println("  Sample routes:");
+      log.info("  Sample routes:");
       response.getRoutes().stream()
           .limit(3)
-          .forEach(route -> System.out.println("    - " + route.getSignature()));
+          .forEach(route -> log.info("    - {}", route.getSignature()));
     }
   }
 
@@ -425,7 +417,7 @@ public class RouteCoverageServiceIntegrationTest {
 
   @Test
   void testGetRouteCoverage_LatestSession_Success() throws IOException {
-    System.out.println("\n=== Integration Test: get_route_coverage (latest session) ===");
+    log.info("\n=== Integration Test: get_route_coverage (latest session) ===");
 
     assertNotNull(testData, "Test data must be discovered before running tests");
     assertTrue(
@@ -443,16 +435,15 @@ public class RouteCoverageServiceIntegrationTest {
         "Response should indicate success. Application should have session metadata.");
     assertNotNull(response.getRoutes(), "Routes should not be null when success is true");
 
-    System.out.println(
-        "✓ Retrieved " + response.getRoutes().size() + " routes from latest session");
-    System.out.println("  Application: " + testData.appName);
+    log.info("✓ Retrieved " + response.getRoutes().size() + " routes from latest session");
+    log.info("  Application: {}", testData.appName);
 
     // Count exercised vs discovered
     long exercisedCount =
         response.getRoutes().stream().filter(route -> route.getExercised() > 0).count();
 
-    System.out.println("  Exercised: " + exercisedCount);
-    System.out.println("  Discovered: " + (response.getRoutes().size() - exercisedCount));
+    log.info("  Exercised: {}", exercisedCount);
+    log.info("  Discovered: {}", (response.getRoutes().size() - exercisedCount));
 
     // Verify all routes have details
     for (Route route : response.getRoutes()) {
@@ -465,7 +456,7 @@ public class RouteCoverageServiceIntegrationTest {
 
   @Test
   void testGetRouteCoverage_CompareFilters() throws IOException {
-    System.out.println("\n=== Integration Test: Compare different filter types ===");
+    log.info("\n=== Integration Test: Compare different filter types ===");
 
     assertNotNull(testData, "Test data must be discovered before running tests");
     assertTrue(
@@ -493,10 +484,10 @@ public class RouteCoverageServiceIntegrationTest {
     assertTrue(sessionMetadataResponse.isSuccess(), "Session metadata query should succeed");
     assertTrue(latestSessionResponse.isSuccess(), "Latest session query should succeed");
 
-    System.out.println("✓ All filter types work correctly:");
-    System.out.println("  Unfiltered routes:        " + unfilteredResponse.getRoutes().size());
-    System.out.println("  Session metadata routes:  " + sessionMetadataResponse.getRoutes().size());
-    System.out.println("  Latest session routes:    " + latestSessionResponse.getRoutes().size());
+    log.info("✓ All filter types work correctly:");
+    log.info("  Unfiltered routes:        {}", unfilteredResponse.getRoutes().size());
+    log.info("  Session metadata routes:  {}", sessionMetadataResponse.getRoutes().size());
+    log.info("  Latest session routes:    {}", latestSessionResponse.getRoutes().size());
 
     // Verify unfiltered should have >= filtered results (more data when not filtered)
     assertTrue(
@@ -513,7 +504,7 @@ public class RouteCoverageServiceIntegrationTest {
 
   @Test
   void testGetRouteCoverage_InvalidAppId() {
-    System.out.println("\n=== Integration Test: Invalid app ID handling ===");
+    log.info("\n=== Integration Test: Invalid app ID handling ===");
 
     // Act - Use an invalid app ID that definitely doesn't exist
     boolean caughtException = false;
@@ -522,18 +513,17 @@ public class RouteCoverageServiceIntegrationTest {
           routeCoverageService.getRouteCoverage("invalid-app-id-12345", null, null, null);
 
       // If we get here, the API returned a response (possibly empty)
-      System.out.println("✓ API handled invalid app ID gracefully");
-      System.out.println("  Routes returned: " + response.getRoutes().size());
+      log.info("✓ API handled invalid app ID gracefully");
+      log.info("  Routes returned: {}", response.getRoutes().size());
 
     } catch (IOException e) {
       // This is also acceptable - API rejected the invalid app ID
       caughtException = true;
-      System.out.println("✓ API rejected invalid app ID with IOException: " + e.getMessage());
+      log.info("✓ API rejected invalid app ID with IOException: {}", e.getMessage());
     } catch (Exception e) {
       // Catch other exceptions like UnauthorizedException
       caughtException = true;
-      System.out.println(
-          "✓ API rejected invalid app ID with error: " + e.getClass().getSimpleName());
+      log.info("✓ API rejected invalid app ID with error: " + e.getClass().getSimpleName());
     }
 
     assertTrue(
@@ -543,7 +533,7 @@ public class RouteCoverageServiceIntegrationTest {
 
   @Test
   void testGetRouteCoverage_EmptyStrings_TreatedAsNull() throws Exception {
-    System.out.println("\n=== Integration Test: Empty string parameters (MCP-OU8 bug fix) ===");
+    log.info("\n=== Integration Test: Empty string parameters (MCP-OU8 bug fix) ===");
 
     // This test validates the fix for MCP-OU8: empty strings should be treated as null
     // and trigger the GET endpoint (unfiltered query) instead of the POST endpoint with empty
@@ -556,8 +546,8 @@ public class RouteCoverageServiceIntegrationTest {
     assertNotNull(response, "Response should not be null");
     assertTrue(response.isSuccess(), "Response should be successful");
 
-    System.out.println("✓ Response successful: " + response.isSuccess());
-    System.out.println("✓ Routes returned: " + response.getRoutes().size());
+    log.info("✓ Response successful: {}", response.isSuccess());
+    log.info("✓ Routes returned: {}", response.getRoutes().size());
 
     // The key assertion: empty strings should NOT return "No sessions found" message
     // This message indicates the POST endpoint was called incorrectly
@@ -567,7 +557,7 @@ public class RouteCoverageServiceIntegrationTest {
           combinedMessages.contains("No sessions found with the provided filters"),
           "Empty strings should not trigger POST endpoint - messages should not contain 'No"
               + " sessions found'");
-      System.out.println("✓ Messages: " + combinedMessages);
+      log.info("✓ Messages: {}", combinedMessages);
     }
 
     // Should return routes (assuming the app has route coverage)
@@ -575,7 +565,7 @@ public class RouteCoverageServiceIntegrationTest {
       assertTrue(
           response.getRoutes().size() > 0,
           "Empty strings should return all routes (unfiltered query) when app has route coverage");
-      System.out.println("✓ Routes found via unfiltered query (empty strings treated as null)");
+      log.info("✓ Routes found via unfiltered query (empty strings treated as null)");
 
       // Verify route details are populated
       for (Route route : response.getRoutes()) {
@@ -584,7 +574,7 @@ public class RouteCoverageServiceIntegrationTest {
             route.getRouteDetailsResponse().isSuccess(),
             "Route details should be successfully loaded");
       }
-      System.out.println("✓ All routes have valid route details");
+      log.info("✓ All routes have valid route details");
     }
   }
 }
