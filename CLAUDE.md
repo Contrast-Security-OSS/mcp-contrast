@@ -92,6 +92,7 @@ Required environment variables/arguments:
 
 - **Prefer `var`** for local variables when the type is obvious from the right-hand side
 - **Use `isEmpty()`** instead of `size() > 0` or `size() == 0` for collection checks
+- **No wildcard imports** - All imports must be explicit. Do not use `import package.*` syntax
 
 ### Security Considerations
 
