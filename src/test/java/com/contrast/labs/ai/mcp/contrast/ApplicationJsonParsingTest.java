@@ -1,6 +1,6 @@
 package com.contrast.labs.ai.mcp.contrast;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.google.gson.Gson;
@@ -61,37 +61,44 @@ public class ApplicationJsonParsingTest {
     var application = gson.fromJson(applicationJson, Application.class);
 
     // Verify basic fields
-    assertNotNull(application, "Application should not be null");
-    assertEquals("test-app-123", application.getAppId(), "App ID should match");
-    assertEquals("Test Application", application.getName(), "App name should match");
-    assertEquals("online", application.getStatus(), "Status should match");
+    assertThat(application).as("Application should not be null").isNotNull();
+    assertThat(application.getAppId()).as("App ID should match").isEqualTo("test-app-123");
+    assertThat(application.getName()).as("App name should match").isEqualTo("Test Application");
+    assertThat(application.getStatus()).as("Status should match").isEqualTo("online");
 
     // Verify missingRequiredFields parsing
-    assertNotNull(
-        application.getMissingRequiredFields(), "Missing required fields should not be null");
-    assertEquals(
-        2, application.getMissingRequiredFields().size(), "Should have 2 missing required fields");
+    assertThat(application.getMissingRequiredFields())
+        .as("Missing required fields should not be null")
+        .isNotNull();
+    assertThat(application.getMissingRequiredFields())
+        .as("Should have 2 missing required fields")
+        .hasSize(2);
 
     // Verify first missing required field
     var firstField = application.getMissingRequiredFields().get(0);
-    assertEquals("29", firstField.getFieldId(), "First field ID should match");
-    assertEquals("STRING", firstField.getFieldType(), "First field type should match");
-    assertEquals(
-        "Custom Name", firstField.getDisplayLabel(), "First field display label should match");
-    assertEquals("customName", firstField.getAgentLabel(), "First field agent label should match");
-    assertTrue(firstField.isRequired(), "First field should be required");
-    assertFalse(firstField.isUnique(), "First field should not be unique");
+    assertThat(firstField.getFieldId()).as("First field ID should match").isEqualTo("29");
+    assertThat(firstField.getFieldType()).as("First field type should match").isEqualTo("STRING");
+    assertThat(firstField.getDisplayLabel())
+        .as("First field display label should match")
+        .isEqualTo("Custom Name");
+    assertThat(firstField.getAgentLabel())
+        .as("First field agent label should match")
+        .isEqualTo("customName");
+    assertThat(firstField.isRequired()).as("First field should be required").isTrue();
+    assertThat(firstField.isUnique()).as("First field should not be unique").isFalse();
 
     // Verify second missing required field
     var secondField = application.getMissingRequiredFields().get(1);
-    assertEquals("30", secondField.getFieldId(), "Second field ID should match");
-    assertEquals("SELECT", secondField.getFieldType(), "Second field type should match");
-    assertEquals(
-        "Environment", secondField.getDisplayLabel(), "Second field display label should match");
-    assertEquals(
-        "environment", secondField.getAgentLabel(), "Second field agent label should match");
-    assertTrue(secondField.isRequired(), "Second field should be required");
-    assertFalse(secondField.isUnique(), "Second field should not be unique");
+    assertThat(secondField.getFieldId()).as("Second field ID should match").isEqualTo("30");
+    assertThat(secondField.getFieldType()).as("Second field type should match").isEqualTo("SELECT");
+    assertThat(secondField.getDisplayLabel())
+        .as("Second field display label should match")
+        .isEqualTo("Environment");
+    assertThat(secondField.getAgentLabel())
+        .as("Second field agent label should match")
+        .isEqualTo("environment");
+    assertThat(secondField.isRequired()).as("Second field should be required").isTrue();
+    assertThat(secondField.isUnique()).as("Second field should not be unique").isFalse();
   }
 
   @Test
@@ -116,13 +123,14 @@ public class ApplicationJsonParsingTest {
 
     var application = gson.fromJson(applicationJson, Application.class);
 
-    assertNotNull(application, "Application should not be null");
-    assertEquals("test-app-456", application.getAppId(), "App ID should match");
-    assertNotNull(
-        application.getMissingRequiredFields(), "Missing required fields should not be null");
-    assertTrue(
-        application.getMissingRequiredFields().isEmpty(),
-        "Missing required fields should be empty");
+    assertThat(application).as("Application should not be null").isNotNull();
+    assertThat(application.getAppId()).as("App ID should match").isEqualTo("test-app-456");
+    assertThat(application.getMissingRequiredFields())
+        .as("Missing required fields should not be null")
+        .isNotNull();
+    assertThat(application.getMissingRequiredFields())
+        .as("Missing required fields should be empty")
+        .isEmpty();
   }
 
   @Test
@@ -147,11 +155,11 @@ public class ApplicationJsonParsingTest {
     // Should handle missing missingRequiredFields field gracefully
     var application = gson.fromJson(applicationJson, Application.class);
 
-    assertNotNull(application, "Application should not be null");
-    assertEquals("test-app-789", application.getAppId(), "App ID should match");
+    assertThat(application).as("Application should not be null").isNotNull();
+    assertThat(application.getAppId()).as("App ID should match").isEqualTo("test-app-789");
     // Field should be null when not present in JSON
-    assertNull(
-        application.getMissingRequiredFields(),
-        "Missing required fields should be null when not in JSON");
+    assertThat(application.getMissingRequiredFields())
+        .as("Missing required fields should be null when not in JSON")
+        .isNull();
   }
 }

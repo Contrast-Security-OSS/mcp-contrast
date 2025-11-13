@@ -1,6 +1,6 @@
 package com.contrast.labs.ai.mcp.contrast;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.hints.HintGenerator;
 import org.junit.jupiter.api.DisplayName;
@@ -16,35 +16,35 @@ public class HintGeneratorTest {
   @DisplayName("Test with a valid SQL injection rule")
   public void testGenerateVulnerabilityFixHintForSqlInjection() {
     var sqlInjectionHints = HintGenerator.generateVulnerabilityFixHint("sql-injection");
-    assertTrue(
-        sqlInjectionHints.contains("allow list"),
-        "SQL injection hints should contain 'allow list' guidance");
+    assertThat(sqlInjectionHints)
+        .as("SQL injection hints should contain 'allow list' guidance")
+        .contains("allow list");
   }
 
   @Test
   @DisplayName("Test with null rule")
   public void testGenerateVulnerabilityFixHintForNullRule() {
     var nullRuleHints = HintGenerator.generateVulnerabilityFixHint(null);
-    assertTrue(
-        nullRuleHints.contains("Where a vulnerable library exists"),
-        "Null rule should return the default hint");
+    assertThat(nullRuleHints)
+        .as("Null rule should return the default hint")
+        .contains("Where a vulnerable library exists");
   }
 
   @Test
   @DisplayName("Test with empty rule")
   public void testGenerateVulnerabilityFixHintForEmptyRule() {
     var emptyRuleHints = HintGenerator.generateVulnerabilityFixHint("");
-    assertTrue(
-        emptyRuleHints.contains("Where a vulnerable library exists"),
-        "Empty rule should return the default hint");
+    assertThat(emptyRuleHints)
+        .as("Empty rule should return the default hint")
+        .contains("Where a vulnerable library exists");
   }
 
   @Test
   @DisplayName("Test with non-existent rule")
   public void testGenerateVulnerabilityFixHintForNonExistentRule() {
     var nonExistentRuleHints = HintGenerator.generateVulnerabilityFixHint("non-existent-rule");
-    assertTrue(
-        nonExistentRuleHints.contains("Where a vulnerable library exists"),
-        "Non-existent rule should return the default hint");
+    assertThat(nonExistentRuleHints)
+        .as("Non-existent rule should return the default hint")
+        .contains("Where a vulnerable library exists");
   }
 }

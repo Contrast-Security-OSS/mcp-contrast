@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import java.io.IOException;
@@ -63,8 +63,8 @@ public class AssessServiceIntegrationTest {
             null // vulnTags
             );
 
-    assertNotNull(response, "Response should not be null");
-    assertTrue(response.items().size() > 0, "Should have at least one vulnerability");
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.items()).as("Should have at least one vulnerability").isNotEmpty();
 
     System.out.println("Retrieved " + response.items().size() + " vulnerabilities");
 
@@ -73,8 +73,8 @@ public class AssessServiceIntegrationTest {
     int withTags = 0;
 
     for (VulnLight vuln : response.items()) {
-      assertNotNull(vuln.environments(), "Environments should never be null");
-      assertNotNull(vuln.tags(), "Tags should never be null");
+      assertThat(vuln.environments()).as("Environments should never be null").isNotNull();
+      assertThat(vuln.tags()).as("Tags should never be null").isNotNull();
 
       // Debug: Show all environment and tag data
       System.out.println("Vuln " + vuln.vulnID() + ":");
@@ -101,8 +101,10 @@ public class AssessServiceIntegrationTest {
     // At least verify the fields are being returned (even if empty)
     // This ensures the API is returning the fields and they're being deserialized
     for (VulnLight vuln : response.items()) {
-      assertNotNull(vuln.environments(), "Environments field should exist (even if empty list)");
-      assertNotNull(vuln.tags(), "Tags field should exist (even if empty list)");
+      assertThat(vuln.environments())
+          .as("Environments field should exist (even if empty list)")
+          .isNotNull();
+      assertThat(vuln.tags()).as("Tags field should exist (even if empty list)").isNotNull();
     }
 
     System.out.println("✓ Integration test passed: environments and tags fields are present");
@@ -127,8 +129,8 @@ public class AssessServiceIntegrationTest {
             null // vulnTags
             );
 
-    assertNotNull(response, "Response should not be null");
-    assertTrue(response.items().size() > 0, "Should have at least one vulnerability");
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.items()).as("Should have at least one vulnerability").isNotEmpty();
 
     System.out.println("Retrieved " + response.items().size() + " vulnerabilities");
 
@@ -137,7 +139,7 @@ public class AssessServiceIntegrationTest {
     int totalSessions = 0;
 
     for (VulnLight vuln : response.items()) {
-      assertNotNull(vuln.sessionMetadata(), "Session metadata should never be null");
+      assertThat(vuln.sessionMetadata()).as("Session metadata should never be null").isNotNull();
 
       // Debug: Show session metadata
       System.out.println("Vuln " + vuln.vulnID() + ":");
@@ -171,8 +173,9 @@ public class AssessServiceIntegrationTest {
 
     // Verify the session metadata field exists (even if empty) - this confirms SDK expansion works
     for (VulnLight vuln : response.items()) {
-      assertNotNull(
-          vuln.sessionMetadata(), "Session metadata field should exist (even if empty list)");
+      assertThat(vuln.sessionMetadata())
+          .as("Session metadata field should exist (even if empty list)")
+          .isNotNull();
     }
 
     System.out.println(
@@ -186,22 +189,24 @@ public class AssessServiceIntegrationTest {
     var response =
         assessService.getAllVulnerabilities(1, 5, null, null, null, null, null, null, null, null);
 
-    assertNotNull(response);
-    assertFalse(response.items().isEmpty(), "Should have vulnerabilities");
+    assertThat(response).isNotNull();
+    assertThat(response.items()).as("Should have vulnerabilities").isNotEmpty();
 
     // Verify each vulnerability has required fields
     for (VulnLight vuln : response.items()) {
-      assertNotNull(vuln.title(), "Title should not be null");
-      assertNotNull(vuln.type(), "Type should not be null");
-      assertNotNull(vuln.vulnID(), "VulnID should not be null");
-      assertNotNull(vuln.severity(), "Severity should not be null");
-      assertNotNull(vuln.status(), "Status should not be null");
-      assertNotNull(
-          vuln.appID(), "appID should not be null (APPLICATION expand should be included)");
-      assertNotNull(
-          vuln.appName(), "appName should not be null (APPLICATION expand should be included)");
-      assertFalse(vuln.appID().isEmpty(), "appID should not be empty");
-      assertFalse(vuln.appName().isEmpty(), "appName should not be empty");
+      assertThat(vuln.title()).as("Title should not be null").isNotNull();
+      assertThat(vuln.type()).as("Type should not be null").isNotNull();
+      assertThat(vuln.vulnID()).as("VulnID should not be null").isNotNull();
+      assertThat(vuln.severity()).as("Severity should not be null").isNotNull();
+      assertThat(vuln.status()).as("Status should not be null").isNotNull();
+      assertThat(vuln.appID())
+          .as("appID should not be null (APPLICATION expand should be included)")
+          .isNotNull();
+      assertThat(vuln.appName())
+          .as("appName should not be null (APPLICATION expand should be included)")
+          .isNotNull();
+      assertThat(vuln.appID()).as("appID should not be empty").isNotEmpty();
+      assertThat(vuln.appName()).as("appName should not be empty").isNotEmpty();
 
       System.out.println(
           "✓ "
@@ -241,7 +246,7 @@ public class AssessServiceIntegrationTest {
             "SmartFix Remediated" // vulnTags with space - SDK should handle encoding
             );
 
-    assertNotNull(response, "Response should not be null");
+    assertThat(response).as("Response should not be null").isNotNull();
     System.out.println(
         "Query completed successfully (returned " + response.items().size() + " vulnerabilities)");
 
@@ -263,7 +268,7 @@ public class AssessServiceIntegrationTest {
         assessService.getAllVulnerabilities(
             1, 10, null, null, null, null, null, null, null, "Tag With Spaces,another-tag");
 
-    assertNotNull(response, "Response should not be null");
+    assertThat(response).as("Response should not be null").isNotNull();
     System.out.println("✓ Query with multiple tags completed successfully");
     System.out.println("  (returned " + response.items().size() + " vulnerabilities)");
 
@@ -279,16 +284,16 @@ public class AssessServiceIntegrationTest {
     var allVulns =
         assessService.getAllVulnerabilities(1, 10, null, null, null, null, null, null, null, null);
 
-    assertNotNull(allVulns, "Response should not be null");
-    assertFalse(allVulns.items().isEmpty(), "Should have at least one vulnerability");
+    assertThat(allVulns).as("Response should not be null").isNotNull();
+    assertThat(allVulns.items()).as("Should have at least one vulnerability").isNotEmpty();
 
     System.out.println("  ✓ Found " + allVulns.items().size() + " vulnerability(ies)");
 
     // Step 2: Get applications list (single API call)
     System.out.println("Step 2: Getting first application with vulnerabilities...");
     var applications = assessService.getAllApplications();
-    assertNotNull(applications, "Applications list should not be null");
-    assertFalse(applications.isEmpty(), "Should have at least one application");
+    assertThat(applications).as("Applications list should not be null").isNotNull();
+    assertThat(applications).as("Should have at least one application").isNotEmpty();
 
     // Just use the first application - no iteration needed
     var testAppId = applications.get(0).appID();
@@ -299,7 +304,7 @@ public class AssessServiceIntegrationTest {
     System.out.println("Step 3: Calling listVulnsByAppId() for app: " + testAppName);
     var vulnerabilities = assessService.listVulnsByAppId(testAppId);
 
-    assertNotNull(vulnerabilities, "Vulnerabilities list should not be null");
+    assertThat(vulnerabilities).as("Vulnerabilities list should not be null").isNotNull();
     System.out.println("  ✓ Retrieved " + vulnerabilities.size() + " vulnerability(ies)");
 
     if (vulnerabilities.isEmpty()) {
@@ -312,7 +317,7 @@ public class AssessServiceIntegrationTest {
     int withSessionMetadata = 0;
 
     for (VulnLight vuln : vulnerabilities) {
-      assertNotNull(vuln.sessionMetadata(), "Session metadata should never be null");
+      assertThat(vuln.sessionMetadata()).as("Session metadata should never be null").isNotNull();
 
       if (!vuln.sessionMetadata().isEmpty()) {
         withSessionMetadata++;
@@ -343,8 +348,8 @@ public class AssessServiceIntegrationTest {
     System.out.println("Step 1: Getting first application...");
     var applications = assessService.getAllApplications();
 
-    assertNotNull(applications, "Applications list should not be null");
-    assertFalse(applications.isEmpty(), "Should have at least one application");
+    assertThat(applications).as("Applications list should not be null").isNotNull();
+    assertThat(applications).as("Should have at least one application").isNotEmpty();
 
     // Just use the first application - no iteration needed
     var testAppID = applications.get(0).appID();
@@ -356,7 +361,7 @@ public class AssessServiceIntegrationTest {
         "Step 2: Calling listVulnsByAppIdForLatestSession() for appID: " + testAppID);
     var latestSessionVulns = assessService.listVulnsByAppIdForLatestSession(testAppID);
 
-    assertNotNull(latestSessionVulns, "Vulnerabilities list should not be null");
+    assertThat(latestSessionVulns).as("Vulnerabilities list should not be null").isNotNull();
     System.out.println(
         "  ✓ Retrieved " + latestSessionVulns.size() + " vulnerability(ies) for latest session");
 
@@ -372,7 +377,7 @@ public class AssessServiceIntegrationTest {
     int withSessionMetadata = 0;
 
     for (VulnLight vuln : latestSessionVulns) {
-      assertNotNull(vuln.sessionMetadata(), "Session metadata should never be null");
+      assertThat(vuln.sessionMetadata()).as("Session metadata should never be null").isNotNull();
 
       if (!vuln.sessionMetadata().isEmpty()) {
         withSessionMetadata++;

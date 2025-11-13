@@ -15,7 +15,9 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
@@ -290,10 +292,12 @@ public class SCAServiceIntegrationTest {
   void testDiscoveredTestDataExists() {
     log.info("\n=== Integration Test: Validate test data discovery ===");
 
-    assertNotNull(testData, "Test data should have been discovered in @BeforeAll");
-    assertNotNull(testData.appId, "Test application ID should be set");
-    assertTrue(testData.hasLibraries, "Test application should have libraries");
-    assertTrue(testData.libraryCount > 0, "Test application should have at least 1 library");
+    assertThat(testData).as("Test data should have been discovered in @BeforeAll").isNotNull();
+    assertThat(testData.appId).as("Test application ID should be set").isNotNull();
+    assertThat(testData.hasLibraries).as("Test application should have libraries").isTrue();
+    assertThat(testData.libraryCount > 0)
+        .as("Test application should have at least 1 library")
+        .isTrue();
 
     log.info("✓ Test data validated:");
     log.info("  App ID: {}", testData.appId);
@@ -311,14 +315,14 @@ public class SCAServiceIntegrationTest {
   void testListApplicationLibraries_Success() throws IOException {
     log.info("\n=== Integration Test: list_application_libraries_by_app_id ===");
 
-    assertNotNull(testData, "Test data must be discovered before running tests");
+    assertThat(testData).as("Test data must be discovered before running tests").isNotNull();
 
     // Act
     var libraries = scaService.getApplicationLibrariesByID(testData.appId);
 
     // Assert
-    assertNotNull(libraries, "Libraries list should not be null");
-    assertTrue(libraries.size() > 0, "Should have at least 1 library");
+    assertThat(libraries).as("Libraries list should not be null").isNotNull();
+    assertThat(libraries.size() > 0).as("Should have at least 1 library").isTrue();
 
     log.info("✓ Retrieved " + libraries.size() + " libraries for application: " + testData.appName);
 
@@ -342,10 +346,10 @@ public class SCAServiceIntegrationTest {
 
     // Verify library structure
     for (LibraryExtended lib : libraries) {
-      assertNotNull(lib.getFilename(), "Library filename should not be null");
-      assertNotNull(lib.getHash(), "Library hash should not be null");
-      assertTrue(lib.getClassCount() >= 0, "Class count should be non-negative");
-      assertTrue(lib.getClassedUsed() >= 0, "Classes used should be non-negative");
+      assertThat(lib.getFilename()).as("Library filename should not be null").isNotNull();
+      assertThat(lib.getHash()).as("Library hash should not be null").isNotNull();
+      assertThat(lib.getClassCount() >= 0).as("Class count should be non-negative").isTrue();
+      assertThat(lib.getClassedUsed() >= 0).as("Classes used should be non-negative").isTrue();
     }
   }
 
@@ -353,14 +357,14 @@ public class SCAServiceIntegrationTest {
   void testListApplicationLibraries_ClassUsageIndicatesUsage() throws IOException {
     log.info("\n=== Integration Test: Class usage statistics ===");
 
-    assertNotNull(testData, "Test data must be discovered before running tests");
+    assertThat(testData).as("Test data must be discovered before running tests").isNotNull();
 
     // Act
     var libraries = scaService.getApplicationLibrariesByID(testData.appId);
 
     // Assert
-    assertNotNull(libraries);
-    assertFalse(libraries.isEmpty());
+    assertThat(libraries).isNotNull();
+    assertThat(libraries).isNotEmpty();
 
     log.info("✓ Analyzing class usage for {}", libraries.size() + " libraries:");
 
@@ -373,9 +377,9 @@ public class SCAServiceIntegrationTest {
 
     // Verify class usage makes sense
     for (LibraryExtended lib : libraries) {
-      assertTrue(
-          lib.getClassedUsed() <= lib.getClassCount(),
-          "Classes used should not exceed total class count for " + lib.getFilename());
+      assertThat(lib.getClassedUsed() <= lib.getClassCount())
+          .as("Classes used should not exceed total class count for " + lib.getFilename())
+          .isTrue();
     }
 
     log.info("✓ Class usage statistics are valid");
@@ -393,15 +397,15 @@ public class SCAServiceIntegrationTest {
       return;
     }
 
-    assertNotNull(testData, "Test data must be discovered before running tests");
+    assertThat(testData).as("Test data must be discovered before running tests").isNotNull();
 
     // Act
     var cveData = scaService.listCVESForApplication(testData.vulnerableCveId);
 
     // Assert
-    assertNotNull(cveData, "CVE data should not be null");
-    assertNotNull(cveData.getApps(), "Apps list should not be null");
-    assertNotNull(cveData.getLibraries(), "Libraries list should not be null");
+    assertThat(cveData).as("CVE data should not be null").isNotNull();
+    assertThat(cveData.getApps()).as("Apps list should not be null").isNotNull();
+    assertThat(cveData.getLibraries()).as("Libraries list should not be null").isNotNull();
 
     log.info("✓ Retrieved CVE data for: {}", testData.vulnerableCveId);
     log.info("  Affected applications: {}", cveData.getApps().size());
@@ -416,7 +420,9 @@ public class SCAServiceIntegrationTest {
     }
 
     // Verify library data
-    assertFalse(cveData.getLibraries().isEmpty(), "Should have at least one vulnerable library");
+    assertThat(cveData.getLibraries().isEmpty())
+        .as("Should have at least one vulnerable library")
+        .isFalse();
 
     log.info("  Sample vulnerable libraries:");
     cveData.getLibraries().stream()
@@ -440,8 +446,8 @@ public class SCAServiceIntegrationTest {
     var cveData = scaService.listCVESForApplication(testData.vulnerableCveId);
 
     // Assert
-    assertNotNull(cveData);
-    assertNotNull(cveData.getApps());
+    assertThat(cveData).isNotNull();
+    assertThat(cveData.getApps()).isNotNull();
 
     log.info(
         "✓ Checking class usage data for " + cveData.getApps().size() + " affected applications:");
@@ -458,8 +464,9 @@ public class SCAServiceIntegrationTest {
               + ")");
 
       // Class count should be >= 0
-      assertTrue(
-          app.getClassCount() >= 0, "Class count should be non-negative for app: " + app.getName());
+      assertThat(app.getClassCount() >= 0)
+          .as("Class count should be non-negative for app: " + app.getName())
+          .isTrue();
     }
 
     log.info("✓ Class usage data is populated correctly");
@@ -485,7 +492,7 @@ public class SCAServiceIntegrationTest {
       log.info("✓ API rejected invalid app ID with exception: " + e.getClass().getSimpleName());
     }
 
-    assertTrue(true, "Test passes if either exception or graceful handling occurs");
+    assertThat(true).as("Test passes if either exception or graceful handling occurs").isTrue();
   }
 
   @Test
@@ -493,18 +500,14 @@ public class SCAServiceIntegrationTest {
     log.info("\n=== Integration Test: Invalid CVE ID handling ===");
 
     // Act & Assert - Non-existent CVE should throw IOException
-    var exception =
-        assertThrows(
-            IOException.class,
+    assertThatThrownBy(
             () -> {
               scaService.listCVESForApplication("CVE-9999-NONEXISTENT");
-            },
-            "Non-existent CVE should throw IOException");
+            })
+        .as("Non-existent CVE should throw IOException")
+        .isInstanceOf(IOException.class)
+        .hasMessageContaining("Failed to retrieve CVE data");
 
     log.info("✓ Non-existent CVE correctly rejected with IOException");
-    log.info("  Exception message: {}", exception.getMessage());
-    assertTrue(
-        exception.getMessage().contains("Failed to retrieve CVE data"),
-        "Exception message should indicate CVE retrieval failure");
   }
 }

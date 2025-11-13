@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.utils;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.PaginationParams;
 import java.util.List;
@@ -43,12 +43,14 @@ class PaginationHandlerTest {
 
     var response = handler.createPaginatedResponse(items, params, 10);
 
-    assertEquals(3, response.items().size());
-    assertEquals(1, response.page());
-    assertEquals(3, response.pageSize());
-    assertEquals(10, response.totalItems());
-    assertTrue(response.hasMorePages(), "Should have more pages when 3 items fetched out of 10");
-    assertNull(response.message(), "No message for successful page");
+    assertThat(response.items().size()).isEqualTo(3);
+    assertThat(response.page()).isEqualTo(1);
+    assertThat(response.pageSize()).isEqualTo(3);
+    assertThat(response.totalItems()).isEqualTo(10);
+    assertThat(response.hasMorePages())
+        .as("Should have more pages when 3 items fetched out of 10")
+        .isTrue();
+    assertThat(response.message()).as("No message for successful page").isNull();
   }
 
   @Test
@@ -58,13 +60,14 @@ class PaginationHandlerTest {
 
     var response = handler.createPaginatedResponse(items, params, 10);
 
-    assertEquals(3, response.items().size());
-    assertEquals(4, response.page());
-    assertEquals(3, response.pageSize());
-    assertEquals(10, response.totalItems());
-    assertFalse(
-        response.hasMorePages(), "Should not have more pages (page 4 * pageSize 3 = 12 >= 10)");
-    assertNull(response.message());
+    assertThat(response.items().size()).isEqualTo(3);
+    assertThat(response.page()).isEqualTo(4);
+    assertThat(response.pageSize()).isEqualTo(3);
+    assertThat(response.totalItems()).isEqualTo(10);
+    assertThat(response.hasMorePages())
+        .as("Should not have more pages (page 4 * pageSize 3 = 12 >= 10)")
+        .isFalse();
+    assertThat(response.message()).isNull();
   }
 
   @Test
@@ -74,11 +77,11 @@ class PaginationHandlerTest {
 
     var response = handler.createPaginatedResponse(items, params, null);
 
-    assertEquals(3, response.items().size());
-    assertNull(response.totalItems());
-    assertTrue(
-        response.hasMorePages(),
-        "Full page without totalCount suggests more pages exist (heuristic)");
+    assertThat(response.items().size()).isEqualTo(3);
+    assertThat(response.totalItems()).isNull();
+    assertThat(response.hasMorePages())
+        .as("Full page without totalCount suggests more pages exist (heuristic)")
+        .isTrue();
   }
 
   @Test
@@ -88,9 +91,11 @@ class PaginationHandlerTest {
 
     var response = handler.createPaginatedResponse(items, params, null);
 
-    assertEquals(2, response.items().size());
-    assertNull(response.totalItems());
-    assertFalse(response.hasMorePages(), "Partial page suggests no more pages (heuristic)");
+    assertThat(response.items().size()).isEqualTo(2);
+    assertThat(response.totalItems()).isNull();
+    assertThat(response.hasMorePages())
+        .as("Partial page suggests no more pages (heuristic)")
+        .isFalse();
   }
 
   @Test
@@ -100,10 +105,10 @@ class PaginationHandlerTest {
 
     var response = handler.createPaginatedResponse(items, params, 0);
 
-    assertTrue(response.items().isEmpty());
-    assertEquals(0, response.totalItems());
-    assertFalse(response.hasMorePages());
-    assertEquals("No items found.", response.message());
+    assertThat(response.items()).isEmpty();
+    assertThat(response.totalItems()).isEqualTo(0);
+    assertThat(response.hasMorePages()).isFalse();
+    assertThat(response.message()).isEqualTo("No items found.");
   }
 
   @Test
@@ -113,10 +118,11 @@ class PaginationHandlerTest {
 
     var response = handler.createPaginatedResponse(items, params, 5);
 
-    assertTrue(response.items().isEmpty());
-    assertEquals(5, response.totalItems());
-    assertFalse(response.hasMorePages());
-    assertEquals("Requested page 2 exceeds available pages (total: 1).", response.message());
+    assertThat(response.items()).isEmpty();
+    assertThat(response.totalItems()).isEqualTo(5);
+    assertThat(response.hasMorePages()).isFalse();
+    assertThat(response.message())
+        .isEqualTo("Requested page 2 exceeds available pages (total: 1).");
   }
 
   @Test
@@ -126,10 +132,10 @@ class PaginationHandlerTest {
 
     var response = handler.createPaginatedResponse(items, params, null);
 
-    assertTrue(response.items().isEmpty());
-    assertNull(response.totalItems());
-    assertFalse(response.hasMorePages());
-    assertEquals("Requested page 2 returned no results.", response.message());
+    assertThat(response.items()).isEmpty();
+    assertThat(response.totalItems()).isNull();
+    assertThat(response.hasMorePages()).isFalse();
+    assertThat(response.message()).isEqualTo("Requested page 2 returned no results.");
   }
 
   @Test
@@ -140,10 +146,10 @@ class PaginationHandlerTest {
 
     var response = handler.createPaginatedResponse(items, params, 1);
 
-    assertNotNull(response.message());
-    assertTrue(
-        response.message().contains("Invalid page number -5"),
-        "Should include pagination warning in message");
+    assertThat(response.message()).isNotNull();
+    assertThat(response.message())
+        .as("Should include pagination warning in message")
+        .contains("Invalid page number -5");
   }
 
   @Test
@@ -154,13 +160,13 @@ class PaginationHandlerTest {
 
     var response = handler.createPaginatedResponse(items, params, 5);
 
-    assertNotNull(response.message());
-    assertTrue(
-        response.message().contains("Requested pageSize 200 exceeds maximum 100"),
-        "Should include pageSize warning");
-    assertTrue(
-        response.message().contains("Requested page 2 exceeds available pages"),
-        "Should include empty page message");
+    assertThat(response.message()).isNotNull();
+    assertThat(response.message())
+        .as("Should include pageSize warning")
+        .contains("Requested pageSize 200 exceeds maximum 100");
+    assertThat(response.message())
+        .as("Should include empty page message")
+        .contains("Requested page 2 exceeds available pages");
   }
 
   // ========== Edge Cases ==========
@@ -174,7 +180,9 @@ class PaginationHandlerTest {
 
     var response = handler.createPaginatedResponse(items, params, 20);
 
-    assertFalse(response.hasMorePages(), "No more pages when page*pageSize == totalItems");
+    assertThat(response.hasMorePages())
+        .as("No more pages when page*pageSize == totalItems")
+        .isFalse();
   }
 
   @Test
@@ -186,7 +194,7 @@ class PaginationHandlerTest {
 
     var response = handler.createPaginatedResponse(items, params, 21);
 
-    assertTrue(response.hasMorePages(), "More pages when page*pageSize < totalItems");
+    assertThat(response.hasMorePages()).as("More pages when page*pageSize < totalItems").isTrue();
   }
 
   @Test
@@ -197,9 +205,9 @@ class PaginationHandlerTest {
 
     var response = handler.createPaginatedResponse(items, params, 0);
 
-    assertNotNull(response.message());
-    assertTrue(response.message().contains("Invalid page number"));
-    assertTrue(response.message().contains("No items found"));
+    assertThat(response.message()).isNotNull();
+    assertThat(response.message()).contains("Invalid page number");
+    assertThat(response.message()).contains("No items found");
   }
 
   // ========== Helper Methods ==========

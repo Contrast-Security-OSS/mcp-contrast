@@ -15,7 +15,8 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,29 +33,20 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().build();
 
     // Then
-    assertEquals("ALL", filterBody.getQuickFilter());
-    assertEquals("", filterBody.getKeyword());
-    assertFalse(filterBody.isIncludeSuppressed());
-    assertFalse(filterBody.isIncludeBotBlockers());
-    assertFalse(filterBody.isIncludeIpBlacklist());
-    assertNotNull(filterBody.getTags());
-    assertTrue(filterBody.getTags().isEmpty());
-    assertNotNull(filterBody.getStatusFilter());
-    assertTrue(filterBody.getStatusFilter().isEmpty());
-    assertNotNull(filterBody.getProtectionRules());
-    assertTrue(filterBody.getProtectionRules().isEmpty());
-    assertNotNull(filterBody.getApplications());
-    assertTrue(filterBody.getApplications().isEmpty());
-    assertNotNull(filterBody.getApplicationImportances());
-    assertTrue(filterBody.getApplicationImportances().isEmpty());
-    assertNotNull(filterBody.getAttackers());
-    assertTrue(filterBody.getAttackers().isEmpty());
-    assertNotNull(filterBody.getServers());
-    assertTrue(filterBody.getServers().isEmpty());
-    assertNotNull(filterBody.getServerEnvironments());
-    assertTrue(filterBody.getServerEnvironments().isEmpty());
-    assertNotNull(filterBody.getSeverities());
-    assertTrue(filterBody.getSeverities().isEmpty());
+    assertThat(filterBody.getQuickFilter()).isEqualTo("ALL");
+    assertThat(filterBody.getKeyword()).isEqualTo("");
+    assertThat(filterBody.isIncludeSuppressed()).isFalse();
+    assertThat(filterBody.isIncludeBotBlockers()).isFalse();
+    assertThat(filterBody.isIncludeIpBlacklist()).isFalse();
+    assertThat(filterBody.getTags()).isNotNull().isEmpty();
+    assertThat(filterBody.getStatusFilter()).isNotNull().isEmpty();
+    assertThat(filterBody.getProtectionRules()).isNotNull().isEmpty();
+    assertThat(filterBody.getApplications()).isNotNull().isEmpty();
+    assertThat(filterBody.getApplicationImportances()).isNotNull().isEmpty();
+    assertThat(filterBody.getAttackers()).isNotNull().isEmpty();
+    assertThat(filterBody.getServers()).isNotNull().isEmpty();
+    assertThat(filterBody.getServerEnvironments()).isNotNull().isEmpty();
+    assertThat(filterBody.getSeverities()).isNotNull().isEmpty();
   }
 
   // ========== Test: String Fields ==========
@@ -65,7 +57,7 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().quickFilter("PROBED").build();
 
     // Then
-    assertEquals("PROBED", filterBody.getQuickFilter());
+    assertThat(filterBody.getQuickFilter()).isEqualTo("PROBED");
   }
 
   @Test
@@ -74,7 +66,7 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().keyword("sql injection").build();
 
     // Then
-    assertEquals("sql injection", filterBody.getKeyword());
+    assertThat(filterBody.getKeyword()).isEqualTo("sql injection");
   }
 
   // ========== Test: Boolean Fields ==========
@@ -85,7 +77,7 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().includeSuppressed(true).build();
 
     // Then
-    assertTrue(filterBody.isIncludeSuppressed());
+    assertThat(filterBody.isIncludeSuppressed()).isTrue();
   }
 
   @Test
@@ -94,7 +86,7 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().includeBotBlockers(true).build();
 
     // Then
-    assertTrue(filterBody.isIncludeBotBlockers());
+    assertThat(filterBody.isIncludeBotBlockers()).isTrue();
   }
 
   @Test
@@ -103,7 +95,7 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().includeIpBlacklist(true).build();
 
     // Then
-    assertTrue(filterBody.isIncludeIpBlacklist());
+    assertThat(filterBody.isIncludeIpBlacklist()).isTrue();
   }
 
   // ========== Test: List Fields ==========
@@ -117,9 +109,9 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().tags(tags).build();
 
     // Then
-    assertEquals(2, filterBody.getTags().size());
-    assertEquals("tag1", filterBody.getTags().get(0));
-    assertEquals("tag2", filterBody.getTags().get(1));
+    assertThat(filterBody.getTags()).hasSize(2);
+    assertThat(filterBody.getTags().get(0)).isEqualTo("tag1");
+    assertThat(filterBody.getTags().get(1)).isEqualTo("tag2");
   }
 
   @Test
@@ -131,8 +123,8 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().statusFilter(statuses).build();
 
     // Then
-    assertEquals(2, filterBody.getStatusFilter().size());
-    assertEquals("status1", filterBody.getStatusFilter().get(0));
+    assertThat(filterBody.getStatusFilter()).hasSize(2);
+    assertThat(filterBody.getStatusFilter().get(0)).isEqualTo("status1");
   }
 
   @Test
@@ -144,8 +136,8 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().protectionRules(rules).build();
 
     // Then
-    assertEquals(2, filterBody.getProtectionRules().size());
-    assertEquals("rule1", filterBody.getProtectionRules().get(0));
+    assertThat(filterBody.getProtectionRules()).hasSize(2);
+    assertThat(filterBody.getProtectionRules().get(0)).isEqualTo("rule1");
   }
 
   @Test
@@ -157,8 +149,8 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().applications(apps).build();
 
     // Then
-    assertEquals(2, filterBody.getApplications().size());
-    assertEquals("app1", filterBody.getApplications().get(0));
+    assertThat(filterBody.getApplications()).hasSize(2);
+    assertThat(filterBody.getApplications().get(0)).isEqualTo("app1");
   }
 
   @Test
@@ -170,8 +162,8 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().applicationImportances(importances).build();
 
     // Then
-    assertEquals(2, filterBody.getApplicationImportances().size());
-    assertEquals("CRITICAL", filterBody.getApplicationImportances().get(0));
+    assertThat(filterBody.getApplicationImportances()).hasSize(2);
+    assertThat(filterBody.getApplicationImportances().get(0)).isEqualTo("CRITICAL");
   }
 
   @Test
@@ -183,8 +175,8 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().attackers(attackers).build();
 
     // Then
-    assertEquals(2, filterBody.getAttackers().size());
-    assertEquals("10.0.0.1", filterBody.getAttackers().get(0));
+    assertThat(filterBody.getAttackers()).hasSize(2);
+    assertThat(filterBody.getAttackers().get(0)).isEqualTo("10.0.0.1");
   }
 
   @Test
@@ -196,8 +188,8 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().servers(servers).build();
 
     // Then
-    assertEquals(2, filterBody.getServers().size());
-    assertEquals("server1", filterBody.getServers().get(0));
+    assertThat(filterBody.getServers()).hasSize(2);
+    assertThat(filterBody.getServers().get(0)).isEqualTo("server1");
   }
 
   @Test
@@ -209,8 +201,8 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().serverEnvironments(envs).build();
 
     // Then
-    assertEquals(2, filterBody.getServerEnvironments().size());
-    assertEquals("PRODUCTION", filterBody.getServerEnvironments().get(0));
+    assertThat(filterBody.getServerEnvironments()).hasSize(2);
+    assertThat(filterBody.getServerEnvironments().get(0)).isEqualTo("PRODUCTION");
   }
 
   @Test
@@ -222,8 +214,8 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().severities(severities).build();
 
     // Then
-    assertEquals(2, filterBody.getSeverities().size());
-    assertEquals("HIGH", filterBody.getSeverities().get(0));
+    assertThat(filterBody.getSeverities()).hasSize(2);
+    assertThat(filterBody.getSeverities().get(0)).isEqualTo("HIGH");
   }
 
   // ========== Test: Immutability ==========
@@ -235,11 +227,8 @@ class AttacksFilterBodyTest {
     var filterBody = AttacksFilterBody.builder().tags(tags).build();
 
     // When/Then - Should throw UnsupportedOperationException
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> {
-          filterBody.getTags().add("tag3");
-        });
+    assertThatThrownBy(() -> filterBody.getTags().add("tag3"))
+        .isInstanceOf(UnsupportedOperationException.class);
   }
 
   @Test
@@ -256,8 +245,8 @@ class AttacksFilterBodyTest {
     tags.add("tag3");
 
     // Then - Built object should not be affected
-    assertEquals(2, filterBody.getTags().size());
-    assertFalse(filterBody.getTags().contains("tag3"));
+    assertThat(filterBody.getTags()).hasSize(2);
+    assertThat(filterBody.getTags()).doesNotContain("tag3");
   }
 
   // ========== Test: Fluent API ==========
@@ -277,13 +266,13 @@ class AttacksFilterBodyTest {
             .build();
 
     // Then
-    assertEquals("EXPLOITED", filterBody.getQuickFilter());
-    assertEquals("xss", filterBody.getKeyword());
-    assertTrue(filterBody.isIncludeSuppressed());
-    assertFalse(filterBody.isIncludeBotBlockers());
-    assertTrue(filterBody.isIncludeIpBlacklist());
-    assertEquals(1, filterBody.getTags().size());
-    assertEquals(1, filterBody.getStatusFilter().size());
+    assertThat(filterBody.getQuickFilter()).isEqualTo("EXPLOITED");
+    assertThat(filterBody.getKeyword()).isEqualTo("xss");
+    assertThat(filterBody.isIncludeSuppressed()).isTrue();
+    assertThat(filterBody.isIncludeBotBlockers()).isFalse();
+    assertThat(filterBody.isIncludeIpBlacklist()).isTrue();
+    assertThat(filterBody.getTags()).hasSize(1);
+    assertThat(filterBody.getStatusFilter()).hasSize(1);
   }
 
   // ========== Test: Complex Scenarios ==========
@@ -310,20 +299,20 @@ class AttacksFilterBodyTest {
             .build();
 
     // Then
-    assertEquals("PROBED", filterBody.getQuickFilter());
-    assertEquals("sql", filterBody.getKeyword());
-    assertTrue(filterBody.isIncludeSuppressed());
-    assertTrue(filterBody.isIncludeBotBlockers());
-    assertTrue(filterBody.isIncludeIpBlacklist());
-    assertEquals(2, filterBody.getTags().size());
-    assertEquals(1, filterBody.getStatusFilter().size());
-    assertEquals(1, filterBody.getProtectionRules().size());
-    assertEquals(1, filterBody.getApplications().size());
-    assertEquals(1, filterBody.getApplicationImportances().size());
-    assertEquals(1, filterBody.getAttackers().size());
-    assertEquals(1, filterBody.getServers().size());
-    assertEquals(1, filterBody.getServerEnvironments().size());
-    assertEquals(1, filterBody.getSeverities().size());
+    assertThat(filterBody.getQuickFilter()).isEqualTo("PROBED");
+    assertThat(filterBody.getKeyword()).isEqualTo("sql");
+    assertThat(filterBody.isIncludeSuppressed()).isTrue();
+    assertThat(filterBody.isIncludeBotBlockers()).isTrue();
+    assertThat(filterBody.isIncludeIpBlacklist()).isTrue();
+    assertThat(filterBody.getTags()).hasSize(2);
+    assertThat(filterBody.getStatusFilter()).hasSize(1);
+    assertThat(filterBody.getProtectionRules()).hasSize(1);
+    assertThat(filterBody.getApplications()).hasSize(1);
+    assertThat(filterBody.getApplicationImportances()).hasSize(1);
+    assertThat(filterBody.getAttackers()).hasSize(1);
+    assertThat(filterBody.getServers()).hasSize(1);
+    assertThat(filterBody.getServerEnvironments()).hasSize(1);
+    assertThat(filterBody.getSeverities()).hasSize(1);
   }
 
   @Test
@@ -333,9 +322,7 @@ class AttacksFilterBodyTest {
         AttacksFilterBody.builder().tags(new ArrayList<>()).statusFilter(new ArrayList<>()).build();
 
     // Then
-    assertNotNull(filterBody.getTags());
-    assertTrue(filterBody.getTags().isEmpty());
-    assertNotNull(filterBody.getStatusFilter());
-    assertTrue(filterBody.getStatusFilter().isEmpty());
+    assertThat(filterBody.getTags()).isNotNull().isEmpty();
+    assertThat(filterBody.getStatusFilter()).isNotNull().isEmpty();
   }
 }

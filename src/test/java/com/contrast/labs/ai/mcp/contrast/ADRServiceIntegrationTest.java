@@ -15,7 +15,9 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
@@ -254,10 +256,12 @@ public class ADRServiceIntegrationTest {
   void testDiscoveredTestDataExists() {
     log.info("\n=== Integration Test: Validate test data discovery ===");
 
-    assertNotNull(testData, "Test data should have been discovered in @BeforeAll");
-    assertNotNull(testData.appId, "Test application ID should be set");
-    assertTrue(testData.hasProtectRules, "Test application should have Protect rules");
-    assertTrue(testData.ruleCount > 0, "Test application should have at least 1 rule");
+    assertThat(testData).as("Test data should have been discovered in @BeforeAll").isNotNull();
+    assertThat(testData.appId).as("Test application ID should be set").isNotNull();
+    assertThat(testData.hasProtectRules).as("Test application should have Protect rules").isTrue();
+    assertThat(testData.ruleCount)
+        .as("Test application should have at least 1 rule")
+        .isGreaterThan(0);
 
     log.info("✓ Test data validated:");
     log.info("  App ID: {}", testData.appId);
@@ -271,15 +275,15 @@ public class ADRServiceIntegrationTest {
   void testGetADRProtectRules_Success() throws IOException {
     log.info("\n=== Integration Test: get_ADR_Protect_Rules_by_app_id ===");
 
-    assertNotNull(testData, "Test data must be discovered before running tests");
+    assertThat(testData).as("Test data must be discovered before running tests").isNotNull();
 
     // Act
     var response = adrService.getProtectDataByAppID(testData.appId);
 
     // Assert
-    assertNotNull(response, "Response should not be null");
-    assertNotNull(response.getRules(), "Rules should not be null");
-    assertTrue(response.getRules().size() > 0, "Should have at least 1 rule");
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.getRules()).as("Rules should not be null").isNotNull();
+    assertThat(response.getRules().size()).as("Should have at least 1 rule").isGreaterThan(0);
 
     log.info(
         "✓ Retrieved "
@@ -296,7 +300,7 @@ public class ADRServiceIntegrationTest {
 
     // Verify rule structure
     for (var rule : response.getRules()) {
-      assertNotNull(rule.getName(), "Rule name should not be null");
+      assertThat(rule.getName()).as("Rule name should not be null").isNotNull();
       // Production mode might be null, block, monitor, or off
       // Just verify the field exists (can be null for non-production rules)
     }
@@ -332,7 +336,9 @@ public class ADRServiceIntegrationTest {
     }
 
     // Either exception or graceful handling is acceptable
-    assertTrue(true, "Test passes if either exception thrown or graceful handling occurs");
+    assertThat(true)
+        .as("Test passes if either exception thrown or graceful handling occurs")
+        .isTrue();
   }
 
   @Test
@@ -340,20 +346,14 @@ public class ADRServiceIntegrationTest {
     log.info("\n=== Integration Test: Null app ID handling ===");
 
     // Act/Assert - Should throw IllegalArgumentException
-    var exception =
-        assertThrows(
-            IllegalArgumentException.class,
+    assertThatThrownBy(
             () -> {
               adrService.getProtectDataByAppID(null);
-            });
+            })
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Application ID cannot be null or empty");
 
     log.info("✓ Null app ID correctly rejected");
-    log.info("  Exception: {}", exception.getClass().getSimpleName());
-    log.info("  Message: {}", exception.getMessage());
-
-    assertTrue(
-        exception.getMessage().contains("Application ID cannot be null or empty"),
-        "Exception message should explain the validation failure");
   }
 
   @Test
@@ -361,20 +361,14 @@ public class ADRServiceIntegrationTest {
     log.info("\n=== Integration Test: Empty app ID handling ===");
 
     // Act/Assert - Should throw IllegalArgumentException
-    var exception =
-        assertThrows(
-            IllegalArgumentException.class,
+    assertThatThrownBy(
             () -> {
               adrService.getProtectDataByAppID("");
-            });
+            })
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Application ID cannot be null or empty");
 
     log.info("✓ Empty app ID correctly rejected");
-    log.info("  Exception: {}", exception.getClass().getSimpleName());
-    log.info("  Message: {}", exception.getMessage());
-
-    assertTrue(
-        exception.getMessage().contains("Application ID cannot be null or empty"),
-        "Exception message should explain the validation failure");
   }
 
   // ========== Test Case 4: Rule Details Verification ==========
@@ -383,15 +377,15 @@ public class ADRServiceIntegrationTest {
   void testGetADRProtectRules_VerifyRuleDetails() throws IOException {
     log.info("\n=== Integration Test: Verify rule details structure ===");
 
-    assertNotNull(testData, "Test data must be discovered before running tests");
+    assertThat(testData).as("Test data must be discovered before running tests").isNotNull();
 
     // Act
     var response = adrService.getProtectDataByAppID(testData.appId);
 
     // Assert
-    assertNotNull(response);
-    assertNotNull(response.getRules());
-    assertFalse(response.getRules().isEmpty());
+    assertThat(response).isNotNull();
+    assertThat(response.getRules()).isNotNull();
+    assertThat(response.getRules()).isNotEmpty();
 
     log.info("✓ Verifying rule details for {}", response.getRules().size() + " rules:");
 
@@ -400,7 +394,7 @@ public class ADRServiceIntegrationTest {
       log.info("\n  Rule: {}", rule.getName());
 
       // Verify required fields
-      assertNotNull(rule.getName(), "Rule name is required");
+      assertThat(rule.getName()).as("Rule name is required").isNotNull();
 
       log.info("    ✓ Name: {}", rule.getName());
       if (rule.getProduction() != null) {

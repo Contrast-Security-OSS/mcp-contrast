@@ -1,6 +1,6 @@
 package com.contrast.labs.ai.mcp.contrast.hints;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
@@ -9,23 +9,22 @@ public class HintProviderTest {
   @Test
   public void testGetHintsForRule() {
     // Test getting hints for SQL injection
-    assertFalse(HintProvider.getHintsForRule("sql-injection").isEmpty());
+    assertThat(HintProvider.getHintsForRule("sql-injection")).isNotEmpty();
 
     // Test getting hints for a non-existent rule
-    assertTrue(HintProvider.getHintsForRule("non-existent-rule").isEmpty());
+    assertThat(HintProvider.getHintsForRule("non-existent-rule")).isEmpty();
   }
 
   @Test
   public void testGetGeneralGuidance() {
     // General guidance should not be empty
-    assertFalse(HintProvider.getGeneralGuidance().isEmpty());
+    assertThat(HintProvider.getGeneralGuidance()).isNotEmpty();
   }
 
   @Test
   public void testGetAllHintsForRule() {
     // For SQL injection, we should get both general and specific hints
-    assertTrue(
-        HintProvider.getAllHintsForRule("sql-injection").size()
-            > HintProvider.getHintsForRule("sql-injection").size());
+    assertThat(HintProvider.getAllHintsForRule("sql-injection").size())
+        .isGreaterThan(HintProvider.getHintsForRule("sql-injection").size());
   }
 }

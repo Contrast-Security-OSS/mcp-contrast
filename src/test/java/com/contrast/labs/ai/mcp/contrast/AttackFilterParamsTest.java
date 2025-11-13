@@ -15,7 +15,8 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 
@@ -25,71 +26,74 @@ class AttackFilterParamsTest {
   void testValidFiltersAllProvided() {
     var params = AttackFilterParams.of("EXPLOITED", "xss", true, true, false, "severity");
 
-    assertTrue(params.isValid());
-    assertTrue(params.errors().isEmpty());
+    assertThat(params.isValid()).isTrue();
+    assertThat(params.errors()).isEmpty();
 
     var filterBody = params.toAttacksFilterBody();
-    assertEquals("EXPLOITED", filterBody.getQuickFilter());
-    assertEquals("xss", filterBody.getKeyword());
-    assertTrue(filterBody.isIncludeSuppressed());
-    assertTrue(filterBody.isIncludeBotBlockers());
-    assertFalse(filterBody.isIncludeIpBlacklist());
+    assertThat(filterBody.getQuickFilter()).isEqualTo("EXPLOITED");
+    assertThat(filterBody.getKeyword()).isEqualTo("xss");
+    assertThat(filterBody.isIncludeSuppressed()).isTrue();
+    assertThat(filterBody.isIncludeBotBlockers()).isTrue();
+    assertThat(filterBody.isIncludeIpBlacklist()).isFalse();
   }
 
   @Test
   void testNoFiltersProvided() {
     var params = AttackFilterParams.of(null, null, null, null, null, null);
 
-    assertTrue(params.isValid());
-    assertFalse(params.messages().isEmpty()); // Should have smart defaults messages
-    assertTrue(params.errors().isEmpty());
+    assertThat(params.isValid()).isTrue();
+    assertThat(params.messages()).isNotEmpty(); // Should have smart defaults messages
+    assertThat(params.errors()).isEmpty();
 
     // Smart defaults should be applied
     var filterBody = params.toAttacksFilterBody();
-    assertEquals("ALL", filterBody.getQuickFilter());
-    assertFalse(filterBody.isIncludeSuppressed()); // Smart default: exclude suppressed
+    assertThat(filterBody.getQuickFilter()).isEqualTo("ALL");
+    assertThat(filterBody.isIncludeSuppressed()).isFalse(); // Smart default: exclude suppressed
   }
 
   @Test
   void testSmartDefaultForIncludeSuppressed() {
     var params = AttackFilterParams.of(null, null, null, null, null, null);
 
-    assertTrue(params.isValid());
-    assertTrue(params.errors().isEmpty());
+    assertThat(params.isValid()).isTrue();
+    assertThat(params.errors()).isEmpty();
 
     // Should have two messages: quickFilter default and includeSuppressed default
-    assertEquals(2, params.messages().size());
-    assertTrue(params.messages().stream().anyMatch(m -> m.contains("No quickFilter applied")));
-    assertTrue(
-        params.messages().stream()
-            .anyMatch(m -> m.contains("Excluding suppressed attacks by default")));
+    assertThat(params.messages()).hasSize(2);
+    assertThat(params.messages().stream().anyMatch(m -> m.contains("No quickFilter applied")))
+        .isTrue();
+    assertThat(
+            params.messages().stream()
+                .anyMatch(m -> m.contains("Excluding suppressed attacks by default")))
+        .isTrue();
 
     var filterBody = params.toAttacksFilterBody();
-    assertFalse(filterBody.isIncludeSuppressed());
+    assertThat(filterBody.isIncludeSuppressed()).isFalse();
   }
 
   @Test
   void testExplicitIncludeSuppressedNoMessage() {
     var params = AttackFilterParams.of("EXPLOITED", null, true, null, null, null);
 
-    assertTrue(params.isValid());
-    assertTrue(params.errors().isEmpty());
+    assertThat(params.isValid()).isTrue();
+    assertThat(params.errors()).isEmpty();
     // Should not have includeSuppressed message when explicitly provided
-    assertFalse(params.messages().stream().anyMatch(m -> m.contains("Excluding suppressed")));
+    assertThat(params.messages().stream().anyMatch(m -> m.contains("Excluding suppressed")))
+        .isFalse();
 
     var filterBody = params.toAttacksFilterBody();
-    assertTrue(filterBody.isIncludeSuppressed());
+    assertThat(filterBody.isIncludeSuppressed()).isTrue();
   }
 
   @Test
   void testInvalidQuickFilterHardFailure() {
     var params = AttackFilterParams.of("INVALID", null, null, null, null, null);
 
-    assertFalse(params.isValid());
-    assertEquals(1, params.errors().size());
-    assertTrue(params.errors().get(0).contains("Invalid quickFilter 'INVALID'"));
-    assertTrue(
-        params.errors().get(0).contains("Valid: EXPLOITED, PROBED, BLOCKED, INEFFECTIVE, ALL"));
+    assertThat(params.isValid()).isFalse();
+    assertThat(params.errors()).hasSize(1);
+    assertThat(params.errors().get(0)).contains("Invalid quickFilter 'INVALID'");
+    assertThat(params.errors().get(0))
+        .contains("Valid: EXPLOITED, PROBED, BLOCKED, INEFFECTIVE, ALL");
   }
 
   @Test
@@ -98,8 +102,8 @@ class AttackFilterParamsTest {
 
     for (String filter : validFilters) {
       var params = AttackFilterParams.of(filter, null, false, null, null, null);
-      assertTrue(params.isValid(), "Filter " + filter + " should be valid");
-      assertTrue(params.errors().isEmpty());
+      assertThat(params.isValid()).as("Filter " + filter + " should be valid").isTrue();
+      assertThat(params.errors()).isEmpty();
     }
   }
 
@@ -107,74 +111,74 @@ class AttackFilterParamsTest {
   void testQuickFilterCaseInsensitive() {
     // Test lowercase and mixed case
     var params1 = AttackFilterParams.of("exploited", null, false, null, null, null);
-    assertTrue(params1.isValid());
-    assertEquals("EXPLOITED", params1.toAttacksFilterBody().getQuickFilter());
+    assertThat(params1.isValid()).isTrue();
+    assertThat(params1.toAttacksFilterBody().getQuickFilter()).isEqualTo("EXPLOITED");
 
     var params2 = AttackFilterParams.of("PrObEd", null, false, null, null, null);
-    assertTrue(params2.isValid());
-    assertEquals("PROBED", params2.toAttacksFilterBody().getQuickFilter());
+    assertThat(params2.isValid()).isTrue();
+    assertThat(params2.toAttacksFilterBody().getQuickFilter()).isEqualTo("PROBED");
   }
 
   @Test
   void testQuickFilterWithWhitespace() {
     var params = AttackFilterParams.of("  EXPLOITED  ", null, false, null, null, null);
 
-    assertTrue(params.isValid());
-    assertEquals("EXPLOITED", params.toAttacksFilterBody().getQuickFilter());
+    assertThat(params.isValid()).isTrue();
+    assertThat(params.toAttacksFilterBody().getQuickFilter()).isEqualTo("EXPLOITED");
   }
 
   @Test
   void testKeywordPassThrough() {
     var params = AttackFilterParams.of("EXPLOITED", "sql injection test", false, null, null, null);
 
-    assertTrue(params.isValid());
-    assertEquals("sql injection test", params.toAttacksFilterBody().getKeyword());
+    assertThat(params.isValid()).isTrue();
+    assertThat(params.toAttacksFilterBody().getKeyword()).isEqualTo("sql injection test");
   }
 
   @Test
   void testValidSortFormat() {
     var params = AttackFilterParams.of("EXPLOITED", null, false, null, null, "severity");
 
-    assertTrue(params.isValid());
-    assertTrue(params.errors().isEmpty());
+    assertThat(params.isValid()).isTrue();
+    assertThat(params.errors()).isEmpty();
   }
 
   @Test
   void testValidDescendingSortFormat() {
     var params = AttackFilterParams.of("EXPLOITED", null, false, null, null, "-severity");
 
-    assertTrue(params.isValid());
-    assertTrue(params.errors().isEmpty());
+    assertThat(params.isValid()).isTrue();
+    assertThat(params.errors()).isEmpty();
   }
 
   @Test
   void testInvalidSortFormatHardFailure() {
     var params = AttackFilterParams.of("EXPLOITED", null, false, null, null, "invalid sort!");
 
-    assertFalse(params.isValid());
-    assertEquals(1, params.errors().size());
-    assertTrue(params.errors().get(0).contains("Invalid sort format 'invalid sort!'"));
-    assertTrue(params.errors().get(0).contains("Must be a field name with optional '-' prefix"));
+    assertThat(params.isValid()).isFalse();
+    assertThat(params.errors()).hasSize(1);
+    assertThat(params.errors().get(0)).contains("Invalid sort format 'invalid sort!'");
+    assertThat(params.errors().get(0)).contains("Must be a field name with optional '-' prefix");
   }
 
   @Test
   void testValidSortWithUnderscores() {
     var params = AttackFilterParams.of("EXPLOITED", null, false, null, null, "field_name");
 
-    assertTrue(params.isValid());
-    assertTrue(params.errors().isEmpty());
+    assertThat(params.isValid()).isTrue();
+    assertThat(params.errors()).isEmpty();
   }
 
   @Test
   void testAllBooleanFlagsExplicitlySet() {
     var params = AttackFilterParams.of("BLOCKED", "keyword", true, true, true, null);
 
-    assertTrue(params.isValid());
+    assertThat(params.isValid()).isTrue();
 
     var filterBody = params.toAttacksFilterBody();
-    assertTrue(filterBody.isIncludeSuppressed());
-    assertTrue(filterBody.isIncludeBotBlockers());
-    assertTrue(filterBody.isIncludeIpBlacklist());
+    assertThat(filterBody.isIncludeSuppressed()).isTrue();
+    assertThat(filterBody.isIncludeBotBlockers()).isTrue();
+    assertThat(filterBody.isIncludeIpBlacklist()).isTrue();
   }
 
   @Test
@@ -182,65 +186,68 @@ class AttackFilterParamsTest {
     var params =
         AttackFilterParams.of("INVALID_FILTER", null, null, null, null, "bad-sort-format!");
 
-    assertFalse(params.isValid());
-    assertEquals(2, params.errors().size()); // quickFilter and sort errors
+    assertThat(params.isValid()).isFalse();
+    assertThat(params.errors()).hasSize(2); // quickFilter and sort errors
   }
 
   @Test
   void testMessagesAreImmutable() {
     var params = AttackFilterParams.of(null, null, null, null, null, null);
 
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> {
-          params.messages().add("Should fail");
-        });
+    assertThatThrownBy(
+            () -> {
+              params.messages().add("Should fail");
+            })
+        .isInstanceOf(UnsupportedOperationException.class);
   }
 
   @Test
   void testErrorsAreImmutable() {
     var params = AttackFilterParams.of("INVALID", null, null, null, null, null);
 
-    assertThrows(
-        UnsupportedOperationException.class,
-        () -> {
-          params.errors().add("Should fail");
-        });
+    assertThatThrownBy(
+            () -> {
+              params.errors().add("Should fail");
+            })
+        .isInstanceOf(UnsupportedOperationException.class);
   }
 
   @Test
   void testQuickFilterDefaultMessage() {
     var params = AttackFilterParams.of(null, null, false, null, null, null);
 
-    assertTrue(params.isValid());
-    assertTrue(
-        params.messages().stream()
-            .anyMatch(m -> m.contains("No quickFilter applied - showing all attack types")));
+    assertThat(params.isValid()).isTrue();
+    assertThat(
+            params.messages().stream()
+                .anyMatch(m -> m.contains("No quickFilter applied - showing all attack types")))
+        .isTrue();
   }
 
   @Test
   void testNoQuickFilterMessageWhenProvided() {
     var params = AttackFilterParams.of("EXPLOITED", null, false, null, null, null);
 
-    assertTrue(params.isValid());
-    assertFalse(params.messages().stream().anyMatch(m -> m.contains("No quickFilter applied")));
+    assertThat(params.isValid()).isTrue();
+    assertThat(params.messages().stream().anyMatch(m -> m.contains("No quickFilter applied")))
+        .isFalse();
   }
 
   @Test
   void testEmptyStringQuickFilterTreatedAsNull() {
     var params = AttackFilterParams.of("   ", null, false, null, null, null);
 
-    assertTrue(params.isValid());
+    assertThat(params.isValid()).isTrue();
     // Empty/whitespace should be treated as null and use default
-    assertEquals("ALL", params.toAttacksFilterBody().getQuickFilter());
-    assertTrue(params.messages().stream().anyMatch(m -> m.contains("No quickFilter applied")));
+    assertThat(params.toAttacksFilterBody().getQuickFilter()).isEqualTo("ALL");
+    assertThat(params.messages().stream().anyMatch(m -> m.contains("No quickFilter applied")))
+        .isTrue();
   }
 
   @Test
   void testEmptyStringKeywordHandled() {
     var params = AttackFilterParams.of("EXPLOITED", "   ", false, null, null, null);
 
-    assertTrue(params.isValid());
+    assertThat(params.isValid()).isTrue();
     // Empty keyword shouldn't cause issues
   }
 
@@ -248,7 +255,7 @@ class AttackFilterParamsTest {
   void testEmptyStringSortTreatedAsNull() {
     var params = AttackFilterParams.of("EXPLOITED", null, false, null, null, "   ");
 
-    assertTrue(params.isValid());
-    assertTrue(params.errors().isEmpty());
+    assertThat(params.isValid()).isTrue();
+    assertThat(params.errors()).isEmpty();
   }
 }
