@@ -17,10 +17,10 @@ package com.contrast.labs.ai.mcp.contrast;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.Route;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;

@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksFilterBody;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksFilterBody;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;

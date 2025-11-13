@@ -19,10 +19,10 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.CveData;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CveData;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -379,21 +379,21 @@ class SCAServiceTest {
   private CveData createMockCveDataWithApps() {
     var cveData = new CveData();
 
-    var app = mock(com.contrast.labs.ai.mcp.contrast.sdkexstension.data.App.class);
+    var app = mock(com.contrast.labs.ai.mcp.contrast.sdkextension.data.App.class);
     when(app.getApp_id()).thenReturn(TEST_APP_ID);
     when(app.getName()).thenReturn("Test Application");
     when(app.getClassCount()).thenReturn(0);
 
-    var apps = new ArrayList<com.contrast.labs.ai.mcp.contrast.sdkexstension.data.App>();
+    var apps = new ArrayList<com.contrast.labs.ai.mcp.contrast.sdkextension.data.App>();
     apps.add(app);
     cveData.setApps(apps);
 
-    var lib = mock(com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Library.class);
+    var lib = mock(com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library.class);
     when(lib.getHash()).thenReturn("matching-hash-789");
     when(lib.getFile_name()).thenReturn("vulnerable-lib.jar");
     when(lib.getVersion()).thenReturn("1.0.0");
 
-    var libs = new ArrayList<com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Library>();
+    var libs = new ArrayList<com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library>();
     libs.add(lib);
     cveData.setLibraries(libs);
 

@@ -18,8 +18,8 @@ package com.contrast.labs.ai.mcp.contrast.data;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.contrast.labs.ai.mcp.contrast.FilterHelper;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.Application;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.Attack;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.Application;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.Attack;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;

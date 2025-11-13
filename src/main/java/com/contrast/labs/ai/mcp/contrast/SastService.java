@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrastsecurity.sdk.scan.Project;
 import java.io.BufferedReader;
 import java.io.IOException;

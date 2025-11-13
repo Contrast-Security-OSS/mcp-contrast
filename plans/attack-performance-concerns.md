@@ -17,7 +17,7 @@ The attack retrieval API has **severe performance issues** due to an N+1 query p
 
 **Source References**:
 - MCP: `src/main/java/com/contrast/labs/ai/mcp/contrast/ADRService.java:150`
-- SDK: `src/main/java/com/contrast/labs/ai/mcp/contrast/sdkexstension/SDKExtension.java:373,378`
+- SDK: `src/main/java/com/contrast/labs/ai/mcp/contrast/sdkextension/SDKExtension.java:373,378`
 - TeamServer Controller: `teamserver-app/src/main/java/contrast/teamserver/rest/ng/rasp/discovery/attack/NgAttackRestController.java:266,275`
 - Assembler: `teamserver-app/src/main/java/contrast/teamserver/rest/ng/rasp/discovery/attack/resource/NgAttackResourceAssembler.java:101-187`
 
@@ -315,7 +315,7 @@ Target metrics:
 
 ### MCP Server Code
 - `src/main/java/com/contrast/labs/ai/mcp/contrast/ADRService.java:138-169`
-- `src/main/java/com/contrast/labs/ai/mcp/contrast/sdkexstension/SDKExtension.java:368-425`
+- `src/main/java/com/contrast/labs/ai/mcp/contrast/sdkextension/SDKExtension.java:368-425`
 
 ### TeamServer Code
 - Controller: `teamserver-app/src/main/java/contrast/teamserver/rest/ng/rasp/discovery/attack/NgAttackRestController.java`

@@ -2,7 +2,7 @@ package com.contrast.labs.ai.mcp.contrast;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.google.gson.Gson;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

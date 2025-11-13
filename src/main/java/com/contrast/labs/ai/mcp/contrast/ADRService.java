@@ -17,10 +17,10 @@ package com.contrast.labs.ai.mcp.contrast;
 
 import com.contrast.labs.ai.mcp.contrast.data.AttackSummary;
 import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.Attack;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.Attack;
 import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
 import java.io.IOException;
 import java.util.List;

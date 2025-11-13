@@ -22,7 +22,7 @@ import static org.mockito.Mockito.*;
 
 import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
 import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.models.Rules;
