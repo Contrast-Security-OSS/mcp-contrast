@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**Note**: This project uses [bd (beads)](https://github.com/steveyegge/beads) for issue tracking. Use `bd` commands instead of markdown TODOs. See AGENTS.md for workflow details.
+
 ## Project Overview
 
 This is an MCP (Model Context Protocol) server for Contrast Security that enables AI agents to access and analyze vulnerability data from Contrast's security platform. It serves as a bridge between Contrast Security's API and AI tools like Claude, enabling automated vulnerability remediation and security analysis.
@@ -10,8 +12,10 @@ This is an MCP (Model Context Protocol) server for Contrast Security that enable
 
 ### Building the Project
 - **Build**: `mvn clean install` or `./mvnw clean install`
+- **Package without tests**: `mvn clean package -DskipTests`
 - **Test**: `mvn test` or `./mvnw test`
-- **Run locally**: `java -jar target/mcp-contrast-0.0.11.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
+- **Run single test**: `mvn test -Dtest=HintGeneratorTest` or `mvn test -Dtest=HintGeneratorTest#specificTestMethod`
+- **Run locally**: `java -jar target/mcp-contrast-0.0.12-SNAPSHOT.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
 
 ### Docker Commands
 - **Build Docker image**: `docker build -t mcp-contrast .`
@@ -28,17 +32,19 @@ This is an MCP (Model Context Protocol) server for Contrast Security that enable
 
 **Main Application**: `McpContrastApplication.java` - Spring Boot application that registers MCP tools from all service classes.
 
-**Service Layer**: Each service handles a specific aspect of Contrast Security data:
+**Service Layer**: Each service handles a specific aspect of Contrast Security data and exposes `@Tool` annotated methods:
 - `AssessService` - Vulnerability analysis and trace data
 - `SastService` - Static application security testing data
 - `SCAService` - Software composition analysis (library vulnerabilities)
 - `ADRService` - Attack detection and response events
 - `RouteCoverageService` - Route coverage analysis
-- `PromptService` - AI prompt management
 
-**SDK Extensions**: Located in `sdkexstension/` package, these extend the Contrast SDK with enhanced data models and helper methods for better AI integration.
+**SDK Extensions**: Located in `sdkexstension/` package:
+- `SDKExtension.java` - Extends Contrast SDK API with additional endpoints not in standard SDK (library observations, route details, session metadata, etc.)
+- `SDKHelper.java` - Utility methods for hostname protocol handling and common operations
+- `data/` subpackages - Enhanced data models with AI-friendly representations organized by domain (application, adr, routecoverage, sca, traces, sessionmetadata)
 
-**Data Models**: Comprehensive POJOs in `data/` package representing vulnerability information, library data, applications, and attack events.
+**Data Models**: Comprehensive POJOs in `data/` package representing vulnerability information, library data, applications, and attack events used by service layer.
 
 **Hint System**: `hints/` package provides context-aware security guidance for vulnerability remediation.
 
@@ -58,19 +64,24 @@ Required environment variables/arguments:
 
 ### Technology Stack
 
-- **Framework**: Spring Boot 3.4.5 with Spring AI 1.0.0-RC1
+- **Framework**: Spring Boot 3.4.5 with Spring AI 1.0.1
 - **MCP Integration**: Spring AI MCP Server starter
 - **Contrast Integration**: Contrast SDK Java 3.4.2
-- **Testing**: JUnit 5
-- **Build Tool**: Maven with wrapper
+- **JSON Processing**: Gson (via Contrast SDK)
+- **Testing**: JUnit 5 with Spring Boot Test
+- **Build Tool**: Maven 3.6+ with wrapper
 - **Packaging**: Executable JAR and Docker container
 
 ### Development Patterns
 
-1. **MCP Tools**: Services expose methods via `@Tool` annotation for AI agent consumption
-2. **SDK Extension Pattern**: Enhanced data models extend base SDK classes with AI-friendly representations
-3. **Hint Generation**: Rule-based system provides contextual security guidance
-4. **Defensive Design**: All external API calls include error handling and logging
+1. **MCP Tools**: Services expose methods via `@Tool` annotation for AI agent consumption. Register new services in `McpContrastApplication.tools()` bean.
+2. **SDK Extension Pattern**:
+   - Use `SDKExtension` to add new Contrast API endpoints not in the standard SDK
+   - Use `SDKHelper` for common utility operations (hostname handling, etc.)
+   - Enhanced data models in `sdkexstension/data/` provide AI-friendly JSON representations
+3. **Hint Generation**: Rule-based system in `hints/` package provides contextual security guidance for vulnerability remediation
+4. **Defensive Design**: All external API calls include proper resource management (try-with-resources), error handling, and logging
+5. **Pagination Handling**: SDK extension methods handle pagination automatically (see `getLibraryObservations` for pattern)
 
 ### Security Considerations
 
@@ -81,6 +92,7 @@ This codebase handles sensitive vulnerability data. The README contains critical
 - Default log location: `/tmp/mcp-contrast.log`
 - Debug logging: Add `--logging.level.root=DEBUG` to startup arguments
 - Console logging is minimal by design for MCP protocol compatibility
+- Debug mode buffers API responses for logging (memory impact with large datasets)
 
 ## Beads Workflow Requirements
 
@@ -120,16 +132,18 @@ Example: If B must be done after A completes, use `bd dep add B A` (not `bd dep 
 Verify with `bd show <task-id>` - dependent tasks show "Depends on", prerequisites show "Blocks".
 
 ### Testing Requirements Before Closing Beads
+### Troubleshooting
 
-**CRITICAL: Before closing any bead, you MUST:**
+For common issues (SSL certificates, proxy configuration, debug logging), see the "Common Issues" and "Proxy Configuration" sections in [README.md](README.md).
 
-1. **Write tests for ALL code changes** - No exceptions
-2. **Run unit tests** - `mvn test` must pass with 0 failures
-3. **Run integration tests** - `mvn verify` must pass (requires credentials in `.env.integration-test`)
-   - If credentials unavailable, verify integration tests pass in CI/CD
-4. **Verify new tests are included** - Ensure your tests ran and passed
+### Adding New MCP Tools
 
-All code changes require corresponding test coverage. Do not close beads without tests.
+To add a new tool/service:
+1. Create a new `@Service` class with methods annotated with `@Tool(description="...")`
+2. Inject dependencies (ContrastSDK, SDKExtension) via constructor
+3. Register the service in `McpContrastApplication.tools()` bean method
+4. Use `SDKExtension` to add new API endpoints if needed
+5. Create enhanced data models in appropriate `sdkexstension/data/` subpackage
 
 See INTEGRATION_TESTS.md for integration test setup and credentials.
 
