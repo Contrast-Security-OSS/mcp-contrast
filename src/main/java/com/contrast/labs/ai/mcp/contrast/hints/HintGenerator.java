@@ -1,7 +1,5 @@
 package com.contrast.labs.ai.mcp.contrast.hints;
 
-import java.util.List;
-
 /**
  * Generator for vulnerability remediation hints. This class uses the RuleHints enum to generate
  * appropriate hints based on rule types.
@@ -24,7 +22,7 @@ public class HintGenerator {
       return DEFAULT_HINT;
     }
 
-    List<String> hints = HintProvider.getAllHintsForRule(rule);
+    var hints = HintProvider.getAllHintsForRule(rule);
 
     if (hints.isEmpty()) {
       return DEFAULT_HINT + rule;

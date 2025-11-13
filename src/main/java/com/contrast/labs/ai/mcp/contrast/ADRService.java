@@ -21,9 +21,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.Attack;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksResponse;
 import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
-import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -83,17 +81,17 @@ public class ADRService {
 
     try {
       // Initialize ContrastSDK
-      ContrastSDK contrastSDK =
+      var contrastSDK =
           SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
       logger.debug("ContrastSDK initialized successfully for application ID: {}", appID);
 
       // Initialize SDK extension
-      SDKExtension extendedSDK = new SDKExtension(contrastSDK);
+      var extendedSDK = new SDKExtension(contrastSDK);
       logger.debug("SDKExtension initialized successfully for application ID: {}", appID);
 
       // Get protect configuration
       logger.debug("Retrieving protection configuration for application ID: {}", appID);
-      ProtectData protectData = extendedSDK.getProtectConfig(orgID, appID);
+      var protectData = extendedSDK.getProtectConfig(orgID, appID);
       long duration = System.currentTimeMillis() - startTime;
 
       if (protectData == null) {
@@ -155,7 +153,7 @@ public class ADRService {
       @ToolParam(description = "Items per page (max 100), default: 50", required = false)
           Integer pageSize)
       throws IOException {
-    PaginationParams pagination = PaginationParams.of(page, pageSize);
+    var pagination = PaginationParams.of(page, pageSize);
 
     logger.info(
         "Retrieving attacks from Contrast ADR (quickFilter: {}, keyword: {}, sort: {}, page: {},"
@@ -168,7 +166,7 @@ public class ADRService {
     long startTime = System.currentTimeMillis();
 
     // Parse and validate filter parameters
-    AttackFilterParams filters =
+    var filters =
         AttackFilterParams.of(
             quickFilter, keyword, includeSuppressed, includeBotBlockers, includeIpBlacklist, sort);
 
@@ -179,14 +177,14 @@ public class ADRService {
     }
 
     try {
-      ContrastSDK contrastSDK =
+      var contrastSDK =
           SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
       logger.debug("ContrastSDK initialized successfully for attacks retrieval");
 
-      SDKExtension extendedSDK = new SDKExtension(contrastSDK);
+      var extendedSDK = new SDKExtension(contrastSDK);
       logger.debug("SDKExtension initialized successfully for attacks retrieval");
 
-      AttacksResponse attacksResponse =
+      var attacksResponse =
           extendedSDK.getAttacks(
               orgID, filters.toAttacksFilterBody(), pagination.limit(), pagination.offset(), sort);
       long duration = System.currentTimeMillis() - startTime;
@@ -194,13 +192,13 @@ public class ADRService {
       List<Attack> safeAttacks =
           (attacksResponse.getAttacks() != null) ? attacksResponse.getAttacks() : List.of();
 
-      List<AttackSummary> summaries =
+      var summaries =
           safeAttacks.stream().map(AttackSummary::fromAttack).collect(Collectors.toList());
 
       // Get totalItems from API response if available
-      Integer totalItems = attacksResponse.getTotalCount();
+      var totalItems = attacksResponse.getTotalCount();
 
-      PaginatedResponse<AttackSummary> response =
+      var response =
           paginationHandler.createPaginatedResponse(
               summaries, pagination, totalItems, filters.messages());
 

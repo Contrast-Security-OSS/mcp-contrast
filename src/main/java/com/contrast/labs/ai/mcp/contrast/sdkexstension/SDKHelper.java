@@ -15,7 +15,6 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkexstension;
 
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibrariesExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservation;
@@ -65,18 +64,18 @@ public class SDKHelper {
   public static List<LibraryExtended> getLibsForID(
       String appID, String orgID, SDKExtension extendedSDK) throws IOException {
     // Check cache for existing result
-    List<LibraryExtended> cachedLibraries = libraryCache.getIfPresent(appID);
+    var cachedLibraries = libraryCache.getIfPresent(appID);
     if (cachedLibraries != null) {
       logger.info("Cache hit for appID: {}", appID);
       return cachedLibraries;
     }
     logger.info("Cache miss for appID: {}, fetching libraries from SDK", appID);
     int libraryCallSize = 50;
-    LibraryFilterForm filterForm = new LibraryFilterForm();
+    var filterForm = new LibraryFilterForm();
     filterForm.setLimit(libraryCallSize);
     filterForm.setExpand(EnumSet.of(LibraryFilterForm.LibrariesExpandValues.VULNS));
-    LibrariesExtended libraries = extendedSDK.getLibrariesWithFilter(orgID, appID, filterForm);
-    List<LibraryExtended> libs = new ArrayList<>();
+    var libraries = extendedSDK.getLibrariesWithFilter(orgID, appID, filterForm);
+    var libs = new ArrayList<LibraryExtended>();
     libs.addAll(libraries.getLibraries());
     int offset = libraryCallSize;
     while (libraries.getLibraries().size() == libraryCallSize) {
@@ -113,18 +112,17 @@ public class SDKHelper {
       throws IOException, UnauthorizedException {
 
     // Generate cache key from combination of library, app and org IDs
-    String cacheKey = String.format("%s:%s:%s", orgId, appId, libraryId);
+    var cacheKey = String.format("%s:%s:%s", orgId, appId, libraryId);
 
     // Check cache for existing result
-    List<LibraryObservation> cachedObservations = libraryObservationsCache.getIfPresent(cacheKey);
+    var cachedObservations = libraryObservationsCache.getIfPresent(cacheKey);
     if (cachedObservations != null) {
       logger.info("Cache hit for library observations: {}", cacheKey);
       return cachedObservations;
     }
 
     logger.info("Cache miss for library observations: {}, fetching from API", cacheKey);
-    List<LibraryObservation> observations =
-        extendedSDK.getLibraryObservations(orgId, appId, libraryId, pageSize);
+    var observations = extendedSDK.getLibraryObservations(orgId, appId, libraryId, pageSize);
 
     logger.info(
         "Successfully retrieved {} library observations for library: {} in app: {}",
@@ -182,7 +180,7 @@ public class SDKHelper {
       result = hostName;
     } else {
       // No protocol specified, prepend from configuration
-      String protocol = SDKHelper.environment.getProperty("contrast.api.protocol", "https");
+      var protocol = SDKHelper.environment.getProperty("contrast.api.protocol", "https");
       result = protocol + "://" + hostName;
     }
 
@@ -205,14 +203,13 @@ public class SDKHelper {
       String httpProxyPort) {
     logger.info("Initializing ContrastSDK with username: {}, host: {}", userName, hostName);
 
-    String baseUrl = getProtocolAndServer(hostName);
-    String apiUrl = baseUrl + "/Contrast/api";
+    var baseUrl = getProtocolAndServer(hostName);
+    var apiUrl = baseUrl + "/Contrast/api";
     logger.info("API URL will be : {}", apiUrl);
 
-    String mcpVersion =
-        SDKHelper.environment.getProperty("spring.ai.mcp.server.version", "unknown");
+    var mcpVersion = SDKHelper.environment.getProperty("spring.ai.mcp.server.version", "unknown");
 
-    ContrastSDK.Builder builder =
+    var builder =
         new ContrastSDK.Builder(userName, serviceKey, apiKey)
             .withApiUrl(apiUrl)
             .withUserAgentProduct(UserAgentProduct.of(MCP_SERVER_NAME, mcpVersion));
@@ -222,7 +219,7 @@ public class SDKHelper {
           httpProxyPort != null && !httpProxyPort.isEmpty() ? Integer.parseInt(httpProxyPort) : 80;
       logger.debug("Configuring HTTP proxy: {}:{}", httpProxyHost, port);
 
-      java.net.Proxy proxy =
+      var proxy =
           new java.net.Proxy(
               java.net.Proxy.Type.HTTP, new java.net.InetSocketAddress(httpProxyHost, port));
 
@@ -267,18 +264,17 @@ public class SDKHelper {
   public static List<Application> getApplicationsWithCache(String orgId, ContrastSDK contrastSDK)
       throws IOException {
     // Generate cache key based on organization ID
-    String cacheKey = String.format("applications:%s", orgId);
+    var cacheKey = String.format("applications:%s", orgId);
 
     // Check cache for existing result
-    List<Application> cachedApplications = applicationsCache.getIfPresent(cacheKey);
+    var cachedApplications = applicationsCache.getIfPresent(cacheKey);
     if (cachedApplications != null) {
       logger.info("Cache hit for applications in org: {}", orgId);
       return cachedApplications;
     }
 
     logger.info("Cache miss for applications in org: {}, fetching from API", orgId);
-    List<com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application>
-        applications = new SDKExtension(contrastSDK).getApplications(orgId).getApplications();
+    var applications = new SDKExtension(contrastSDK).getApplications(orgId).getApplications();
     logger.info(
         "Successfully retrieved {} applications from organization: {}", applications.size(), orgId);
 

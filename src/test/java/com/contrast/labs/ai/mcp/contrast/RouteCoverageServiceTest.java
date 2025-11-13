@@ -27,11 +27,9 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteC
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteDetailsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata.AgentSession;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata.SessionMetadataResponse;
-import com.contrastsecurity.models.RouteCoverageMetadataLabelValues;
 import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -135,12 +133,12 @@ class RouteCoverageServiceTest {
   // ========== Helper Methods ==========
 
   private RouteCoverageResponse createMockRouteCoverageResponse(int routeCount) {
-    RouteCoverageResponse response = new RouteCoverageResponse();
+    var response = new RouteCoverageResponse();
     response.setSuccess(true);
-    List<Route> routes = new ArrayList<>();
+    var routes = new ArrayList<Route>();
 
     for (int i = 0; i < routeCount; i++) {
-      Route route = new Route();
+      var route = new Route();
       route.setSignature("GET /api/endpoint" + i);
       route.setRouteHash(TEST_ROUTE_HASH + "-" + i);
       route.setExercised(
@@ -153,14 +151,14 @@ class RouteCoverageServiceTest {
   }
 
   private RouteDetailsResponse createMockRouteDetailsResponse() {
-    RouteDetailsResponse response = new RouteDetailsResponse();
+    var response = new RouteDetailsResponse();
     response.setSuccess(true);
     return response;
   }
 
   private SessionMetadataResponse createMockSessionMetadataResponse() {
-    SessionMetadataResponse response = new SessionMetadataResponse();
-    AgentSession session = new AgentSession();
+    var response = new SessionMetadataResponse();
+    var session = new AgentSession();
     session.setAgentSessionId(TEST_SESSION_ID);
     response.setAgentSession(session);
     return response;
@@ -171,7 +169,7 @@ class RouteCoverageServiceTest {
   @Test
   void testGetRouteCoverage_UnfilteredQuery_Success() throws Exception {
     // Arrange
-    RouteCoverageResponse mockResponse = createMockRouteCoverageResponse(3);
+    var mockResponse = createMockRouteCoverageResponse(3);
     when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull()))
         .thenReturn(mockResponse);
 
@@ -179,8 +177,7 @@ class RouteCoverageServiceTest {
         .thenReturn(createMockRouteDetailsResponse());
 
     // Act
-    RouteCoverageResponse result =
-        routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, null);
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, null);
 
     // Assert
     assertNotNull(result);
@@ -196,13 +193,12 @@ class RouteCoverageServiceTest {
   @Test
   void testGetRouteCoverage_UnfilteredQuery_EmptyRoutes() throws Exception {
     // Arrange
-    RouteCoverageResponse mockResponse = createMockRouteCoverageResponse(0);
+    var mockResponse = createMockRouteCoverageResponse(0);
     when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull()))
         .thenReturn(mockResponse);
 
     // Act
-    RouteCoverageResponse result =
-        routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, null);
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, null);
 
     // Assert
     assertNotNull(result);
@@ -218,7 +214,7 @@ class RouteCoverageServiceTest {
   @Test
   void testGetRouteCoverage_SessionMetadataFilter_Success() throws Exception {
     // Arrange
-    RouteCoverageResponse mockResponse = createMockRouteCoverageResponse(4);
+    var mockResponse = createMockRouteCoverageResponse(4);
     when(mockSDKExtension.getRouteCoverage(
             eq(TEST_ORG_ID),
             eq(TEST_APP_ID),
@@ -229,7 +225,7 @@ class RouteCoverageServiceTest {
         .thenReturn(createMockRouteDetailsResponse());
 
     // Act
-    RouteCoverageResponse result =
+    var result =
         routeCoverageService.getRouteCoverage(
             TEST_APP_ID, TEST_METADATA_NAME, TEST_METADATA_VALUE, null);
 
@@ -239,16 +235,15 @@ class RouteCoverageServiceTest {
     assertEquals(4, result.getRoutes().size());
 
     // Verify metadata filter structure
-    ArgumentCaptor<RouteCoverageBySessionIDAndMetadataRequestExtended> captor =
-        ArgumentCaptor.forClass(RouteCoverageBySessionIDAndMetadataRequestExtended.class);
+    var captor = ArgumentCaptor.forClass(RouteCoverageBySessionIDAndMetadataRequestExtended.class);
     verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), captor.capture());
 
-    RouteCoverageBySessionIDAndMetadataRequestExtended request = captor.getValue();
+    var request = captor.getValue();
     assertNotNull(request);
     assertNotNull(request.getValues());
     assertEquals(1, request.getValues().size());
 
-    RouteCoverageMetadataLabelValues metadata = request.getValues().get(0);
+    var metadata = request.getValues().get(0);
     assertEquals(TEST_METADATA_NAME, metadata.getLabel());
     assertEquals(1, metadata.getValues().size());
     assertEquals(TEST_METADATA_VALUE, metadata.getValues().get(0));
@@ -261,7 +256,7 @@ class RouteCoverageServiceTest {
   @Test
   void testGetRouteCoverage_SessionMetadataFilter_MultipleRoutes() throws Exception {
     // Arrange
-    RouteCoverageResponse mockResponse = createMockRouteCoverageResponse(5);
+    var mockResponse = createMockRouteCoverageResponse(5);
     when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), any()))
         .thenReturn(mockResponse);
 
@@ -269,7 +264,7 @@ class RouteCoverageServiceTest {
         .thenReturn(createMockRouteDetailsResponse());
 
     // Act
-    RouteCoverageResponse result =
+    var result =
         routeCoverageService.getRouteCoverage(
             TEST_APP_ID, TEST_METADATA_NAME, TEST_METADATA_VALUE, null);
 
@@ -281,7 +276,7 @@ class RouteCoverageServiceTest {
         .getRouteDetails(eq(TEST_ORG_ID), eq(TEST_APP_ID), anyString());
 
     // Verify each route has details attached
-    for (Route route : result.getRoutes()) {
+    for (var route : result.getRoutes()) {
       assertNotNull(route.getRouteDetailsResponse());
     }
   }
@@ -289,7 +284,7 @@ class RouteCoverageServiceTest {
   @Test
   void testGetRouteCoverage_SessionMetadataFilter_MissingValue() throws Exception {
     // Act & Assert
-    IllegalArgumentException exception =
+    var exception =
         assertThrows(
             IllegalArgumentException.class,
             () -> {
@@ -306,7 +301,7 @@ class RouteCoverageServiceTest {
   void testGetRouteCoverage_SessionMetadataFilter_EmptyValue() throws Exception {
     // Test validation with empty string for sessionMetadataValue (MCP-3EG)
     // Act & Assert
-    IllegalArgumentException exception =
+    var exception =
         assertThrows(
             IllegalArgumentException.class,
             () -> {
@@ -324,11 +319,11 @@ class RouteCoverageServiceTest {
   @Test
   void testGetRouteCoverage_LatestSessionFilter_Success() throws Exception {
     // Arrange
-    SessionMetadataResponse sessionResponse = createMockSessionMetadataResponse();
+    var sessionResponse = createMockSessionMetadataResponse();
     when(mockSDKExtension.getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
         .thenReturn(sessionResponse);
 
-    RouteCoverageResponse mockResponse = createMockRouteCoverageResponse(2);
+    var mockResponse = createMockRouteCoverageResponse(2);
     when(mockSDKExtension.getRouteCoverage(
             eq(TEST_ORG_ID),
             eq(TEST_APP_ID),
@@ -339,8 +334,7 @@ class RouteCoverageServiceTest {
         .thenReturn(createMockRouteDetailsResponse());
 
     // Act
-    RouteCoverageResponse result =
-        routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, true);
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, true);
 
     // Assert
     assertNotNull(result);
@@ -351,11 +345,10 @@ class RouteCoverageServiceTest {
     verify(mockSDKExtension).getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID));
 
     // Verify session ID was used in request
-    ArgumentCaptor<RouteCoverageBySessionIDAndMetadataRequestExtended> captor =
-        ArgumentCaptor.forClass(RouteCoverageBySessionIDAndMetadataRequestExtended.class);
+    var captor = ArgumentCaptor.forClass(RouteCoverageBySessionIDAndMetadataRequestExtended.class);
     verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), captor.capture());
 
-    RouteCoverageBySessionIDAndMetadataRequestExtended request = captor.getValue();
+    var request = captor.getValue();
     assertNotNull(request);
     // Note: Can't verify sessionId directly as it's protected in base class
     // But we can verify the method was called
@@ -368,8 +361,7 @@ class RouteCoverageServiceTest {
         .thenReturn(null);
 
     // Act
-    RouteCoverageResponse result =
-        routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, true);
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, true);
 
     // Assert - Should return empty response with success=false
     assertNotNull(result);
@@ -382,14 +374,13 @@ class RouteCoverageServiceTest {
   @Test
   void testGetRouteCoverage_LatestSessionFilter_NullAgentSession() throws Exception {
     // Arrange - Return session metadata with null agent session
-    SessionMetadataResponse sessionResponse = new SessionMetadataResponse();
+    var sessionResponse = new SessionMetadataResponse();
     sessionResponse.setAgentSession(null);
     when(mockSDKExtension.getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
         .thenReturn(sessionResponse);
 
     // Act
-    RouteCoverageResponse result =
-        routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, true);
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, true);
 
     // Assert - Should return empty response with success=false
     assertNotNull(result);
@@ -408,7 +399,7 @@ class RouteCoverageServiceTest {
         .thenThrow(new IOException("API connection failed"));
 
     // Act & Assert
-    IOException exception =
+    var exception =
         assertThrows(
             IOException.class,
             () -> {
@@ -421,7 +412,7 @@ class RouteCoverageServiceTest {
   @Test
   void testGetRouteCoverage_RouteDetailsFails() throws Exception {
     // Arrange
-    RouteCoverageResponse mockResponse = createMockRouteCoverageResponse(2);
+    var mockResponse = createMockRouteCoverageResponse(2);
     when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), any()))
         .thenReturn(mockResponse);
 
@@ -431,7 +422,7 @@ class RouteCoverageServiceTest {
         .thenThrow(new IOException("Failed to fetch route details"));
 
     // Act & Assert
-    IOException exception =
+    var exception =
         assertThrows(
             IOException.class,
             () -> {
@@ -449,7 +440,7 @@ class RouteCoverageServiceTest {
         .thenThrow(new IOException("Session metadata API failed"));
 
     // Act & Assert
-    IOException exception =
+    var exception =
         assertThrows(
             IOException.class,
             () -> {
@@ -488,15 +479,14 @@ class RouteCoverageServiceTest {
   @Test
   void testGetRouteCoverage_AllParametersNull() throws Exception {
     // Arrange
-    RouteCoverageResponse mockResponse = createMockRouteCoverageResponse(1);
+    var mockResponse = createMockRouteCoverageResponse(1);
     when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull()))
         .thenReturn(mockResponse);
     when(mockSDKExtension.getRouteDetails(any(), any(), any()))
         .thenReturn(createMockRouteDetailsResponse());
 
     // Act
-    RouteCoverageResponse result =
-        routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, null);
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, null);
 
     // Assert
     assertNotNull(result);
@@ -507,15 +497,14 @@ class RouteCoverageServiceTest {
   @Test
   void testGetRouteCoverage_UseLatestSessionFalse() throws Exception {
     // Arrange - useLatestSession=false should behave same as null (no filter)
-    RouteCoverageResponse mockResponse = createMockRouteCoverageResponse(1);
+    var mockResponse = createMockRouteCoverageResponse(1);
     when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull()))
         .thenReturn(mockResponse);
     when(mockSDKExtension.getRouteDetails(any(), any(), any()))
         .thenReturn(createMockRouteDetailsResponse());
 
     // Act
-    RouteCoverageResponse result =
-        routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, false);
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, false);
 
     // Assert
     assertNotNull(result);
@@ -528,15 +517,14 @@ class RouteCoverageServiceTest {
   void testGetRouteCoverage_EmptyStringParameters_TreatedAsNull() throws Exception {
     // Arrange - Empty strings should be treated as null and trigger GET endpoint
     // This fixes bug MCP-OU8 where empty strings were incorrectly treated as valid filters
-    RouteCoverageResponse mockResponse = createMockRouteCoverageResponse(2);
+    var mockResponse = createMockRouteCoverageResponse(2);
     when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull()))
         .thenReturn(mockResponse);
     when(mockSDKExtension.getRouteDetails(any(), any(), any()))
         .thenReturn(createMockRouteDetailsResponse());
 
     // Act - Pass empty strings for sessionMetadataName and sessionMetadataValue
-    RouteCoverageResponse result =
-        routeCoverageService.getRouteCoverage(TEST_APP_ID, "", "", false);
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, "", "", false);
 
     // Assert - Should call SDK with null (unfiltered query), not with empty metadata filter
     assertNotNull(result);
@@ -561,15 +549,14 @@ class RouteCoverageServiceTest {
   @Test
   void testGetRouteCoverage_EmptySessionMetadataNameOnly_TreatedAsNull() throws Exception {
     // Arrange - Empty sessionMetadataName with null value should also trigger unfiltered query
-    RouteCoverageResponse mockResponse = createMockRouteCoverageResponse(1);
+    var mockResponse = createMockRouteCoverageResponse(1);
     when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull()))
         .thenReturn(mockResponse);
     when(mockSDKExtension.getRouteDetails(any(), any(), any()))
         .thenReturn(createMockRouteDetailsResponse());
 
     // Act
-    RouteCoverageResponse result =
-        routeCoverageService.getRouteCoverage(TEST_APP_ID, "", null, null);
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, "", null, null);
 
     // Assert
     assertNotNull(result);

@@ -16,7 +16,7 @@ public class HintProvider {
    * @return A list of hints for the specified rule, or an empty list if no hints are available
    */
   public static List<String> getHintsForRule(String ruleName) {
-    RuleHints ruleHints = RuleHints.findByRuleName(ruleName);
+    var ruleHints = RuleHints.findByRuleName(ruleName);
     if (ruleHints != null) {
       return ruleHints.getHints();
     }
@@ -41,13 +41,13 @@ public class HintProvider {
    */
   public static List<String> getAllHintsForRule(String ruleName) {
     // For non-existent rules, return empty list
-    RuleHints ruleHints = RuleHints.findByRuleName(ruleName);
+    var ruleHints = RuleHints.findByRuleName(ruleName);
     if (ruleHints == null) {
       return Collections.emptyList();
     }
 
-    List<String> generalHints = getGeneralGuidance();
-    List<String> specificRuleHints = getHintsForRule(ruleName);
+    var generalHints = getGeneralGuidance();
+    var specificRuleHints = getHintsForRule(ruleName);
 
     // Combine both lists (first the general guidance, then specific rule hints)
     return HintUtils.combineHints(generalHints, specificRuleHints);

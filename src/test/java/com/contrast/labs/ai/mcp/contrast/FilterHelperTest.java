@@ -52,7 +52,7 @@ class FilterHelperTest {
     long epochMillis = JAN_15_2025_10_30_UTC;
 
     // When: Formatting the timestamp
-    String result = FilterHelper.formatTimestamp(epochMillis);
+    var result = FilterHelper.formatTimestamp(epochMillis);
 
     // Then: Should return ISO 8601 format with timezone offset
     assertNotNull(result);
@@ -61,7 +61,7 @@ class FilterHelperTest {
         "Timestamp should match ISO 8601 format with timezone offset: " + result);
 
     // Verify it can be parsed back
-    ZonedDateTime parsed = ZonedDateTime.parse(result, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
+    var parsed = ZonedDateTime.parse(result, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
     assertEquals(
         epochMillis,
         parsed.toInstant().toEpochMilli(),
@@ -74,7 +74,7 @@ class FilterHelperTest {
     Long nullValue = null;
 
     // When: Formatting null
-    String result = FilterHelper.formatTimestamp(nullValue);
+    var result = FilterHelper.formatTimestamp(nullValue);
 
     // Then: Should return null
     assertNull(result, "Formatting null timestamp should return null");
@@ -86,7 +86,7 @@ class FilterHelperTest {
     long epochMillis = 0L;
 
     // When: Formatting epoch zero
-    String result = FilterHelper.formatTimestamp(epochMillis);
+    var result = FilterHelper.formatTimestamp(epochMillis);
 
     // Then: Should return valid ISO 8601 timestamp
     assertNotNull(result);
@@ -104,7 +104,7 @@ class FilterHelperTest {
     long epochMillis = JAN_1_2030_00_00_UTC;
 
     // When: Formatting the timestamp
-    String result = FilterHelper.formatTimestamp(epochMillis);
+    var result = FilterHelper.formatTimestamp(epochMillis);
 
     // Then: Should return valid ISO 8601 timestamp
     assertNotNull(result);
@@ -122,16 +122,16 @@ class FilterHelperTest {
     long epochMillis = JAN_15_2025_10_30_UTC;
 
     // When: Formatting the timestamp
-    String result = FilterHelper.formatTimestamp(epochMillis);
+    var result = FilterHelper.formatTimestamp(epochMillis);
 
     // Then: Should use system default timezone
-    ZonedDateTime expected =
+    var expected =
         ZonedDateTime.ofInstant(
             java.time.Instant.ofEpochMilli(epochMillis), ZoneId.systemDefault());
     // Use the same formatter pattern as production code (lowercase 'xxx' always uses numeric
     // offsets)
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssxxx");
-    String expectedFormat = expected.format(formatter);
+    var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssxxx");
+    var expectedFormat = expected.format(formatter);
 
     assertEquals(expectedFormat, result, "Should format timestamp using system default timezone");
   }
@@ -142,7 +142,7 @@ class FilterHelperTest {
     long epochMillis = JAN_15_2025_10_30_UTC;
 
     // When: Formatting the timestamp
-    String result = FilterHelper.formatTimestamp(epochMillis);
+    var result = FilterHelper.formatTimestamp(epochMillis);
 
     // Then: Should include timezone offset in the output
     assertTrue(
@@ -150,7 +150,7 @@ class FilterHelperTest {
         "Timestamp should include timezone offset (+ or -): " + result);
 
     // Extract and verify timezone offset format
-    String timezoneOffset = result.substring(result.length() - 6);
+    var timezoneOffset = result.substring(result.length() - 6);
     assertTrue(
         timezoneOffset.matches("[+-]\\d{2}:\\d{2}"),
         "Timezone offset should be in format +/-HH:MM: " + timezoneOffset);
@@ -163,7 +163,7 @@ class FilterHelperTest {
 
     // When: Formatting all timestamps
     for (long timestamp : timestamps) {
-      String result = FilterHelper.formatTimestamp(timestamp);
+      var result = FilterHelper.formatTimestamp(timestamp);
 
       // Then: All should match ISO 8601 format with timezone
       assertNotNull(result);

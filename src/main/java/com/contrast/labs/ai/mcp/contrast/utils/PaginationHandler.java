@@ -58,10 +58,10 @@ public class PaginationHandler {
   public <T> PaginatedResponse<T> createPaginatedResponse(
       List<T> items, PaginationParams params, Integer totalCount, List<String> additionalWarnings) {
     boolean hasMorePages = calculateHasMorePages(params, totalCount, items.size());
-    String message = buildEmptyResultMessage(items, params, totalCount);
+    var message = buildEmptyResultMessage(items, params, totalCount);
 
     // Merge all warnings with result messages
-    String finalMessage = mergeMessages(List.of(params.warnings(), additionalWarnings), message);
+    var finalMessage = mergeMessages(List.of(params.warnings(), additionalWarnings), message);
 
     return new PaginatedResponse<>(
         items, params.page(), params.pageSize(), totalCount, hasMorePages, finalMessage);
@@ -123,7 +123,7 @@ public class PaginationHandler {
    * @return Combined message or null if no messages
    */
   private String mergeMessages(List<List<String>> warningLists, String resultMessage) {
-    List<String> allMessages = new ArrayList<>();
+    var allMessages = new ArrayList<String>();
 
     // Flatten all warning lists
     for (List<String> warnings : warningLists) {

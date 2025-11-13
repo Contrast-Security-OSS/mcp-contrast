@@ -14,7 +14,7 @@ public class HintUtils {
    */
   @SafeVarargs
   public static List<String> combineHints(List<String>... lists) {
-    List<String> result = new ArrayList<>();
+    var result = new ArrayList<String>();
 
     for (List<String> list : lists) {
       if (list != null) {
@@ -36,7 +36,7 @@ public class HintUtils {
       return "";
     }
 
-    StringBuilder sb = new StringBuilder();
+    var sb = new StringBuilder();
     for (int i = 0; i < hints.size(); i++) {
       if (i > 0) {
         sb.append("\n");

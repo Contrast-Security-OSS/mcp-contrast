@@ -43,7 +43,7 @@ public record AttackSummary(
 
   /** Creates an AttackSummary from a full Attack object, extracting key information. */
   public static AttackSummary fromAttack(Attack attack) {
-    List<ApplicationAttackInfo> appInfos =
+    var appInfos =
         Optional.ofNullable(attack.getAttacksApplication()).orElse(List.of()).stream()
             .map(ApplicationAttackInfo::fromAttackApplication)
             .collect(Collectors.toList());

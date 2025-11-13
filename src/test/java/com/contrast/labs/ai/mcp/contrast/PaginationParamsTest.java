@@ -23,7 +23,7 @@ class PaginationParamsTest {
 
   @Test
   void testValidPaginationDefaults() {
-    PaginationParams params = PaginationParams.of(null, null);
+    var params = PaginationParams.of(null, null);
 
     assertEquals(1, params.page());
     assertEquals(50, params.pageSize());
@@ -35,7 +35,7 @@ class PaginationParamsTest {
 
   @Test
   void testValidPaginationCustom() {
-    PaginationParams params = PaginationParams.of(3, 25);
+    var params = PaginationParams.of(3, 25);
 
     assertEquals(3, params.page());
     assertEquals(25, params.pageSize());
@@ -47,7 +47,7 @@ class PaginationParamsTest {
 
   @Test
   void testInvalidPageNegative() {
-    PaginationParams params = PaginationParams.of(-5, 50);
+    var params = PaginationParams.of(-5, 50);
 
     assertEquals(1, params.page()); // Clamped to 1
     assertEquals(50, params.pageSize());
@@ -59,7 +59,7 @@ class PaginationParamsTest {
 
   @Test
   void testInvalidPageZero() {
-    PaginationParams params = PaginationParams.of(0, 50);
+    var params = PaginationParams.of(0, 50);
 
     assertEquals(1, params.page()); // Clamped to 1
     assertEquals(50, params.pageSize());
@@ -71,7 +71,7 @@ class PaginationParamsTest {
 
   @Test
   void testInvalidPageSizeNegative() {
-    PaginationParams params = PaginationParams.of(1, -10);
+    var params = PaginationParams.of(1, -10);
 
     assertEquals(1, params.page());
     assertEquals(50, params.pageSize()); // Clamped to default 50
@@ -83,7 +83,7 @@ class PaginationParamsTest {
 
   @Test
   void testInvalidPageSizeZero() {
-    PaginationParams params = PaginationParams.of(1, 0);
+    var params = PaginationParams.of(1, 0);
 
     assertEquals(1, params.page());
     assertEquals(50, params.pageSize()); // Clamped to default 50
@@ -95,7 +95,7 @@ class PaginationParamsTest {
 
   @Test
   void testPageSizeExceedsMaximum() {
-    PaginationParams params = PaginationParams.of(1, 200);
+    var params = PaginationParams.of(1, 200);
 
     assertEquals(1, params.page());
     assertEquals(100, params.pageSize()); // Capped to 100
@@ -107,7 +107,7 @@ class PaginationParamsTest {
 
   @Test
   void testMultipleValidationWarnings() {
-    PaginationParams params = PaginationParams.of(-5, 200);
+    var params = PaginationParams.of(-5, 200);
 
     assertEquals(1, params.page()); // Clamped to 1
     assertEquals(100, params.pageSize()); // Capped to 100
@@ -121,21 +121,21 @@ class PaginationParamsTest {
   @Test
   void testOffsetCalculation() {
     // Page 1
-    PaginationParams p1 = PaginationParams.of(1, 50);
+    var p1 = PaginationParams.of(1, 50);
     assertEquals(0, p1.offset());
 
     // Page 2
-    PaginationParams p2 = PaginationParams.of(2, 50);
+    var p2 = PaginationParams.of(2, 50);
     assertEquals(50, p2.offset());
 
     // Page 5 with custom page size
-    PaginationParams p3 = PaginationParams.of(5, 25);
+    var p3 = PaginationParams.of(5, 25);
     assertEquals(100, p3.offset()); // (5-1) * 25
   }
 
   @Test
   void testLimitMatchesPageSize() {
-    PaginationParams params = PaginationParams.of(1, 75);
+    var params = PaginationParams.of(1, 75);
 
     assertEquals(75, params.pageSize());
     assertEquals(75, params.limit());
@@ -144,24 +144,24 @@ class PaginationParamsTest {
   @Test
   void testPageSizeBoundaryValues() {
     // Min valid
-    PaginationParams pMin = PaginationParams.of(1, 1);
+    var pMin = PaginationParams.of(1, 1);
     assertEquals(1, pMin.pageSize());
     assertTrue(pMin.warnings().isEmpty());
 
     // Max valid
-    PaginationParams pMax = PaginationParams.of(1, 100);
+    var pMax = PaginationParams.of(1, 100);
     assertEquals(100, pMax.pageSize());
     assertTrue(pMax.warnings().isEmpty());
 
     // Just over max
-    PaginationParams pOver = PaginationParams.of(1, 101);
+    var pOver = PaginationParams.of(1, 101);
     assertEquals(100, pOver.pageSize());
     assertEquals(1, pOver.warnings().size());
   }
 
   @Test
   void testWarningsAreImmutable() {
-    PaginationParams params = PaginationParams.of(-1, 200);
+    var params = PaginationParams.of(-1, 200);
 
     // Should throw UnsupportedOperationException
     assertThrows(

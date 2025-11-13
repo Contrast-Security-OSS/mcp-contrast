@@ -19,12 +19,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.ApplicationsResponse;
-import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
-import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -104,14 +100,14 @@ public class ADRServiceIntegrationTest {
         "╚════════════════════════════════════════════════════════════════════════════════╝");
 
     try {
-      ContrastSDK sdk =
+      var sdk =
           SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-      SDKExtension sdkExtension = new SDKExtension(sdk);
+      var sdkExtension = new SDKExtension(sdk);
 
       // Get all applications
       System.out.println("\n🔍 Step 1: Fetching all applications...");
-      ApplicationsResponse appsResponse = sdkExtension.getApplications(orgID);
-      List<Application> applications = appsResponse.getApplications();
+      var appsResponse = sdkExtension.getApplications(orgID);
+      var applications = appsResponse.getApplications();
       System.out.println("   Found " + applications.size() + " application(s) in organization");
 
       if (applications.isEmpty()) {
@@ -153,7 +149,7 @@ public class ADRServiceIntegrationTest {
 
         try {
           // Check for Protect configuration
-          ProtectData protectData = sdkExtension.getProtectConfig(orgID, app.getAppId());
+          var protectData = sdkExtension.getProtectConfig(orgID, app.getAppId());
           if (protectData != null
               && protectData.getRules() != null
               && !protectData.getRules().isEmpty()) {
@@ -202,7 +198,7 @@ public class ADRServiceIntegrationTest {
 
   /** Build detailed error message when no suitable test data is found */
   private String buildTestDataErrorMessage(int appsChecked) {
-    StringBuilder msg = new StringBuilder();
+    var msg = new StringBuilder();
     msg.append(
         "\n╔════════════════════════════════════════════════════════════════════════════════╗\n");
     msg.append(
@@ -279,7 +275,7 @@ public class ADRServiceIntegrationTest {
     assertNotNull(testData, "Test data must be discovered before running tests");
 
     // Act
-    ProtectData response = adrService.getProtectDataByAppID(testData.appId);
+    var response = adrService.getProtectDataByAppID(testData.appId);
 
     // Assert
     assertNotNull(response, "Response should not be null");
@@ -316,7 +312,7 @@ public class ADRServiceIntegrationTest {
     // Act - Use an invalid app ID that definitely doesn't exist
     boolean caughtException = false;
     try {
-      ProtectData response = adrService.getProtectDataByAppID("invalid-app-id-12345");
+      var response = adrService.getProtectDataByAppID("invalid-app-id-12345");
 
       // If we get here, the API returned a response (possibly null or empty)
       System.out.println("✓ API handled invalid app ID gracefully");
@@ -346,7 +342,7 @@ public class ADRServiceIntegrationTest {
     System.out.println("\n=== Integration Test: Null app ID handling ===");
 
     // Act/Assert - Should throw IllegalArgumentException
-    Exception exception =
+    var exception =
         assertThrows(
             IllegalArgumentException.class,
             () -> {
@@ -367,7 +363,7 @@ public class ADRServiceIntegrationTest {
     System.out.println("\n=== Integration Test: Empty app ID handling ===");
 
     // Act/Assert - Should throw IllegalArgumentException
-    Exception exception =
+    var exception =
         assertThrows(
             IllegalArgumentException.class,
             () -> {
@@ -392,7 +388,7 @@ public class ADRServiceIntegrationTest {
     assertNotNull(testData, "Test data must be discovered before running tests");
 
     // Act
-    ProtectData response = adrService.getProtectDataByAppID(testData.appId);
+    var response = adrService.getProtectDataByAppID(testData.appId);
 
     // Assert
     assertNotNull(response);

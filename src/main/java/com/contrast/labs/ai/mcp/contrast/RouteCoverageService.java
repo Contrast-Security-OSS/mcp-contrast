@@ -5,10 +5,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.Route;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteCoverageResponse;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteDetailsResponse;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata.SessionMetadataResponse;
 import com.contrastsecurity.models.RouteCoverageMetadataLabelValues;
-import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,15 +78,15 @@ public class RouteCoverageService {
     if (sessionMetadataName != null
         && !sessionMetadataName.isEmpty()
         && (sessionMetadataValue == null || sessionMetadataValue.isEmpty())) {
-      String errorMsg = "sessionMetadataValue is required when sessionMetadataName is provided";
+      var errorMsg = "sessionMetadataValue is required when sessionMetadataName is provided";
       logger.error(errorMsg);
       throw new IllegalArgumentException(errorMsg);
     }
 
     // Initialize SDK
-    ContrastSDK contrastSDK =
+    var contrastSDK =
         SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-    SDKExtension sdkExtension = new SDKExtension(contrastSDK);
+    var sdkExtension = new SDKExtension(contrastSDK);
 
     // Build request based on parameters
     RouteCoverageBySessionIDAndMetadataRequestExtended requestExtended = null;
@@ -97,11 +94,11 @@ public class RouteCoverageService {
     if (useLatestSession != null && useLatestSession) {
       // Filter by latest session
       logger.debug("Fetching latest session metadata for application ID: {}", appId);
-      SessionMetadataResponse latest = sdkExtension.getLatestSessionMetadata(orgID, appId);
+      var latest = sdkExtension.getLatestSessionMetadata(orgID, appId);
 
       if (latest == null || latest.getAgentSession() == null) {
         logger.error("No session metadata found for application ID: {}", appId);
-        RouteCoverageResponse noRouteCoverageResponse = new RouteCoverageResponse();
+        var noRouteCoverageResponse = new RouteCoverageResponse();
         noRouteCoverageResponse.setSuccess(false);
         logger.debug(
             "No Agent session found in latest session metadata response for application ID: {}",
@@ -118,7 +115,7 @@ public class RouteCoverageService {
       logger.debug(
           "Filtering by session metadata: {}={}", sessionMetadataName, sessionMetadataValue);
       requestExtended = new RouteCoverageBySessionIDAndMetadataRequestExtended();
-      RouteCoverageMetadataLabelValues metadataLabelValue = new RouteCoverageMetadataLabelValues();
+      var metadataLabelValue = new RouteCoverageMetadataLabelValues();
       metadataLabelValue.setLabel(sessionMetadataName);
       metadataLabelValue.getValues().add(sessionMetadataValue);
       requestExtended.getValues().add(metadataLabelValue);
@@ -128,15 +125,14 @@ public class RouteCoverageService {
 
     // Call SDK to get route coverage
     logger.debug("Fetching route coverage data for application ID: {}", appId);
-    RouteCoverageResponse response = sdkExtension.getRouteCoverage(orgID, appId, requestExtended);
+    var response = sdkExtension.getRouteCoverage(orgID, appId, requestExtended);
     logger.debug("Found {} routes for application", response.getRoutes().size());
 
     // Fetch route details for each route
     logger.debug("Retrieving route details for each route");
     for (Route route : response.getRoutes()) {
       logger.trace("Fetching details for route: {}", route.getSignature());
-      RouteDetailsResponse routeDetailsResponse =
-          sdkExtension.getRouteDetails(orgID, appId, route.getRouteHash());
+      var routeDetailsResponse = sdkExtension.getRouteDetails(orgID, appId, route.getRouteHash());
       route.setRouteDetailsResponse(routeDetailsResponse);
     }
 

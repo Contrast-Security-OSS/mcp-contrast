@@ -35,10 +35,10 @@ class AttackSummaryTest {
   @Test
   void testFromAttack_FormatsTimestampsWithFilterHelper() {
     // Given: A mock Attack object with known timestamps
-    Attack attack = createMockAttack();
+    var attack = createMockAttack();
 
     // When: Creating AttackSummary from Attack
-    AttackSummary summary = AttackSummary.fromAttack(attack);
+    var summary = AttackSummary.fromAttack(attack);
 
     // Then: All timestamp strings should be in ISO 8601 format
     assertNotNull(summary.startTime(), "startTime should not be null");
@@ -86,10 +86,10 @@ class AttackSummaryTest {
   @Test
   void testFromAttack_PreservesMillisecondTimestamps() {
     // Given: A mock Attack object
-    Attack attack = createMockAttack();
+    var attack = createMockAttack();
 
     // When: Creating AttackSummary from Attack
-    AttackSummary summary = AttackSummary.fromAttack(attack);
+    var summary = AttackSummary.fromAttack(attack);
 
     // Then: Millisecond timestamps should be preserved exactly
     assertEquals(
@@ -113,11 +113,10 @@ class AttackSummaryTest {
   @Test
   void testApplicationAttackInfo_FormatsTimestampsWithFilterHelper() {
     // Given: A mock Attack.ApplicationAttackInfo object
-    Attack.ApplicationAttackInfo attackApp = createMockApplicationAttackInfo();
+    var attackApp = createMockApplicationAttackInfo();
 
     // When: Creating ApplicationAttackInfo from Attack.ApplicationAttackInfo
-    AttackSummary.ApplicationAttackInfo appInfo =
-        AttackSummary.ApplicationAttackInfo.fromAttackApplication(attackApp);
+    var appInfo = AttackSummary.ApplicationAttackInfo.fromAttackApplication(attackApp);
 
     // Then: Timestamp strings should be in ISO 8601 format
     assertNotNull(appInfo.startTime(), "startTime should not be null");
@@ -145,11 +144,10 @@ class AttackSummaryTest {
   @Test
   void testApplicationAttackInfo_PreservesMillisecondTimestamps() {
     // Given: A mock Attack.ApplicationAttackInfo object
-    Attack.ApplicationAttackInfo attackApp = createMockApplicationAttackInfo();
+    var attackApp = createMockApplicationAttackInfo();
 
     // When: Creating ApplicationAttackInfo
-    AttackSummary.ApplicationAttackInfo appInfo =
-        AttackSummary.ApplicationAttackInfo.fromAttackApplication(attackApp);
+    var appInfo = AttackSummary.ApplicationAttackInfo.fromAttackApplication(attackApp);
 
     // Then: Millisecond timestamps should be preserved exactly
     assertEquals(
@@ -165,11 +163,11 @@ class AttackSummaryTest {
   @Test
   void testFromAttack_WithApplications_FormatsAllTimestamps() {
     // Given: Attack with application info
-    Attack attack = createMockAttack();
+    var attack = createMockAttack();
     attack.setAttacksApplication(List.of(createMockApplicationAttackInfo()));
 
     // When: Creating AttackSummary
-    AttackSummary summary = AttackSummary.fromAttack(attack);
+    var summary = AttackSummary.fromAttack(attack);
 
     // Then: Attack timestamps should be formatted
     assertTrue(
@@ -178,7 +176,7 @@ class AttackSummaryTest {
 
     // And: Application timestamps should also be formatted
     assertFalse(summary.applications().isEmpty(), "Should have application info");
-    AttackSummary.ApplicationAttackInfo appInfo = summary.applications().get(0);
+    var appInfo = summary.applications().get(0);
     assertTrue(
         appInfo.startTime().matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"),
         "Application startTime should match ISO 8601 format");
@@ -187,14 +185,14 @@ class AttackSummaryTest {
   @Test
   void testTimestampFormat_ConsistentWithOtherMCPTools() {
     // Given: A mock Attack
-    Attack attack = createMockAttack();
+    var attack = createMockAttack();
 
     // When: Creating AttackSummary
-    AttackSummary summary = AttackSummary.fromAttack(attack);
+    var summary = AttackSummary.fromAttack(attack);
 
     // Then: Format should be consistent with FilterHelper (same as VulnLight, ApplicationData,
     // etc.)
-    String expectedFormat = FilterHelper.formatTimestamp(TEST_TIMESTAMP);
+    var expectedFormat = FilterHelper.formatTimestamp(TEST_TIMESTAMP);
 
     // Verify the format matches the pattern used throughout the codebase
     assertTrue(
@@ -210,7 +208,7 @@ class AttackSummaryTest {
   // ========== Helper Methods ==========
 
   private Attack createMockAttack() {
-    Attack attack = new Attack();
+    var attack = new Attack();
     attack.setUuid("test-attack-uuid");
     attack.setStatus("PROBED");
     attack.setSource("192.168.1.100");
@@ -225,9 +223,9 @@ class AttackSummaryTest {
   }
 
   private Attack.ApplicationAttackInfo createMockApplicationAttackInfo() {
-    Attack.ApplicationAttackInfo attackApp = new Attack.ApplicationAttackInfo();
+    var attackApp = new Attack.ApplicationAttackInfo();
 
-    Application app = new Application();
+    var app = new Application();
     app.setApp_id("test-app-id");
     app.setName("Test Application");
     app.setLanguage("Java");

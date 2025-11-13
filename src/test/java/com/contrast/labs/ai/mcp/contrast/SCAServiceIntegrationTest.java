@@ -19,13 +19,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.ApplicationsResponse;
-import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
-import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -108,14 +104,14 @@ public class SCAServiceIntegrationTest {
         "╚════════════════════════════════════════════════════════════════════════════════╝");
 
     try {
-      ContrastSDK sdk =
+      var sdk =
           SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-      SDKExtension sdkExtension = new SDKExtension(sdk);
+      var sdkExtension = new SDKExtension(sdk);
 
       // Get all applications
       System.out.println("\n🔍 Step 1: Fetching all applications...");
-      ApplicationsResponse appsResponse = sdkExtension.getApplications(orgID);
-      List<Application> applications = appsResponse.getApplications();
+      var appsResponse = sdkExtension.getApplications(orgID);
+      var applications = appsResponse.getApplications();
       System.out.println("   Found " + applications.size() + " application(s) in organization");
 
       if (applications.isEmpty()) {
@@ -154,12 +150,11 @@ public class SCAServiceIntegrationTest {
 
         try {
           // Check for libraries
-          List<LibraryExtended> libraries =
-              SDKHelper.getLibsForID(app.getAppId(), orgID, sdkExtension);
+          var libraries = SDKHelper.getLibsForID(app.getAppId(), orgID, sdkExtension);
           if (libraries != null && !libraries.isEmpty()) {
             System.out.println("      ✓ Has " + libraries.size() + " library/libraries");
 
-            TestData candidate = new TestData();
+            var candidate = new TestData();
             candidate.appId = app.getAppId();
             candidate.appName = app.getName();
             candidate.hasLibraries = true;
@@ -201,7 +196,7 @@ public class SCAServiceIntegrationTest {
       }
 
       // Use best candidate if found, otherwise fallback
-      TestData candidate = bestCandidate != null ? bestCandidate : fallbackCandidate;
+      var candidate = bestCandidate != null ? bestCandidate : fallbackCandidate;
 
       if (candidate != null) {
         testData = candidate;
@@ -238,7 +233,7 @@ public class SCAServiceIntegrationTest {
 
   /** Build detailed error message when no suitable test data is found */
   private String buildTestDataErrorMessage(int appsChecked) {
-    StringBuilder msg = new StringBuilder();
+    var msg = new StringBuilder();
     msg.append(
         "\n╔════════════════════════════════════════════════════════════════════════════════╗\n");
     msg.append(
@@ -323,7 +318,7 @@ public class SCAServiceIntegrationTest {
     assertNotNull(testData, "Test data must be discovered before running tests");
 
     // Act
-    List<LibraryExtended> libraries = scaService.getApplicationLibrariesByID(testData.appId);
+    var libraries = scaService.getApplicationLibrariesByID(testData.appId);
 
     // Assert
     assertNotNull(libraries, "Libraries list should not be null");
@@ -366,7 +361,7 @@ public class SCAServiceIntegrationTest {
     assertNotNull(testData, "Test data must be discovered before running tests");
 
     // Act
-    List<LibraryExtended> libraries = scaService.getApplicationLibrariesByID(testData.appId);
+    var libraries = scaService.getApplicationLibrariesByID(testData.appId);
 
     // Assert
     assertNotNull(libraries);
@@ -406,7 +401,7 @@ public class SCAServiceIntegrationTest {
     assertNotNull(testData, "Test data must be discovered before running tests");
 
     // Act
-    CveData cveData = scaService.listCVESForApplication(testData.vulnerableCveId);
+    var cveData = scaService.listCVESForApplication(testData.vulnerableCveId);
 
     // Assert
     assertNotNull(cveData, "CVE data should not be null");
@@ -448,7 +443,7 @@ public class SCAServiceIntegrationTest {
     }
 
     // Act
-    CveData cveData = scaService.listCVESForApplication(testData.vulnerableCveId);
+    var cveData = scaService.listCVESForApplication(testData.vulnerableCveId);
 
     // Assert
     assertNotNull(cveData);
@@ -485,8 +480,7 @@ public class SCAServiceIntegrationTest {
     // Act - Use an invalid app ID
     boolean caughtException = false;
     try {
-      List<LibraryExtended> libraries =
-          scaService.getApplicationLibrariesByID("invalid-app-id-12345");
+      var libraries = scaService.getApplicationLibrariesByID("invalid-app-id-12345");
 
       // If we get here, API handled it gracefully
       System.out.println("✓ API handled invalid app ID gracefully");
@@ -507,7 +501,7 @@ public class SCAServiceIntegrationTest {
     System.out.println("\n=== Integration Test: Invalid CVE ID handling ===");
 
     // Act & Assert - Non-existent CVE should throw IOException
-    IOException exception =
+    var exception =
         assertThrows(
             IOException.class,
             () -> {

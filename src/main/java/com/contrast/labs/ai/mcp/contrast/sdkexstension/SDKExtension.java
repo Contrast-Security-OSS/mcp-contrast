@@ -90,7 +90,7 @@ public class SDKExtension {
     try (InputStream is =
         contrastSDK.makeRequest(HttpMethod.GET, getProtectDataURL(orgID, appID)); ) {
 
-      Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
+      var reader = new InputStreamReader(is, StandardCharsets.UTF_8);
       return gson.fromJson(reader, ProtectData.class);
     }
   }
@@ -100,7 +100,7 @@ public class SDKExtension {
         contrastSDK.makeRequest(
             HttpMethod.GET, getCVEDataURL(organizationId, cveID, new FilterForm())); ) {
 
-      Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
+      var reader = new InputStreamReader(is, StandardCharsets.UTF_8);
       return gson.fromJson(reader, CveData.class);
     }
   }
@@ -110,7 +110,7 @@ public class SDKExtension {
   }
 
   private String getCVEDataURL(String organizationId, String cve, FilterForm form) {
-    String formString = form == null ? "" : form.toString();
+    var formString = form == null ? "" : form.toString();
     return String.format("/ng/organizations/%s/cves/%s", organizationId, cve);
   }
 
@@ -133,19 +133,18 @@ public class SDKExtension {
       pageSize = 25; // Default page size
     }
 
-    List<LibraryObservation> allObservations = new ArrayList<>();
+    var allObservations = new ArrayList<LibraryObservation>();
     int offset = 0;
     int total;
 
     do {
-      String url =
+      var url =
           getLibraryObservationsUrl(organizationId, applicationId, libraryId, offset, pageSize);
 
       try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
           Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
 
-        LibraryObservationsResponse response =
-            gson.fromJson(reader, LibraryObservationsResponse.class);
+        var response = gson.fromJson(reader, LibraryObservationsResponse.class);
 
         if (response.getObservations() != null) {
           allObservations.addAll(response.getObservations());
@@ -187,7 +186,7 @@ public class SDKExtension {
   public RouteDetailsResponse getRouteDetails(
       String organizationId, String applicationId, String routeHash)
       throws IOException, UnauthorizedException {
-    String url = getRouteDetailsUrl(organizationId, applicationId, routeHash);
+    var url = getRouteDetailsUrl(organizationId, applicationId, routeHash);
 
     try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
         Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
@@ -257,13 +256,13 @@ public class SDKExtension {
    */
   public ApplicationsResponse getApplications(String organizationId)
       throws UnauthorizedException, IOException {
-    String url =
+    var url =
         urlBuilder.getApplicationsUrl(organizationId) + "&expand=metadata,technologies,skip_links";
 
     // When debug logging is enabled, buffer the response for logging
     if (logger.isDebugEnabled()) {
       try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url)) {
-        String responseContent = convertStreamToString(is);
+        var responseContent = convertStreamToString(is);
         logger.debug("Applications API response: {}", responseContent);
 
         // Parse the buffered response string
@@ -295,7 +294,7 @@ public class SDKExtension {
       return "";
     }
 
-    StringBuilder sb = new StringBuilder();
+    var sb = new StringBuilder();
     try (BufferedReader reader =
         new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
       String line;
@@ -323,7 +322,7 @@ public class SDKExtension {
   public SessionMetadataResponse getLatestSessionMetadata(String organizationId, String appId)
       throws IOException, UnauthorizedException {
 
-    String url =
+    var url =
         String.format(
             "/ng/organizations/%s/applications/%s/agent-sessions/latest", organizationId, appId);
     try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
@@ -363,7 +362,7 @@ public class SDKExtension {
     if (sort == null) sort = "-startTime";
     if (filterBody == null) filterBody = AttacksFilterBody.builder().build();
 
-    String url =
+    var url =
         String.format(
             "/ng/%s/attacks?expand=skip_links&limit=%d&offset=%d&sort=%s",
             organizationId, limit, offset, sort);
@@ -374,7 +373,7 @@ public class SDKExtension {
         Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
 
       // Parse complete JSON response including metadata
-      AttacksResponse response = this.gson.fromJson(reader, AttacksResponse.class);
+      var response = this.gson.fromJson(reader, AttacksResponse.class);
 
       // Handle null response gracefully
       if (response == null) {

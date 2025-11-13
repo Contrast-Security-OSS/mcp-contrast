@@ -18,7 +18,6 @@ package com.contrast.labs.ai.mcp.contrast.utils;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.contrast.labs.ai.mcp.contrast.PaginationParams;
-import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -39,10 +38,10 @@ class PaginationHandlerTest {
 
   @Test
   void testCreatePaginatedResponse_withTotalCount_firstPage() {
-    List<String> items = List.of("item1", "item2", "item3");
-    PaginationParams params = PaginationParams.of(1, 3);
+    var items = List.of("item1", "item2", "item3");
+    var params = PaginationParams.of(1, 3);
 
-    PaginatedResponse<String> response = handler.createPaginatedResponse(items, params, 10);
+    var response = handler.createPaginatedResponse(items, params, 10);
 
     assertEquals(3, response.items().size());
     assertEquals(1, response.page());
@@ -54,10 +53,10 @@ class PaginationHandlerTest {
 
   @Test
   void testCreatePaginatedResponse_withTotalCount_lastPage() {
-    List<String> items = List.of("item8", "item9", "item10");
-    PaginationParams params = PaginationParams.of(4, 3);
+    var items = List.of("item8", "item9", "item10");
+    var params = PaginationParams.of(4, 3);
 
-    PaginatedResponse<String> response = handler.createPaginatedResponse(items, params, 10);
+    var response = handler.createPaginatedResponse(items, params, 10);
 
     assertEquals(3, response.items().size());
     assertEquals(4, response.page());
@@ -70,10 +69,10 @@ class PaginationHandlerTest {
 
   @Test
   void testCreatePaginatedResponse_withoutTotalCount_fullPage() {
-    List<String> items = List.of("item1", "item2", "item3");
-    PaginationParams params = PaginationParams.of(1, 3);
+    var items = List.of("item1", "item2", "item3");
+    var params = PaginationParams.of(1, 3);
 
-    PaginatedResponse<String> response = handler.createPaginatedResponse(items, params, null);
+    var response = handler.createPaginatedResponse(items, params, null);
 
     assertEquals(3, response.items().size());
     assertNull(response.totalItems());
@@ -84,10 +83,10 @@ class PaginationHandlerTest {
 
   @Test
   void testCreatePaginatedResponse_withoutTotalCount_partialPage() {
-    List<String> items = List.of("item1", "item2");
-    PaginationParams params = PaginationParams.of(1, 3);
+    var items = List.of("item1", "item2");
+    var params = PaginationParams.of(1, 3);
 
-    PaginatedResponse<String> response = handler.createPaginatedResponse(items, params, null);
+    var response = handler.createPaginatedResponse(items, params, null);
 
     assertEquals(2, response.items().size());
     assertNull(response.totalItems());
@@ -96,10 +95,10 @@ class PaginationHandlerTest {
 
   @Test
   void testCreatePaginatedResponse_emptyFirstPage() {
-    List<String> items = List.of();
-    PaginationParams params = PaginationParams.of(1, 10);
+    var items = List.of();
+    var params = PaginationParams.of(1, 10);
 
-    PaginatedResponse<String> response = handler.createPaginatedResponse(items, params, 0);
+    var response = handler.createPaginatedResponse(items, params, 0);
 
     assertTrue(response.items().isEmpty());
     assertEquals(0, response.totalItems());
@@ -109,10 +108,10 @@ class PaginationHandlerTest {
 
   @Test
   void testCreatePaginatedResponse_emptySecondPage_withTotalCount() {
-    List<String> items = List.of();
-    PaginationParams params = PaginationParams.of(2, 10);
+    var items = List.of();
+    var params = PaginationParams.of(2, 10);
 
-    PaginatedResponse<String> response = handler.createPaginatedResponse(items, params, 5);
+    var response = handler.createPaginatedResponse(items, params, 5);
 
     assertTrue(response.items().isEmpty());
     assertEquals(5, response.totalItems());
@@ -122,10 +121,10 @@ class PaginationHandlerTest {
 
   @Test
   void testCreatePaginatedResponse_emptySecondPage_withoutTotalCount() {
-    List<String> items = List.of();
-    PaginationParams params = PaginationParams.of(2, 10);
+    var items = List.of();
+    var params = PaginationParams.of(2, 10);
 
-    PaginatedResponse<String> response = handler.createPaginatedResponse(items, params, null);
+    var response = handler.createPaginatedResponse(items, params, null);
 
     assertTrue(response.items().isEmpty());
     assertNull(response.totalItems());
@@ -135,11 +134,11 @@ class PaginationHandlerTest {
 
   @Test
   void testCreatePaginatedResponse_mergesWarnings() {
-    List<String> items = List.of("item1");
+    var items = List.of("item1");
     // Create params with warning (invalid page clamped to 1)
-    PaginationParams params = PaginationParams.of(-5, 10);
+    var params = PaginationParams.of(-5, 10);
 
-    PaginatedResponse<String> response = handler.createPaginatedResponse(items, params, 1);
+    var response = handler.createPaginatedResponse(items, params, 1);
 
     assertNotNull(response.message());
     assertTrue(
@@ -149,11 +148,11 @@ class PaginationHandlerTest {
 
   @Test
   void testCreatePaginatedResponse_mergesWarningsWithEmptyMessage() {
-    List<String> items = List.of();
+    var items = List.of();
     // Create params with warning (invalid pageSize)
-    PaginationParams params = PaginationParams.of(2, 200);
+    var params = PaginationParams.of(2, 200);
 
-    PaginatedResponse<String> response = handler.createPaginatedResponse(items, params, 5);
+    var response = handler.createPaginatedResponse(items, params, 5);
 
     assertNotNull(response.message());
     assertTrue(
@@ -170,10 +169,10 @@ class PaginationHandlerTest {
   void testHasMorePages_boundaryCase() {
     // Exactly 20 items, page 2, pageSize 10
     // Page 2 * 10 = 20, which equals totalItems, so no more pages
-    List<String> items = List.of("item10", "item11");
-    PaginationParams params = PaginationParams.of(2, 10);
+    var items = List.of("item10", "item11");
+    var params = PaginationParams.of(2, 10);
 
-    PaginatedResponse<String> response = handler.createPaginatedResponse(items, params, 20);
+    var response = handler.createPaginatedResponse(items, params, 20);
 
     assertFalse(response.hasMorePages(), "No more pages when page*pageSize == totalItems");
   }
@@ -182,10 +181,10 @@ class PaginationHandlerTest {
   void testHasMorePages_justOverBoundary() {
     // 21 items, page 2, pageSize 10
     // Page 2 * 10 = 20 < 21, so more pages exist
-    List<String> items = List.of("item10", "item11");
-    PaginationParams params = PaginationParams.of(2, 10);
+    var items = List.of("item10", "item11");
+    var params = PaginationParams.of(2, 10);
 
-    PaginatedResponse<String> response = handler.createPaginatedResponse(items, params, 21);
+    var response = handler.createPaginatedResponse(items, params, 21);
 
     assertTrue(response.hasMorePages(), "More pages when page*pageSize < totalItems");
   }
@@ -193,10 +192,10 @@ class PaginationHandlerTest {
   @Test
   void testMessagePriority_warningAndEmpty() {
     // Both warning and empty message should appear
-    List<String> items = List.of();
-    PaginationParams params = PaginationParams.of(-1, 10); // Invalid page
+    var items = List.of();
+    var params = PaginationParams.of(-1, 10); // Invalid page
 
-    PaginatedResponse<String> response = handler.createPaginatedResponse(items, params, 0);
+    var response = handler.createPaginatedResponse(items, params, 0);
 
     assertNotNull(response.message());
     assertTrue(response.message().contains("Invalid page number"));

@@ -20,13 +20,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.ApplicationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.Route;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.routecoverage.RouteCoverageResponse;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata.SessionMetadataResponse;
-import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
-import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -117,14 +112,14 @@ public class RouteCoverageServiceIntegrationTest {
         "╚════════════════════════════════════════════════════════════════════════════════╝");
 
     try {
-      ContrastSDK sdk =
+      var sdk =
           SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-      SDKExtension sdkExtension = new SDKExtension(sdk);
+      var sdkExtension = new SDKExtension(sdk);
 
       // Get all applications
       System.out.println("\n🔍 Step 1: Fetching all applications...");
-      ApplicationsResponse appsResponse = sdkExtension.getApplications(orgID);
-      List<Application> applications = appsResponse.getApplications();
+      var appsResponse = sdkExtension.getApplications(orgID);
+      var applications = appsResponse.getApplications();
       System.out.println("   Found " + applications.size() + " application(s) in organization");
 
       if (applications.isEmpty()) {
@@ -169,14 +164,13 @@ public class RouteCoverageServiceIntegrationTest {
 
         try {
           // Check for route coverage
-          RouteCoverageResponse routeResponse =
-              sdkExtension.getRouteCoverage(orgID, app.getAppId(), null);
+          var routeResponse = sdkExtension.getRouteCoverage(orgID, app.getAppId(), null);
           if (routeResponse != null
               && routeResponse.getRoutes() != null
               && !routeResponse.getRoutes().isEmpty()) {
             System.out.println("      ✓ Has " + routeResponse.getRoutes().size() + " route(s)");
 
-            TestData candidate = new TestData();
+            var candidate = new TestData();
             candidate.appId = app.getAppId();
             candidate.appName = app.getName();
             candidate.hasRouteCoverage = true;
@@ -184,8 +178,7 @@ public class RouteCoverageServiceIntegrationTest {
 
             // Check for session metadata
             try {
-              SessionMetadataResponse sessionResponse =
-                  sdkExtension.getLatestSessionMetadata(orgID, app.getAppId());
+              var sessionResponse = sdkExtension.getLatestSessionMetadata(orgID, app.getAppId());
               if (sessionResponse != null && sessionResponse.getAgentSession() != null) {
                 // Try to extract a metadata field from metadataSessions list
                 if (sessionResponse.getAgentSession().getMetadataSessions() != null
@@ -232,7 +225,7 @@ public class RouteCoverageServiceIntegrationTest {
       }
 
       // Determine which candidate to use
-      TestData candidate = bestCandidate != null ? bestCandidate : fallbackCandidate;
+      var candidate = bestCandidate != null ? bestCandidate : fallbackCandidate;
 
       if (candidate != null) {
         testData = candidate;
@@ -271,7 +264,7 @@ public class RouteCoverageServiceIntegrationTest {
 
   /** Build detailed error message when no suitable test data is found */
   private String buildTestDataErrorMessage(int appsChecked) {
-    StringBuilder msg = new StringBuilder();
+    var msg = new StringBuilder();
     msg.append(
         "\n╔════════════════════════════════════════════════════════════════════════════════╗\n");
     msg.append(
@@ -349,8 +342,7 @@ public class RouteCoverageServiceIntegrationTest {
     assertNotNull(testData, "Test data must be discovered before running tests");
 
     // Act
-    RouteCoverageResponse response =
-        routeCoverageService.getRouteCoverage(testData.appId, null, null, null);
+    var response = routeCoverageService.getRouteCoverage(testData.appId, null, null, null);
 
     // Assert
     assertNotNull(response, "Response should not be null");
@@ -395,7 +387,7 @@ public class RouteCoverageServiceIntegrationTest {
     assertNotNull(testData.sessionMetadataValue, "Session metadata value must be set");
 
     // Act
-    RouteCoverageResponse response =
+    var response =
         routeCoverageService.getRouteCoverage(
             testData.appId, testData.sessionMetadataName, testData.sessionMetadataValue, null);
 
@@ -442,8 +434,7 @@ public class RouteCoverageServiceIntegrationTest {
             + "Please configure session metadata in your Contrast agent.");
 
     // Act
-    RouteCoverageResponse response =
-        routeCoverageService.getRouteCoverage(testData.appId, null, null, true);
+    var response = routeCoverageService.getRouteCoverage(testData.appId, null, null, true);
 
     // Assert
     assertNotNull(response, "Response should not be null");
@@ -483,14 +474,14 @@ public class RouteCoverageServiceIntegrationTest {
             + "Please configure session metadata in your Contrast agent.");
 
     // Get route coverage using different filters
-    RouteCoverageResponse unfilteredResponse =
+    var unfilteredResponse =
         routeCoverageService.getRouteCoverage(testData.appId, null, null, null);
 
-    RouteCoverageResponse sessionMetadataResponse =
+    var sessionMetadataResponse =
         routeCoverageService.getRouteCoverage(
             testData.appId, testData.sessionMetadataName, testData.sessionMetadataValue, null);
 
-    RouteCoverageResponse latestSessionResponse =
+    var latestSessionResponse =
         routeCoverageService.getRouteCoverage(testData.appId, null, null, true);
 
     // Assert all methods returned data
@@ -527,7 +518,7 @@ public class RouteCoverageServiceIntegrationTest {
     // Act - Use an invalid app ID that definitely doesn't exist
     boolean caughtException = false;
     try {
-      RouteCoverageResponse response =
+      var response =
           routeCoverageService.getRouteCoverage("invalid-app-id-12345", null, null, null);
 
       // If we get here, the API returned a response (possibly empty)
@@ -559,8 +550,7 @@ public class RouteCoverageServiceIntegrationTest {
     // filters
 
     // Act - Call with empty strings for sessionMetadataName and sessionMetadataValue
-    RouteCoverageResponse response =
-        routeCoverageService.getRouteCoverage(testData.appId, "", "", false);
+    var response = routeCoverageService.getRouteCoverage(testData.appId, "", "", false);
 
     // Assert
     assertNotNull(response, "Response should not be null");

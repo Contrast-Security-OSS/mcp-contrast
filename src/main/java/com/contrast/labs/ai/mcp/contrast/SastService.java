@@ -16,10 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast;
 
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
-import com.contrastsecurity.sdk.ContrastSDK;
 import com.contrastsecurity.sdk.scan.Project;
-import com.contrastsecurity.sdk.scan.Scan;
-import com.contrastsecurity.sdk.scan.Scans;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,12 +59,12 @@ public class SastService {
       description = "takes a scan project name and returns the project details")
   public Project getScanProject(String projectName) throws IOException {
     logger.info("Retrieving scan project details for project: {}", projectName);
-    ContrastSDK contrastSDK =
+    var contrastSDK =
         SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
     logger.debug("ContrastSDK initialized with host: {}", hostName);
 
     try {
-      Project project =
+      var project =
           contrastSDK
               .scan(orgID)
               .projects()
@@ -86,12 +83,12 @@ public class SastService {
       description = "takes a scan project name and returns the latest results in Sarif format")
   public String getLatestScanResult(String projectName) throws IOException {
     logger.info("Retrieving latest scan results in SARIF format for project: {}", projectName);
-    ContrastSDK contrastSDK =
+    var contrastSDK =
         SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
     logger.debug("ContrastSDK initialized with host: {}", hostName);
 
     try {
-      Project project =
+      var project =
           contrastSDK
               .scan(orgID)
               .projects()
@@ -99,15 +96,15 @@ public class SastService {
               .orElseThrow(() -> new IOException("Project not found"));
       logger.debug("Found project with id: {}", project.id());
 
-      Scans scans = contrastSDK.scan(orgID).scans(project.id());
+      var scans = contrastSDK.scan(orgID).scans(project.id());
       logger.debug("Retrieved scans for project, last scan id: {}", project.lastScanId());
 
-      Scan scan = scans.get(project.lastScanId());
+      var scan = scans.get(project.lastScanId());
       logger.debug("Retrieved scan with id: {}", project.lastScanId());
 
       try (InputStream sarifStream = scan.sarif();
           BufferedReader reader = new BufferedReader(new InputStreamReader(sarifStream))) {
-        String result = reader.lines().collect(Collectors.joining(System.lineSeparator()));
+        var result = reader.lines().collect(Collectors.joining(System.lineSeparator()));
         logger.info("Successfully retrieved SARIF data for project: {}", projectName);
         return result;
       }

@@ -17,20 +17,18 @@ package com.contrast.labs.ai.mcp.contrast;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksFilterBody;
 import org.junit.jupiter.api.Test;
 
 class AttackFilterParamsTest {
 
   @Test
   void testValidFiltersAllProvided() {
-    AttackFilterParams params =
-        AttackFilterParams.of("EXPLOITED", "xss", true, true, false, "severity");
+    var params = AttackFilterParams.of("EXPLOITED", "xss", true, true, false, "severity");
 
     assertTrue(params.isValid());
     assertTrue(params.errors().isEmpty());
 
-    AttacksFilterBody filterBody = params.toAttacksFilterBody();
+    var filterBody = params.toAttacksFilterBody();
     assertEquals("EXPLOITED", filterBody.getQuickFilter());
     assertEquals("xss", filterBody.getKeyword());
     assertTrue(filterBody.isIncludeSuppressed());
@@ -40,21 +38,21 @@ class AttackFilterParamsTest {
 
   @Test
   void testNoFiltersProvided() {
-    AttackFilterParams params = AttackFilterParams.of(null, null, null, null, null, null);
+    var params = AttackFilterParams.of(null, null, null, null, null, null);
 
     assertTrue(params.isValid());
     assertFalse(params.messages().isEmpty()); // Should have smart defaults messages
     assertTrue(params.errors().isEmpty());
 
     // Smart defaults should be applied
-    AttacksFilterBody filterBody = params.toAttacksFilterBody();
+    var filterBody = params.toAttacksFilterBody();
     assertEquals("ALL", filterBody.getQuickFilter());
     assertFalse(filterBody.isIncludeSuppressed()); // Smart default: exclude suppressed
   }
 
   @Test
   void testSmartDefaultForIncludeSuppressed() {
-    AttackFilterParams params = AttackFilterParams.of(null, null, null, null, null, null);
+    var params = AttackFilterParams.of(null, null, null, null, null, null);
 
     assertTrue(params.isValid());
     assertTrue(params.errors().isEmpty());
@@ -66,26 +64,26 @@ class AttackFilterParamsTest {
         params.messages().stream()
             .anyMatch(m -> m.contains("Excluding suppressed attacks by default")));
 
-    AttacksFilterBody filterBody = params.toAttacksFilterBody();
+    var filterBody = params.toAttacksFilterBody();
     assertFalse(filterBody.isIncludeSuppressed());
   }
 
   @Test
   void testExplicitIncludeSuppressedNoMessage() {
-    AttackFilterParams params = AttackFilterParams.of("EXPLOITED", null, true, null, null, null);
+    var params = AttackFilterParams.of("EXPLOITED", null, true, null, null, null);
 
     assertTrue(params.isValid());
     assertTrue(params.errors().isEmpty());
     // Should not have includeSuppressed message when explicitly provided
     assertFalse(params.messages().stream().anyMatch(m -> m.contains("Excluding suppressed")));
 
-    AttacksFilterBody filterBody = params.toAttacksFilterBody();
+    var filterBody = params.toAttacksFilterBody();
     assertTrue(filterBody.isIncludeSuppressed());
   }
 
   @Test
   void testInvalidQuickFilterHardFailure() {
-    AttackFilterParams params = AttackFilterParams.of("INVALID", null, null, null, null, null);
+    var params = AttackFilterParams.of("INVALID", null, null, null, null, null);
 
     assertFalse(params.isValid());
     assertEquals(1, params.errors().size());
@@ -99,7 +97,7 @@ class AttackFilterParamsTest {
     String[] validFilters = {"EXPLOITED", "PROBED", "BLOCKED", "INEFFECTIVE", "ALL"};
 
     for (String filter : validFilters) {
-      AttackFilterParams params = AttackFilterParams.of(filter, null, false, null, null, null);
+      var params = AttackFilterParams.of(filter, null, false, null, null, null);
       assertTrue(params.isValid(), "Filter " + filter + " should be valid");
       assertTrue(params.errors().isEmpty());
     }
@@ -108,19 +106,18 @@ class AttackFilterParamsTest {
   @Test
   void testQuickFilterCaseInsensitive() {
     // Test lowercase and mixed case
-    AttackFilterParams params1 = AttackFilterParams.of("exploited", null, false, null, null, null);
+    var params1 = AttackFilterParams.of("exploited", null, false, null, null, null);
     assertTrue(params1.isValid());
     assertEquals("EXPLOITED", params1.toAttacksFilterBody().getQuickFilter());
 
-    AttackFilterParams params2 = AttackFilterParams.of("PrObEd", null, false, null, null, null);
+    var params2 = AttackFilterParams.of("PrObEd", null, false, null, null, null);
     assertTrue(params2.isValid());
     assertEquals("PROBED", params2.toAttacksFilterBody().getQuickFilter());
   }
 
   @Test
   void testQuickFilterWithWhitespace() {
-    AttackFilterParams params =
-        AttackFilterParams.of("  EXPLOITED  ", null, false, null, null, null);
+    var params = AttackFilterParams.of("  EXPLOITED  ", null, false, null, null, null);
 
     assertTrue(params.isValid());
     assertEquals("EXPLOITED", params.toAttacksFilterBody().getQuickFilter());
@@ -128,8 +125,7 @@ class AttackFilterParamsTest {
 
   @Test
   void testKeywordPassThrough() {
-    AttackFilterParams params =
-        AttackFilterParams.of("EXPLOITED", "sql injection test", false, null, null, null);
+    var params = AttackFilterParams.of("EXPLOITED", "sql injection test", false, null, null, null);
 
     assertTrue(params.isValid());
     assertEquals("sql injection test", params.toAttacksFilterBody().getKeyword());
@@ -137,8 +133,7 @@ class AttackFilterParamsTest {
 
   @Test
   void testValidSortFormat() {
-    AttackFilterParams params =
-        AttackFilterParams.of("EXPLOITED", null, false, null, null, "severity");
+    var params = AttackFilterParams.of("EXPLOITED", null, false, null, null, "severity");
 
     assertTrue(params.isValid());
     assertTrue(params.errors().isEmpty());
@@ -146,8 +141,7 @@ class AttackFilterParamsTest {
 
   @Test
   void testValidDescendingSortFormat() {
-    AttackFilterParams params =
-        AttackFilterParams.of("EXPLOITED", null, false, null, null, "-severity");
+    var params = AttackFilterParams.of("EXPLOITED", null, false, null, null, "-severity");
 
     assertTrue(params.isValid());
     assertTrue(params.errors().isEmpty());
@@ -155,8 +149,7 @@ class AttackFilterParamsTest {
 
   @Test
   void testInvalidSortFormatHardFailure() {
-    AttackFilterParams params =
-        AttackFilterParams.of("EXPLOITED", null, false, null, null, "invalid sort!");
+    var params = AttackFilterParams.of("EXPLOITED", null, false, null, null, "invalid sort!");
 
     assertFalse(params.isValid());
     assertEquals(1, params.errors().size());
@@ -166,8 +159,7 @@ class AttackFilterParamsTest {
 
   @Test
   void testValidSortWithUnderscores() {
-    AttackFilterParams params =
-        AttackFilterParams.of("EXPLOITED", null, false, null, null, "field_name");
+    var params = AttackFilterParams.of("EXPLOITED", null, false, null, null, "field_name");
 
     assertTrue(params.isValid());
     assertTrue(params.errors().isEmpty());
@@ -175,11 +167,11 @@ class AttackFilterParamsTest {
 
   @Test
   void testAllBooleanFlagsExplicitlySet() {
-    AttackFilterParams params = AttackFilterParams.of("BLOCKED", "keyword", true, true, true, null);
+    var params = AttackFilterParams.of("BLOCKED", "keyword", true, true, true, null);
 
     assertTrue(params.isValid());
 
-    AttacksFilterBody filterBody = params.toAttacksFilterBody();
+    var filterBody = params.toAttacksFilterBody();
     assertTrue(filterBody.isIncludeSuppressed());
     assertTrue(filterBody.isIncludeBotBlockers());
     assertTrue(filterBody.isIncludeIpBlacklist());
@@ -187,7 +179,7 @@ class AttackFilterParamsTest {
 
   @Test
   void testMultipleErrorsAccumulate() {
-    AttackFilterParams params =
+    var params =
         AttackFilterParams.of("INVALID_FILTER", null, null, null, null, "bad-sort-format!");
 
     assertFalse(params.isValid());
@@ -196,7 +188,7 @@ class AttackFilterParamsTest {
 
   @Test
   void testMessagesAreImmutable() {
-    AttackFilterParams params = AttackFilterParams.of(null, null, null, null, null, null);
+    var params = AttackFilterParams.of(null, null, null, null, null, null);
 
     assertThrows(
         UnsupportedOperationException.class,
@@ -207,7 +199,7 @@ class AttackFilterParamsTest {
 
   @Test
   void testErrorsAreImmutable() {
-    AttackFilterParams params = AttackFilterParams.of("INVALID", null, null, null, null, null);
+    var params = AttackFilterParams.of("INVALID", null, null, null, null, null);
 
     assertThrows(
         UnsupportedOperationException.class,
@@ -218,7 +210,7 @@ class AttackFilterParamsTest {
 
   @Test
   void testQuickFilterDefaultMessage() {
-    AttackFilterParams params = AttackFilterParams.of(null, null, false, null, null, null);
+    var params = AttackFilterParams.of(null, null, false, null, null, null);
 
     assertTrue(params.isValid());
     assertTrue(
@@ -228,7 +220,7 @@ class AttackFilterParamsTest {
 
   @Test
   void testNoQuickFilterMessageWhenProvided() {
-    AttackFilterParams params = AttackFilterParams.of("EXPLOITED", null, false, null, null, null);
+    var params = AttackFilterParams.of("EXPLOITED", null, false, null, null, null);
 
     assertTrue(params.isValid());
     assertFalse(params.messages().stream().anyMatch(m -> m.contains("No quickFilter applied")));
@@ -236,7 +228,7 @@ class AttackFilterParamsTest {
 
   @Test
   void testEmptyStringQuickFilterTreatedAsNull() {
-    AttackFilterParams params = AttackFilterParams.of("   ", null, false, null, null, null);
+    var params = AttackFilterParams.of("   ", null, false, null, null, null);
 
     assertTrue(params.isValid());
     // Empty/whitespace should be treated as null and use default
@@ -246,7 +238,7 @@ class AttackFilterParamsTest {
 
   @Test
   void testEmptyStringKeywordHandled() {
-    AttackFilterParams params = AttackFilterParams.of("EXPLOITED", "   ", false, null, null, null);
+    var params = AttackFilterParams.of("EXPLOITED", "   ", false, null, null, null);
 
     assertTrue(params.isValid());
     // Empty keyword shouldn't cause issues
@@ -254,7 +246,7 @@ class AttackFilterParamsTest {
 
   @Test
   void testEmptyStringSortTreatedAsNull() {
-    AttackFilterParams params = AttackFilterParams.of("EXPLOITED", null, false, null, null, "   ");
+    var params = AttackFilterParams.of("EXPLOITED", null, false, null, null, "   ");
 
     assertTrue(params.isValid());
     assertTrue(params.errors().isEmpty());
