@@ -17,44 +17,42 @@ package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata;
 
 import java.util.List;
 
-/**
- * Represents an agent session with its metadata
- */
+/** Represents an agent session with its metadata */
 public class AgentSession {
-    private String agentSessionId;
-    private List<MetadataSession> metadataSessions;
-    private double createdDate;
-    private String sessionStatus;
+  private String agentSessionId;
+  private List<MetadataSession> metadataSessions;
+  private double createdDate;
+  private String sessionStatus;
 
-    public String getAgentSessionId() {
-        return agentSessionId;
-    }
+  public String getAgentSessionId() {
+    return agentSessionId;
+  }
 
-    public void setAgentSessionId(String agentSessionId) {
-        this.agentSessionId = agentSessionId;
-    }
+  public void setAgentSessionId(String agentSessionId) {
+    this.agentSessionId = agentSessionId;
+  }
 
-    public List<MetadataSession> getMetadataSessions() {
-        return metadataSessions;
-    }
+  public List<MetadataSession> getMetadataSessions() {
+    return metadataSessions;
+  }
 
-    public void setMetadataSessions(List<MetadataSession> metadataSessions) {
-        this.metadataSessions = metadataSessions;
-    }
+  public void setMetadataSessions(List<MetadataSession> metadataSessions) {
+    this.metadataSessions = metadataSessions;
+  }
 
-    public double getCreatedDate() {
-        return createdDate;
-    }
+  public double getCreatedDate() {
+    return createdDate;
+  }
 
-    public void setCreatedDate(double createdDate) {
-        this.createdDate = createdDate;
-    }
+  public void setCreatedDate(double createdDate) {
+    this.createdDate = createdDate;
+  }
 
-    public String getSessionStatus() {
-        return sessionStatus;
-    }
+  public String getSessionStatus() {
+    return sessionStatus;
+  }
 
-    public void setSessionStatus(String sessionStatus) {
-        this.sessionStatus = sessionStatus;
-    }
+  public void setSessionStatus(String sessionStatus) {
+    this.sessionStatus = sessionStatus;
+  }
 }

@@ -16,12 +16,11 @@
 package com.contrast.labs.ai.mcp.contrast.data;
 
 import com.contrastsecurity.models.SessionMetadata;
-
 import java.util.List;
 
 /**
- * Lightweight vulnerability record for listing operations.
- * Contains essential vulnerability information including application correlation data.
+ * Lightweight vulnerability record for listing operations. Contains essential vulnerability
+ * information including application correlation data.
  *
  * @param title Vulnerability title/description
  * @param type Vulnerability type/rule name (e.g., "sql-injection", "xss-reflected")
@@ -34,7 +33,8 @@ import java.util.List;
  * @param status Current vulnerability status (Reported, Confirmed, Remediated, etc.)
  * @param firstSeenAt ISO-8601 timestamp of first detection
  * @param closedAt ISO-8601 timestamp when closed (null if open)
- * @param environments List of environments where vulnerability was seen (DEVELOPMENT, QA, PRODUCTION)
+ * @param environments List of environments where vulnerability was seen (DEVELOPMENT, QA,
+ *     PRODUCTION)
  * @param tags User-defined tags applied to this vulnerability
  */
 public record VulnLight(
@@ -50,6 +50,4 @@ public record VulnLight(
     String firstSeenAt,
     String closedAt,
     List<String> environments,
-    List<String> tags
-) {
-}
+    List<String> tags) {}

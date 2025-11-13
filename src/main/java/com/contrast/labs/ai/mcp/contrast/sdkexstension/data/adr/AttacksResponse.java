@@ -15,39 +15,35 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr;
 
+import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
-
 /**
- * Response wrapper for attacks API calls.
- * Captures both the attack data and pagination metadata from the API response.
+ * Response wrapper for attacks API calls. Captures both the attack data and pagination metadata
+ * from the API response.
  */
 @Getter
 @Setter
 public class AttacksResponse {
-    private List<Attack> attacks;
+  private List<Attack> attacks;
 
-    /**
-     * Total count of attacks matching the query (across all pages).
-     */
-    private Integer count;
+  /** Total count of attacks matching the query (across all pages). */
+  private Integer count;
 
-    /**
-     * Alternative total count field (some APIs use 'total' instead of 'count').
-     */
-    private Integer total;
+  /** Alternative total count field (some APIs use 'total' instead of 'count'). */
+  private Integer total;
 
-    /**
-     * Get the total count from either count or total field.
-     * Some APIs use 'count', others use 'total'.
-     * @return The total count, preferring 'count' over 'total', or null if neither present
-     */
-    public Integer getTotalCount() {
-        if (count != null) {
-            return count;
-        }
-        return total;
+  /**
+   * Get the total count from either count or total field. Some APIs use 'count', others use
+   * 'total'.
+   *
+   * @return The total count, preferring 'count' over 'total', or null if neither present
+   */
+  public Integer getTotalCount() {
+    if (count != null) {
+      return count;
     }
+    return total;
+  }
 }

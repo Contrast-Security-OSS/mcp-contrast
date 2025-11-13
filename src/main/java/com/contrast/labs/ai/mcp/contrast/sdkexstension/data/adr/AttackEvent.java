@@ -17,48 +17,43 @@ package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr;
 
 import java.util.List;
 
-/**
- * Root class for deserializing attack event data from JSON.
- */
+/** Root class for deserializing attack event data from JSON. */
 public class AttackEvent {
-    private boolean success;
-    private List<String> messages;
-    private EventSummary summary;
+  private boolean success;
+  private List<String> messages;
+  private EventSummary summary;
 
-    private String runBook;
+  private String runBook;
 
-    
-    
+  public boolean isSuccess() {
+    return success;
+  }
 
-    public boolean isSuccess() {
-        return success;
-    }
+  public void setSuccess(boolean success) {
+    this.success = success;
+  }
 
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
+  public List<String> getMessages() {
+    return messages;
+  }
 
-    public List<String> getMessages() {
-        return messages;
-    }
+  public void setMessages(List<String> messages) {
+    this.messages = messages;
+  }
 
-    public void setMessages(List<String> messages) {
-        this.messages = messages;
-    }
+  public EventSummary getSummary() {
+    return summary;
+  }
 
-    public EventSummary getSummary() {
-        return summary;
-    }
+  public void setSummary(EventSummary summary) {
+    this.summary = summary;
+  }
 
-    public void setSummary(EventSummary summary) {
-        this.summary = summary;
-    }
+  public String getRunBook() {
+    return runBook;
+  }
 
-    public String getRunBook() {
-        return runBook;
-    }
-    public void setRunBook(String runBook) {
-        this.runBook = runBook;
-    }
-
+  public void setRunBook(String runBook) {
+    this.runBook = runBook;
+  }
 }

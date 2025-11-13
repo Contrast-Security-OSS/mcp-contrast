@@ -15,53 +15,51 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr;
 
-/**
- * Class representing user input information in an attack event.
- */
+/** Class representing user input information in an attack event. */
 public class UserInput {
-    private String value;
-    private String name;
-    private String type;
-    private boolean omitted_value;
-    private boolean truncated_value;
+  private String value;
+  private String name;
+  private String type;
+  private boolean omitted_value;
+  private boolean truncated_value;
 
-    public String getValue() {
-        return value;
-    }
+  public String getValue() {
+    return value;
+  }
 
-    public void setValue(String value) {
-        this.value = value;
-    }
+  public void setValue(String value) {
+    this.value = value;
+  }
 
-    public String getName() {
-        return name;
-    }
+  public String getName() {
+    return name;
+  }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+  public void setName(String name) {
+    this.name = name;
+  }
 
-    public String getType() {
-        return type;
-    }
+  public String getType() {
+    return type;
+  }
 
-    public void setType(String type) {
-        this.type = type;
-    }
+  public void setType(String type) {
+    this.type = type;
+  }
 
-    public boolean isOmitted_value() {
-        return omitted_value;
-    }
+  public boolean isOmitted_value() {
+    return omitted_value;
+  }
 
-    public void setOmitted_value(boolean omitted_value) {
-        this.omitted_value = omitted_value;
-    }
+  public void setOmitted_value(boolean omitted_value) {
+    this.omitted_value = omitted_value;
+  }
 
-    public boolean isTruncated_value() {
-        return truncated_value;
-    }
+  public boolean isTruncated_value() {
+    return truncated_value;
+  }
 
-    public void setTruncated_value(boolean truncated_value) {
-        this.truncated_value = truncated_value;
-    }
+  public void setTruncated_value(boolean truncated_value) {
+    this.truncated_value = truncated_value;
+  }
 }

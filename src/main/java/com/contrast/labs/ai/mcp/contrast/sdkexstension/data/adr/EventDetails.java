@@ -17,89 +17,87 @@ package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr;
 
 import java.util.List;
 
-/**
- * Class representing the details information in an attack event.
- */
+/** Class representing the details information in an attack event. */
 public class EventDetails {
-    private String file;
-    private String method;
-    private int line;
-    private List<StackFrame> stackFrames;
-    private int lastCustomFrame;
-    private String signature;
-    private String vector;
-    private Object evidence;
-    private String evidenceLabel;
+  private String file;
+  private String method;
+  private int line;
+  private List<StackFrame> stackFrames;
+  private int lastCustomFrame;
+  private String signature;
+  private String vector;
+  private Object evidence;
+  private String evidenceLabel;
 
-    public String getFile() {
-        return file;
-    }
+  public String getFile() {
+    return file;
+  }
 
-    public void setFile(String file) {
-        this.file = file;
-    }
+  public void setFile(String file) {
+    this.file = file;
+  }
 
-    public String getMethod() {
-        return method;
-    }
+  public String getMethod() {
+    return method;
+  }
 
-    public void setMethod(String method) {
-        this.method = method;
-    }
+  public void setMethod(String method) {
+    this.method = method;
+  }
 
-    public int getLine() {
-        return line;
-    }
+  public int getLine() {
+    return line;
+  }
 
-    public void setLine(int line) {
-        this.line = line;
-    }
+  public void setLine(int line) {
+    this.line = line;
+  }
 
-    public List<StackFrame> getStackFrames() {
-        return stackFrames;
-    }
+  public List<StackFrame> getStackFrames() {
+    return stackFrames;
+  }
 
-    public void setStackFrames(List<StackFrame> stackFrames) {
-        this.stackFrames = stackFrames;
-    }
+  public void setStackFrames(List<StackFrame> stackFrames) {
+    this.stackFrames = stackFrames;
+  }
 
-    public int getLastCustomFrame() {
-        return lastCustomFrame;
-    }
+  public int getLastCustomFrame() {
+    return lastCustomFrame;
+  }
 
-    public void setLastCustomFrame(int lastCustomFrame) {
-        this.lastCustomFrame = lastCustomFrame;
-    }
+  public void setLastCustomFrame(int lastCustomFrame) {
+    this.lastCustomFrame = lastCustomFrame;
+  }
 
-    public String getSignature() {
-        return signature;
-    }
+  public String getSignature() {
+    return signature;
+  }
 
-    public void setSignature(String signature) {
-        this.signature = signature;
-    }
+  public void setSignature(String signature) {
+    this.signature = signature;
+  }
 
-    public String getVector() {
-        return vector;
-    }
+  public String getVector() {
+    return vector;
+  }
 
-    public void setVector(String vector) {
-        this.vector = vector;
-    }
+  public void setVector(String vector) {
+    this.vector = vector;
+  }
 
-    public Object getEvidence() {
-        return evidence;
-    }
+  public Object getEvidence() {
+    return evidence;
+  }
 
-    public void setEvidence(Object evidence) {
-        this.evidence = evidence;
-    }
+  public void setEvidence(Object evidence) {
+    this.evidence = evidence;
+  }
 
-    public String getEvidenceLabel() {
-        return evidenceLabel;
-    }
+  public String getEvidenceLabel() {
+    return evidenceLabel;
+  }
 
-    public void setEvidenceLabel(String evidenceLabel) {
-        this.evidenceLabel = evidenceLabel;
-    }
+  public void setEvidenceLabel(String evidenceLabel) {
+    this.evidenceLabel = evidenceLabel;
+  }
 }

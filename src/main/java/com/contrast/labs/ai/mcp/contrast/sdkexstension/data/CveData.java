@@ -17,54 +17,52 @@ package com.contrast.labs.ai.mcp.contrast.sdkexstension.data;
 
 import java.util.List;
 
-/**
- * Root class for deserializing CVE data from JSON.
- */
+/** Root class for deserializing CVE data from JSON. */
 public class CveData {
-    
-    private Cve cve;
-    private ImpactStats impactStats;
-    private List<Library> libraries;
-    private List<App> apps;
-    private List<Server> servers;
 
-    public Cve getCve() {
-        return cve;
-    }
+  private Cve cve;
+  private ImpactStats impactStats;
+  private List<Library> libraries;
+  private List<App> apps;
+  private List<Server> servers;
 
-    public void setCve(Cve cve) {
-        this.cve = cve;
-    }
+  public Cve getCve() {
+    return cve;
+  }
 
-    public ImpactStats getImpactStats() {
-        return impactStats;
-    }
+  public void setCve(Cve cve) {
+    this.cve = cve;
+  }
 
-    public void setImpactStats(ImpactStats impactStats) {
-        this.impactStats = impactStats;
-    }
+  public ImpactStats getImpactStats() {
+    return impactStats;
+  }
 
-    public List<Library> getLibraries() {
-        return libraries;
-    }
+  public void setImpactStats(ImpactStats impactStats) {
+    this.impactStats = impactStats;
+  }
 
-    public void setLibraries(List<Library> libraries) {
-        this.libraries = libraries;
-    }
+  public List<Library> getLibraries() {
+    return libraries;
+  }
 
-    public List<App> getApps() {
-        return apps;
-    }
+  public void setLibraries(List<Library> libraries) {
+    this.libraries = libraries;
+  }
 
-    public void setApps(List<App> apps) {
-        this.apps = apps;
-    }
+  public List<App> getApps() {
+    return apps;
+  }
 
-    public List<Server> getServers() {
-        return servers;
-    }
+  public void setApps(List<App> apps) {
+    this.apps = apps;
+  }
 
-    public void setServers(List<Server> servers) {
-        this.servers = servers;
-    }
+  public List<Server> getServers() {
+    return servers;
+  }
+
+  public void setServers(List<Server> servers) {
+    this.servers = servers;
+  }
 }

@@ -15,26 +15,24 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata;
 
-/**
- * Represents a metadata field with display and agent labels
- */
+/** Represents a metadata field with display and agent labels */
 public class MetadataField {
-    private String displayLabel;
-    private String agentLabel;
+  private String displayLabel;
+  private String agentLabel;
 
-    public String getDisplayLabel() {
-        return displayLabel;
-    }
+  public String getDisplayLabel() {
+    return displayLabel;
+  }
 
-    public void setDisplayLabel(String displayLabel) {
-        this.displayLabel = displayLabel;
-    }
+  public void setDisplayLabel(String displayLabel) {
+    this.displayLabel = displayLabel;
+  }
 
-    public String getAgentLabel() {
-        return agentLabel;
-    }
+  public String getAgentLabel() {
+    return agentLabel;
+  }
 
-    public void setAgentLabel(String agentLabel) {
-        this.agentLabel = agentLabel;
-    }
+  public void setAgentLabel(String agentLabel) {
+    this.agentLabel = agentLabel;
+  }
 }

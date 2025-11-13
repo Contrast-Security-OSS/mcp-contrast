@@ -15,26 +15,24 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata;
 
-/**
- * Represents a metadata session value with its associated field
- */
+/** Represents a metadata session value with its associated field */
 public class MetadataSession {
-    private String value;
-    private MetadataField metadataField;
+  private String value;
+  private MetadataField metadataField;
 
-    public String getValue() {
-        return value;
-    }
+  public String getValue() {
+    return value;
+  }
 
-    public void setValue(String value) {
-        this.value = value;
-    }
+  public void setValue(String value) {
+    this.value = value;
+  }
 
-    public MetadataField getMetadataField() {
-        return metadataField;
-    }
+  public MetadataField getMetadataField() {
+    return metadataField;
+  }
 
-    public void setMetadataField(MetadataField metadataField) {
-        this.metadataField = metadataField;
-    }
+  public void setMetadataField(MetadataField metadataField) {
+    this.metadataField = metadataField;
+  }
 }

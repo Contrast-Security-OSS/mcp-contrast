@@ -17,116 +17,114 @@ package com.contrast.labs.ai.mcp.contrast.sdkexstension.data;
 
 import java.util.List;
 
-/**
- * Class representing CVE vulnerability information.
- */
+/** Class representing CVE vulnerability information. */
 public class Cve {
-    private String availabilityImpact;
-    private String name;
-    private String uuid;
-    private String description;
-    private String status;
-    private String accessVector;
-    private String accessComplexity;
-    private String authentication;
-    private String confidentialityImpact;
-    private String integrityImpact;
-    private double score;
-    private List<String> references;
+  private String availabilityImpact;
+  private String name;
+  private String uuid;
+  private String description;
+  private String status;
+  private String accessVector;
+  private String accessComplexity;
+  private String authentication;
+  private String confidentialityImpact;
+  private String integrityImpact;
+  private double score;
+  private List<String> references;
 
-    public String getAvailabilityImpact() {
-        return availabilityImpact;
-    }
+  public String getAvailabilityImpact() {
+    return availabilityImpact;
+  }
 
-    public void setAvailabilityImpact(String availabilityImpact) {
-        this.availabilityImpact = availabilityImpact;
-    }
+  public void setAvailabilityImpact(String availabilityImpact) {
+    this.availabilityImpact = availabilityImpact;
+  }
 
-    public String getName() {
-        return name;
-    }
+  public String getName() {
+    return name;
+  }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+  public void setName(String name) {
+    this.name = name;
+  }
 
-    public String getUuid() {
-        return uuid;
-    }
+  public String getUuid() {
+    return uuid;
+  }
 
-    public void setUuid(String uuid) {
-        this.uuid = uuid;
-    }
+  public void setUuid(String uuid) {
+    this.uuid = uuid;
+  }
 
-    public String getDescription() {
-        return description;
-    }
+  public String getDescription() {
+    return description;
+  }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+  public void setDescription(String description) {
+    this.description = description;
+  }
 
-    public String getStatus() {
-        return status;
-    }
+  public String getStatus() {
+    return status;
+  }
 
-    public void setStatus(String status) {
-        this.status = status;
-    }
+  public void setStatus(String status) {
+    this.status = status;
+  }
 
-    public String getAccessVector() {
-        return accessVector;
-    }
+  public String getAccessVector() {
+    return accessVector;
+  }
 
-    public void setAccessVector(String accessVector) {
-        this.accessVector = accessVector;
-    }
+  public void setAccessVector(String accessVector) {
+    this.accessVector = accessVector;
+  }
 
-    public String getAccessComplexity() {
-        return accessComplexity;
-    }
+  public String getAccessComplexity() {
+    return accessComplexity;
+  }
 
-    public void setAccessComplexity(String accessComplexity) {
-        this.accessComplexity = accessComplexity;
-    }
+  public void setAccessComplexity(String accessComplexity) {
+    this.accessComplexity = accessComplexity;
+  }
 
-    public String getAuthentication() {
-        return authentication;
-    }
+  public String getAuthentication() {
+    return authentication;
+  }
 
-    public void setAuthentication(String authentication) {
-        this.authentication = authentication;
-    }
+  public void setAuthentication(String authentication) {
+    this.authentication = authentication;
+  }
 
-    public String getConfidentialityImpact() {
-        return confidentialityImpact;
-    }
+  public String getConfidentialityImpact() {
+    return confidentialityImpact;
+  }
 
-    public void setConfidentialityImpact(String confidentialityImpact) {
-        this.confidentialityImpact = confidentialityImpact;
-    }
+  public void setConfidentialityImpact(String confidentialityImpact) {
+    this.confidentialityImpact = confidentialityImpact;
+  }
 
-    public String getIntegrityImpact() {
-        return integrityImpact;
-    }
+  public String getIntegrityImpact() {
+    return integrityImpact;
+  }
 
-    public void setIntegrityImpact(String integrityImpact) {
-        this.integrityImpact = integrityImpact;
-    }
+  public void setIntegrityImpact(String integrityImpact) {
+    this.integrityImpact = integrityImpact;
+  }
 
-    public double getScore() {
-        return score;
-    }
+  public double getScore() {
+    return score;
+  }
 
-    public void setScore(double score) {
-        this.score = score;
-    }
+  public void setScore(double score) {
+    this.score = score;
+  }
 
-    public List<String> getReferences() {
-        return references;
-    }
+  public List<String> getReferences() {
+    return references;
+  }
 
-    public void setReferences(List<String> references) {
-        this.references = references;
-    }
+  public void setReferences(List<String> references) {
+    this.references = references;
+  }
 }

@@ -15,34 +15,32 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkexstension.data;
 
-
 import java.util.List;
 
 /** Base class for api calls for libraries. */
 public class LibrariesExtended {
 
-    public String getAverageScoreLetter() {
-        return averageScoreLetter;
-    }
+  public String getAverageScoreLetter() {
+    return averageScoreLetter;
+  }
 
-    private String averageScoreLetter = null;
+  private String averageScoreLetter = null;
 
-    public Integer getAverageScore() {
-        return averageScore;
-    }
+  public Integer getAverageScore() {
+    return averageScore;
+  }
 
-    private Integer averageScore = null;
+  private Integer averageScore = null;
 
-    public Integer getAverageMonths() {
-        return averageMonths;
-    }
+  public Integer getAverageMonths() {
+    return averageMonths;
+  }
 
-    private Integer averageMonths = null;
+  private Integer averageMonths = null;
 
-    public List<LibraryExtended> getLibraries() {
-        return libraries;
-    }
+  public List<LibraryExtended> getLibraries() {
+    return libraries;
+  }
 
-    private List<LibraryExtended> libraries;
+  private List<LibraryExtended> libraries;
 }
-

@@ -15,156 +15,159 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
+
+import org.junit.jupiter.api.Test;
 
 class PaginationParamsTest {
 
-    @Test
-    void testValidPaginationDefaults() {
-        PaginationParams params = PaginationParams.of(null, null);
+  @Test
+  void testValidPaginationDefaults() {
+    PaginationParams params = PaginationParams.of(null, null);
 
-        assertEquals(1, params.page());
-        assertEquals(50, params.pageSize());
-        assertEquals(0, params.offset());
-        assertEquals(50, params.limit());
-        assertTrue(params.warnings().isEmpty());
-        assertTrue(params.isValid());
-    }
+    assertEquals(1, params.page());
+    assertEquals(50, params.pageSize());
+    assertEquals(0, params.offset());
+    assertEquals(50, params.limit());
+    assertTrue(params.warnings().isEmpty());
+    assertTrue(params.isValid());
+  }
 
-    @Test
-    void testValidPaginationCustom() {
-        PaginationParams params = PaginationParams.of(3, 25);
+  @Test
+  void testValidPaginationCustom() {
+    PaginationParams params = PaginationParams.of(3, 25);
 
-        assertEquals(3, params.page());
-        assertEquals(25, params.pageSize());
-        assertEquals(50, params.offset());  // (3-1) * 25
-        assertEquals(25, params.limit());
-        assertTrue(params.warnings().isEmpty());
-        assertTrue(params.isValid());
-    }
+    assertEquals(3, params.page());
+    assertEquals(25, params.pageSize());
+    assertEquals(50, params.offset()); // (3-1) * 25
+    assertEquals(25, params.limit());
+    assertTrue(params.warnings().isEmpty());
+    assertTrue(params.isValid());
+  }
 
-    @Test
-    void testInvalidPageNegative() {
-        PaginationParams params = PaginationParams.of(-5, 50);
+  @Test
+  void testInvalidPageNegative() {
+    PaginationParams params = PaginationParams.of(-5, 50);
 
-        assertEquals(1, params.page());  // Clamped to 1
-        assertEquals(50, params.pageSize());
-        assertEquals(0, params.offset());
-        assertTrue(params.isValid());  // Always valid with soft failures
-        assertEquals(1, params.warnings().size());
-        assertTrue(params.warnings().get(0).contains("Invalid page number -5"));
-    }
+    assertEquals(1, params.page()); // Clamped to 1
+    assertEquals(50, params.pageSize());
+    assertEquals(0, params.offset());
+    assertTrue(params.isValid()); // Always valid with soft failures
+    assertEquals(1, params.warnings().size());
+    assertTrue(params.warnings().get(0).contains("Invalid page number -5"));
+  }
 
-    @Test
-    void testInvalidPageZero() {
-        PaginationParams params = PaginationParams.of(0, 50);
+  @Test
+  void testInvalidPageZero() {
+    PaginationParams params = PaginationParams.of(0, 50);
 
-        assertEquals(1, params.page());  // Clamped to 1
-        assertEquals(50, params.pageSize());
-        assertEquals(0, params.offset());
-        assertTrue(params.isValid());
-        assertEquals(1, params.warnings().size());
-        assertTrue(params.warnings().get(0).contains("Invalid page number 0"));
-    }
+    assertEquals(1, params.page()); // Clamped to 1
+    assertEquals(50, params.pageSize());
+    assertEquals(0, params.offset());
+    assertTrue(params.isValid());
+    assertEquals(1, params.warnings().size());
+    assertTrue(params.warnings().get(0).contains("Invalid page number 0"));
+  }
 
-    @Test
-    void testInvalidPageSizeNegative() {
-        PaginationParams params = PaginationParams.of(1, -10);
+  @Test
+  void testInvalidPageSizeNegative() {
+    PaginationParams params = PaginationParams.of(1, -10);
 
-        assertEquals(1, params.page());
-        assertEquals(50, params.pageSize());  // Clamped to default 50
-        assertEquals(0, params.offset());
-        assertTrue(params.isValid());
-        assertEquals(1, params.warnings().size());
-        assertTrue(params.warnings().get(0).contains("Invalid pageSize -10"));
-    }
+    assertEquals(1, params.page());
+    assertEquals(50, params.pageSize()); // Clamped to default 50
+    assertEquals(0, params.offset());
+    assertTrue(params.isValid());
+    assertEquals(1, params.warnings().size());
+    assertTrue(params.warnings().get(0).contains("Invalid pageSize -10"));
+  }
 
-    @Test
-    void testInvalidPageSizeZero() {
-        PaginationParams params = PaginationParams.of(1, 0);
+  @Test
+  void testInvalidPageSizeZero() {
+    PaginationParams params = PaginationParams.of(1, 0);
 
-        assertEquals(1, params.page());
-        assertEquals(50, params.pageSize());  // Clamped to default 50
-        assertEquals(0, params.offset());
-        assertTrue(params.isValid());
-        assertEquals(1, params.warnings().size());
-        assertTrue(params.warnings().get(0).contains("Invalid pageSize 0"));
-    }
+    assertEquals(1, params.page());
+    assertEquals(50, params.pageSize()); // Clamped to default 50
+    assertEquals(0, params.offset());
+    assertTrue(params.isValid());
+    assertEquals(1, params.warnings().size());
+    assertTrue(params.warnings().get(0).contains("Invalid pageSize 0"));
+  }
 
-    @Test
-    void testPageSizeExceedsMaximum() {
-        PaginationParams params = PaginationParams.of(1, 200);
+  @Test
+  void testPageSizeExceedsMaximum() {
+    PaginationParams params = PaginationParams.of(1, 200);
 
-        assertEquals(1, params.page());
-        assertEquals(100, params.pageSize());  // Capped to 100
-        assertEquals(0, params.offset());
-        assertTrue(params.isValid());
-        assertEquals(1, params.warnings().size());
-        assertTrue(params.warnings().get(0).contains("Requested pageSize 200 exceeds maximum 100"));
-    }
+    assertEquals(1, params.page());
+    assertEquals(100, params.pageSize()); // Capped to 100
+    assertEquals(0, params.offset());
+    assertTrue(params.isValid());
+    assertEquals(1, params.warnings().size());
+    assertTrue(params.warnings().get(0).contains("Requested pageSize 200 exceeds maximum 100"));
+  }
 
-    @Test
-    void testMultipleValidationWarnings() {
-        PaginationParams params = PaginationParams.of(-5, 200);
+  @Test
+  void testMultipleValidationWarnings() {
+    PaginationParams params = PaginationParams.of(-5, 200);
 
-        assertEquals(1, params.page());      // Clamped to 1
-        assertEquals(100, params.pageSize()); // Capped to 100
-        assertEquals(0, params.offset());
-        assertTrue(params.isValid());
-        assertEquals(2, params.warnings().size());
-        assertTrue(params.warnings().get(0).contains("Invalid page number -5"));
-        assertTrue(params.warnings().get(1).contains("Requested pageSize 200 exceeds maximum 100"));
-    }
+    assertEquals(1, params.page()); // Clamped to 1
+    assertEquals(100, params.pageSize()); // Capped to 100
+    assertEquals(0, params.offset());
+    assertTrue(params.isValid());
+    assertEquals(2, params.warnings().size());
+    assertTrue(params.warnings().get(0).contains("Invalid page number -5"));
+    assertTrue(params.warnings().get(1).contains("Requested pageSize 200 exceeds maximum 100"));
+  }
 
-    @Test
-    void testOffsetCalculation() {
-        // Page 1
-        PaginationParams p1 = PaginationParams.of(1, 50);
-        assertEquals(0, p1.offset());
+  @Test
+  void testOffsetCalculation() {
+    // Page 1
+    PaginationParams p1 = PaginationParams.of(1, 50);
+    assertEquals(0, p1.offset());
 
-        // Page 2
-        PaginationParams p2 = PaginationParams.of(2, 50);
-        assertEquals(50, p2.offset());
+    // Page 2
+    PaginationParams p2 = PaginationParams.of(2, 50);
+    assertEquals(50, p2.offset());
 
-        // Page 5 with custom page size
-        PaginationParams p3 = PaginationParams.of(5, 25);
-        assertEquals(100, p3.offset());  // (5-1) * 25
-    }
+    // Page 5 with custom page size
+    PaginationParams p3 = PaginationParams.of(5, 25);
+    assertEquals(100, p3.offset()); // (5-1) * 25
+  }
 
-    @Test
-    void testLimitMatchesPageSize() {
-        PaginationParams params = PaginationParams.of(1, 75);
+  @Test
+  void testLimitMatchesPageSize() {
+    PaginationParams params = PaginationParams.of(1, 75);
 
-        assertEquals(75, params.pageSize());
-        assertEquals(75, params.limit());
-    }
+    assertEquals(75, params.pageSize());
+    assertEquals(75, params.limit());
+  }
 
-    @Test
-    void testPageSizeBoundaryValues() {
-        // Min valid
-        PaginationParams pMin = PaginationParams.of(1, 1);
-        assertEquals(1, pMin.pageSize());
-        assertTrue(pMin.warnings().isEmpty());
+  @Test
+  void testPageSizeBoundaryValues() {
+    // Min valid
+    PaginationParams pMin = PaginationParams.of(1, 1);
+    assertEquals(1, pMin.pageSize());
+    assertTrue(pMin.warnings().isEmpty());
 
-        // Max valid
-        PaginationParams pMax = PaginationParams.of(1, 100);
-        assertEquals(100, pMax.pageSize());
-        assertTrue(pMax.warnings().isEmpty());
+    // Max valid
+    PaginationParams pMax = PaginationParams.of(1, 100);
+    assertEquals(100, pMax.pageSize());
+    assertTrue(pMax.warnings().isEmpty());
 
-        // Just over max
-        PaginationParams pOver = PaginationParams.of(1, 101);
-        assertEquals(100, pOver.pageSize());
-        assertEquals(1, pOver.warnings().size());
-    }
+    // Just over max
+    PaginationParams pOver = PaginationParams.of(1, 101);
+    assertEquals(100, pOver.pageSize());
+    assertEquals(1, pOver.warnings().size());
+  }
 
-    @Test
-    void testWarningsAreImmutable() {
-        PaginationParams params = PaginationParams.of(-1, 200);
+  @Test
+  void testWarningsAreImmutable() {
+    PaginationParams params = PaginationParams.of(-1, 200);
 
-        // Should throw UnsupportedOperationException
-        assertThrows(UnsupportedOperationException.class, () -> {
-            params.warnings().add("This should fail");
+    // Should throw UnsupportedOperationException
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> {
+          params.warnings().add("This should fail");
         });
-    }
+  }
 }

@@ -15,62 +15,60 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr;
 
-/**
- * Class representing the summary structure in an attack event.
- */
+/** Class representing the summary structure in an attack event. */
 public class EventSummary {
-    private Event event;
-    private Story story;
-    private EventDetails details;
-    private Request request;
-    private String ruleUUID;
-    private boolean hidden;
+  private Event event;
+  private Story story;
+  private EventDetails details;
+  private Request request;
+  private String ruleUUID;
+  private boolean hidden;
 
-    public Event getEvent() {
-        return event;
-    }
+  public Event getEvent() {
+    return event;
+  }
 
-    public void setEvent(Event event) {
-        this.event = event;
-    }
+  public void setEvent(Event event) {
+    this.event = event;
+  }
 
-    public Story getStory() {
-        return story;
-    }
+  public Story getStory() {
+    return story;
+  }
 
-    public void setStory(Story story) {
-        this.story = story;
-    }
+  public void setStory(Story story) {
+    this.story = story;
+  }
 
-    public EventDetails getDetails() {
-        return details;
-    }
+  public EventDetails getDetails() {
+    return details;
+  }
 
-    public void setDetails(EventDetails details) {
-        this.details = details;
-    }
+  public void setDetails(EventDetails details) {
+    this.details = details;
+  }
 
-    public Request getRequest() {
-        return request;
-    }
+  public Request getRequest() {
+    return request;
+  }
 
-    public void setRequest(Request request) {
-        this.request = request;
-    }
+  public void setRequest(Request request) {
+    this.request = request;
+  }
 
-    public String getRuleUUID() {
-        return ruleUUID;
-    }
+  public String getRuleUUID() {
+    return ruleUUID;
+  }
 
-    public void setRuleUUID(String ruleUUID) {
-        this.ruleUUID = ruleUUID;
-    }
+  public void setRuleUUID(String ruleUUID) {
+    this.ruleUUID = ruleUUID;
+  }
 
-    public boolean isHidden() {
-        return hidden;
-    }
+  public boolean isHidden() {
+    return hidden;
+  }
 
-    public void setHidden(boolean hidden) {
-        this.hidden = hidden;
-    }
+  public void setHidden(boolean hidden) {
+    this.hidden = hidden;
+  }
 }

@@ -15,126 +15,124 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkexstension.data;
 
-/**
- * Class representing CVSS v3 scoring details for a CVE.
- */
+/** Class representing CVSS v3 scoring details for a CVE. */
 public class CvssV3 {
-    
-    private String attackVector;
-    private String attackComplexity;
-    private String privilegesRequired;
-    private String userInteraction;
-    private String scope;
-    private String confidentialityImpact;
-    private String integrityImpact;
-    private String availabilityImpact;
-    private double impactSubscore;
-    private double exploitabilitySubscore;
-    private double baseScore;
-    private String vector;
-    private String severity;
 
-    public String getAttackVector() {
-        return attackVector;
-    }
+  private String attackVector;
+  private String attackComplexity;
+  private String privilegesRequired;
+  private String userInteraction;
+  private String scope;
+  private String confidentialityImpact;
+  private String integrityImpact;
+  private String availabilityImpact;
+  private double impactSubscore;
+  private double exploitabilitySubscore;
+  private double baseScore;
+  private String vector;
+  private String severity;
 
-    public void setAttackVector(String attackVector) {
-        this.attackVector = attackVector;
-    }
+  public String getAttackVector() {
+    return attackVector;
+  }
 
-    public String getAttackComplexity() {
-        return attackComplexity;
-    }
+  public void setAttackVector(String attackVector) {
+    this.attackVector = attackVector;
+  }
 
-    public void setAttackComplexity(String attackComplexity) {
-        this.attackComplexity = attackComplexity;
-    }
+  public String getAttackComplexity() {
+    return attackComplexity;
+  }
 
-    public String getPrivilegesRequired() {
-        return privilegesRequired;
-    }
+  public void setAttackComplexity(String attackComplexity) {
+    this.attackComplexity = attackComplexity;
+  }
 
-    public void setPrivilegesRequired(String privilegesRequired) {
-        this.privilegesRequired = privilegesRequired;
-    }
+  public String getPrivilegesRequired() {
+    return privilegesRequired;
+  }
 
-    public String getUserInteraction() {
-        return userInteraction;
-    }
+  public void setPrivilegesRequired(String privilegesRequired) {
+    this.privilegesRequired = privilegesRequired;
+  }
 
-    public void setUserInteraction(String userInteraction) {
-        this.userInteraction = userInteraction;
-    }
+  public String getUserInteraction() {
+    return userInteraction;
+  }
 
-    public String getScope() {
-        return scope;
-    }
+  public void setUserInteraction(String userInteraction) {
+    this.userInteraction = userInteraction;
+  }
 
-    public void setScope(String scope) {
-        this.scope = scope;
-    }
+  public String getScope() {
+    return scope;
+  }
 
-    public String getConfidentialityImpact() {
-        return confidentialityImpact;
-    }
+  public void setScope(String scope) {
+    this.scope = scope;
+  }
 
-    public void setConfidentialityImpact(String confidentialityImpact) {
-        this.confidentialityImpact = confidentialityImpact;
-    }
+  public String getConfidentialityImpact() {
+    return confidentialityImpact;
+  }
 
-    public String getIntegrityImpact() {
-        return integrityImpact;
-    }
+  public void setConfidentialityImpact(String confidentialityImpact) {
+    this.confidentialityImpact = confidentialityImpact;
+  }
 
-    public void setIntegrityImpact(String integrityImpact) {
-        this.integrityImpact = integrityImpact;
-    }
+  public String getIntegrityImpact() {
+    return integrityImpact;
+  }
 
-    public String getAvailabilityImpact() {
-        return availabilityImpact;
-    }
+  public void setIntegrityImpact(String integrityImpact) {
+    this.integrityImpact = integrityImpact;
+  }
 
-    public void setAvailabilityImpact(String availabilityImpact) {
-        this.availabilityImpact = availabilityImpact;
-    }
+  public String getAvailabilityImpact() {
+    return availabilityImpact;
+  }
 
-    public double getImpactSubscore() {
-        return impactSubscore;
-    }
+  public void setAvailabilityImpact(String availabilityImpact) {
+    this.availabilityImpact = availabilityImpact;
+  }
 
-    public void setImpactSubscore(double impactSubscore) {
-        this.impactSubscore = impactSubscore;
-    }
+  public double getImpactSubscore() {
+    return impactSubscore;
+  }
 
-    public double getExploitabilitySubscore() {
-        return exploitabilitySubscore;
-    }
+  public void setImpactSubscore(double impactSubscore) {
+    this.impactSubscore = impactSubscore;
+  }
 
-    public void setExploitabilitySubscore(double exploitabilitySubscore) {
-        this.exploitabilitySubscore = exploitabilitySubscore;
-    }
+  public double getExploitabilitySubscore() {
+    return exploitabilitySubscore;
+  }
 
-    public double getBaseScore() {
-        return baseScore;
-    }
+  public void setExploitabilitySubscore(double exploitabilitySubscore) {
+    this.exploitabilitySubscore = exploitabilitySubscore;
+  }
 
-    public void setBaseScore(double baseScore) {
-        this.baseScore = baseScore;
-    }
+  public double getBaseScore() {
+    return baseScore;
+  }
 
-    public String getVector() {
-        return vector;
-    }
+  public void setBaseScore(double baseScore) {
+    this.baseScore = baseScore;
+  }
 
-    public void setVector(String vector) {
-        this.vector = vector;
-    }
+  public String getVector() {
+    return vector;
+  }
 
-    public String getSeverity() {
-        return severity;
-    }
+  public void setVector(String vector) {
+    this.vector = vector;
+  }
 
-    public void setSeverity(String severity) {
-        this.severity = severity;
-    }
+  public String getSeverity() {
+    return severity;
+  }
+
+  public void setSeverity(String severity) {
+    this.severity = severity;
+  }
 }

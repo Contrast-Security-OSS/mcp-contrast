@@ -17,35 +17,33 @@ package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sessionmetadata;
 
 import java.util.List;
 
-/**
- * Represents the complete response for session metadata
- */
+/** Represents the complete response for session metadata */
 public class SessionMetadataResponse {
-    private boolean success;
-    private List<String> messages;
-    private AgentSession agentSession;
+  private boolean success;
+  private List<String> messages;
+  private AgentSession agentSession;
 
-    public boolean isSuccess() {
-        return success;
-    }
+  public boolean isSuccess() {
+    return success;
+  }
 
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
+  public void setSuccess(boolean success) {
+    this.success = success;
+  }
 
-    public List<String> getMessages() {
-        return messages;
-    }
+  public List<String> getMessages() {
+    return messages;
+  }
 
-    public void setMessages(List<String> messages) {
-        this.messages = messages;
-    }
+  public void setMessages(List<String> messages) {
+    this.messages = messages;
+  }
 
-    public AgentSession getAgentSession() {
-        return agentSession;
-    }
+  public AgentSession getAgentSession() {
+    return agentSession;
+  }
 
-    public void setAgentSession(AgentSession agentSession) {
-        this.agentSession = agentSession;
-    }
+  public void setAgentSession(AgentSession agentSession) {
+    this.agentSession = agentSession;
+  }
 }

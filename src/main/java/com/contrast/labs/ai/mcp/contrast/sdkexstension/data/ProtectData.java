@@ -18,31 +18,31 @@ package com.contrast.labs.ai.mcp.contrast.sdkexstension.data;
 import java.util.List;
 
 public class ProtectData {
-    private boolean success;
-    private List<String> messages;
-    private List<Rule> rules;
+  private boolean success;
+  private List<String> messages;
+  private List<Rule> rules;
 
-    public boolean isSuccess() {
-        return success;
-    }
+  public boolean isSuccess() {
+    return success;
+  }
 
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
+  public void setSuccess(boolean success) {
+    this.success = success;
+  }
 
-    public List<String> getMessages() {
-        return messages;
-    }
+  public List<String> getMessages() {
+    return messages;
+  }
 
-    public void setMessages(List<String> messages) {
-        this.messages = messages;
-    }
+  public void setMessages(List<String> messages) {
+    this.messages = messages;
+  }
 
-    public List<Rule> getRules() {
-        return rules;
-    }
+  public List<Rule> getRules() {
+    return rules;
+  }
 
-    public void setRules(List<Rule> rules) {
-        this.rules = rules;
-    }
+  public void setRules(List<Rule> rules) {
+    this.rules = rules;
+  }
 }

@@ -15,12 +15,16 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.ApplicationsResponse;
 import com.contrastsecurity.sdk.ContrastSDK;
+import java.io.IOException;
+import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -29,366 +33,388 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.io.IOException;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * Integration test for ADRService that validates Protect/ADR rules from real TeamServer.
  *
- * This test automatically discovers suitable test data by querying the Contrast API.
- * It looks for applications with Protect/ADR enabled and configured rules.
+ * <p>This test automatically discovers suitable test data by querying the Contrast API. It looks
+ * for applications with Protect/ADR enabled and configured rules.
  *
- * This test only runs if CONTRAST_HOST_NAME environment variable is set.
+ * <p>This test only runs if CONTRAST_HOST_NAME environment variable is set.
  *
- * Required environment variables:
- * - CONTRAST_HOST_NAME (e.g., app.contrastsecurity.com)
- * - CONTRAST_API_KEY
- * - CONTRAST_SERVICE_KEY
- * - CONTRAST_USERNAME
- * - CONTRAST_ORG_ID
+ * <p>Required environment variables: - CONTRAST_HOST_NAME (e.g., app.contrastsecurity.com) -
+ * CONTRAST_API_KEY - CONTRAST_SERVICE_KEY - CONTRAST_USERNAME - CONTRAST_ORG_ID
  *
- * Run locally:
- *   source .env.integration-test  # Load credentials
- *   mvn verify
+ * <p>Run locally: source .env.integration-test # Load credentials mvn verify
  *
- * Or skip integration tests:
- *   mvn verify -DskipITs
+ * <p>Or skip integration tests: mvn verify -DskipITs
  */
 @SpringBootTest
 @EnabledIfEnvironmentVariable(named = "CONTRAST_HOST_NAME", matches = ".+")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ADRServiceIntegrationTest {
 
-    @Autowired
-    private ADRService adrService;
+  @Autowired private ADRService adrService;
 
-    @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
-    private String hostName;
+  @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
+  private String hostName;
 
-    @Value("${contrast.api-key:${CONTRAST_API_KEY:}}")
-    private String apiKey;
+  @Value("${contrast.api-key:${CONTRAST_API_KEY:}}")
+  private String apiKey;
 
-    @Value("${contrast.service-key:${CONTRAST_SERVICE_KEY:}}")
-    private String serviceKey;
+  @Value("${contrast.service-key:${CONTRAST_SERVICE_KEY:}}")
+  private String serviceKey;
 
-    @Value("${contrast.username:${CONTRAST_USERNAME:}}")
-    private String userName;
+  @Value("${contrast.username:${CONTRAST_USERNAME:}}")
+  private String userName;
 
-    @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
-    private String orgID;
+  @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
+  private String orgID;
 
-    @Value("${http.proxy.host:${http_proxy_host:}}")
-    private String httpProxyHost;
+  @Value("${http.proxy.host:${http_proxy_host:}}")
+  private String httpProxyHost;
 
-    @Value("${http.proxy.port:${http_proxy_port:}}")
-    private String httpProxyPort;
+  @Value("${http.proxy.port:${http_proxy_port:}}")
+  private String httpProxyPort;
 
-    // Discovered test data - populated in @BeforeAll
-    private static TestData testData;
+  // Discovered test data - populated in @BeforeAll
+  private static TestData testData;
 
-    /**
-     * Container for discovered test data
-     */
-    private static class TestData {
-        String appId;
-        String appName;
-        boolean hasProtectRules;
-        int ruleCount;
+  /** Container for discovered test data */
+  private static class TestData {
+    String appId;
+    String appName;
+    boolean hasProtectRules;
+    int ruleCount;
 
-        @Override
-        public String toString() {
-            return String.format(
-                "TestData{appId='%s', appName='%s', hasProtectRules=%s, ruleCount=%d}",
-                appId, appName, hasProtectRules, ruleCount
-            );
-        }
+    @Override
+    public String toString() {
+      return String.format(
+          "TestData{appId='%s', appName='%s', hasProtectRules=%s, ruleCount=%d}",
+          appId, appName, hasProtectRules, ruleCount);
     }
+  }
 
-    @BeforeAll
-    void discoverTestData() {
-        System.out.println("\n╔════════════════════════════════════════════════════════════════════════════════╗");
-        System.out.println("║   ADR Service Integration Test - Discovering Test Data                        ║");
-        System.out.println("╚════════════════════════════════════════════════════════════════════════════════╝");
+  @BeforeAll
+  void discoverTestData() {
+    System.out.println(
+        "\n╔════════════════════════════════════════════════════════════════════════════════╗");
+    System.out.println(
+        "║   ADR Service Integration Test - Discovering Test Data                        ║");
+    System.out.println(
+        "╚════════════════════════════════════════════════════════════════════════════════╝");
+
+    try {
+      ContrastSDK sdk =
+          SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+      SDKExtension sdkExtension = new SDKExtension(sdk);
+
+      // Get all applications
+      System.out.println("\n🔍 Step 1: Fetching all applications...");
+      ApplicationsResponse appsResponse = sdkExtension.getApplications(orgID);
+      List<Application> applications = appsResponse.getApplications();
+      System.out.println("   Found " + applications.size() + " application(s) in organization");
+
+      if (applications.isEmpty()) {
+        System.out.println("\n⚠️  NO APPLICATIONS FOUND");
+        System.out.println("   The integration tests require at least one application with:");
+        System.out.println("   1. Protect/ADR enabled");
+        System.out.println("   2. At least one protection rule configured");
+        System.out.println("\n   To create test data:");
+        System.out.println("   - Deploy an application with Contrast agent");
+        System.out.println("   - Enable Protect in Contrast UI for that application");
+        System.out.println("   - Configure at least one protection rule");
+        return;
+      }
+
+      // Search for application with Protect/ADR rules
+      System.out.println("\n🔍 Step 2: Searching for application with Protect/ADR rules...");
+      TestData candidate = null;
+      int appsChecked = 0;
+      int maxAppsToCheck = Math.min(applications.size(), 50); // Check up to 50 apps
+
+      for (Application app : applications) {
+        if (appsChecked >= maxAppsToCheck) {
+          System.out.println(
+              "   Reached max apps to check (" + maxAppsToCheck + "), stopping search");
+          break;
+        }
+        appsChecked++;
+
+        System.out.println(
+            "   Checking app "
+                + appsChecked
+                + "/"
+                + maxAppsToCheck
+                + ": "
+                + app.getName()
+                + " (ID: "
+                + app.getAppId()
+                + ")");
 
         try {
-            ContrastSDK sdk = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-            SDKExtension sdkExtension = new SDKExtension(sdk);
+          // Check for Protect configuration
+          ProtectData protectData = sdkExtension.getProtectConfig(orgID, app.getAppId());
+          if (protectData != null
+              && protectData.getRules() != null
+              && !protectData.getRules().isEmpty()) {
+            System.out.println("      ✓ Has " + protectData.getRules().size() + " Protect rule(s)");
 
-            // Get all applications
-            System.out.println("\n🔍 Step 1: Fetching all applications...");
-            ApplicationsResponse appsResponse = sdkExtension.getApplications(orgID);
-            List<Application> applications = appsResponse.getApplications();
-            System.out.println("   Found " + applications.size() + " application(s) in organization");
+            candidate = new TestData();
+            candidate.appId = app.getAppId();
+            candidate.appName = app.getName();
+            candidate.hasProtectRules = true;
+            candidate.ruleCount = protectData.getRules().size();
 
-            if (applications.isEmpty()) {
-                System.out.println("\n⚠️  NO APPLICATIONS FOUND");
-                System.out.println("   The integration tests require at least one application with:");
-                System.out.println("   1. Protect/ADR enabled");
-                System.out.println("   2. At least one protection rule configured");
-                System.out.println("\n   To create test data:");
-                System.out.println("   - Deploy an application with Contrast agent");
-                System.out.println("   - Enable Protect in Contrast UI for that application");
-                System.out.println("   - Configure at least one protection rule");
-                return;
-            }
-
-            // Search for application with Protect/ADR rules
-            System.out.println("\n🔍 Step 2: Searching for application with Protect/ADR rules...");
-            TestData candidate = null;
-            int appsChecked = 0;
-            int maxAppsToCheck = Math.min(applications.size(), 50); // Check up to 50 apps
-
-            for (Application app : applications) {
-                if (appsChecked >= maxAppsToCheck) {
-                    System.out.println("   Reached max apps to check (" + maxAppsToCheck + "), stopping search");
-                    break;
-                }
-                appsChecked++;
-
-                System.out.println("   Checking app " + appsChecked + "/" + maxAppsToCheck + ": " +
-                                   app.getName() + " (ID: " + app.getAppId() + ")");
-
-                try {
-                    // Check for Protect configuration
-                    ProtectData protectData = sdkExtension.getProtectConfig(orgID, app.getAppId());
-                    if (protectData != null && protectData.getRules() != null && !protectData.getRules().isEmpty()) {
-                        System.out.println("      ✓ Has " + protectData.getRules().size() + " Protect rule(s)");
-
-                        candidate = new TestData();
-                        candidate.appId = app.getAppId();
-                        candidate.appName = app.getName();
-                        candidate.hasProtectRules = true;
-                        candidate.ruleCount = protectData.getRules().size();
-
-                        System.out.println("\n   ✅ Found application with Protect/ADR rules!");
-                        break; // Found what we need
-                    } else {
-                        System.out.println("      ℹ No Protect rules configured");
-                    }
-                } catch (Exception e) {
-                    // Skip this app, continue searching
-                    System.out.println("      ℹ No Protect data or error: " + e.getMessage());
-                }
-            }
-
-            if (candidate != null) {
-                testData = candidate;
-                System.out.println("\n╔════════════════════════════════════════════════════════════════════════════════╗");
-                System.out.println("║   Test Data Discovery Complete                                                 ║");
-                System.out.println("╚════════════════════════════════════════════════════════════════════════════════╝");
-                System.out.println(testData);
-                System.out.println();
-            } else {
-                String errorMsg = buildTestDataErrorMessage(appsChecked);
-                System.err.println(errorMsg);
-                fail(errorMsg);
-            }
-
+            System.out.println("\n   ✅ Found application with Protect/ADR rules!");
+            break; // Found what we need
+          } else {
+            System.out.println("      ℹ No Protect rules configured");
+          }
         } catch (Exception e) {
-            String errorMsg = "❌ ERROR during test data discovery: " + e.getMessage();
-            System.err.println("\n" + errorMsg);
-            e.printStackTrace();
-            fail(errorMsg);
+          // Skip this app, continue searching
+          System.out.println("      ℹ No Protect data or error: " + e.getMessage());
         }
+      }
+
+      if (candidate != null) {
+        testData = candidate;
+        System.out.println(
+            "\n╔════════════════════════════════════════════════════════════════════════════════╗");
+        System.out.println(
+            "║   Test Data Discovery Complete                                                 ║");
+        System.out.println(
+            "╚════════════════════════════════════════════════════════════════════════════════╝");
+        System.out.println(testData);
+        System.out.println();
+      } else {
+        String errorMsg = buildTestDataErrorMessage(appsChecked);
+        System.err.println(errorMsg);
+        fail(errorMsg);
+      }
+
+    } catch (Exception e) {
+      String errorMsg = "❌ ERROR during test data discovery: " + e.getMessage();
+      System.err.println("\n" + errorMsg);
+      e.printStackTrace();
+      fail(errorMsg);
+    }
+  }
+
+  /** Build detailed error message when no suitable test data is found */
+  private String buildTestDataErrorMessage(int appsChecked) {
+    StringBuilder msg = new StringBuilder();
+    msg.append(
+        "\n╔════════════════════════════════════════════════════════════════════════════════╗\n");
+    msg.append(
+        "║   INTEGRATION TEST SETUP FAILED - NO SUITABLE TEST DATA                       ║\n");
+    msg.append(
+        "╚════════════════════════════════════════════════════════════════════════════════╝\n");
+    msg.append("\nChecked ")
+        .append(appsChecked)
+        .append(" application(s) but none had Protect/ADR rules configured.\n");
+    msg.append("\n📋 REQUIRED TEST DATA:\n");
+    msg.append("   The integration tests require at least ONE application with:\n");
+    msg.append("   ✓ Protect/ADR enabled\n");
+    msg.append("   ✓ At least one protection rule configured (blocking or monitoring mode)\n");
+    msg.append("\n🔧 HOW TO CREATE TEST DATA:\n");
+    msg.append("\n1. Deploy an application with a Contrast agent\n");
+    msg.append("   Example (Java):\n");
+    msg.append("   java -javaagent:/path/to/contrast.jar \\\n");
+    msg.append("        -Dcontrast.api.key=... \\\n");
+    msg.append("        -Dcontrast.agent.java.standalone_app_name=test-app \\\n");
+    msg.append("        -jar your-app.jar\n");
+    msg.append("\n2. Enable Protect/ADR in Contrast UI\n");
+    msg.append("   - Login to Contrast TeamServer\n");
+    msg.append("   - Navigate to Applications → Your Application\n");
+    msg.append("   - Click on 'Protect' tab\n");
+    msg.append("   - Click 'Enable Protect' button\n");
+    msg.append("\n3. Configure protection rules\n");
+    msg.append("   - In the Protect tab, configure rules:\n");
+    msg.append("     • SQL Injection - Set to 'Block' or 'Monitor'\n");
+    msg.append("     • XSS (Cross-Site Scripting) - Set to 'Block' or 'Monitor'\n");
+    msg.append("     • Path Traversal - Set to 'Block' or 'Monitor'\n");
+    msg.append("     • Or any other rule you want to enable\n");
+    msg.append("   - Save the configuration\n");
+    msg.append("\n4. Verify rules are active\n");
+    msg.append("   - Refresh the Protect tab\n");
+    msg.append("   - Verify at least one rule shows as 'Enabled'\n");
+    msg.append("   - Rule mode should be 'Block' or 'Monitor'\n");
+    msg.append("\n5. Re-run integration tests:\n");
+    msg.append("   source .env.integration-test && mvn verify\n");
+    msg.append("\n💡 ALTERNATIVE:\n");
+    msg.append(
+        "   Set TEST_APP_ID environment variable to an application ID with Protect rules:\n");
+    msg.append("   export TEST_APP_ID=<your-app-id>\n");
+    msg.append("\n📝 NOTE:\n");
+    msg.append("   - Protect/ADR is a premium feature in Contrast Security\n");
+    msg.append("   - Ensure your license includes Protect capabilities\n");
+    msg.append("   - The application must be actively monitored by a Contrast agent\n");
+    msg.append("\n");
+    return msg.toString();
+  }
+
+  // ========== Test Case 1: Test Data Validation ==========
+
+  @Test
+  void testDiscoveredTestDataExists() {
+    System.out.println("\n=== Integration Test: Validate test data discovery ===");
+
+    assertNotNull(testData, "Test data should have been discovered in @BeforeAll");
+    assertNotNull(testData.appId, "Test application ID should be set");
+    assertTrue(testData.hasProtectRules, "Test application should have Protect rules");
+    assertTrue(testData.ruleCount > 0, "Test application should have at least 1 rule");
+
+    System.out.println("✓ Test data validated:");
+    System.out.println("  App ID: " + testData.appId);
+    System.out.println("  App Name: " + testData.appName);
+    System.out.println("  Rule Count: " + testData.ruleCount);
+  }
+
+  // ========== Test Case 2: Get Protect Rules ==========
+
+  @Test
+  void testGetADRProtectRules_Success() throws IOException {
+    System.out.println("\n=== Integration Test: get_ADR_Protect_Rules_by_app_id ===");
+
+    assertNotNull(testData, "Test data must be discovered before running tests");
+
+    // Act
+    ProtectData response = adrService.getProtectDataByAppID(testData.appId);
+
+    // Assert
+    assertNotNull(response, "Response should not be null");
+    assertNotNull(response.getRules(), "Rules should not be null");
+    assertTrue(response.getRules().size() > 0, "Should have at least 1 rule");
+
+    System.out.println(
+        "✓ Retrieved "
+            + response.getRules().size()
+            + " Protect rules for application: "
+            + testData.appName);
+
+    // Print rule details
+    System.out.println("  Rules configured:");
+    for (var rule : response.getRules()) {
+      String mode = rule.getProduction() != null ? rule.getProduction() : "not set";
+      System.out.println("    - " + rule.getName() + " (production mode: " + mode + ")");
     }
 
-    /**
-     * Build detailed error message when no suitable test data is found
-     */
-    private String buildTestDataErrorMessage(int appsChecked) {
-        StringBuilder msg = new StringBuilder();
-        msg.append("\n╔════════════════════════════════════════════════════════════════════════════════╗\n");
-        msg.append("║   INTEGRATION TEST SETUP FAILED - NO SUITABLE TEST DATA                       ║\n");
-        msg.append("╚════════════════════════════════════════════════════════════════════════════════╝\n");
-        msg.append("\nChecked ").append(appsChecked).append(" application(s) but none had Protect/ADR rules configured.\n");
-        msg.append("\n📋 REQUIRED TEST DATA:\n");
-        msg.append("   The integration tests require at least ONE application with:\n");
-        msg.append("   ✓ Protect/ADR enabled\n");
-        msg.append("   ✓ At least one protection rule configured (blocking or monitoring mode)\n");
-        msg.append("\n🔧 HOW TO CREATE TEST DATA:\n");
-        msg.append("\n1. Deploy an application with a Contrast agent\n");
-        msg.append("   Example (Java):\n");
-        msg.append("   java -javaagent:/path/to/contrast.jar \\\n");
-        msg.append("        -Dcontrast.api.key=... \\\n");
-        msg.append("        -Dcontrast.agent.java.standalone_app_name=test-app \\\n");
-        msg.append("        -jar your-app.jar\n");
-        msg.append("\n2. Enable Protect/ADR in Contrast UI\n");
-        msg.append("   - Login to Contrast TeamServer\n");
-        msg.append("   - Navigate to Applications → Your Application\n");
-        msg.append("   - Click on 'Protect' tab\n");
-        msg.append("   - Click 'Enable Protect' button\n");
-        msg.append("\n3. Configure protection rules\n");
-        msg.append("   - In the Protect tab, configure rules:\n");
-        msg.append("     • SQL Injection - Set to 'Block' or 'Monitor'\n");
-        msg.append("     • XSS (Cross-Site Scripting) - Set to 'Block' or 'Monitor'\n");
-        msg.append("     • Path Traversal - Set to 'Block' or 'Monitor'\n");
-        msg.append("     • Or any other rule you want to enable\n");
-        msg.append("   - Save the configuration\n");
-        msg.append("\n4. Verify rules are active\n");
-        msg.append("   - Refresh the Protect tab\n");
-        msg.append("   - Verify at least one rule shows as 'Enabled'\n");
-        msg.append("   - Rule mode should be 'Block' or 'Monitor'\n");
-        msg.append("\n5. Re-run integration tests:\n");
-        msg.append("   source .env.integration-test && mvn verify\n");
-        msg.append("\n💡 ALTERNATIVE:\n");
-        msg.append("   Set TEST_APP_ID environment variable to an application ID with Protect rules:\n");
-        msg.append("   export TEST_APP_ID=<your-app-id>\n");
-        msg.append("\n📝 NOTE:\n");
-        msg.append("   - Protect/ADR is a premium feature in Contrast Security\n");
-        msg.append("   - Ensure your license includes Protect capabilities\n");
-        msg.append("   - The application must be actively monitored by a Contrast agent\n");
-        msg.append("\n");
-        return msg.toString();
+    // Verify rule structure
+    for (var rule : response.getRules()) {
+      assertNotNull(rule.getName(), "Rule name should not be null");
+      // Production mode might be null, block, monitor, or off
+      // Just verify the field exists (can be null for non-production rules)
+    }
+  }
+
+  // ========== Test Case 3: Error Handling ==========
+
+  @Test
+  void testGetADRProtectRules_InvalidAppId() {
+    System.out.println("\n=== Integration Test: Invalid app ID handling ===");
+
+    // Act - Use an invalid app ID that definitely doesn't exist
+    boolean caughtException = false;
+    try {
+      ProtectData response = adrService.getProtectDataByAppID("invalid-app-id-12345");
+
+      // If we get here, the API returned a response (possibly null or empty)
+      System.out.println("✓ API handled invalid app ID gracefully");
+      if (response == null) {
+        System.out.println("  Response: null (no Protect data for invalid app)");
+      } else {
+        System.out.println(
+            "  Response: "
+                + (response.getRules() != null ? response.getRules().size() : 0)
+                + " rules");
+      }
+
+    } catch (Exception e) {
+      // This is acceptable - API rejected the invalid app ID
+      caughtException = true;
+      System.out.println(
+          "✓ API rejected invalid app ID with exception: " + e.getClass().getSimpleName());
+      System.out.println("  Message: " + e.getMessage());
     }
 
-    // ========== Test Case 1: Test Data Validation ==========
+    // Either exception or graceful handling is acceptable
+    assertTrue(true, "Test passes if either exception thrown or graceful handling occurs");
+  }
 
-    @Test
-    void testDiscoveredTestDataExists() {
-        System.out.println("\n=== Integration Test: Validate test data discovery ===");
+  @Test
+  void testGetADRProtectRules_NullAppId() {
+    System.out.println("\n=== Integration Test: Null app ID handling ===");
 
-        assertNotNull(testData, "Test data should have been discovered in @BeforeAll");
-        assertNotNull(testData.appId, "Test application ID should be set");
-        assertTrue(testData.hasProtectRules, "Test application should have Protect rules");
-        assertTrue(testData.ruleCount > 0, "Test application should have at least 1 rule");
+    // Act/Assert - Should throw IllegalArgumentException
+    Exception exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> {
+              adrService.getProtectDataByAppID(null);
+            });
 
-        System.out.println("✓ Test data validated:");
-        System.out.println("  App ID: " + testData.appId);
-        System.out.println("  App Name: " + testData.appName);
-        System.out.println("  Rule Count: " + testData.ruleCount);
+    System.out.println("✓ Null app ID correctly rejected");
+    System.out.println("  Exception: " + exception.getClass().getSimpleName());
+    System.out.println("  Message: " + exception.getMessage());
+
+    assertTrue(
+        exception.getMessage().contains("Application ID cannot be null or empty"),
+        "Exception message should explain the validation failure");
+  }
+
+  @Test
+  void testGetADRProtectRules_EmptyAppId() {
+    System.out.println("\n=== Integration Test: Empty app ID handling ===");
+
+    // Act/Assert - Should throw IllegalArgumentException
+    Exception exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> {
+              adrService.getProtectDataByAppID("");
+            });
+
+    System.out.println("✓ Empty app ID correctly rejected");
+    System.out.println("  Exception: " + exception.getClass().getSimpleName());
+    System.out.println("  Message: " + exception.getMessage());
+
+    assertTrue(
+        exception.getMessage().contains("Application ID cannot be null or empty"),
+        "Exception message should explain the validation failure");
+  }
+
+  // ========== Test Case 4: Rule Details Verification ==========
+
+  @Test
+  void testGetADRProtectRules_VerifyRuleDetails() throws IOException {
+    System.out.println("\n=== Integration Test: Verify rule details structure ===");
+
+    assertNotNull(testData, "Test data must be discovered before running tests");
+
+    // Act
+    ProtectData response = adrService.getProtectDataByAppID(testData.appId);
+
+    // Assert
+    assertNotNull(response);
+    assertNotNull(response.getRules());
+    assertFalse(response.getRules().isEmpty());
+
+    System.out.println("✓ Verifying rule details for " + response.getRules().size() + " rules:");
+
+    // Detailed verification of each rule
+    for (var rule : response.getRules()) {
+      System.out.println("\n  Rule: " + rule.getName());
+
+      // Verify required fields
+      assertNotNull(rule.getName(), "Rule name is required");
+
+      System.out.println("    ✓ Name: " + rule.getName());
+      if (rule.getProduction() != null) {
+        System.out.println("    ✓ Production Mode: " + rule.getProduction());
+      }
+      // Mode validation - production mode can be null, block, monitor, or off
     }
 
-    // ========== Test Case 2: Get Protect Rules ==========
-
-    @Test
-    void testGetADRProtectRules_Success() throws IOException {
-        System.out.println("\n=== Integration Test: get_ADR_Protect_Rules_by_app_id ===");
-
-        assertNotNull(testData, "Test data must be discovered before running tests");
-
-        // Act
-        ProtectData response = adrService.getProtectDataByAppID(testData.appId);
-
-        // Assert
-        assertNotNull(response, "Response should not be null");
-        assertNotNull(response.getRules(), "Rules should not be null");
-        assertTrue(response.getRules().size() > 0, "Should have at least 1 rule");
-
-        System.out.println("✓ Retrieved " + response.getRules().size() + " Protect rules for application: " + testData.appName);
-
-        // Print rule details
-        System.out.println("  Rules configured:");
-        for (var rule : response.getRules()) {
-            String mode = rule.getProduction() != null ? rule.getProduction() : "not set";
-            System.out.println("    - " + rule.getName() + " (production mode: " + mode + ")");
-        }
-
-        // Verify rule structure
-        for (var rule : response.getRules()) {
-            assertNotNull(rule.getName(), "Rule name should not be null");
-            // Production mode might be null, block, monitor, or off
-            // Just verify the field exists (can be null for non-production rules)
-        }
-    }
-
-    // ========== Test Case 3: Error Handling ==========
-
-    @Test
-    void testGetADRProtectRules_InvalidAppId() {
-        System.out.println("\n=== Integration Test: Invalid app ID handling ===");
-
-        // Act - Use an invalid app ID that definitely doesn't exist
-        boolean caughtException = false;
-        try {
-            ProtectData response = adrService.getProtectDataByAppID("invalid-app-id-12345");
-
-            // If we get here, the API returned a response (possibly null or empty)
-            System.out.println("✓ API handled invalid app ID gracefully");
-            if (response == null) {
-                System.out.println("  Response: null (no Protect data for invalid app)");
-            } else {
-                System.out.println("  Response: " + (response.getRules() != null ? response.getRules().size() : 0) + " rules");
-            }
-
-        } catch (Exception e) {
-            // This is acceptable - API rejected the invalid app ID
-            caughtException = true;
-            System.out.println("✓ API rejected invalid app ID with exception: " + e.getClass().getSimpleName());
-            System.out.println("  Message: " + e.getMessage());
-        }
-
-        // Either exception or graceful handling is acceptable
-        assertTrue(true, "Test passes if either exception thrown or graceful handling occurs");
-    }
-
-    @Test
-    void testGetADRProtectRules_NullAppId() {
-        System.out.println("\n=== Integration Test: Null app ID handling ===");
-
-        // Act/Assert - Should throw IllegalArgumentException
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            adrService.getProtectDataByAppID(null);
-        });
-
-        System.out.println("✓ Null app ID correctly rejected");
-        System.out.println("  Exception: " + exception.getClass().getSimpleName());
-        System.out.println("  Message: " + exception.getMessage());
-
-        assertTrue(exception.getMessage().contains("Application ID cannot be null or empty"),
-            "Exception message should explain the validation failure");
-    }
-
-    @Test
-    void testGetADRProtectRules_EmptyAppId() {
-        System.out.println("\n=== Integration Test: Empty app ID handling ===");
-
-        // Act/Assert - Should throw IllegalArgumentException
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            adrService.getProtectDataByAppID("");
-        });
-
-        System.out.println("✓ Empty app ID correctly rejected");
-        System.out.println("  Exception: " + exception.getClass().getSimpleName());
-        System.out.println("  Message: " + exception.getMessage());
-
-        assertTrue(exception.getMessage().contains("Application ID cannot be null or empty"),
-            "Exception message should explain the validation failure");
-    }
-
-    // ========== Test Case 4: Rule Details Verification ==========
-
-    @Test
-    void testGetADRProtectRules_VerifyRuleDetails() throws IOException {
-        System.out.println("\n=== Integration Test: Verify rule details structure ===");
-
-        assertNotNull(testData, "Test data must be discovered before running tests");
-
-        // Act
-        ProtectData response = adrService.getProtectDataByAppID(testData.appId);
-
-        // Assert
-        assertNotNull(response);
-        assertNotNull(response.getRules());
-        assertFalse(response.getRules().isEmpty());
-
-        System.out.println("✓ Verifying rule details for " + response.getRules().size() + " rules:");
-
-        // Detailed verification of each rule
-        for (var rule : response.getRules()) {
-            System.out.println("\n  Rule: " + rule.getName());
-
-            // Verify required fields
-            assertNotNull(rule.getName(), "Rule name is required");
-
-            System.out.println("    ✓ Name: " + rule.getName());
-            if (rule.getProduction() != null) {
-                System.out.println("    ✓ Production Mode: " + rule.getProduction());
-            }
-            // Mode validation - production mode can be null, block, monitor, or off
-        }
-
-        System.out.println("\n✓ All rules have valid structure and required fields");
-    }
+    System.out.println("\n✓ All rules have valid structure and required fields");
+  }
 }

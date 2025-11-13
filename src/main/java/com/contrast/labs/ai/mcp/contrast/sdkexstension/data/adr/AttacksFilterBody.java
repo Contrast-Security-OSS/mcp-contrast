@@ -15,58 +15,48 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr;
 
+import java.util.List;
 import lombok.Builder;
 import lombok.Singular;
 import lombok.Value;
 
-import java.util.List;
-
 /**
- * Request body for filtering attacks in the attacks API.
- * This class is immutable - use the Builder to construct instances.
+ * Request body for filtering attacks in the attacks API. This class is immutable - use the Builder
+ * to construct instances.
  */
 @Value
 @Builder
 public class AttacksFilterBody {
-    @Builder.Default
-    String quickFilter = "ALL";
+  @Builder.Default String quickFilter = "ALL";
 
-    @Builder.Default
-    String keyword = "";
+  @Builder.Default String keyword = "";
 
-    @Builder.Default
-    boolean includeSuppressed = false;
+  @Builder.Default boolean includeSuppressed = false;
 
-    @Builder.Default
-    boolean includeBotBlockers = false;
+  @Builder.Default boolean includeBotBlockers = false;
 
-    @Builder.Default
-    boolean includeIpBlacklist = false;
+  @Builder.Default boolean includeIpBlacklist = false;
 
-    @Singular
-    List<String> tags;
+  @Singular List<String> tags;
 
-    @Singular("statusFilter")
-    List<String> statusFilter;
+  @Singular("statusFilter")
+  List<String> statusFilter;
 
-    @Singular("protectionRule")
-    List<String> protectionRules;
+  @Singular("protectionRule")
+  List<String> protectionRules;
 
-    @Singular("application")
-    List<String> applications;
+  @Singular("application")
+  List<String> applications;
 
-    @Singular
-    List<String> applicationImportances;
+  @Singular List<String> applicationImportances;
 
-    @Singular("attacker")
-    List<String> attackers;
+  @Singular("attacker")
+  List<String> attackers;
 
-    @Singular("server")
-    List<String> servers;
+  @Singular("server")
+  List<String> servers;
 
-    @Singular
-    List<String> serverEnvironments;
+  @Singular List<String> serverEnvironments;
 
-    @Singular
-    List<String> severities;
+  @Singular List<String> severities;
 }
