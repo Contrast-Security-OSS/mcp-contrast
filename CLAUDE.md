@@ -131,6 +131,95 @@ Example: If B must be done after A completes, use `bd dep add B A` (not `bd dep 
 
 Verify with `bd show <task-id>` - dependent tasks show "Depends on", prerequisites show "Blocks".
 
+### Time Tracking for AI Cost Optimization
+
+This project tracks development time and AI effectiveness to optimize AI spend on code changes. Time tracking uses comments for precise timestamps and labels for categorization.
+
+**Time Tracking Rules:**
+
+**Parent Beads (Jira-linked, generate PR):**
+- **START:** When parent bead is set to `in_progress` (when coding work begins)
+- **END:** When PR is created (after all children complete and branch is ready for review)
+- **Duration:** Captures full end-to-end timeline from first work to PR creation
+- **Rating:** Asked once when PR is created
+
+**Child Beads (use parent's branch, no PR):**
+- **START:** When child bead is set to `in_progress` (when work on that subtask begins)
+- **END:** When child bead is closed (when that specific subtask completes)
+- **Duration:** Captures time spent on that specific child
+- **Rating:** Asked when each child is closed
+
+**Comment Format:**
+```bash
+# Starting work
+bd comments add <bead-id> "⏱️ START: 2025-11-13T14:00:00Z - Implementing authentication refactor"
+
+# Ending work
+bd comments add <bead-id> "⏱️ END: 2025-11-13T16:30:00Z - Refactor complete, tests passing"
+```
+
+**Duration Labels:**
+- `duration-0to15min` - Under 15 minutes
+- `duration-15to30min` - 15-30 minutes
+- `duration-30to60min` - 30-60 minutes
+- `duration-60to120min` - 1-2 hours
+- `duration-over120min` - Over 2 hours (indicates task should have been broken down)
+
+**AI Effectiveness Labels:**
+- `ai-multiplier` - AI was a force multiplier (saved significant time/effort)
+- `ai-helpful` - AI was helpful (saved some time)
+- `ai-neutral` - AI was neutral (could have done manually in similar time)
+- `ai-friction` - AI added friction (slowed me down, had to correct/redirect)
+
+**Completing Time Tracking:**
+
+When ending work on a bead, follow this process to complete time tracking:
+
+1. **Record END timestamp:**
+   ```bash
+   bd comments add <bead-id> "⏱️ END: $(date -u +%Y-%m-%dT%H:%M:%SZ) - [Brief description of what was completed]"
+   ```
+
+2. **Calculate duration estimate** from START/END timestamps in comments
+   - Parse all START/END timestamps from the bead's comments
+   - Calculate total elapsed time
+   - Present estimate to user in human-readable format
+
+3. **Ask user to confirm duration** using AskUserQuestion tool:
+   - Show calculated estimate: "Based on timestamps, you worked approximately X minutes/hours"
+   - Prompt: "Please confirm your active coding time (excluding breaks/interruptions):"
+   - Options:
+     1. Under 15 minutes
+     2. 15-30 minutes
+     3. 30-60 minutes
+     4. 1-2 hours
+     5. Over 2 hours
+
+4. **Ask user about AI effectiveness** using AskUserQuestion tool:
+   - Prompt: "How effective was AI assistance on this task?"
+   - Options:
+     1. Force multiplier - AI saved significant time/effort
+     2. Helpful - AI saved some time
+     3. Neutral - Could have done manually in similar time
+     4. Added friction - AI slowed me down
+
+5. **Apply labels** based on user responses:
+   - Duration label: `duration-0to15min`, `duration-15to30min`, `duration-30to60min`, `duration-60to120min`, or `duration-over120min`
+   - Effectiveness label: `ai-multiplier`, `ai-helpful`, `ai-neutral`, or `ai-friction`
+
+**When to complete time tracking:**
+- **Parent beads:** When PR is created (after all children complete)
+- **Child beads:** When bead is closed (when that specific subtask completes)
+- **Note:** Child beads are rated individually when closed; parent bead is rated once when PR is created
+
+**Data Analysis:**
+
+Time tracking enables analysis of:
+- Which types of code changes benefit most from AI
+- Where AI adds friction vs value
+- Task breakdown patterns (tasks >2hr indicate insufficient decomposition)
+- Actual vs estimated coding time
+
 ## Project Management
 
 ### Jira Issue Tracking
@@ -201,6 +290,10 @@ Promoting Stacked PR (after base PR merges):
 
 **2. Update bead status and labels:**
    - Set bead status to `in_progress`
+   - **Record START timestamp for time tracking:**
+     ```bash
+     bd comments add <bead-id> "⏱️ START: $(date -u +%Y-%m-%dT%H:%M:%SZ) - [Brief description of what you're starting]"
+     ```
    - Record the branch name in the bead (so it's easily found later)
    - **If this is a stacked branch** (based on another PR branch):
      - Label the bead with `stacked-branch`
@@ -311,12 +404,16 @@ This workflow creates a standard PR ready for immediate review, targeting the `m
 **2. Push to remote:**
    - Push the feature branch to remote repository
 
-**3. Create or update Pull Request:**
+**3. Complete time tracking:**
+   - Follow the **"Completing Time Tracking"** process in the Time Tracking section
+   - This is for parent beads only (child beads were already rated when closed)
+
+**4. Create or update Pull Request:**
    - If PR doesn't exist, create it with base branch `main`
    - If PR exists, update the description
    - PR should be ready for review (NOT draft)
 
-**4. Generate comprehensive PR description:**
+**5. Generate comprehensive PR description:**
    - Follow the **"Creating High-Quality PR Descriptions"** section above
    - Use the standard structure: Why / What / How / Walkthrough / Testing
    - No special warnings or dependency context needed
@@ -339,7 +436,11 @@ This workflow creates a draft PR that depends on another unmerged PR (stacked br
 **3. Push to remote:**
    - Push the feature branch: `git push -u origin <branch-name>`
 
-**4. Create DRAFT Pull Request:**
+**4. Complete time tracking:**
+   - Follow the **"Completing Time Tracking"** process in the Time Tracking section
+   - This is for parent beads only (child beads were already rated when closed)
+
+**5. Create DRAFT Pull Request:**
    - **Base branch**: Set to the parent PR's branch (NOT main)
    - **Status**: MUST be draft
    - **Title**: Include `[STACKED]` indicator
@@ -362,7 +463,7 @@ This workflow creates a draft PR that depends on another unmerged PR (stacked br
    - After the warning and dependency context, follow the **"Creating High-Quality PR Descriptions"** section
    - Use the standard structure: Why / What / How / Walkthrough / Testing
 
-**5. Verify configuration:**
+**6. Verify configuration:**
    - Confirm PR is in draft status
    - Confirm base branch is the parent PR's branch
    - Confirm warning and dependency context are prominently displayed
@@ -561,4 +662,6 @@ This workflow is for ending the current session while preserving all state so wo
 
 **Cannot close parent beads** if they still have open children. Ensure all child beads are closed first.
 
-Beads typically remain `in_progress` (with `in-review` label) until the PR review is complete and merged. Only close beads when explicitly instructed by the user.
+**For child beads:** When closing a child bead, complete time tracking using the **"Completing Time Tracking"** process in the Time Tracking section. This captures the time spent on that specific subtask.
+
+**For parent beads:** Time tracking is completed when the PR is created, not when the bead is closed. Beads typically remain `in_progress` (with `in-review` label) until the PR review is complete and merged. Only close beads when explicitly instructed by the user.
