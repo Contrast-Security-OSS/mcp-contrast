@@ -15,7 +15,13 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import com.contrast.labs.ai.mcp.contrast.data.*;
+import com.contrast.labs.ai.mcp.contrast.data.ApplicationData;
+import com.contrast.labs.ai.mcp.contrast.data.LibraryLibraryObservation;
+import com.contrast.labs.ai.mcp.contrast.data.Metadata;
+import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
+import com.contrast.labs.ai.mcp.contrast.data.StackLib;
+import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
+import com.contrast.labs.ai.mcp.contrast.data.Vulnerability;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityContext;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
@@ -25,10 +31,19 @@ import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Applicat
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.sca.LibraryObservation;
 import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
 import com.contrastsecurity.http.TraceFilterForm;
-import com.contrastsecurity.models.*;
+import com.contrastsecurity.models.MetadataFilterResponse;
+import com.contrastsecurity.models.MetadataItem;
+import com.contrastsecurity.models.Rules;
+import com.contrastsecurity.models.SessionMetadata;
+import com.contrastsecurity.models.Stacktrace;
 import com.contrastsecurity.models.TraceFilterBody;
+import com.contrastsecurity.models.Traces;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
