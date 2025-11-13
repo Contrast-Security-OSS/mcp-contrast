@@ -168,10 +168,42 @@ This project is tracked in Jira under the **AIML** project. When creating Jira t
 
 **Access**: Use the Atlassian MCP server to read or write Jira tickets programmatically.
 
+----
 
 ## AI Development Workflow
 
-This section defines the complete workflow for AI agents working with beads and Jira tickets in this project.
+This section defines the complete workflow for a Developer using AI agents working with beads and Jira tickets in this project.
+
+### Workflow Overview
+
+**Key Labels:**
+- `stacked-branch` - Branch is based on another PR branch (not main)
+- `pr-created` - Pull request has been created
+- `in-review` - Pull request is ready for human review (not draft)
+
+**Decision Tree:**
+
+```
+Branch Creation:
+├─ Based on main → No special label
+└─ Based on another PR branch → Label with `stacked-branch`
+
+PR Creation:
+├─ Has `stacked-branch` label?
+│  └─ YES → Create DRAFT PR (Stacked PRs workflow)
+│            - Base: parent PR's branch
+│            - Labels: `pr-created` (NOT `in-review` yet)
+│            - Add warning banner + dependency context
+│
+└─ NO → Create ready PR (Moving to Review workflow)
+         - Base: main
+         - Labels: `pr-created`, `in-review`
+         - Standard PR description
+
+Promoting Stacked PR (after base PR merges):
+└─ Rebase onto main, update base branch, remove warnings
+   Add `in-review` label, mark PR ready
+```
 
 ### Starting Work on a Bead
 
@@ -181,15 +213,19 @@ This section defines the complete workflow for AI agents working with beads and 
      - Show recently updated branches (sorted by most recent commits/PRs)
      - User may be working with stacked branches where each new branch comes off the previous PR branch
      - Name the branch with Jira ID prefix (e.g., `AIML-224-description`)
+     - **If based on another PR branch (not main)**: Label bead with `stacked-branch`
    - **Bead is a child of Jira-linked bead**: Use the same branch as the parent bead
    - **Bead has no Jira association and no parent**:
      - **Ask user if it should have a Jira ticket**
      - Most code changes need a Jira ticket and branch before merging
      - Code changes should generally have a Jira ticket in scope
 
-**2. Update bead status:**
+**2. Update bead status and labels:**
    - Set bead status to `in_progress`
    - Record the branch name in the bead (so it's easily found later)
+   - **If this is a stacked branch** (based on another PR branch):
+     - Label the bead with `stacked-branch`
+     - Create parent-child dependency: the stacked bead depends on the bead of the branch it's based on
 
 **3. Update Jira (if applicable):**
    - If bead has a linked Jira ticket:
@@ -236,41 +272,77 @@ All code changes require corresponding test coverage. Do not move to review with
 
 See INTEGRATION_TESTS.md for integration test setup and credentials.
 
+### Creating High-Quality PR Descriptions
+
+**This section defines the shared approach for creating PR descriptions used by both "Moving to Review" and "Stacked PRs" workflows.**
+
+Human review is the bottleneck in AI-assisted development. Creating exceptional PR descriptions that make review effortless is critical to development velocity.
+
+**Research Phase** - Gather comprehensive context from:
+- All beads that have been worked on for this branch
+- All git commits in the branch (`git log`, `git diff`)
+- Voice notes that relate to this work
+- Any related Jira tickets
+
+**PR Description Structure:**
+
+1. **Why**: Explain the problem or need that motivated this change
+   - What problem are we solving?
+   - What value does this provide?
+   - What was the business or technical driver?
+
+2. **What**: Describe what changes were made at a high level
+   - What components/files were modified?
+   - What new capabilities exist?
+   - What behavior changed?
+
+3. **How**: Explain how it was implemented
+   - Technical approach and architecture decisions
+   - Key implementation choices and trade-offs
+   - Design patterns used
+   - Integration points
+
+4. **Step-by-step walkthrough**: Guide the reviewer through the changes in logical order
+   - Walk through the diff in a sensible sequence
+   - Explain complex sections
+   - Call out important details
+   - Help reviewer understand the flow
+
+5. **Testing**: Summarize test coverage and results
+   - Unit test coverage added
+   - Integration test coverage added
+   - Test results (pass/fail counts)
+   - Manual testing performed
+   - Edge cases covered
+
+**Goal**: Make reviewing effortless by providing all information the reviewer needs to understand and evaluate the changes with confidence and speed. The reviewer should not need to ask clarifying questions.
+
 ### Moving to Review
 
-**When user says "move to review" or "ready for review":**
+**When user says "move to review" or "ready for review" for a bead WITHOUT the `stacked-branch` label:**
 
-1. **Label the bead(s):**
-   - Create/apply label `in-review` to the bead
+This workflow creates a standard PR ready for immediate review, targeting the `main` branch.
+
+**1. Label the bead(s):**
+   - Create/apply labels: `pr-created` and `in-review`
    - Apply to all beads worked on in this branch
 
-2. **Push to remote:**
+**2. Push to remote:**
    - Push the feature branch to remote repository
 
-3. **Create or update Pull Request:**
-   - If PR doesn't exist, create it
+**3. Create or update Pull Request:**
+   - If PR doesn't exist, create it with base branch `main`
    - If PR exists, update the description
+   - PR should be ready for review (NOT draft)
 
-4. **Generate comprehensive PR description:**
-
-   **Research phase** - Gather context from:
-   - All beads that have been worked on for this branch
-   - All git commits in the branch (`git log`, `git diff`)
-   - Voice notes that relate to this work
-   - Any related Jira tickets
-
-   **Write PR description** that includes:
-   - **Why**: Explain the problem or need that motivated this change
-   - **What**: Describe what changes were made at a high level
-   - **How**: Explain how it was implemented (technical approach, key decisions)
-   - **Step-by-step walkthrough**: Guide reviewer through the changes in logical order
-   - **Testing**: Summarize test coverage and results
-
-   **Goal**: Make reviewing the PR easy by providing all information the reviewer needs to understand and evaluate the changes effectively.
+**4. Generate comprehensive PR description:**
+   - Follow the **"Creating High-Quality PR Descriptions"** section above
+   - Use the standard structure: Why / What / How / Walkthrough / Testing
+   - No special warnings or dependency context needed
 
 ### Stacked PRs (Ready for Draft Review)
 
-**When user says "ready for stacked PR", "ready for draft review", or indicates this is a stacked PR:**
+**When user says "ready for stacked PR", "ready for draft review", or when creating a PR for a bead WITH the `stacked-branch` label:**
 
 This workflow creates a draft PR that depends on another unmerged PR (stacked branches).
 
@@ -279,7 +351,9 @@ This workflow creates a draft PR that depends on another unmerged PR (stacked br
    - Note the PR number and URL
 
 **2. Label the bead(s):**
-   - Create/apply label `in-review` to the bead
+   - Create/apply label `pr-created` to the bead
+   - **Do NOT add `in-review` label yet** (only added when promoted to ready-for-review)
+   - Apply to all beads worked on in this branch
 
 **3. Push to remote:**
    - Push the feature branch: `git push -u origin <branch-name>`
@@ -288,7 +362,7 @@ This workflow creates a draft PR that depends on another unmerged PR (stacked br
    - **Base branch**: Set to the parent PR's branch (NOT main)
    - **Status**: MUST be draft
    - **Title**: Include `[STACKED]` indicator
-   - **Body**: MUST start with prominent warning:
+   - **Body**: Start with prominent warning, then add dependency context, followed by standard PR description:
      ```
      **⚠️ DO NOT MERGE - WAITING FOR <link to base PR>**
 
@@ -297,13 +371,20 @@ This workflow creates a draft PR that depends on another unmerged PR (stacked br
      then rebase this PR onto `main` before merging.
 
      ---
+
+     **Dependency Context:**
+     This PR builds on the work from #<base-pr-number>. [Briefly explain
+     what the base PR did and why this PR follows it]
+
+     ---
      ```
-   - Include full PR description after the warning (Why/What/How/Testing)
+   - After the warning and dependency context, follow the **"Creating High-Quality PR Descriptions"** section
+   - Use the standard structure: Why / What / How / Walkthrough / Testing
 
 **5. Verify configuration:**
    - Confirm PR is in draft status
    - Confirm base branch is the parent PR's branch
-   - Confirm warning is prominently displayed
+   - Confirm warning and dependency context are prominently displayed
 
 **Example command:**
 ```bash
@@ -330,11 +411,12 @@ EOF
 
 ### Promoting Stacked PR to Ready for Review
 
-**When user says "move stacked PR to ready for review", "promote stacked PR", or "finalize stacked PR":**
+**When user says "move stacked PR to ready for review", "promote stacked PR", or "finalize stacked PR" for a bead WITH the `stacked-branch` label:**
 
 This workflow promotes a draft stacked PR to ready-for-review after its base PR has been merged to main.
 
 **Prerequisites:**
+- Bead must have `stacked-branch` label
 - Base PR must be merged to main
 - All tests must be passing on the stacked branch
 - PR is currently in draft status targeting the base PR's branch
@@ -408,9 +490,10 @@ This workflow promotes a draft stacked PR to ready-for-review after its base PR 
    - Address any failures before proceeding
    - Check CI status on GitHub
 
-**9. Update bead (if applicable):**
+**9. Update bead:**
+   - **Add `in-review` label to the bead** (PR is now truly ready for human review)
    - Update bead notes with PR status: "Rebased onto main, ready for review"
-   - Keep bead in `in_progress` status with `in-review` label
+   - Keep bead in `in_progress` status
    - Don't close until PR is merged
 
 **10. Confirm completion:**
