@@ -15,7 +15,8 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -71,8 +72,8 @@ class RouteCoverageServiceTest {
   @BeforeEach
   void setUp() throws Exception {
     routeCoverageService = new RouteCoverageService();
-    mockContrastSDK = mock(ContrastSDK.class);
-    mockSDKExtension = mock(SDKExtension.class);
+    mockContrastSDK = mock();
+    mockSDKExtension = mock();
 
     // Mock the static SDKHelper.getSDK() method
     mockedSDKHelper = mockStatic(SDKHelper.class);
@@ -180,9 +181,9 @@ class RouteCoverageServiceTest {
     var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, null);
 
     // Assert
-    assertNotNull(result);
-    assertTrue(result.isSuccess());
-    assertEquals(3, result.getRoutes().size());
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.getRoutes()).hasSize(3);
 
     // Verify SDK was called with null metadata (unfiltered query)
     verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull());
@@ -201,9 +202,9 @@ class RouteCoverageServiceTest {
     var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, null);
 
     // Assert
-    assertNotNull(result);
-    assertTrue(result.isSuccess());
-    assertEquals(0, result.getRoutes().size());
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.getRoutes()).hasSize(0);
 
     // Verify no route details calls made when no routes
     verify(mockSDKExtension, never()).getRouteDetails(anyString(), anyString(), anyString());
@@ -230,23 +231,23 @@ class RouteCoverageServiceTest {
             TEST_APP_ID, TEST_METADATA_NAME, TEST_METADATA_VALUE, null);
 
     // Assert
-    assertNotNull(result);
-    assertTrue(result.isSuccess());
-    assertEquals(4, result.getRoutes().size());
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.getRoutes()).hasSize(4);
 
     // Verify metadata filter structure
     var captor = ArgumentCaptor.forClass(RouteCoverageBySessionIDAndMetadataRequestExtended.class);
     verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), captor.capture());
 
     var request = captor.getValue();
-    assertNotNull(request);
-    assertNotNull(request.getValues());
-    assertEquals(1, request.getValues().size());
+    assertThat(request).isNotNull();
+    assertThat(request.getValues()).isNotNull();
+    assertThat(request.getValues()).hasSize(1);
 
     var metadata = request.getValues().get(0);
-    assertEquals(TEST_METADATA_NAME, metadata.getLabel());
-    assertEquals(1, metadata.getValues().size());
-    assertEquals(TEST_METADATA_VALUE, metadata.getValues().get(0));
+    assertThat(metadata.getLabel()).isEqualTo(TEST_METADATA_NAME);
+    assertThat(metadata.getValues()).hasSize(1);
+    assertThat(metadata.getValues().get(0)).isEqualTo(TEST_METADATA_VALUE);
 
     // Verify route details fetched for each route
     verify(mockSDKExtension, times(4))
@@ -269,7 +270,7 @@ class RouteCoverageServiceTest {
             TEST_APP_ID, TEST_METADATA_NAME, TEST_METADATA_VALUE, null);
 
     // Assert
-    assertEquals(5, result.getRoutes().size());
+    assertThat(result.getRoutes()).hasSize(5);
 
     // Verify route details fetched for each route
     verify(mockSDKExtension, times(5))
@@ -277,21 +278,19 @@ class RouteCoverageServiceTest {
 
     // Verify each route has details attached
     for (var route : result.getRoutes()) {
-      assertNotNull(route.getRouteDetailsResponse());
+      assertThat(route.getRouteDetailsResponse()).isNotNull();
     }
   }
 
   @Test
   void testGetRouteCoverage_SessionMetadataFilter_MissingValue() throws Exception {
     // Act & Assert
-    var exception =
-        assertThrows(
-            IllegalArgumentException.class,
+    assertThatThrownBy(
             () -> {
               routeCoverageService.getRouteCoverage(TEST_APP_ID, TEST_METADATA_NAME, null, null);
-            });
-
-    assertTrue(exception.getMessage().contains("sessionMetadataValue is required"));
+            })
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("sessionMetadataValue is required");
 
     // Verify SDK was never called
     verify(mockSDKExtension, never()).getRouteCoverage(anyString(), anyString(), any());
@@ -301,14 +300,12 @@ class RouteCoverageServiceTest {
   void testGetRouteCoverage_SessionMetadataFilter_EmptyValue() throws Exception {
     // Test validation with empty string for sessionMetadataValue (MCP-3EG)
     // Act & Assert
-    var exception =
-        assertThrows(
-            IllegalArgumentException.class,
+    assertThatThrownBy(
             () -> {
               routeCoverageService.getRouteCoverage(TEST_APP_ID, TEST_METADATA_NAME, "", null);
-            });
-
-    assertTrue(exception.getMessage().contains("sessionMetadataValue is required"));
+            })
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("sessionMetadataValue is required");
 
     // Verify SDK was never called
     verify(mockSDKExtension, never()).getRouteCoverage(anyString(), anyString(), any());
@@ -337,9 +334,9 @@ class RouteCoverageServiceTest {
     var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, true);
 
     // Assert
-    assertNotNull(result);
-    assertTrue(result.isSuccess());
-    assertEquals(2, result.getRoutes().size());
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.getRoutes()).hasSize(2);
 
     // Verify latest session was fetched
     verify(mockSDKExtension).getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID));
@@ -349,7 +346,7 @@ class RouteCoverageServiceTest {
     verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), captor.capture());
 
     var request = captor.getValue();
-    assertNotNull(request);
+    assertThat(request).isNotNull();
     // Note: Can't verify sessionId directly as it's protected in base class
     // But we can verify the method was called
   }
@@ -364,8 +361,8 @@ class RouteCoverageServiceTest {
     var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, true);
 
     // Assert - Should return empty response with success=false
-    assertNotNull(result);
-    assertFalse(result.isSuccess());
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isFalse();
 
     // Verify route coverage was NOT called
     verify(mockSDKExtension, never()).getRouteCoverage(anyString(), anyString(), any());
@@ -383,8 +380,8 @@ class RouteCoverageServiceTest {
     var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, true);
 
     // Assert - Should return empty response with success=false
-    assertNotNull(result);
-    assertFalse(result.isSuccess());
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isFalse();
 
     // Verify route coverage was NOT called
     verify(mockSDKExtension, never()).getRouteCoverage(anyString(), anyString(), any());
@@ -399,14 +396,12 @@ class RouteCoverageServiceTest {
         .thenThrow(new IOException("API connection failed"));
 
     // Act & Assert
-    var exception =
-        assertThrows(
-            IOException.class,
+    assertThatThrownBy(
             () -> {
               routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, null);
-            });
-
-    assertEquals("API connection failed", exception.getMessage());
+            })
+        .isInstanceOf(IOException.class)
+        .hasMessage("API connection failed");
   }
 
   @Test
@@ -422,15 +417,13 @@ class RouteCoverageServiceTest {
         .thenThrow(new IOException("Failed to fetch route details"));
 
     // Act & Assert
-    var exception =
-        assertThrows(
-            IOException.class,
+    assertThatThrownBy(
             () -> {
               routeCoverageService.getRouteCoverage(
                   TEST_APP_ID, TEST_METADATA_NAME, TEST_METADATA_VALUE, null);
-            });
-
-    assertTrue(exception.getMessage().contains("Failed to fetch route details"));
+            })
+        .isInstanceOf(IOException.class)
+        .hasMessageContaining("Failed to fetch route details");
   }
 
   @Test
@@ -440,14 +433,12 @@ class RouteCoverageServiceTest {
         .thenThrow(new IOException("Session metadata API failed"));
 
     // Act & Assert
-    var exception =
-        assertThrows(
-            IOException.class,
+    assertThatThrownBy(
             () -> {
               routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, true);
-            });
-
-    assertTrue(exception.getMessage().contains("Session metadata API failed"));
+            })
+        .isInstanceOf(IOException.class)
+        .hasMessageContaining("Session metadata API failed");
   }
 
   // ========== SDK Configuration Tests ==========
@@ -489,8 +480,8 @@ class RouteCoverageServiceTest {
     var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, null);
 
     // Assert
-    assertNotNull(result);
-    assertTrue(result.isSuccess());
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isTrue();
     verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull());
   }
 
@@ -507,8 +498,8 @@ class RouteCoverageServiceTest {
     var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, false);
 
     // Assert
-    assertNotNull(result);
-    assertTrue(result.isSuccess());
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isTrue();
     verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull());
     verify(mockSDKExtension, never()).getLatestSessionMetadata(anyString(), anyString());
   }
@@ -527,9 +518,9 @@ class RouteCoverageServiceTest {
     var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, "", "", false);
 
     // Assert - Should call SDK with null (unfiltered query), not with empty metadata filter
-    assertNotNull(result);
-    assertTrue(result.isSuccess());
-    assertEquals(2, result.getRoutes().size());
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.getRoutes()).hasSize(2);
 
     // Verify SDK was called with null metadata (unfiltered query) - GET endpoint
     verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull());
@@ -559,8 +550,8 @@ class RouteCoverageServiceTest {
     var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, "", null, null);
 
     // Assert
-    assertNotNull(result);
-    assertTrue(result.isSuccess());
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isTrue();
     verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull());
   }
 }

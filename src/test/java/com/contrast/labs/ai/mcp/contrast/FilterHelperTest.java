@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -55,17 +55,16 @@ class FilterHelperTest {
     var result = FilterHelper.formatTimestamp(epochMillis);
 
     // Then: Should return ISO 8601 format with timezone offset
-    assertNotNull(result);
-    assertTrue(
-        result.matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"),
-        "Timestamp should match ISO 8601 format with timezone offset: " + result);
+    assertThat(result).isNotNull();
+    assertThat(result)
+        .as("Timestamp should match ISO 8601 format with timezone offset: " + result)
+        .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}");
 
     // Verify it can be parsed back
     var parsed = ZonedDateTime.parse(result, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-    assertEquals(
-        epochMillis,
-        parsed.toInstant().toEpochMilli(),
-        "Parsed timestamp should match original epoch milliseconds");
+    assertThat(parsed.toInstant().toEpochMilli())
+        .as("Parsed timestamp should match original epoch milliseconds")
+        .isEqualTo(epochMillis);
   }
 
   @Test
@@ -77,7 +76,7 @@ class FilterHelperTest {
     var result = FilterHelper.formatTimestamp(nullValue);
 
     // Then: Should return null
-    assertNull(result, "Formatting null timestamp should return null");
+    assertThat(result).as("Formatting null timestamp should return null").isNull();
   }
 
   @Test
@@ -89,13 +88,15 @@ class FilterHelperTest {
     var result = FilterHelper.formatTimestamp(epochMillis);
 
     // Then: Should return valid ISO 8601 timestamp
-    assertNotNull(result);
-    assertTrue(
-        result.matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"),
-        "Timestamp should match ISO 8601 format: " + result);
-    assertTrue(
-        result.startsWith("1970-01-01") || result.startsWith("1969-12-31"),
-        "Epoch zero should be Jan 1, 1970 UTC (or Dec 31, 1969 in negative timezone): " + result);
+    assertThat(result).isNotNull();
+    assertThat(result)
+        .as("Timestamp should match ISO 8601 format: " + result)
+        .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}");
+    assertThat(result.startsWith("1970-01-01") || result.startsWith("1969-12-31"))
+        .as(
+            "Epoch zero should be Jan 1, 1970 UTC (or Dec 31, 1969 in negative timezone): "
+                + result)
+        .isTrue();
   }
 
   @Test
@@ -107,13 +108,13 @@ class FilterHelperTest {
     var result = FilterHelper.formatTimestamp(epochMillis);
 
     // Then: Should return valid ISO 8601 timestamp
-    assertNotNull(result);
-    assertTrue(
-        result.matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"),
-        "Timestamp should match ISO 8601 format: " + result);
-    assertTrue(
-        result.startsWith("2029-12-31") || result.startsWith("2030-01-01"),
-        "Should represent Jan 1, 2030 in local timezone: " + result);
+    assertThat(result).isNotNull();
+    assertThat(result)
+        .as("Timestamp should match ISO 8601 format: " + result)
+        .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}");
+    assertThat(result.startsWith("2029-12-31") || result.startsWith("2030-01-01"))
+        .as("Should represent Jan 1, 2030 in local timezone: " + result)
+        .isTrue();
   }
 
   @Test
@@ -133,7 +134,9 @@ class FilterHelperTest {
     var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssxxx");
     var expectedFormat = expected.format(formatter);
 
-    assertEquals(expectedFormat, result, "Should format timestamp using system default timezone");
+    assertThat(result)
+        .as("Should format timestamp using system default timezone")
+        .isEqualTo(expectedFormat);
   }
 
   @Test
@@ -145,15 +148,15 @@ class FilterHelperTest {
     var result = FilterHelper.formatTimestamp(epochMillis);
 
     // Then: Should include timezone offset in the output
-    assertTrue(
-        result.contains("+") || result.contains("-"),
-        "Timestamp should include timezone offset (+ or -): " + result);
+    assertThat(result.contains("+") || result.contains("-"))
+        .as("Timestamp should include timezone offset (+ or -): " + result)
+        .isTrue();
 
     // Extract and verify timezone offset format
     var timezoneOffset = result.substring(result.length() - 6);
-    assertTrue(
-        timezoneOffset.matches("[+-]\\d{2}:\\d{2}"),
-        "Timezone offset should be in format +/-HH:MM: " + timezoneOffset);
+    assertThat(timezoneOffset)
+        .as("Timezone offset should be in format +/-HH:MM: " + timezoneOffset)
+        .matches("[+-]\\d{2}:\\d{2}");
   }
 
   @Test
@@ -166,10 +169,10 @@ class FilterHelperTest {
       var result = FilterHelper.formatTimestamp(timestamp);
 
       // Then: All should match ISO 8601 format with timezone
-      assertNotNull(result);
-      assertTrue(
-          result.matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"),
-          "All timestamps should match ISO 8601 format: " + result);
+      assertThat(result).isNotNull();
+      assertThat(result)
+          .as("All timestamps should match ISO 8601 format: " + result)
+          .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}");
     }
   }
 }

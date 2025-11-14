@@ -15,7 +15,9 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -146,8 +148,8 @@ class AssessServiceTest {
     verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
 
     var form = captor.getValue();
-    assertEquals(75, form.getOffset()); // (page 2 - 1) * 75
-    assertEquals(75, form.getLimit());
+    assertThat(form.getOffset()).isEqualTo(75); // (page 2 - 1) * 75
+    assertThat(form.getLimit()).isEqualTo(75);
   }
 
   @Test
@@ -165,13 +167,13 @@ class AssessServiceTest {
     verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
 
     var form = captor.getValue();
-    assertNotNull(form.getExpand());
-    assertTrue(
-        form.getExpand().contains(TraceFilterForm.TraceExpandValue.SESSION_METADATA),
-        "Expand should include SESSION_METADATA");
-    assertTrue(
-        form.getExpand().contains(TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS),
-        "Expand should include SERVER_ENVIRONMENTS");
+    assertThat(form.getExpand()).isNotNull();
+    assertThat(form.getExpand())
+        .as("Expand should include SESSION_METADATA")
+        .contains(TraceFilterForm.TraceExpandValue.SESSION_METADATA);
+    assertThat(form.getExpand())
+        .as("Expand should include SERVER_ENVIRONMENTS")
+        .contains(TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS);
   }
 
   @Test
@@ -265,10 +267,12 @@ class AssessServiceTest {
             );
 
     // Verify result contains helpful message for AI
-    assertNotNull(result);
-    assertTrue(result.items().isEmpty());
-    assertNotNull(result.message(), "Empty results should have explanatory message");
-    assertEquals("No items found.", result.message(), "Message should explain empty results to AI");
+    assertThat(result).isNotNull();
+    assertThat(result.items()).isEmpty();
+    assertThat(result.message()).as("Empty results should have explanatory message").isNotNull();
+    assertThat(result.message())
+        .as("Message should explain empty results to AI")
+        .isEqualTo("No items found.");
   }
 
   // ========== Helper Methods ==========
@@ -284,7 +288,7 @@ class AssessServiceTest {
     var traces = new ArrayList<Trace>();
 
     for (int i = 0; i < traceCount; i++) {
-      var trace = mock(Trace.class);
+      Trace trace = mock();
       when(trace.getTitle()).thenReturn("Test Vulnerability " + i);
       when(trace.getRule()).thenReturn("test-rule-" + i);
       when(trace.getUuid()).thenReturn("uuid-" + i);
@@ -326,15 +330,15 @@ class AssessServiceTest {
     var result = assessService.listVulnerabilityTypes();
 
     // Assert
-    assertNotNull(result);
-    assertEquals(5, result.size());
+    assertThat(result).isNotNull();
+    assertThat(result.size()).isEqualTo(5);
 
     // Verify sorted alphabetically
-    assertEquals("cmd-injection", result.get(0));
-    assertEquals("crypto-bad-mac", result.get(1));
-    assertEquals("path-traversal", result.get(2));
-    assertEquals("sql-injection", result.get(3));
-    assertEquals("xss-reflected", result.get(4));
+    assertThat(result.get(0)).isEqualTo("cmd-injection");
+    assertThat(result.get(1)).isEqualTo("crypto-bad-mac");
+    assertThat(result.get(2)).isEqualTo("path-traversal");
+    assertThat(result.get(3)).isEqualTo("sql-injection");
+    assertThat(result.get(4)).isEqualTo("xss-reflected");
 
     verify(mockContrastSDK).getRules(TEST_ORG_ID);
   }
@@ -349,8 +353,8 @@ class AssessServiceTest {
     var result = assessService.listVulnerabilityTypes();
 
     // Assert
-    assertNotNull(result);
-    assertTrue(result.isEmpty(), "Should return empty list when no rules available");
+    assertThat(result).isNotNull();
+    assertThat(result).as("Should return empty list when no rules available").isEmpty();
     verify(mockContrastSDK).getRules(TEST_ORG_ID);
   }
 
@@ -363,8 +367,8 @@ class AssessServiceTest {
     var result = assessService.listVulnerabilityTypes();
 
     // Assert
-    assertNotNull(result);
-    assertTrue(result.isEmpty(), "Should return empty list when Rules object is null");
+    assertThat(result).isNotNull();
+    assertThat(result).as("Should return empty list when Rules object is null").isEmpty();
     verify(mockContrastSDK).getRules(TEST_ORG_ID);
   }
 
@@ -386,19 +390,19 @@ class AssessServiceTest {
     var result = assessService.listVulnerabilityTypes();
 
     // Assert
-    assertNotNull(result);
+    assertThat(result).isNotNull();
     // Should only have the 4 valid names (whitespace-only gets trimmed to empty and filtered)
-    assertEquals(4, result.size());
-    assertTrue(result.contains("sql-injection"));
-    assertTrue(result.contains("xss-reflected"));
-    assertTrue(result.contains("path-traversal"));
-    assertTrue(result.contains("cmd-injection"));
+    assertThat(result.size()).isEqualTo(4);
+    assertThat(result).contains("sql-injection");
+    assertThat(result).contains("xss-reflected");
+    assertThat(result).contains("path-traversal");
+    assertThat(result).contains("cmd-injection");
 
     // Verify sorted
-    assertEquals("cmd-injection", result.get(0));
-    assertEquals("path-traversal", result.get(1));
-    assertEquals("sql-injection", result.get(2));
-    assertEquals("xss-reflected", result.get(3));
+    assertThat(result.get(0)).isEqualTo("cmd-injection");
+    assertThat(result.get(1)).isEqualTo("path-traversal");
+    assertThat(result.get(2)).isEqualTo("sql-injection");
+    assertThat(result.get(3)).isEqualTo("xss-reflected");
   }
 
   @Test
@@ -408,14 +412,12 @@ class AssessServiceTest {
         .thenThrow(new RuntimeException("API connection failed"));
 
     // Act & Assert
-    var exception =
-        assertThrows(
-            Exception.class,
+    assertThatThrownBy(
             () -> {
               assessService.listVulnerabilityTypes();
-            });
-
-    assertTrue(exception.getMessage().contains("Failed to retrieve vulnerability types"));
+            })
+        .isInstanceOf(Exception.class)
+        .hasMessageContaining("Failed to retrieve vulnerability types");
     verify(mockContrastSDK).getRules(TEST_ORG_ID);
   }
 
@@ -433,13 +435,14 @@ class AssessServiceTest {
     var result = assessService.listVulnerabilityTypes();
 
     // Assert
-    assertNotNull(result);
-    assertEquals(100, result.size());
+    assertThat(result).isNotNull();
+    assertThat(result.size()).isEqualTo(100);
 
     // Verify still sorted
     for (int i = 0; i < result.size() - 1; i++) {
-      assertTrue(
-          result.get(i).compareTo(result.get(i + 1)) < 0, "Rules should be sorted alphabetically");
+      assertThat(result.get(i).compareTo(result.get(i + 1)))
+          .as("Rules should be sorted alphabetically")
+          .isLessThan(0);
     }
   }
 
@@ -518,13 +521,13 @@ class AssessServiceTest {
             1, 50, "CRITICAL,HIGH", null, null, null, null, null, null, null);
 
     // Assert
-    assertNotNull(response);
+    assertThat(response).isNotNull();
     var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
     verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
 
     var form = captor.getValue();
-    assertNotNull(form.getSeverities());
-    assertEquals(2, form.getSeverities().size());
+    assertThat(form.getSeverities()).isNotNull();
+    assertThat(form.getSeverities().size()).isEqualTo(2);
   }
 
   @Test
@@ -535,15 +538,15 @@ class AssessServiceTest {
             1, 50, "CRITICAL,SUPER_HIGH", null, null, null, null, null, null, null);
 
     // Assert - Hard failure returns error response with empty items
-    assertNotNull(response);
-    assertTrue(response.items().isEmpty(), "Hard failure should return empty items");
-    assertEquals(1, response.page());
-    assertEquals(50, response.pageSize());
-    assertEquals(0, response.totalItems());
+    assertThat(response).isNotNull();
+    assertThat(response.items()).as("Hard failure should return empty items").isEmpty();
+    assertThat(response.page()).isEqualTo(1);
+    assertThat(response.pageSize()).isEqualTo(50);
+    assertThat(response.totalItems()).isEqualTo(0);
 
-    assertNotNull(response.message());
-    assertTrue(response.message().contains("Invalid severity 'SUPER_HIGH'"));
-    assertTrue(response.message().contains("Valid: CRITICAL, HIGH, MEDIUM, LOW, NOTE"));
+    assertThat(response.message()).isNotNull();
+    assertThat(response.message()).contains("Invalid severity 'SUPER_HIGH'");
+    assertThat(response.message()).contains("Valid: CRITICAL, HIGH, MEDIUM, LOW, NOTE");
 
     // Verify SDK was NOT called (hard failure stops execution)
     verify(mockContrastSDK, never()).getTracesInOrg(any(), any());
@@ -561,16 +564,16 @@ class AssessServiceTest {
         assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
 
     // Assert
-    assertNotNull(response);
+    assertThat(response).isNotNull();
     var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
     verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
 
     var form = captor.getValue();
-    assertNotNull(form.getStatus());
-    assertEquals(3, form.getStatus().size());
-    assertTrue(form.getStatus().contains("Reported"));
-    assertTrue(form.getStatus().contains("Suspicious"));
-    assertTrue(form.getStatus().contains("Confirmed"));
+    assertThat(form.getStatus()).isNotNull();
+    assertThat(form.getStatus().size()).isEqualTo(3);
+    assertThat(form.getStatus()).contains("Reported");
+    assertThat(form.getStatus()).contains("Suspicious");
+    assertThat(form.getStatus()).contains("Confirmed");
 
     // Message content is tested in VulnerabilityFilterParamsTest
   }
@@ -588,16 +591,16 @@ class AssessServiceTest {
             1, 50, null, "Reported,Fixed,Remediated", null, null, null, null, null, null);
 
     // Assert
-    assertNotNull(response);
+    assertThat(response).isNotNull();
     var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
     verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
 
     var form = captor.getValue();
-    assertNotNull(form.getStatus());
-    assertEquals(3, form.getStatus().size());
-    assertTrue(form.getStatus().contains("Reported"));
-    assertTrue(form.getStatus().contains("Fixed"));
-    assertTrue(form.getStatus().contains("Remediated"));
+    assertThat(form.getStatus()).isNotNull();
+    assertThat(form.getStatus().size()).isEqualTo(3);
+    assertThat(form.getStatus()).contains("Reported");
+    assertThat(form.getStatus()).contains("Fixed");
+    assertThat(form.getStatus()).contains("Remediated");
   }
 
   @Test
@@ -613,15 +616,15 @@ class AssessServiceTest {
             1, 50, null, null, null, "sql-injection,xss-reflected", null, null, null, null);
 
     // Assert
-    assertNotNull(response);
+    assertThat(response).isNotNull();
     var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
     verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
 
     var form = captor.getValue();
-    assertNotNull(form.getVulnTypes());
-    assertEquals(2, form.getVulnTypes().size());
-    assertTrue(form.getVulnTypes().contains("sql-injection"));
-    assertTrue(form.getVulnTypes().contains("xss-reflected"));
+    assertThat(form.getVulnTypes()).isNotNull();
+    assertThat(form.getVulnTypes().size()).isEqualTo(2);
+    assertThat(form.getVulnTypes()).contains("sql-injection");
+    assertThat(form.getVulnTypes()).contains("xss-reflected");
   }
 
   @Test
@@ -637,13 +640,13 @@ class AssessServiceTest {
             1, 50, null, null, null, null, "PRODUCTION,QA", null, null, null);
 
     // Assert
-    assertNotNull(response);
+    assertThat(response).isNotNull();
     var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
     verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
 
     var form = captor.getValue();
-    assertNotNull(form.getEnvironments());
-    assertEquals(2, form.getEnvironments().size());
+    assertThat(form.getEnvironments()).isNotNull();
+    assertThat(form.getEnvironments().size()).isEqualTo(2);
   }
 
   @Test
@@ -659,13 +662,13 @@ class AssessServiceTest {
             1, 50, null, null, null, null, null, "2025-01-01", "2025-12-31", null);
 
     // Assert
-    assertNotNull(response);
+    assertThat(response).isNotNull();
     var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
     verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
 
     var form = captor.getValue();
-    assertNotNull(form.getStartDate());
-    assertNotNull(form.getEndDate());
+    assertThat(form.getStartDate()).isNotNull();
+    assertThat(form.getEndDate()).isNotNull();
 
     // Message content is tested in VulnerabilityFilterParamsTest
   }
@@ -683,16 +686,16 @@ class AssessServiceTest {
             1, 50, null, null, null, null, null, null, null, "SmartFix Remediated,reviewed");
 
     // Assert
-    assertNotNull(response);
+    assertThat(response).isNotNull();
     var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
     verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
 
     var form = captor.getValue();
-    assertNotNull(form.getFilterTags());
-    assertEquals(2, form.getFilterTags().size());
+    assertThat(form.getFilterTags()).isNotNull();
+    assertThat(form.getFilterTags().size()).isEqualTo(2);
     // SDK now handles URL encoding (AIML-193 complete) - tags passed through as-is
-    assertTrue(form.getFilterTags().contains("SmartFix Remediated"));
-    assertTrue(form.getFilterTags().contains("reviewed"));
+    assertThat(form.getFilterTags()).contains("SmartFix Remediated");
+    assertThat(form.getFilterTags()).contains("reviewed");
   }
 
   @Test
@@ -717,16 +720,16 @@ class AssessServiceTest {
             null);
 
     // Assert
-    assertNotNull(response);
+    assertThat(response).isNotNull();
     var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
     verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
 
     var form = captor.getValue();
-    assertNotNull(form.getSeverities());
-    assertNotNull(form.getStatus());
-    assertNotNull(form.getVulnTypes());
-    assertNotNull(form.getEnvironments());
-    assertNotNull(form.getStartDate());
+    assertThat(form.getSeverities()).isNotNull();
+    assertThat(form.getStatus()).isNotNull();
+    assertThat(form.getVulnTypes()).isNotNull();
+    assertThat(form.getEnvironments()).isNotNull();
+    assertThat(form.getStartDate()).isNotNull();
   }
 
   @Test
@@ -743,7 +746,7 @@ class AssessServiceTest {
             1, 50, null, null, testAppId, null, null, null, null, null);
 
     // Assert
-    assertNotNull(response);
+    assertThat(response).isNotNull();
     // Verify it used app-specific API, not org-level
     verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(testAppId), any(TraceFilterForm.class));
     verify(mockContrastSDK, never()).getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class));
@@ -762,13 +765,13 @@ class AssessServiceTest {
             1, 50, "CRITICAL , HIGH , ", null, null, null, null, null, null, null);
 
     // Assert
-    assertNotNull(response);
+    assertThat(response).isNotNull();
     var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
     verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), captor.capture());
 
     var form = captor.getValue();
-    assertNotNull(form.getSeverities());
-    assertEquals(2, form.getSeverities().size());
+    assertThat(form.getSeverities()).isNotNull();
+    assertThat(form.getSeverities().size()).isEqualTo(2);
   }
 
   @Test
@@ -778,7 +781,7 @@ class AssessServiceTest {
     var traces = new ArrayList<Trace>();
 
     // Trace 1: Multiple servers with different environments
-    var trace1 = mock(Trace.class);
+    Trace trace1 = mock();
     when(trace1.getTitle()).thenReturn("SQL Injection");
     when(trace1.getRule()).thenReturn("sql-injection");
     when(trace1.getUuid()).thenReturn("uuid-1");
@@ -796,7 +799,7 @@ class AssessServiceTest {
     traces.add(trace1);
 
     // Trace 2: No servers
-    var trace2 = mock(Trace.class);
+    Trace trace2 = mock();
     when(trace2.getTitle()).thenReturn("XSS");
     when(trace2.getRule()).thenReturn("xss-reflected");
     when(trace2.getUuid()).thenReturn("uuid-2");
@@ -810,7 +813,7 @@ class AssessServiceTest {
     traces.add(trace2);
 
     // Trace 3: Single server with one environment
-    var trace3 = mock(Trace.class);
+    Trace trace3 = mock();
     when(trace3.getTitle()).thenReturn("Path Traversal");
     when(trace3.getRule()).thenReturn("path-traversal");
     when(trace3.getUuid()).thenReturn("uuid-3");
@@ -844,32 +847,32 @@ class AssessServiceTest {
         assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
 
     // Assert
-    assertNotNull(response);
-    assertEquals(3, response.items().size());
+    assertThat(response).isNotNull();
+    assertThat(response.items()).hasSize(3);
 
     // Verify trace 1: Multiple environments, deduplicated and sorted
     var vuln1 = response.items().get(0);
-    assertEquals("SQL Injection", vuln1.title());
-    assertNotNull(vuln1.environments());
-    assertEquals(2, vuln1.environments().size());
-    assertTrue(vuln1.environments().contains("PRODUCTION"));
-    assertTrue(vuln1.environments().contains("QA"));
+    assertThat(vuln1.title()).isEqualTo("SQL Injection");
+    assertThat(vuln1.environments()).isNotNull();
+    assertThat(vuln1.environments()).hasSize(2);
+    assertThat(vuln1.environments()).contains("PRODUCTION");
+    assertThat(vuln1.environments()).contains("QA");
     // Verify sorted order
-    assertEquals("PRODUCTION", vuln1.environments().get(0));
-    assertEquals("QA", vuln1.environments().get(1));
+    assertThat(vuln1.environments().get(0)).isEqualTo("PRODUCTION");
+    assertThat(vuln1.environments().get(1)).isEqualTo("QA");
 
     // Verify trace 2: No servers = empty environments
     var vuln2 = response.items().get(1);
-    assertEquals("XSS", vuln2.title());
-    assertNotNull(vuln2.environments());
-    assertEquals(0, vuln2.environments().size());
+    assertThat(vuln2.title()).isEqualTo("XSS");
+    assertThat(vuln2.environments()).isNotNull();
+    assertThat(vuln2.environments()).hasSize(0);
 
     // Verify trace 3: Single environment
     var vuln3 = response.items().get(2);
-    assertEquals("Path Traversal", vuln3.title());
-    assertNotNull(vuln3.environments());
-    assertEquals(1, vuln3.environments().size());
-    assertEquals("DEVELOPMENT", vuln3.environments().get(0));
+    assertThat(vuln3.title()).isEqualTo("Path Traversal");
+    assertThat(vuln3.environments()).isNotNull();
+    assertThat(vuln3.environments()).hasSize(1);
+    assertThat(vuln3.environments().get(0)).isEqualTo("DEVELOPMENT");
   }
 
   @Test
@@ -879,7 +882,7 @@ class AssessServiceTest {
     var firstSeen = JAN_1_2024_00_00_UTC;
     var closed = FEB_19_2025_13_20_UTC;
 
-    var trace = mock(Trace.class);
+    Trace trace = mock();
     when(trace.getTitle()).thenReturn("Test Vulnerability");
     when(trace.getRule()).thenReturn("test-rule");
     when(trace.getUuid()).thenReturn("test-uuid-123");
@@ -891,7 +894,7 @@ class AssessServiceTest {
     when(trace.getServerEnvironments()).thenReturn(new ArrayList<>());
     when(trace.getTags()).thenReturn(new ArrayList<>());
 
-    var mockTraces = mock(Traces.class);
+    Traces mockTraces = mock();
     when(mockTraces.getTraces()).thenReturn(List.of(trace));
     when(mockTraces.getCount()).thenReturn(1);
 
@@ -903,44 +906,44 @@ class AssessServiceTest {
         assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
 
     // Assert
-    assertNotNull(response);
-    assertEquals(1, response.items().size());
+    assertThat(response).isNotNull();
+    assertThat(response.items().size()).isEqualTo(1);
 
     var vuln = response.items().get(0);
 
     // Verify field names use *At convention
-    assertNotNull(vuln.lastSeenAt(), "lastSeenAt field should exist");
-    assertNotNull(vuln.firstSeenAt(), "firstSeenAt field should exist");
-    assertNotNull(vuln.closedAt(), "closedAt field should exist");
+    assertThat(vuln.lastSeenAt()).as("lastSeenAt field should exist").isNotNull();
+    assertThat(vuln.firstSeenAt()).as("firstSeenAt field should exist").isNotNull();
+    assertThat(vuln.closedAt()).as("closedAt field should exist").isNotNull();
 
     // Verify ISO 8601 format with timezone offset (YYYY-MM-DDTHH:MM:SS+/-HH:MM)
     var iso8601Pattern = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}";
-    assertTrue(
-        vuln.lastSeenAt().matches(iso8601Pattern),
-        "lastSeenAt should be ISO 8601 with timezone: " + vuln.lastSeenAt());
-    assertTrue(
-        vuln.firstSeenAt().matches(iso8601Pattern),
-        "firstSeenAt should be ISO 8601 with timezone: " + vuln.firstSeenAt());
-    assertTrue(
-        vuln.closedAt().matches(iso8601Pattern),
-        "closedAt should be ISO 8601 with timezone: " + vuln.closedAt());
+    assertThat(vuln.lastSeenAt())
+        .as("lastSeenAt should be ISO 8601 with timezone: " + vuln.lastSeenAt())
+        .matches(iso8601Pattern);
+    assertThat(vuln.firstSeenAt())
+        .as("firstSeenAt should be ISO 8601 with timezone: " + vuln.firstSeenAt())
+        .matches(iso8601Pattern);
+    assertThat(vuln.closedAt())
+        .as("closedAt should be ISO 8601 with timezone: " + vuln.closedAt())
+        .matches(iso8601Pattern);
 
     // Verify timestamps include timezone offset
-    assertTrue(
-        vuln.lastSeenAt().contains("+") || vuln.lastSeenAt().contains("-"),
-        "lastSeenAt should include timezone offset");
-    assertTrue(
-        vuln.firstSeenAt().contains("+") || vuln.firstSeenAt().contains("-"),
-        "firstSeenAt should include timezone offset");
-    assertTrue(
-        vuln.closedAt().contains("+") || vuln.closedAt().contains("-"),
-        "closedAt should include timezone offset");
+    assertThat(vuln.lastSeenAt().contains("+") || vuln.lastSeenAt().contains("-"))
+        .as("lastSeenAt should include timezone offset")
+        .isTrue();
+    assertThat(vuln.firstSeenAt().contains("+") || vuln.firstSeenAt().contains("-"))
+        .as("firstSeenAt should include timezone offset")
+        .isTrue();
+    assertThat(vuln.closedAt().contains("+") || vuln.closedAt().contains("-"))
+        .as("closedAt should include timezone offset")
+        .isTrue();
   }
 
   @Test
   void testVulnLight_TimestampFields_NullHandling() throws Exception {
     // Arrange - Create trace with null timestamps
-    var trace = mock(Trace.class);
+    Trace trace = mock();
     when(trace.getTitle()).thenReturn("Test Vulnerability");
     when(trace.getRule()).thenReturn("test-rule");
     when(trace.getUuid()).thenReturn("test-uuid-123");
@@ -952,7 +955,7 @@ class AssessServiceTest {
     when(trace.getServerEnvironments()).thenReturn(new ArrayList<>());
     when(trace.getTags()).thenReturn(new ArrayList<>());
 
-    var mockTraces = mock(Traces.class);
+    Traces mockTraces = mock();
     when(mockTraces.getTraces()).thenReturn(List.of(trace));
     when(mockTraces.getCount()).thenReturn(1);
 
@@ -964,14 +967,14 @@ class AssessServiceTest {
         assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
 
     // Assert
-    assertNotNull(response);
-    assertEquals(1, response.items().size());
+    assertThat(response).isNotNull();
+    assertThat(response.items().size()).isEqualTo(1);
 
     var vuln = response.items().get(0);
 
     // Verify null timestamps are handled correctly
-    assertNotNull(vuln.lastSeenAt(), "lastSeenAt should always be present");
-    assertNull(vuln.firstSeenAt(), "firstSeenAt should be null when not set");
-    assertNull(vuln.closedAt(), "closedAt should be null when not set");
+    assertThat(vuln.lastSeenAt()).as("lastSeenAt should always be present").isNotNull();
+    assertThat(vuln.firstSeenAt()).as("firstSeenAt should be null when not set").isNull();
+    assertThat(vuln.closedAt()).as("closedAt should be null when not set").isNull();
   }
 }

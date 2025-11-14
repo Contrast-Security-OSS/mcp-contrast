@@ -1,6 +1,7 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -28,25 +29,25 @@ class SDKHelperTest {
 
   @Test
   void testGetProtocolAndServer_WithNull() {
-    assertNull(SDKHelper.getProtocolAndServer(null));
+    assertThat(SDKHelper.getProtocolAndServer(null)).isNull();
   }
 
   @Test
   void testGetProtocolAndServer_WithHttpProtocol() {
     var result = SDKHelper.getProtocolAndServer("http://example.com");
-    assertEquals("http://example.com", result);
+    assertThat(result).isEqualTo("http://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithHttpsProtocol() {
     var result = SDKHelper.getProtocolAndServer("https://example.com");
-    assertEquals("https://example.com", result);
+    assertThat(result).isEqualTo("https://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithoutProtocol() {
     var result = SDKHelper.getProtocolAndServer("example.com");
-    assertEquals("https://example.com", result);
+    assertThat(result).isEqualTo("https://example.com");
   }
 
   @Test
@@ -54,77 +55,62 @@ class SDKHelperTest {
     when(environment.getProperty("contrast.api.protocol", "https")).thenReturn("http");
 
     var result = SDKHelper.getProtocolAndServer("example.com");
-    assertEquals("http://example.com", result);
+    assertThat(result).isEqualTo("http://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithEmptyString() {
     // Empty string should return null (consistent with null input handling)
     var result = SDKHelper.getProtocolAndServer("");
-    assertNull(result);
+    assertThat(result).isNull();
   }
 
   @Test
   void testGetProtocolAndServer_WithWhitespaceOnly() {
     // Whitespace-only string should return null (consistent with null input handling)
     var result = SDKHelper.getProtocolAndServer("   ");
-    assertNull(result);
+    assertThat(result).isNull();
   }
 
   @Test
   void testGetProtocolAndServer_WithLeadingWhitespace() {
     var result = SDKHelper.getProtocolAndServer("  example.com");
-    assertEquals("https://example.com", result);
+    assertThat(result).isEqualTo("https://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithTrailingWhitespace() {
     var result = SDKHelper.getProtocolAndServer("example.com  ");
-    assertEquals("https://example.com", result);
+    assertThat(result).isEqualTo("https://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithLeadingAndTrailingWhitespace() {
     var result = SDKHelper.getProtocolAndServer("  https://example.com  ");
-    assertEquals("https://example.com", result);
+    assertThat(result).isEqualTo("https://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithInvalidProtocol_Ftp() {
-    var exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> {
-              SDKHelper.getProtocolAndServer("ftp://example.com");
-            });
-
-    assertTrue(exception.getMessage().contains("Invalid protocol"));
-    assertTrue(exception.getMessage().contains("ftp://example.com"));
+    assertThatThrownBy(() -> SDKHelper.getProtocolAndServer("ftp://example.com"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Invalid protocol")
+        .hasMessageContaining("ftp://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithInvalidProtocol_Custom() {
-    var exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> {
-              SDKHelper.getProtocolAndServer("custom://example.com");
-            });
-
-    assertTrue(exception.getMessage().contains("Invalid protocol"));
+    assertThatThrownBy(() -> SDKHelper.getProtocolAndServer("custom://example.com"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Invalid protocol");
   }
 
   @Test
   void testGetProtocolAndServer_WithMalformedProtocol() {
     // "ht://example.com" contains "://" but doesn't start with http:// or https://
-    var exception =
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> {
-              SDKHelper.getProtocolAndServer("ht://example.com");
-            });
-
-    assertTrue(exception.getMessage().contains("Invalid protocol"));
+    assertThatThrownBy(() -> SDKHelper.getProtocolAndServer("ht://example.com"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Invalid protocol");
   }
 
   @Test
@@ -133,16 +119,12 @@ class SDKHelperTest {
     when(environment.getProperty("spring.ai.mcp.server.version", "unknown")).thenReturn("1.0.0");
 
     // getSDK is a public static method, so we can call it directly
-    try {
-      var sdk = SDKHelper.getSDK(hostWithProtocol, "apiKey", "serviceKey", "username", null, null);
+    var sdk = SDKHelper.getSDK(hostWithProtocol, "apiKey", "serviceKey", "username", null, null);
 
-      assertNotNull(sdk);
-      // The SDK was successfully created with the https URL.
-      // Detailed URL validation would require accessing ContrastSDK's internal state,
-      // which is beyond the scope of a unit test and better suited for integration tests.
-    } catch (Exception e) {
-      fail("Exception occurred: " + e.getMessage());
-    }
+    assertThat(sdk).isNotNull();
+    // The SDK was successfully created with the https URL.
+    // Detailed URL validation would require accessing ContrastSDK's internal state,
+    // which is beyond the scope of a unit test and better suited for integration tests.
   }
 
   @Test
@@ -150,38 +132,34 @@ class SDKHelperTest {
     var hostname = "example.contrastsecurity.com";
     when(environment.getProperty("spring.ai.mcp.server.version", "unknown")).thenReturn("1.0.0");
 
-    try {
-      var sdk = SDKHelper.getSDK(hostname, "apiKey", "serviceKey", "username", null, null);
+    var sdk = SDKHelper.getSDK(hostname, "apiKey", "serviceKey", "username", null, null);
 
-      assertNotNull(sdk);
-      // The SDK should prepend https:// by default
-    } catch (Exception e) {
-      fail("Exception occurred: " + e.getMessage());
-    }
+    assertThat(sdk).isNotNull();
+    // The SDK should prepend https:// by default
   }
 
   @Test
   void testGetProtocolAndServer_WithTrailingSlash() {
     var result = SDKHelper.getProtocolAndServer("example.com/");
-    assertEquals("https://example.com", result);
+    assertThat(result).isEqualTo("https://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithProtocolAndTrailingSlash() {
     var result = SDKHelper.getProtocolAndServer("https://example.com/");
-    assertEquals("https://example.com", result);
+    assertThat(result).isEqualTo("https://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithHttpProtocolAndTrailingSlash() {
     var result = SDKHelper.getProtocolAndServer("http://example.com/");
-    assertEquals("http://example.com", result);
+    assertThat(result).isEqualTo("http://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithMultipleTrailingSlashes() {
     // Note: Only one trailing slash is removed
     var result = SDKHelper.getProtocolAndServer("example.com//");
-    assertEquals("https://example.com/", result);
+    assertThat(result).isEqualTo("https://example.com/");
   }
 }

@@ -15,7 +15,8 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -120,8 +121,8 @@ class SCAServiceTest {
     var result = scaService.getApplicationLibrariesByID(TEST_APP_ID);
 
     // Then
-    assertNotNull(result, "Result should not be null");
-    assertEquals(3, result.size(), "Should return 3 libraries");
+    assertThat(result).as("Result should not be null").isNotNull();
+    assertThat(result.size()).as("Should return 3 libraries").isEqualTo(3);
 
     // Verify SDKHelper was called correctly
     mockedSDKHelper.verify(
@@ -150,30 +151,30 @@ class SCAServiceTest {
     var result = scaService.getApplicationLibrariesByID(TEST_APP_ID);
 
     // Then
-    assertNotNull(result, "Result should not be null");
-    assertTrue(result.isEmpty(), "Result should be empty list");
+    assertThat(result).as("Result should not be null").isNotNull();
+    assertThat(result.isEmpty()).as("Result should be empty list").isTrue();
   }
 
   @Test
   void testGetApplicationLibrariesByID_NullAppID() {
     // When/Then - Should handle null gracefully or throw descriptive exception
-    assertThrows(
-        Exception.class,
-        () -> {
-          scaService.getApplicationLibrariesByID(null);
-        },
-        "Should throw exception for null app ID");
+    assertThatThrownBy(
+            () -> {
+              scaService.getApplicationLibrariesByID(null);
+            })
+        .as("Should throw exception for null app ID")
+        .isInstanceOf(Exception.class);
   }
 
   @Test
   void testGetApplicationLibrariesByID_EmptyAppID() {
     // When/Then - Should handle empty string appropriately
-    assertThrows(
-        Exception.class,
-        () -> {
-          scaService.getApplicationLibrariesByID("");
-        },
-        "Should throw exception for empty app ID");
+    assertThatThrownBy(
+            () -> {
+              scaService.getApplicationLibrariesByID("");
+            })
+        .as("Should throw exception for empty app ID")
+        .isInstanceOf(Exception.class);
   }
 
   @Test
@@ -184,16 +185,12 @@ class SCAServiceTest {
         .thenThrow(new RuntimeException("SDK connection failed"));
 
     // When/Then
-    var exception =
-        assertThrows(
-            RuntimeException.class,
+    assertThatThrownBy(
             () -> {
               scaService.getApplicationLibrariesByID(TEST_APP_ID);
-            });
-
-    assertTrue(
-        exception.getMessage().contains("SDK connection failed"),
-        "Exception message should indicate SDK failure");
+            })
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("SDK connection failed");
   }
 
   @Test
@@ -209,13 +206,17 @@ class SCAServiceTest {
     var result = scaService.getApplicationLibrariesByID(TEST_APP_ID);
 
     // Then
-    assertEquals(2, result.size());
+    assertThat(result.size()).isEqualTo(2);
 
     // Verify first library has class usage > 0 (actively used)
-    assertTrue(result.get(0).getClassedUsed() > 0, "First library should have classes used");
+    assertThat(result.get(0).getClassedUsed())
+        .as("First library should have classes used")
+        .isGreaterThan(0);
 
     // Verify second library has class usage = 0 (likely unused)
-    assertEquals(0, result.get(1).getClassedUsed(), "Second library should have zero classes used");
+    assertThat(result.get(1).getClassedUsed())
+        .as("Second library should have zero classes used")
+        .isEqualTo(0);
   }
 
   // ========== Tests for list_applications_vulnerable_to_cve ==========
@@ -227,7 +228,7 @@ class SCAServiceTest {
     var mockLibraries = createMockLibrariesWithClassUsage();
 
     // Mock SDKExtension.getAppsForCVE
-    var mockExtension = mock(SDKExtension.class);
+    SDKExtension mockExtension = mock();
     when(mockExtension.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(mockCveData);
 
     // Replace mockedSDKExtension to return our configured mock
@@ -250,10 +251,10 @@ class SCAServiceTest {
     var result = scaService.listCVESForApplication(TEST_CVE_ID);
 
     // Then
-    assertNotNull(result, "Result should not be null");
-    assertNotNull(result.getApps(), "Apps list should not be null");
-    assertNotNull(result.getLibraries(), "Libraries list should not be null");
-    assertFalse(result.getApps().isEmpty(), "Should have at least one app");
+    assertThat(result).as("Result should not be null").isNotNull();
+    assertThat(result.getApps()).as("Apps list should not be null").isNotNull();
+    assertThat(result.getLibraries()).as("Libraries list should not be null").isNotNull();
+    assertThat(result.getApps()).as("Should have at least one app").isNotEmpty();
   }
 
   @Test
@@ -277,8 +278,8 @@ class SCAServiceTest {
     var result = scaService.listCVESForApplication("CVE-9999-NONEXISTENT");
 
     // Then
-    assertNotNull(result, "Result should not be null");
-    assertTrue(result.getApps().isEmpty(), "Should have no vulnerable apps");
+    assertThat(result).as("Result should not be null").isNotNull();
+    assertThat(result.getApps()).as("Should have no vulnerable apps").isEmpty();
   }
 
   @Test
@@ -306,13 +307,15 @@ class SCAServiceTest {
     var result = scaService.listCVESForApplication(TEST_CVE_ID);
 
     // Then
-    assertNotNull(result, "Result should not be null");
-    assertTrue(result.getApps().size() > 0, "Should have apps");
+    assertThat(result).as("Result should not be null").isNotNull();
+    assertThat(result.getApps()).as("Should have apps").isNotEmpty();
 
     // Verify class usage was populated for apps
     // (Implementation in SCAService populates classCount and classUsage fields)
     var firstApp = result.getApps().get(0);
-    assertTrue(firstApp.getClassCount() >= 0, "Class count should be populated");
+    assertThat(firstApp.getClassCount())
+        .as("Class count should be populated")
+        .isGreaterThanOrEqualTo(0);
   }
 
   // ========== Helper Methods ==========
@@ -320,7 +323,7 @@ class SCAServiceTest {
   private List<LibraryExtended> createMockLibraries(int count) {
     var libraries = new ArrayList<LibraryExtended>();
     for (int i = 0; i < count; i++) {
-      var lib = mock(LibraryExtended.class);
+      LibraryExtended lib = mock();
       when(lib.getFilename()).thenReturn("library-" + i + ".jar");
       when(lib.getHash()).thenReturn("hash-" + i);
       when(lib.getVersion()).thenReturn("1.0." + i);
@@ -335,7 +338,7 @@ class SCAServiceTest {
     var libraries = new ArrayList<LibraryExtended>();
 
     // Library 1: Actively used (classesUsed > 0)
-    var lib1 = mock(LibraryExtended.class);
+    LibraryExtended lib1 = mock();
     when(lib1.getFilename()).thenReturn("actively-used-lib.jar");
     when(lib1.getHash()).thenReturn("hash-active-123");
     when(lib1.getVersion()).thenReturn("2.1.0");
@@ -344,7 +347,7 @@ class SCAServiceTest {
     libraries.add(lib1);
 
     // Library 2: Likely unused (classesUsed = 0)
-    var lib2 = mock(LibraryExtended.class);
+    LibraryExtended lib2 = mock();
     when(lib2.getFilename()).thenReturn("unused-lib.jar");
     when(lib2.getHash()).thenReturn("hash-unused-456");
     when(lib2.getVersion()).thenReturn("1.5.2");
@@ -358,7 +361,7 @@ class SCAServiceTest {
   private List<LibraryExtended> createMockLibrariesWithMatchingHash() {
     var libraries = new ArrayList<LibraryExtended>();
 
-    var lib = mock(LibraryExtended.class);
+    LibraryExtended lib = mock();
     when(lib.getFilename()).thenReturn("vulnerable-lib.jar");
     when(lib.getHash()).thenReturn("matching-hash-789");
     when(lib.getVersion()).thenReturn("1.0.0");

@@ -15,7 +15,8 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -57,7 +58,7 @@ class ADRServiceTest {
   @BeforeEach
   void setUp() throws Exception {
     adrService = new ADRService(new PaginationHandler());
-    mockContrastSDK = mock(ContrastSDK.class);
+    mockContrastSDK = mock();
 
     // Mock static SDKHelper
     mockedSDKHelper = mockStatic(SDKHelper.class);
@@ -108,13 +109,13 @@ class ADRServiceTest {
     var result = adrService.getAttacks(null, null, null, null, null, null, null, null);
 
     // Then
-    assertEquals(3, result.items().size());
-    assertEquals("attack-uuid-0", result.items().get(0).attackId());
-    assertEquals("attack-uuid-1", result.items().get(1).attackId());
-    assertEquals("attack-uuid-2", result.items().get(2).attackId());
-    assertEquals(1, result.page());
-    assertEquals(50, result.pageSize());
-    assertFalse(result.hasMorePages());
+    assertThat(result.items()).hasSize(3);
+    assertThat(result.items().get(0).attackId()).isEqualTo("attack-uuid-0");
+    assertThat(result.items().get(1).attackId()).isEqualTo("attack-uuid-1");
+    assertThat(result.items().get(2).attackId()).isEqualTo("attack-uuid-2");
+    assertThat(result.page()).isEqualTo(1);
+    assertThat(result.pageSize()).isEqualTo(50);
+    assertThat(result.hasMorePages()).isFalse();
   }
 
   // ========== Test: QuickFilter ==========
@@ -141,7 +142,7 @@ class ADRServiceTest {
     var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
     verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
 
-    assertEquals("PROBED", captor.getValue().getQuickFilter());
+    assertThat(captor.getValue().getQuickFilter()).isEqualTo("PROBED");
   }
 
   // ========== Test: Keyword Filter ==========
@@ -168,7 +169,7 @@ class ADRServiceTest {
     var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
     verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
 
-    assertEquals("sql injection", captor.getValue().getKeyword());
+    assertThat(captor.getValue().getKeyword()).isEqualTo("sql injection");
   }
 
   // ========== Test: Boolean Filters ==========
@@ -195,9 +196,9 @@ class ADRServiceTest {
     var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
     verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
 
-    assertEquals(true, captor.getValue().isIncludeSuppressed());
-    assertEquals(false, captor.getValue().isIncludeBotBlockers());
-    assertEquals(true, captor.getValue().isIncludeIpBlacklist());
+    assertThat(captor.getValue().isIncludeSuppressed()).isEqualTo(true);
+    assertThat(captor.getValue().isIncludeBotBlockers()).isEqualTo(false);
+    assertThat(captor.getValue().isIncludeIpBlacklist()).isEqualTo(true);
   }
 
   // ========== Test: Pagination Parameters ==========
@@ -259,11 +260,11 @@ class ADRServiceTest {
     verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(25), eq(50), eq("severity"));
 
     var filter = captor.getValue();
-    assertEquals("EXPLOITED", filter.getQuickFilter());
-    assertEquals("xss", filter.getKeyword());
-    assertTrue(filter.isIncludeSuppressed());
-    assertTrue(filter.isIncludeBotBlockers());
-    assertFalse(filter.isIncludeIpBlacklist());
+    assertThat(filter.getQuickFilter()).isEqualTo("EXPLOITED");
+    assertThat(filter.getKeyword()).isEqualTo("xss");
+    assertThat(filter.isIncludeSuppressed()).isTrue();
+    assertThat(filter.isIncludeBotBlockers()).isTrue();
+    assertThat(filter.isIncludeIpBlacklist()).isFalse();
   }
 
   // ========== Test: Empty Results ==========
@@ -286,12 +287,13 @@ class ADRServiceTest {
     var result = adrService.getAttacks(null, null, null, null, null, null, null, null);
 
     // Then
-    assertNotNull(result);
-    assertTrue(result.items().isEmpty());
-    assertFalse(result.hasMorePages());
-    assertNotNull(result.message(), "Empty results should have explanatory message");
-    assertTrue(
-        result.message().contains("No items found"), "Message should explain empty results to AI");
+    assertThat(result).isNotNull();
+    assertThat(result.items()).isEmpty();
+    assertThat(result.hasMorePages()).isFalse();
+    assertThat(result.message()).as("Empty results should have explanatory message").isNotNull();
+    assertThat(result.message())
+        .as("Message should explain empty results to AI")
+        .contains("No items found");
   }
 
   // ========== Test: Null Results ==========
@@ -315,8 +317,8 @@ class ADRServiceTest {
     var result = adrService.getAttacks(null, null, null, null, null, null, null, null);
 
     // Then
-    assertNotNull(result);
-    assertTrue(result.items().isEmpty());
+    assertThat(result).isNotNull();
+    assertThat(result.items()).isEmpty();
   }
 
   // ========== Test: SDK Exception ==========
@@ -334,17 +336,18 @@ class ADRServiceTest {
             });
 
     // When/Then
-    var exception =
-        assertThrows(
-            Exception.class,
+    assertThatThrownBy(
             () -> {
               adrService.getAttacks(null, null, null, null, null, null, null, null);
-            });
-
-    assertTrue(
-        exception.getMessage().contains("API connection failed")
-            || exception.getCause() != null
-                && exception.getCause().getMessage().contains("API connection failed"));
+            })
+        .isInstanceOf(Exception.class)
+        .satisfies(
+            ex ->
+                assertThat(
+                        ex.getMessage().contains("API connection failed")
+                            || (ex.getCause() != null
+                                && ex.getCause().getMessage().contains("API connection failed")))
+                    .isTrue());
   }
 
   // ========== Test: Null Filters Don't Override Defaults ==========
@@ -373,7 +376,7 @@ class ADRServiceTest {
 
     var filter = captor.getValue();
     // Verify null parameters didn't set fields (they should remain at constructor defaults)
-    assertNotNull(filter); // Filter body is created but fields remain unset
+    assertThat(filter).isNotNull(); // Filter body is created but fields remain unset
   }
 
   // ========== Pagination Tests ==========
@@ -396,11 +399,11 @@ class ADRServiceTest {
     var result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
 
     // Then
-    assertEquals(50, result.items().size());
-    assertEquals(1, result.page());
-    assertEquals(50, result.pageSize());
-    assertEquals(150, result.totalItems());
-    assertTrue(result.hasMorePages(), "Should have more pages (page 1 of 3)");
+    assertThat(result.items()).hasSize(50);
+    assertThat(result.page()).isEqualTo(1);
+    assertThat(result.pageSize()).isEqualTo(50);
+    assertThat(result.totalItems()).isEqualTo(150);
+    assertThat(result.hasMorePages()).as("Should have more pages (page 1 of 3)").isTrue();
   }
 
   @Test
@@ -421,11 +424,11 @@ class ADRServiceTest {
     var result = adrService.getAttacks(null, null, null, null, null, null, 3, 50);
 
     // Then
-    assertEquals(50, result.items().size());
-    assertEquals(3, result.page());
-    assertEquals(50, result.pageSize());
-    assertEquals(150, result.totalItems());
-    assertFalse(result.hasMorePages(), "Last page should have hasMorePages=false");
+    assertThat(result.items()).hasSize(50);
+    assertThat(result.page()).isEqualTo(3);
+    assertThat(result.pageSize()).isEqualTo(50);
+    assertThat(result.totalItems()).isEqualTo(150);
+    assertThat(result.hasMorePages()).as("Last page should have hasMorePages=false").isFalse();
   }
 
   @Test
@@ -447,10 +450,10 @@ class ADRServiceTest {
     var result = adrService.getAttacks(null, null, null, null, null, null, 1, 500);
 
     // Then
-    assertEquals(100, result.pageSize(), "PageSize should be clamped to 100");
-    assertNotNull(result.message(), "Should have warning message");
-    assertTrue(result.message().contains("500"), "Message should mention original value");
-    assertTrue(result.message().contains("100"), "Message should mention clamped value");
+    assertThat(result.pageSize()).as("PageSize should be clamped to 100").isEqualTo(100);
+    assertThat(result.message()).as("Should have warning message").isNotNull();
+    assertThat(result.message()).as("Message should mention original value").contains("500");
+    assertThat(result.message()).as("Message should mention clamped value").contains("100");
   }
 
   @Test
@@ -472,9 +475,11 @@ class ADRServiceTest {
     var result = adrService.getAttacks(null, null, null, null, null, null, 0, 50);
 
     // Then
-    assertEquals(1, result.page(), "Page should be clamped to 1");
-    assertNotNull(result.message(), "Should have warning message");
-    assertTrue(result.message().contains("Invalid page"), "Message should indicate invalid page");
+    assertThat(result.page()).as("Page should be clamped to 1").isEqualTo(1);
+    assertThat(result.message()).as("Should have warning message").isNotNull();
+    assertThat(result.message())
+        .as("Message should indicate invalid page")
+        .contains("Invalid page");
   }
 
   @Test
@@ -495,8 +500,8 @@ class ADRServiceTest {
     var result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
 
     // Then
-    assertNull(result.totalItems(), "TotalItems should be null when not provided");
-    assertTrue(result.hasMorePages(), "Heuristic: full page suggests more pages exist");
+    assertThat(result.totalItems()).as("TotalItems should be null when not provided").isNull();
+    assertThat(result.hasMorePages()).as("Heuristic: full page suggests more pages exist").isTrue();
   }
 
   @Test
@@ -517,9 +522,11 @@ class ADRServiceTest {
     var result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
 
     // Then
-    assertEquals(25, result.items().size());
-    assertNull(result.totalItems(), "TotalItems should be null when not provided");
-    assertFalse(result.hasMorePages(), "Heuristic: partial page suggests no more pages");
+    assertThat(result.items().size()).isEqualTo(25);
+    assertThat(result.totalItems()).as("TotalItems should be null when not provided").isNull();
+    assertThat(result.hasMorePages())
+        .as("Heuristic: partial page suggests no more pages")
+        .isFalse();
   }
 
   // ========== Test: Smart Defaults and Messages ==========
@@ -542,13 +549,13 @@ class ADRServiceTest {
     var result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
 
     // Then: Should have messages about smart defaults
-    assertNotNull(result.message(), "Should have messages about smart defaults");
-    assertTrue(
-        result.message().contains("No quickFilter applied"),
-        "Should have message about quickFilter default");
-    assertTrue(
-        result.message().contains("Excluding suppressed attacks by default"),
-        "Should have message about includeSuppressed default");
+    assertThat(result.message()).as("Should have messages about smart defaults").isNotNull();
+    assertThat(result.message())
+        .as("Should have message about quickFilter default")
+        .contains("No quickFilter applied");
+    assertThat(result.message())
+        .as("Should have message about includeSuppressed default")
+        .contains("Excluding suppressed attacks by default");
   }
 
   @Test
@@ -570,12 +577,12 @@ class ADRServiceTest {
 
     // Then: Should NOT have smart default messages
     if (result.message() != null) {
-      assertFalse(
-          result.message().contains("No quickFilter applied"),
-          "Should not have quickFilter message when explicitly provided");
-      assertFalse(
-          result.message().contains("Excluding suppressed attacks by default"),
-          "Should not have includeSuppressed message when explicitly provided");
+      assertThat(result.message())
+          .as("Should not have quickFilter message when explicitly provided")
+          .doesNotContain("No quickFilter applied");
+      assertThat(result.message())
+          .as("Should not have includeSuppressed message when explicitly provided")
+          .doesNotContain("Excluding suppressed attacks by default");
     }
   }
 
@@ -585,14 +592,14 @@ class ADRServiceTest {
     var result = adrService.getAttacks("INVALID_FILTER", null, null, null, null, null, 1, 50);
 
     // Then: Should return error response with descriptive message
-    assertNotNull(result.message(), "Should have error message");
-    assertTrue(
-        result.message().contains("Invalid quickFilter 'INVALID_FILTER'"),
-        "Should explain the invalid quickFilter");
-    assertTrue(
-        result.message().contains("Valid: EXPLOITED, PROBED, BLOCKED, INEFFECTIVE, ALL"),
-        "Should list valid options");
-    assertEquals(0, result.items().size(), "Should return empty items on error");
+    assertThat(result.message()).as("Should have error message").isNotNull();
+    assertThat(result.message())
+        .as("Should explain the invalid quickFilter")
+        .contains("Invalid quickFilter 'INVALID_FILTER'");
+    assertThat(result.message())
+        .as("Should list valid options")
+        .contains("Valid: EXPLOITED, PROBED, BLOCKED, INEFFECTIVE, ALL");
+    assertThat(result.items().size()).as("Should return empty items on error").isEqualTo(0);
   }
 
   @Test
@@ -602,14 +609,14 @@ class ADRServiceTest {
         adrService.getAttacks("EXPLOITED", null, false, null, null, "invalid sort!", 1, 50);
 
     // Then: Should return error response with descriptive message
-    assertNotNull(result.message(), "Should have error message");
-    assertTrue(
-        result.message().contains("Invalid sort format 'invalid sort!'"),
-        "Should explain the invalid sort format");
-    assertTrue(
-        result.message().contains("Must be a field name with optional '-' prefix"),
-        "Should explain the correct format");
-    assertEquals(0, result.items().size(), "Should return empty items on error");
+    assertThat(result.message()).as("Should have error message").isNotNull();
+    assertThat(result.message())
+        .as("Should explain the invalid sort format")
+        .contains("Invalid sort format 'invalid sort!'");
+    assertThat(result.message())
+        .as("Should explain the correct format")
+        .contains("Must be a field name with optional '-' prefix");
+    assertThat(result.items().size()).as("Should return empty items on error").isEqualTo(0);
   }
 
   @Test
@@ -618,11 +625,12 @@ class ADRServiceTest {
     var result = adrService.getAttacks("BAD_FILTER", null, null, null, null, "bad-format!", 1, 50);
 
     // Then: Should return combined error messages
-    assertNotNull(result.message(), "Should have error message");
-    assertTrue(
-        result.message().contains("Invalid quickFilter"), "Should include quickFilter error");
-    assertTrue(result.message().contains("Invalid sort format"), "Should include sort error");
-    assertEquals(0, result.items().size(), "Should return empty items on error");
+    assertThat(result.message()).as("Should have error message").isNotNull();
+    assertThat(result.message())
+        .as("Should include quickFilter error")
+        .contains("Invalid quickFilter");
+    assertThat(result.message()).as("Should include sort error").contains("Invalid sort format");
+    assertThat(result.items().size()).as("Should return empty items on error").isEqualTo(0);
   }
 
   // ========== Tests for get_ADR_Protect_Rules_by_app_id ==========
@@ -644,9 +652,9 @@ class ADRServiceTest {
     var result = adrService.getProtectDataByAppID(TEST_APP_ID);
 
     // Then
-    assertNotNull(result, "Result should not be null");
-    assertNotNull(result.getRules(), "Rules should not be null");
-    assertEquals(3, result.getRules().size(), "Should have 3 protect rules");
+    assertThat(result).as("Result should not be null").isNotNull();
+    assertThat(result.getRules()).as("Rules should not be null").isNotNull();
+    assertThat(result.getRules().size()).as("Should have 3 protect rules").isEqualTo(3);
   }
 
   @Test
@@ -666,44 +674,36 @@ class ADRServiceTest {
     var result = adrService.getProtectDataByAppID(TEST_APP_ID);
 
     // Then
-    assertNotNull(result);
-    assertNotNull(result.getRules());
-    assertFalse(result.getRules().isEmpty());
+    assertThat(result).isNotNull();
+    assertThat(result.getRules()).isNotNull();
+    assertThat(result.getRules()).isNotEmpty();
 
     // Verify rule details
     var firstRule = result.getRules().get(0);
-    assertNotNull(firstRule.getName(), "Rule should have a name");
-    assertNotNull(firstRule.getProduction(), "Rule should have a production mode");
+    assertThat(firstRule.getName()).as("Rule should have a name").isNotNull();
+    assertThat(firstRule.getProduction()).as("Rule should have a production mode").isNotNull();
   }
 
   @Test
   void testGetProtectDataByAppID_EmptyAppID() {
     // When/Then
-    var exception =
-        assertThrows(
-            IllegalArgumentException.class,
+    assertThatThrownBy(
             () -> {
               adrService.getProtectDataByAppID("");
-            });
-
-    assertTrue(
-        exception.getMessage().contains("Application ID cannot be null or empty"),
-        "Should have descriptive error message");
+            })
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Application ID cannot be null or empty");
   }
 
   @Test
   void testGetProtectDataByAppID_NullAppID() {
     // When/Then
-    var exception =
-        assertThrows(
-            IllegalArgumentException.class,
+    assertThatThrownBy(
             () -> {
               adrService.getProtectDataByAppID(null);
-            });
-
-    assertTrue(
-        exception.getMessage().contains("Application ID cannot be null or empty"),
-        "Should have descriptive error message");
+            })
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Application ID cannot be null or empty");
   }
 
   @Test
@@ -718,18 +718,21 @@ class ADRServiceTest {
             });
 
     // When/Then
-    var exception =
-        assertThrows(
-            Exception.class,
+    assertThatThrownBy(
             () -> {
               adrService.getProtectDataByAppID(TEST_APP_ID);
-            });
-
-    assertTrue(
-        exception.getMessage().contains("Failed to fetch protect config")
-            || (exception.getCause() != null
-                && exception.getCause().getMessage().contains("Failed to fetch protect config")),
-        "Should propagate SDK exception");
+            })
+        .isInstanceOf(Exception.class)
+        .satisfies(
+            ex ->
+                assertThat(
+                        ex.getMessage().contains("Failed to fetch protect config")
+                            || (ex.getCause() != null
+                                && ex.getCause()
+                                    .getMessage()
+                                    .contains("Failed to fetch protect config")))
+                    .as("Should propagate SDK exception")
+                    .isTrue());
   }
 
   @Test
@@ -746,7 +749,7 @@ class ADRServiceTest {
     var result = adrService.getProtectDataByAppID(TEST_APP_ID);
 
     // Then
-    assertNull(result, "Should return null when no protect data available");
+    assertThat(result).as("Should return null when no protect data available").isNull();
   }
 
   @Test
@@ -767,9 +770,9 @@ class ADRServiceTest {
     var result = adrService.getProtectDataByAppID(TEST_APP_ID);
 
     // Then
-    assertNotNull(result);
-    assertNotNull(result.getRules());
-    assertTrue(result.getRules().isEmpty(), "Should have empty rules list");
+    assertThat(result).isNotNull();
+    assertThat(result.getRules()).isNotNull();
+    assertThat(result.getRules()).as("Should have empty rules list").isEmpty();
   }
 
   // ========== Helper Methods ==========

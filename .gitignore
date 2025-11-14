@@ -41,4 +41,5 @@ build/
 ### Beads ###
 .beads/
 test-plan-*.md
+results-*.md
 plans/

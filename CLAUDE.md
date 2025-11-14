@@ -81,6 +81,8 @@ Required environment variables/arguments:
 - **Prefer `var`** for local variables when the type is obvious from the right-hand side
 - **Use `isEmpty()`** instead of `size() > 0` or `size() == 0` for collection checks
 - **No wildcard imports** - All imports must be explicit. Do not use `import package.*` syntax
+- **Simplified mock() syntax** - Use `mock()` without class parameter (Mockito 5.x+). When using `var`, specify the type explicitly: `ClassName mock = mock();` instead of `var mock = mock(ClassName.class);`. For explicit types: `ClassName mock = mock();` instead of `ClassName mock = mock(ClassName.class);`
+- **Use AssertJ for test assertions** - Prefer AssertJ's fluent API over JUnit assertions for more readable and expressive tests. Use `assertThat(actual).isEqualTo(expected)` instead of `assertEquals(expected, actual)`, and `assertThat(condition).isTrue()` instead of `assertTrue(condition)`
 
 ### Security Considerations
 
@@ -128,6 +130,95 @@ This project uses Beads (bd) for issue tracking. See the MCP resource `beads://q
 Example: If B must be done after A completes, use `bd dep add B A` (not `bd dep add A B`).
 
 Verify with `bd show <task-id>` - dependent tasks show "Depends on", prerequisites show "Blocks".
+
+### Time Tracking for AI Cost Optimization
+
+This project tracks development time and AI effectiveness to optimize AI spend on code changes. Time tracking uses comments for precise timestamps and labels for categorization.
+
+**Time Tracking Rules:**
+
+**Parent Beads (Jira-linked, generate PR):**
+- **START:** When parent bead is set to `in_progress` (when coding work begins)
+- **END:** When PR is created (after all children complete and branch is ready for review)
+- **Duration:** Captures full end-to-end timeline from first work to PR creation
+- **Rating:** Asked once when PR is created
+
+**Child Beads (use parent's branch, no PR):**
+- **START:** When child bead is set to `in_progress` (when work on that subtask begins)
+- **END:** When child bead is closed (when that specific subtask completes)
+- **Duration:** Captures time spent on that specific child
+- **Rating:** Asked when each child is closed
+
+**Comment Format:**
+```bash
+# Starting work
+bd comments add <bead-id> "⏱️ START: 2025-11-13T14:00:00Z - Implementing authentication refactor"
+
+# Ending work
+bd comments add <bead-id> "⏱️ END: 2025-11-13T16:30:00Z - Refactor complete, tests passing"
+```
+
+**Duration Labels:**
+- `duration-0to15min` - Under 15 minutes
+- `duration-15to30min` - 15-30 minutes
+- `duration-30to60min` - 30-60 minutes
+- `duration-60to120min` - 1-2 hours
+- `duration-over120min` - Over 2 hours (indicates task should have been broken down)
+
+**AI Effectiveness Labels:**
+- `ai-multiplier` - AI was a force multiplier (saved significant time/effort)
+- `ai-helpful` - AI was helpful (saved some time)
+- `ai-neutral` - AI was neutral (could have done manually in similar time)
+- `ai-friction` - AI added friction (slowed me down, had to correct/redirect)
+
+**Completing Time Tracking:**
+
+When ending work on a bead, follow this process to complete time tracking:
+
+1. **Record END timestamp:**
+   ```bash
+   bd comments add <bead-id> "⏱️ END: $(date -u +%Y-%m-%dT%H:%M:%SZ) - [Brief description of what was completed]"
+   ```
+
+2. **Calculate duration estimate** from START/END timestamps in comments
+   - Parse all START/END timestamps from the bead's comments
+   - Calculate total elapsed time
+   - Present estimate to user in human-readable format
+
+3. **Ask user to confirm duration** using AskUserQuestion tool:
+   - Show calculated estimate: "Based on timestamps, you worked approximately X minutes/hours"
+   - Prompt: "Please confirm your active coding time (excluding breaks/interruptions):"
+   - Options:
+     1. Under 15 minutes
+     2. 15-30 minutes
+     3. 30-60 minutes
+     4. 1-2 hours
+     5. Over 2 hours
+
+4. **Ask user about AI effectiveness** using AskUserQuestion tool:
+   - Prompt: "How effective was AI assistance on this task?"
+   - Options:
+     1. Force multiplier - AI saved significant time/effort
+     2. Helpful - AI saved some time
+     3. Neutral - Could have done manually in similar time
+     4. Added friction - AI slowed me down
+
+5. **Apply labels** based on user responses:
+   - Duration label: `duration-0to15min`, `duration-15to30min`, `duration-30to60min`, `duration-60to120min`, or `duration-over120min`
+   - Effectiveness label: `ai-multiplier`, `ai-helpful`, `ai-neutral`, or `ai-friction`
+
+**When to complete time tracking:**
+- **Parent beads:** When PR is created (after all children complete)
+- **Child beads:** When bead is closed (when that specific subtask completes)
+- **Note:** Child beads are rated individually when closed; parent bead is rated once when PR is created
+
+**Data Analysis:**
+
+Time tracking enables analysis of:
+- Which types of code changes benefit most from AI
+- Where AI adds friction vs value
+- Task breakdown patterns (tasks >2hr indicate insufficient decomposition)
+- Actual vs estimated coding time
 
 ## Project Management
 
@@ -199,6 +290,10 @@ Promoting Stacked PR (after base PR merges):
 
 **2. Update bead status and labels:**
    - Set bead status to `in_progress`
+   - **Record START timestamp for time tracking:**
+     ```bash
+     bd comments add <bead-id> "⏱️ START: $(date -u +%Y-%m-%dT%H:%M:%SZ) - [Brief description of what you're starting]"
+     ```
    - Record the branch name in the bead (so it's easily found later)
    - **If this is a stacked branch** (based on another PR branch):
      - Label the bead with `stacked-branch`
@@ -309,12 +404,16 @@ This workflow creates a standard PR ready for immediate review, targeting the `m
 **2. Push to remote:**
    - Push the feature branch to remote repository
 
-**3. Create or update Pull Request:**
+**3. Complete time tracking:**
+   - Follow the **"Completing Time Tracking"** process in the Time Tracking section
+   - This is for parent beads only (child beads were already rated when closed)
+
+**4. Create or update Pull Request:**
    - If PR doesn't exist, create it with base branch `main`
    - If PR exists, update the description
    - PR should be ready for review (NOT draft)
 
-**4. Generate comprehensive PR description:**
+**5. Generate comprehensive PR description:**
    - Follow the **"Creating High-Quality PR Descriptions"** section above
    - Use the standard structure: Why / What / How / Walkthrough / Testing
    - No special warnings or dependency context needed
@@ -337,7 +436,11 @@ This workflow creates a draft PR that depends on another unmerged PR (stacked br
 **3. Push to remote:**
    - Push the feature branch: `git push -u origin <branch-name>`
 
-**4. Create DRAFT Pull Request:**
+**4. Complete time tracking:**
+   - Follow the **"Completing Time Tracking"** process in the Time Tracking section
+   - This is for parent beads only (child beads were already rated when closed)
+
+**5. Create DRAFT Pull Request:**
    - **Base branch**: Set to the parent PR's branch (NOT main)
    - **Status**: MUST be draft
    - **Title**: Include `[STACKED]` indicator
@@ -360,7 +463,7 @@ This workflow creates a draft PR that depends on another unmerged PR (stacked br
    - After the warning and dependency context, follow the **"Creating High-Quality PR Descriptions"** section
    - Use the standard structure: Why / What / How / Walkthrough / Testing
 
-**5. Verify configuration:**
+**6. Verify configuration:**
    - Confirm PR is in draft status
    - Confirm base branch is the parent PR's branch
    - Confirm warning and dependency context are prominently displayed
@@ -416,13 +519,44 @@ This workflow promotes a draft stacked PR to ready-for-review after its base PR 
    - If NOT merged, inform user and wait
 
 **3. Fetch and rebase onto main:**
+
+   **CRITICAL: Use `git rebase --onto` to avoid replaying base commits that are already in main!**
+
    ```bash
-   git fetch origin
+   # Fetch latest from origin (including the merged base PR)
+   git fetch origin --prune
+
+   # Checkout the stacked branch
    git checkout <feature-branch>
-   git rebase origin/main
+
+   # Find the base commit (last commit of the base branch)
+   git log --oneline --graph --decorate -20
+   # Look for the commit right before your stacked commits started
+   # This is typically the last commit from the base branch
+
+   # Rebase ONLY the stacked commits onto main
+   git rebase --onto origin/main <base-commit-hash>
    ```
-   - Handle conflicts if they arise (pause and ask user for guidance)
-   - Clean rebase expected for well-structured stacks
+
+   **Example:**
+   If your branch history shows:
+   ```
+   * abc1234 (HEAD) Your stacked commit 3
+   * def5678 Your stacked commit 2
+   * ghi9012 Your stacked commit 1
+   * jkl3456 Last commit from base branch  <-- This is your <base-commit-hash>
+   * mno7890 Base branch commit
+   ```
+
+   Use: `git rebase --onto origin/main jkl3456`
+
+   This rebases only commits `ghi9012`, `def5678`, and `abc1234` onto main,
+   avoiding conflicts from commits that are already merged.
+
+   **Troubleshooting:**
+   - If you get conflicts about changes already in main, you likely used the wrong base commit
+   - Handle genuine conflicts by pausing and asking user for guidance
+   - Clean rebase expected for well-structured stacks with correct base commit
 
 **4. Force push safely:**
    ```bash
@@ -527,6 +661,44 @@ mvn clean verify
 - Verify workflow configuration targets main branch
 - Check `.github/workflows/` for PR triggers
 
+### After PR is Merged
+
+**When a PR is merged to main:**
+
+This workflow completes the development cycle by closing the bead and updating the Jira ticket status.
+
+**Steps:**
+
+**1. Close the bead:**
+   ```bash
+   bd close <bead-id>
+   ```
+   - Provide a brief reason mentioning the merged PR
+   - Example: "PR #28 merged to main. Successfully added appID and appName fields to VulnLight record."
+
+**2. Update Jira status to "Ready to Deploy":**
+   - Use the Atlassian MCP to transition the Jira ticket
+   - Transition to "Ready to Deploy" status (NOT "Closed")
+   - "Closed" status is reserved for when code is actually released/deployed
+   - Example:
+   ```python
+   mcp__atlassian__transitionJiraIssue(
+       cloudId="https://contrast.atlassian.net",
+       issueIdOrKey="AIML-XXX",
+       transition={"id": "51"}  # "Ready to Deploy" transition
+   )
+   ```
+
+**3. Check for dependent beads/PRs:**
+   - If this was a base PR for stacked PRs, the dependent PRs can now be promoted
+   - Check for beads with `stacked-branch` label that depend on this one
+   - Follow the "Promoting Stacked PR to Ready for Review" workflow for each dependent PR
+
+**Rationale:**
+- "Ready to Deploy" indicates the code is merged and ready for the next release
+- "Closed" should only be used when the code is actually deployed/released to production
+- This allows tracking what code is ready to go out in the next release vs what's already deployed
+
 ### Landing the Plane
 
 **When user says "let's land the plane":**
@@ -559,4 +731,6 @@ This workflow is for ending the current session while preserving all state so wo
 
 **Cannot close parent beads** if they still have open children. Ensure all child beads are closed first.
 
-Beads typically remain `in_progress` (with `in-review` label) until the PR review is complete and merged. Only close beads when explicitly instructed by the user.
+**For child beads:** When closing a child bead, complete time tracking using the **"Completing Time Tracking"** process in the Time Tracking section. This captures the time spent on that specific subtask.
+
+**For parent beads:** Time tracking is completed when the PR is created, not when the bead is closed. Beads typically remain `in_progress` (with `in-review` label) until the PR review is complete and merged. Only close beads when explicitly instructed by the user.

@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.data;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.FilterHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.Application;
@@ -41,46 +41,38 @@ class AttackSummaryTest {
     var summary = AttackSummary.fromAttack(attack);
 
     // Then: All timestamp strings should be in ISO 8601 format
-    assertNotNull(summary.startTime(), "startTime should not be null");
-    assertNotNull(summary.endTime(), "endTime should not be null");
-    assertNotNull(summary.firstEventTime(), "firstEventTime should not be null");
-    assertNotNull(summary.lastEventTime(), "lastEventTime should not be null");
+    assertThat(summary.startTime()).as("startTime should not be null").isNotNull();
+    assertThat(summary.endTime()).as("endTime should not be null").isNotNull();
+    assertThat(summary.firstEventTime()).as("firstEventTime should not be null").isNotNull();
+    assertThat(summary.lastEventTime()).as("lastEventTime should not be null").isNotNull();
 
     // Verify ISO 8601 format with timezone offset
-    assertTrue(
-        summary.startTime().matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"),
-        "startTime should match ISO 8601 format: " + summary.startTime());
-    assertTrue(
-        summary.endTime().matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"),
-        "endTime should match ISO 8601 format: " + summary.endTime());
-    assertTrue(
-        summary
-            .firstEventTime()
-            .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"),
-        "firstEventTime should match ISO 8601 format: " + summary.firstEventTime());
-    assertTrue(
-        summary
-            .lastEventTime()
-            .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"),
-        "lastEventTime should match ISO 8601 format: " + summary.lastEventTime());
+    assertThat(summary.startTime())
+        .as("startTime should match ISO 8601 format: " + summary.startTime())
+        .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}");
+    assertThat(summary.endTime())
+        .as("endTime should match ISO 8601 format: " + summary.endTime())
+        .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}");
+    assertThat(summary.firstEventTime())
+        .as("firstEventTime should match ISO 8601 format: " + summary.firstEventTime())
+        .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}");
+    assertThat(summary.lastEventTime())
+        .as("lastEventTime should match ISO 8601 format: " + summary.lastEventTime())
+        .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}");
 
     // Verify timestamps match expected FilterHelper output
-    assertEquals(
-        FilterHelper.formatTimestamp(attack.getStart_time()),
-        summary.startTime(),
-        "startTime should match FilterHelper.formatTimestamp output");
-    assertEquals(
-        FilterHelper.formatTimestamp(attack.getEnd_time()),
-        summary.endTime(),
-        "endTime should match FilterHelper.formatTimestamp output");
-    assertEquals(
-        FilterHelper.formatTimestamp(attack.getFirst_event_time()),
-        summary.firstEventTime(),
-        "firstEventTime should match FilterHelper.formatTimestamp output");
-    assertEquals(
-        FilterHelper.formatTimestamp(attack.getLast_event_time()),
-        summary.lastEventTime(),
-        "lastEventTime should match FilterHelper.formatTimestamp output");
+    assertThat(summary.startTime())
+        .as("startTime should match FilterHelper.formatTimestamp output")
+        .isEqualTo(FilterHelper.formatTimestamp(attack.getStart_time()));
+    assertThat(summary.endTime())
+        .as("endTime should match FilterHelper.formatTimestamp output")
+        .isEqualTo(FilterHelper.formatTimestamp(attack.getEnd_time()));
+    assertThat(summary.firstEventTime())
+        .as("firstEventTime should match FilterHelper.formatTimestamp output")
+        .isEqualTo(FilterHelper.formatTimestamp(attack.getFirst_event_time()));
+    assertThat(summary.lastEventTime())
+        .as("lastEventTime should match FilterHelper.formatTimestamp output")
+        .isEqualTo(FilterHelper.formatTimestamp(attack.getLast_event_time()));
   }
 
   @Test
@@ -92,22 +84,18 @@ class AttackSummaryTest {
     var summary = AttackSummary.fromAttack(attack);
 
     // Then: Millisecond timestamps should be preserved exactly
-    assertEquals(
-        attack.getStart_time(),
-        summary.startTimeMs(),
-        "startTimeMs should preserve original millisecond value");
-    assertEquals(
-        attack.getEnd_time(),
-        summary.endTimeMs(),
-        "endTimeMs should preserve original millisecond value");
-    assertEquals(
-        attack.getFirst_event_time(),
-        summary.firstEventTimeMs(),
-        "firstEventTimeMs should preserve original millisecond value");
-    assertEquals(
-        attack.getLast_event_time(),
-        summary.lastEventTimeMs(),
-        "lastEventTimeMs should preserve original millisecond value");
+    assertThat(summary.startTimeMs())
+        .as("startTimeMs should preserve original millisecond value")
+        .isEqualTo(attack.getStart_time());
+    assertThat(summary.endTimeMs())
+        .as("endTimeMs should preserve original millisecond value")
+        .isEqualTo(attack.getEnd_time());
+    assertThat(summary.firstEventTimeMs())
+        .as("firstEventTimeMs should preserve original millisecond value")
+        .isEqualTo(attack.getFirst_event_time());
+    assertThat(summary.lastEventTimeMs())
+        .as("lastEventTimeMs should preserve original millisecond value")
+        .isEqualTo(attack.getLast_event_time());
   }
 
   @Test
@@ -119,26 +107,24 @@ class AttackSummaryTest {
     var appInfo = AttackSummary.ApplicationAttackInfo.fromAttackApplication(attackApp);
 
     // Then: Timestamp strings should be in ISO 8601 format
-    assertNotNull(appInfo.startTime(), "startTime should not be null");
-    assertNotNull(appInfo.endTime(), "endTime should not be null");
+    assertThat(appInfo.startTime()).as("startTime should not be null").isNotNull();
+    assertThat(appInfo.endTime()).as("endTime should not be null").isNotNull();
 
     // Verify ISO 8601 format with timezone offset
-    assertTrue(
-        appInfo.startTime().matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"),
-        "startTime should match ISO 8601 format: " + appInfo.startTime());
-    assertTrue(
-        appInfo.endTime().matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"),
-        "endTime should match ISO 8601 format: " + appInfo.endTime());
+    assertThat(appInfo.startTime())
+        .as("startTime should match ISO 8601 format: " + appInfo.startTime())
+        .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}");
+    assertThat(appInfo.endTime())
+        .as("endTime should match ISO 8601 format: " + appInfo.endTime())
+        .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}");
 
     // Verify timestamps match expected FilterHelper output
-    assertEquals(
-        FilterHelper.formatTimestamp(attackApp.getStartTime()),
-        appInfo.startTime(),
-        "startTime should match FilterHelper.formatTimestamp output");
-    assertEquals(
-        FilterHelper.formatTimestamp(attackApp.getEndTime()),
-        appInfo.endTime(),
-        "endTime should match FilterHelper.formatTimestamp output");
+    assertThat(appInfo.startTime())
+        .as("startTime should match FilterHelper.formatTimestamp output")
+        .isEqualTo(FilterHelper.formatTimestamp(attackApp.getStartTime()));
+    assertThat(appInfo.endTime())
+        .as("endTime should match FilterHelper.formatTimestamp output")
+        .isEqualTo(FilterHelper.formatTimestamp(attackApp.getEndTime()));
   }
 
   @Test
@@ -150,14 +136,12 @@ class AttackSummaryTest {
     var appInfo = AttackSummary.ApplicationAttackInfo.fromAttackApplication(attackApp);
 
     // Then: Millisecond timestamps should be preserved exactly
-    assertEquals(
-        attackApp.getStartTime(),
-        appInfo.startTimeMs(),
-        "startTimeMs should preserve original millisecond value");
-    assertEquals(
-        attackApp.getEndTime(),
-        appInfo.endTimeMs(),
-        "endTimeMs should preserve original millisecond value");
+    assertThat(appInfo.startTimeMs())
+        .as("startTimeMs should preserve original millisecond value")
+        .isEqualTo(attackApp.getStartTime());
+    assertThat(appInfo.endTimeMs())
+        .as("endTimeMs should preserve original millisecond value")
+        .isEqualTo(attackApp.getEndTime());
   }
 
   @Test
@@ -170,16 +154,22 @@ class AttackSummaryTest {
     var summary = AttackSummary.fromAttack(attack);
 
     // Then: Attack timestamps should be formatted
-    assertTrue(
-        summary.startTime().matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"),
-        "Attack startTime should match ISO 8601 format");
+    assertThat(
+            summary
+                .startTime()
+                .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"))
+        .as("Attack startTime should match ISO 8601 format")
+        .isTrue();
 
     // And: Application timestamps should also be formatted
-    assertFalse(summary.applications().isEmpty(), "Should have application info");
+    assertThat(summary.applications().isEmpty()).as("Should have application info").isFalse();
     var appInfo = summary.applications().get(0);
-    assertTrue(
-        appInfo.startTime().matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"),
-        "Application startTime should match ISO 8601 format");
+    assertThat(
+            appInfo
+                .startTime()
+                .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"))
+        .as("Application startTime should match ISO 8601 format")
+        .isTrue();
   }
 
   @Test
@@ -195,14 +185,17 @@ class AttackSummaryTest {
     var expectedFormat = FilterHelper.formatTimestamp(TEST_TIMESTAMP);
 
     // Verify the format matches the pattern used throughout the codebase
-    assertTrue(
-        summary.startTime().matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"),
-        "Timestamp format should be consistent with other MCP tools");
+    assertThat(
+            summary
+                .startTime()
+                .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}"))
+        .as("Timestamp format should be consistent with other MCP tools")
+        .isTrue();
 
     // Should NOT match old Date.toString() format (e.g., "Thu Jan 15 10:30:00 EST 2025")
-    assertFalse(
-        summary.startTime().matches("\\w{3} \\w{3} \\d{2} \\d{2}:\\d{2}:\\d{2} \\w+ \\d{4}"),
-        "Should NOT use legacy Date.toString() format");
+    assertThat(summary.startTime().matches("\\w{3} \\w{3} \\d{2} \\d{2}:\\d{2}:\\d{2} \\w+ \\d{4}"))
+        .as("Should NOT use legacy Date.toString() format")
+        .isFalse();
   }
 
   // ========== Helper Methods ==========
