@@ -40,10 +40,15 @@ public class McpContrastApplication {
 	}
 
 	@Bean
-	public ApplicationRunner logVersion(BuildProperties buildProperties) {
+	public ApplicationRunner logVersion(org.springframework.beans.factory.ObjectProvider<BuildProperties> buildPropertiesProvider) {
 		return args -> {
+			BuildProperties buildProperties = buildPropertiesProvider.getIfAvailable();
 			logger.info("=".repeat(60));
-			logger.info("Contrast MCP Server - Version {}", buildProperties.getVersion());
+			if (buildProperties != null) {
+				logger.info("Contrast MCP Server - Version {}", buildProperties.getVersion());
+			} else {
+				logger.info("Contrast MCP Server - Version information not available");
+			}
 			logger.info("=".repeat(60));
 		};
 	}
