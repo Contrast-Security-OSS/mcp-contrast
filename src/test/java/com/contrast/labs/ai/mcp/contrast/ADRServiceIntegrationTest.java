@@ -187,7 +187,7 @@ public class ADRServiceIntegrationTest {
 
     } catch (Exception e) {
       String errorMsg = "❌ ERROR during test data discovery: " + e.getMessage();
-      log.error("\n{}", errorMsg);
+      log.error("\n❌ ERROR during test data discovery: {}", e.getMessage());
       e.printStackTrace();
       fail(errorMsg);
     }
@@ -282,10 +282,9 @@ public class ADRServiceIntegrationTest {
     assertThat(response.getRules().size()).as("Should have at least 1 rule").isGreaterThan(0);
 
     log.info(
-        "✓ Retrieved "
-            + response.getRules().size()
-            + " Protect rules for application: "
-            + testData.appName);
+        "✓ Retrieved {} Protect rules for application: {}",
+        response.getRules().size(),
+        testData.appName);
 
     // Print rule details
     log.info("  Rules configured:");
@@ -329,10 +328,7 @@ public class ADRServiceIntegrationTest {
       log.info("  Message: {}", e.getMessage());
     }
 
-    // Either exception or graceful handling is acceptable
-    assertThat(true)
-        .as("Test passes if either exception thrown or graceful handling occurs")
-        .isTrue();
+    // Either exception or graceful handling is acceptable - test passes in both cases
   }
 
   @Test
