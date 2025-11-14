@@ -15,17 +15,19 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import com.contrast.labs.ai.mcp.contrast.data.AttackSummary;
-import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.Attack;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksFilterBody;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksResponse;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.Attack;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksFilterBody;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksResponse;
 import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
 import com.contrastsecurity.sdk.ContrastSDK;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,710 +38,810 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Test suite for ADRService, focusing on consolidated getAttacks method.
- */
+/** Test suite for ADRService, focusing on consolidated getAttacks method. */
 @ExtendWith(MockitoExtension.class)
 class ADRServiceTest {
 
-    private ADRService adrService;
-    private ContrastSDK mockContrastSDK;
-    private MockedStatic<SDKHelper> mockedSDKHelper;
-    private MockedConstruction<SDKExtension> mockedSDKExtension;
+  private ADRService adrService;
+  private ContrastSDK mockContrastSDK;
+  private MockedStatic<SDKHelper> mockedSDKHelper;
+  private MockedConstruction<SDKExtension> mockedSDKExtension;
 
-    private static final String TEST_ORG_ID = "test-org-123";
-    private static final String TEST_HOST = "https://test.contrast.local";
-    private static final String TEST_API_KEY = "test-api-key";
-    private static final String TEST_SERVICE_KEY = "test-service-key";
-    private static final String TEST_USERNAME = "test-user";
-    private static final String TEST_APP_ID = "test-app-456";
+  private static final String TEST_ORG_ID = "test-org-123";
+  private static final String TEST_HOST = "https://test.contrast.local";
+  private static final String TEST_API_KEY = "test-api-key";
+  private static final String TEST_SERVICE_KEY = "test-service-key";
+  private static final String TEST_USERNAME = "test-user";
+  private static final String TEST_APP_ID = "test-app-456";
 
-    @BeforeEach
-    void setUp() throws Exception {
-        adrService = new ADRService(new PaginationHandler());
-        mockContrastSDK = mock(ContrastSDK.class);
+  @BeforeEach
+  void setUp() throws Exception {
+    adrService = new ADRService(new PaginationHandler());
+    mockContrastSDK = mock(ContrastSDK.class);
 
-        // Mock static SDKHelper
-        mockedSDKHelper = mockStatic(SDKHelper.class);
-        mockedSDKHelper.when(() -> SDKHelper.getSDK(
-            anyString(), anyString(), anyString(), anyString(), anyString(), anyString()
-        )).thenReturn(mockContrastSDK);
+    // Mock static SDKHelper
+    mockedSDKHelper = mockStatic(SDKHelper.class);
+    mockedSDKHelper
+        .when(
+            () ->
+                SDKHelper.getSDK(
+                    anyString(), anyString(), anyString(), anyString(), anyString(), anyString()))
+        .thenReturn(mockContrastSDK);
 
-        // Set required configuration fields
-        ReflectionTestUtils.setField(adrService, "orgID", TEST_ORG_ID);
-        ReflectionTestUtils.setField(adrService, "hostName", TEST_HOST);
-        ReflectionTestUtils.setField(adrService, "apiKey", TEST_API_KEY);
-        ReflectionTestUtils.setField(adrService, "serviceKey", TEST_SERVICE_KEY);
-        ReflectionTestUtils.setField(adrService, "userName", TEST_USERNAME);
-        ReflectionTestUtils.setField(adrService, "httpProxyHost", "");
-        ReflectionTestUtils.setField(adrService, "httpProxyPort", "");
+    // Set required configuration fields
+    ReflectionTestUtils.setField(adrService, "orgID", TEST_ORG_ID);
+    ReflectionTestUtils.setField(adrService, "hostName", TEST_HOST);
+    ReflectionTestUtils.setField(adrService, "apiKey", TEST_API_KEY);
+    ReflectionTestUtils.setField(adrService, "serviceKey", TEST_SERVICE_KEY);
+    ReflectionTestUtils.setField(adrService, "userName", TEST_USERNAME);
+    ReflectionTestUtils.setField(adrService, "httpProxyHost", "");
+    ReflectionTestUtils.setField(adrService, "httpProxyPort", "");
+  }
+
+  @AfterEach
+  void tearDown() {
+    if (mockedSDKHelper != null) {
+      mockedSDKHelper.close();
+    }
+    if (mockedSDKExtension != null) {
+      mockedSDKExtension.close();
+    }
+  }
+
+  // ========== Test: No Filters (All Attacks) ==========
+
+  @Test
+  void testGetAttacks_NoFilters_ReturnsAllAttacks() throws Exception {
+    // Given
+    var mockResponse = createMockAttacksResponse(3, null);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                  .thenReturn(mockResponse);
+            });
+
+    // When
+    var result = adrService.getAttacks(null, null, null, null, null, null, null, null);
+
+    // Then
+    assertEquals(3, result.items().size());
+    assertEquals("attack-uuid-0", result.items().get(0).attackId());
+    assertEquals("attack-uuid-1", result.items().get(1).attackId());
+    assertEquals("attack-uuid-2", result.items().get(2).attackId());
+    assertEquals(1, result.page());
+    assertEquals(50, result.pageSize());
+    assertFalse(result.hasMorePages());
+  }
+
+  // ========== Test: QuickFilter ==========
+
+  @Test
+  void testGetAttacks_WithQuickFilter_PassesFilterToSDK() throws Exception {
+    // Given
+    var mockResponse = createMockAttacksResponse(2, null);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                  .thenReturn(mockResponse);
+            });
+
+    // When
+    adrService.getAttacks("PROBED", null, null, null, null, null, null, null);
+
+    // Then
+    var extension = mockedSDKExtension.constructed().get(0);
+    var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
+    verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
+
+    assertEquals("PROBED", captor.getValue().getQuickFilter());
+  }
+
+  // ========== Test: Keyword Filter ==========
+
+  @Test
+  void testGetAttacks_WithKeyword_PassesKeywordToSDK() throws Exception {
+    // Given
+    var mockResponse = createMockAttacksResponse(1, null);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                  .thenReturn(mockResponse);
+            });
+
+    // When
+    adrService.getAttacks(null, "sql injection", null, null, null, null, null, null);
+
+    // Then
+    var extension = mockedSDKExtension.constructed().get(0);
+    var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
+    verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
+
+    assertEquals("sql injection", captor.getValue().getKeyword());
+  }
+
+  // ========== Test: Boolean Filters ==========
+
+  @Test
+  void testGetAttacks_WithBooleanFilters_PassesCorrectly() throws Exception {
+    // Given
+    var mockResponse = createMockAttacksResponse(1, null);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                  .thenReturn(mockResponse);
+            });
+
+    // When
+    adrService.getAttacks(null, null, true, false, true, null, null, null);
+
+    // Then
+    var extension = mockedSDKExtension.constructed().get(0);
+    var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
+    verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
+
+    assertEquals(true, captor.getValue().isIncludeSuppressed());
+    assertEquals(false, captor.getValue().isIncludeBotBlockers());
+    assertEquals(true, captor.getValue().isIncludeIpBlacklist());
+  }
+
+  // ========== Test: Pagination Parameters ==========
+
+  @Test
+  void testGetAttacks_WithPaginationParams_PassesToSDK() throws Exception {
+    // Given
+    var mockResponse = createMockAttacksResponse(2, null);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID),
+                      any(AttacksFilterBody.class),
+                      eq(50),
+                      eq(100),
+                      eq("firstEventTime")))
+                  .thenReturn(mockResponse);
+            });
+
+    // When
+    adrService.getAttacks(null, null, null, null, null, "firstEventTime", 3, 50);
+
+    // Then
+    var extension = mockedSDKExtension.constructed().get(0);
+    verify(extension)
+        .getAttacks(
+            eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(100), eq("firstEventTime"));
+  }
+
+  // ========== Test: Combined Filters ==========
+
+  @Test
+  void testGetAttacks_WithMultipleFilters_AllPassedCorrectly() throws Exception {
+    // Given
+    var mockResponse = createMockAttacksResponse(1, null);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID),
+                      any(AttacksFilterBody.class),
+                      eq(25),
+                      eq(50),
+                      eq("severity")))
+                  .thenReturn(mockResponse);
+            });
+
+    // When
+    adrService.getAttacks("EXPLOITED", "xss", true, true, false, "severity", 3, 25);
+
+    // Then
+    var extension = mockedSDKExtension.constructed().get(0);
+    var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
+    verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(25), eq(50), eq("severity"));
+
+    var filter = captor.getValue();
+    assertEquals("EXPLOITED", filter.getQuickFilter());
+    assertEquals("xss", filter.getKeyword());
+    assertTrue(filter.isIncludeSuppressed());
+    assertTrue(filter.isIncludeBotBlockers());
+    assertFalse(filter.isIncludeIpBlacklist());
+  }
+
+  // ========== Test: Empty Results ==========
+
+  @Test
+  void testGetAttacks_EmptyResults_ReturnsEmptyList() throws Exception {
+    // Given
+    var emptyResponse = createMockAttacksResponse(0, 0);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                  .thenReturn(emptyResponse);
+            });
+
+    // When
+    var result = adrService.getAttacks(null, null, null, null, null, null, null, null);
+
+    // Then
+    assertNotNull(result);
+    assertTrue(result.items().isEmpty());
+    assertFalse(result.hasMorePages());
+    assertNotNull(result.message(), "Empty results should have explanatory message");
+    assertTrue(
+        result.message().contains("No items found"), "Message should explain empty results to AI");
+  }
+
+  // ========== Test: Null Results ==========
+
+  @Test
+  void testGetAttacks_NullResults_ReturnsEmptyList() throws Exception {
+    // Given
+    var nullResponse = new AttacksResponse();
+    nullResponse.setAttacks(null); // Simulate null attacks list
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                  .thenReturn(nullResponse);
+            });
+
+    // When
+    var result = adrService.getAttacks(null, null, null, null, null, null, null, null);
+
+    // Then
+    assertNotNull(result);
+    assertTrue(result.items().isEmpty());
+  }
+
+  // ========== Test: SDK Exception ==========
+
+  @Test
+  void testGetAttacks_SDKThrowsException_PropagatesException() throws Exception {
+    // Given
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                  .thenThrow(new RuntimeException("API connection failed"));
+            });
+
+    // When/Then
+    var exception =
+        assertThrows(
+            Exception.class,
+            () -> {
+              adrService.getAttacks(null, null, null, null, null, null, null, null);
+            });
+
+    assertTrue(
+        exception.getMessage().contains("API connection failed")
+            || exception.getCause() != null
+                && exception.getCause().getMessage().contains("API connection failed"));
+  }
+
+  // ========== Test: Null Filters Don't Override Defaults ==========
+
+  @Test
+  void testGetAttacks_NullFilters_DoesNotSetFilterBodyFields() throws Exception {
+    // Given
+    var mockResponse = createMockAttacksResponse(1, null);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                  .thenReturn(mockResponse);
+            });
+
+    // When
+    adrService.getAttacks(null, null, null, null, null, null, null, null);
+
+    // Then
+    var extension = mockedSDKExtension.constructed().get(0);
+    var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
+    verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
+
+    var filter = captor.getValue();
+    // Verify null parameters didn't set fields (they should remain at constructor defaults)
+    assertNotNull(filter); // Filter body is created but fields remain unset
+  }
+
+  // ========== Pagination Tests ==========
+
+  @Test
+  void testGetAttacks_WithTotalCount_ProvidesAccurateHasMorePages() throws Exception {
+    // Given: API returns 50 items with totalCount=150 (3 pages total)
+    var mockResponse = createMockAttacksResponse(50, 150);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                  .thenReturn(mockResponse);
+            });
+
+    // When
+    var result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
+
+    // Then
+    assertEquals(50, result.items().size());
+    assertEquals(1, result.page());
+    assertEquals(50, result.pageSize());
+    assertEquals(150, result.totalItems());
+    assertTrue(result.hasMorePages(), "Should have more pages (page 1 of 3)");
+  }
+
+  @Test
+  void testGetAttacks_LastPage_WithTotalCount_HasMorePagesFalse() throws Exception {
+    // Given: Page 3 of 3 (offset=100, returns 50 items, total=150)
+    var mockResponse = createMockAttacksResponse(50, 150);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(100), isNull()))
+                  .thenReturn(mockResponse);
+            });
+
+    // When
+    var result = adrService.getAttacks(null, null, null, null, null, null, 3, 50);
+
+    // Then
+    assertEquals(50, result.items().size());
+    assertEquals(3, result.page());
+    assertEquals(50, result.pageSize());
+    assertEquals(150, result.totalItems());
+    assertFalse(result.hasMorePages(), "Last page should have hasMorePages=false");
+  }
+
+  @Test
+  void testGetAttacks_InvalidPageSize_ClampsAndWarns() throws Exception {
+    // Given
+    var mockResponse = createMockAttacksResponse(100, 200);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              // Should be clamped to 100 (max)
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(100), eq(0), isNull()))
+                  .thenReturn(mockResponse);
+            });
+
+    // When: Request pageSize=500 (exceeds max of 100)
+    var result = adrService.getAttacks(null, null, null, null, null, null, 1, 500);
+
+    // Then
+    assertEquals(100, result.pageSize(), "PageSize should be clamped to 100");
+    assertNotNull(result.message(), "Should have warning message");
+    assertTrue(result.message().contains("500"), "Message should mention original value");
+    assertTrue(result.message().contains("100"), "Message should mention clamped value");
+  }
+
+  @Test
+  void testGetAttacks_InvalidPage_ClampsAndWarns() throws Exception {
+    // Given
+    var mockResponse = createMockAttacksResponse(50, null);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              // Should be clamped to page 1 (offset=0)
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                  .thenReturn(mockResponse);
+            });
+
+    // When: Request page=0 or negative (invalid)
+    var result = adrService.getAttacks(null, null, null, null, null, null, 0, 50);
+
+    // Then
+    assertEquals(1, result.page(), "Page should be clamped to 1");
+    assertNotNull(result.message(), "Should have warning message");
+    assertTrue(result.message().contains("Invalid page"), "Message should indicate invalid page");
+  }
+
+  @Test
+  void testGetAttacks_WithoutTotalCount_UsesHeuristic() throws Exception {
+    // Given: Full page of results (50 items), no totalCount
+    var mockResponse = createMockAttacksResponse(50, null);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                  .thenReturn(mockResponse);
+            });
+
+    // When
+    var result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
+
+    // Then
+    assertNull(result.totalItems(), "TotalItems should be null when not provided");
+    assertTrue(result.hasMorePages(), "Heuristic: full page suggests more pages exist");
+  }
+
+  @Test
+  void testGetAttacks_PartialPageWithoutCount_NoMorePages() throws Exception {
+    // Given: Partial page (25 items when pageSize=50), no totalCount
+    var mockResponse = createMockAttacksResponse(25, null);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                  .thenReturn(mockResponse);
+            });
+
+    // When
+    var result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
+
+    // Then
+    assertEquals(25, result.items().size());
+    assertNull(result.totalItems(), "TotalItems should be null when not provided");
+    assertFalse(result.hasMorePages(), "Heuristic: partial page suggests no more pages");
+  }
+
+  // ========== Test: Smart Defaults and Messages ==========
+
+  @Test
+  void testGetAttacks_SmartDefaults_ReturnsMessages() throws Exception {
+    // Given: No filters provided, should use smart defaults
+    var mockResponse = createMockAttacksResponse(10, null);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                  .thenReturn(mockResponse);
+            });
+
+    // When: No filters provided
+    var result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
+
+    // Then: Should have messages about smart defaults
+    assertNotNull(result.message(), "Should have messages about smart defaults");
+    assertTrue(
+        result.message().contains("No quickFilter applied"),
+        "Should have message about quickFilter default");
+    assertTrue(
+        result.message().contains("Excluding suppressed attacks by default"),
+        "Should have message about includeSuppressed default");
+  }
+
+  @Test
+  void testGetAttacks_ExplicitFilters_NoSmartDefaultMessages() throws Exception {
+    // Given: Explicit filters provided
+    var mockResponse = createMockAttacksResponse(5, null);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                  .thenReturn(mockResponse);
+            });
+
+    // When: Explicit filters provided
+    var result = adrService.getAttacks("EXPLOITED", null, true, null, null, null, 1, 50);
+
+    // Then: Should NOT have smart default messages
+    if (result.message() != null) {
+      assertFalse(
+          result.message().contains("No quickFilter applied"),
+          "Should not have quickFilter message when explicitly provided");
+      assertFalse(
+          result.message().contains("Excluding suppressed attacks by default"),
+          "Should not have includeSuppressed message when explicitly provided");
+    }
+  }
+
+  @Test
+  void testGetAttacks_InvalidQuickFilter_ReturnsError() throws Exception {
+    // When: Invalid quickFilter provided
+    var result = adrService.getAttacks("INVALID_FILTER", null, null, null, null, null, 1, 50);
+
+    // Then: Should return error response with descriptive message
+    assertNotNull(result.message(), "Should have error message");
+    assertTrue(
+        result.message().contains("Invalid quickFilter 'INVALID_FILTER'"),
+        "Should explain the invalid quickFilter");
+    assertTrue(
+        result.message().contains("Valid: EXPLOITED, PROBED, BLOCKED, INEFFECTIVE, ALL"),
+        "Should list valid options");
+    assertEquals(0, result.items().size(), "Should return empty items on error");
+  }
+
+  @Test
+  void testGetAttacks_InvalidSort_ReturnsError() throws Exception {
+    // When: Invalid sort format provided
+    var result =
+        adrService.getAttacks("EXPLOITED", null, false, null, null, "invalid sort!", 1, 50);
+
+    // Then: Should return error response with descriptive message
+    assertNotNull(result.message(), "Should have error message");
+    assertTrue(
+        result.message().contains("Invalid sort format 'invalid sort!'"),
+        "Should explain the invalid sort format");
+    assertTrue(
+        result.message().contains("Must be a field name with optional '-' prefix"),
+        "Should explain the correct format");
+    assertEquals(0, result.items().size(), "Should return empty items on error");
+  }
+
+  @Test
+  void testGetAttacks_MultipleValidationErrors_CombinesErrors() throws Exception {
+    // When: Multiple invalid parameters provided
+    var result = adrService.getAttacks("BAD_FILTER", null, null, null, null, "bad-format!", 1, 50);
+
+    // Then: Should return combined error messages
+    assertNotNull(result.message(), "Should have error message");
+    assertTrue(
+        result.message().contains("Invalid quickFilter"), "Should include quickFilter error");
+    assertTrue(result.message().contains("Invalid sort format"), "Should include sort error");
+    assertEquals(0, result.items().size(), "Should return empty items on error");
+  }
+
+  // ========== Tests for get_ADR_Protect_Rules_by_app_id ==========
+
+  @Test
+  void testGetProtectDataByAppID_Success() throws Exception {
+    // Given
+    var mockProtectData = createMockProtectData(3);
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                  .thenReturn(mockProtectData);
+            });
+
+    // When
+    var result = adrService.getProtectDataByAppID(TEST_APP_ID);
+
+    // Then
+    assertNotNull(result, "Result should not be null");
+    assertNotNull(result.getRules(), "Rules should not be null");
+    assertEquals(3, result.getRules().size(), "Should have 3 protect rules");
+  }
+
+  @Test
+  void testGetProtectDataByAppID_WithRules() throws Exception {
+    // Given
+    var mockProtectData = createMockProtectDataWithRules();
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                  .thenReturn(mockProtectData);
+            });
+
+    // When
+    var result = adrService.getProtectDataByAppID(TEST_APP_ID);
+
+    // Then
+    assertNotNull(result);
+    assertNotNull(result.getRules());
+    assertFalse(result.getRules().isEmpty());
+
+    // Verify rule details
+    var firstRule = result.getRules().get(0);
+    assertNotNull(firstRule.getName(), "Rule should have a name");
+    assertNotNull(firstRule.getProduction(), "Rule should have a production mode");
+  }
+
+  @Test
+  void testGetProtectDataByAppID_EmptyAppID() {
+    // When/Then
+    var exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> {
+              adrService.getProtectDataByAppID("");
+            });
+
+    assertTrue(
+        exception.getMessage().contains("Application ID cannot be null or empty"),
+        "Should have descriptive error message");
+  }
+
+  @Test
+  void testGetProtectDataByAppID_NullAppID() {
+    // When/Then
+    var exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> {
+              adrService.getProtectDataByAppID(null);
+            });
+
+    assertTrue(
+        exception.getMessage().contains("Application ID cannot be null or empty"),
+        "Should have descriptive error message");
+  }
+
+  @Test
+  void testGetProtectDataByAppID_SDKFailure() throws Exception {
+    // Given - SDK throws exception
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getProtectConfig(eq(TEST_ORG_ID), anyString()))
+                  .thenThrow(new RuntimeException("Failed to fetch protect config"));
+            });
+
+    // When/Then
+    var exception =
+        assertThrows(
+            Exception.class,
+            () -> {
+              adrService.getProtectDataByAppID(TEST_APP_ID);
+            });
+
+    assertTrue(
+        exception.getMessage().contains("Failed to fetch protect config")
+            || (exception.getCause() != null
+                && exception.getCause().getMessage().contains("Failed to fetch protect config")),
+        "Should propagate SDK exception");
+  }
+
+  @Test
+  void testGetProtectDataByAppID_NoProtectDataReturned() throws Exception {
+    // Given - SDK returns null (app exists but no protect config)
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID))).thenReturn(null);
+            });
+
+    // When
+    var result = adrService.getProtectDataByAppID(TEST_APP_ID);
+
+    // Then
+    assertNull(result, "Should return null when no protect data available");
+  }
+
+  @Test
+  void testGetProtectDataByAppID_EmptyRulesList() throws Exception {
+    // Given - Protect enabled but no rules configured
+    var mockProtectData = new com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData();
+    mockProtectData.setRules(new ArrayList<>());
+
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                  .thenReturn(mockProtectData);
+            });
+
+    // When
+    var result = adrService.getProtectDataByAppID(TEST_APP_ID);
+
+    // Then
+    assertNotNull(result);
+    assertNotNull(result.getRules());
+    assertTrue(result.getRules().isEmpty(), "Should have empty rules list");
+  }
+
+  // ========== Helper Methods ==========
+
+  /** Creates mock AttacksResponse for testing */
+  private AttacksResponse createMockAttacksResponse(int count, Integer totalCount) {
+    var response = new AttacksResponse();
+    response.setAttacks(createMockAttacks(count));
+    response.setCount(totalCount);
+    return response;
+  }
+
+  /** Creates mock Attack objects for testing */
+  private List<Attack> createMockAttacks(int count) {
+    var attacks = new ArrayList<Attack>();
+    var baseTime = System.currentTimeMillis();
+
+    for (int i = 0; i < count; i++) {
+      var attack = new Attack();
+      attack.setUuid("attack-uuid-" + i);
+      attack.setStatus("PROBED");
+      attack.setSource("192.168.1." + (100 + i));
+      attack.setRules(List.of("sql-injection", "xss-reflected"));
+      attack.setProbes(10 + i);
+      attack.setStart_time(baseTime + (i * 1000));
+      attack.setEnd_time(baseTime + (i * 1000) + 5000);
+      attack.setFirst_event_time(baseTime + (i * 1000));
+      attack.setLast_event_time(baseTime + (i * 1000) + 5000);
+      attack.setAttacksApplication(List.of());
+      attacks.add(attack);
     }
 
-    @AfterEach
-    void tearDown() {
-        if (mockedSDKHelper != null) {
-            mockedSDKHelper.close();
-        }
-        if (mockedSDKExtension != null) {
-            mockedSDKExtension.close();
-        }
+    return attacks;
+  }
+
+  /** Creates mock ProtectData for testing */
+  private com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData createMockProtectData(
+      int ruleCount) {
+    var protectData = new com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData();
+
+    var rules = new ArrayList<com.contrast.labs.ai.mcp.contrast.sdkextension.data.Rule>();
+    for (int i = 0; i < ruleCount; i++) {
+      var rule = new com.contrast.labs.ai.mcp.contrast.sdkextension.data.Rule();
+      rule.setName("protect-rule-" + i);
+      rule.setProduction(i % 2 == 0 ? "block" : "monitor");
+      rules.add(rule);
     }
 
-    // ========== Test: No Filters (All Attacks) ==========
-
-    @Test
-    void testGetAttacks_NoFilters_ReturnsAllAttacks() throws Exception {
-        // Given
-        AttacksResponse mockResponse = createMockAttacksResponse(3, null);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                .thenReturn(mockResponse);
-        });
-
-        // When
-        PaginatedResponse<AttackSummary> result = adrService.getAttacks(null, null, null, null, null, null, null, null);
-
-        // Then
-        assertEquals(3, result.items().size());
-        assertEquals("attack-uuid-0", result.items().get(0).attackId());
-        assertEquals("attack-uuid-1", result.items().get(1).attackId());
-        assertEquals("attack-uuid-2", result.items().get(2).attackId());
-        assertEquals(1, result.page());
-        assertEquals(50, result.pageSize());
-        assertFalse(result.hasMorePages());
-    }
-
-    // ========== Test: QuickFilter ==========
-
-    @Test
-    void testGetAttacks_WithQuickFilter_PassesFilterToSDK() throws Exception {
-        // Given
-        AttacksResponse mockResponse = createMockAttacksResponse(2, null);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                .thenReturn(mockResponse);
-        });
-
-        // When
-        adrService.getAttacks("PROBED", null, null, null, null, null, null, null);
-
-        // Then
-        SDKExtension extension = mockedSDKExtension.constructed().get(0);
-        ArgumentCaptor<AttacksFilterBody> captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
-        verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
-
-        assertEquals("PROBED", captor.getValue().getQuickFilter());
-    }
-
-    // ========== Test: Keyword Filter ==========
-
-    @Test
-    void testGetAttacks_WithKeyword_PassesKeywordToSDK() throws Exception {
-        // Given
-        AttacksResponse mockResponse = createMockAttacksResponse(1, null);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                .thenReturn(mockResponse);
-        });
-
-        // When
-        adrService.getAttacks(null, "sql injection", null, null, null, null, null, null);
-
-        // Then
-        SDKExtension extension = mockedSDKExtension.constructed().get(0);
-        ArgumentCaptor<AttacksFilterBody> captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
-        verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
-
-        assertEquals("sql injection", captor.getValue().getKeyword());
-    }
-
-    // ========== Test: Boolean Filters ==========
-
-    @Test
-    void testGetAttacks_WithBooleanFilters_PassesCorrectly() throws Exception {
-        // Given
-        AttacksResponse mockResponse = createMockAttacksResponse(1, null);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                .thenReturn(mockResponse);
-        });
-
-        // When
-        adrService.getAttacks(null, null, true, false, true, null, null, null);
-
-        // Then
-        SDKExtension extension = mockedSDKExtension.constructed().get(0);
-        ArgumentCaptor<AttacksFilterBody> captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
-        verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
-
-        assertEquals(true, captor.getValue().isIncludeSuppressed());
-        assertEquals(false, captor.getValue().isIncludeBotBlockers());
-        assertEquals(true, captor.getValue().isIncludeIpBlacklist());
-    }
-
-    // ========== Test: Pagination Parameters ==========
-
-    @Test
-    void testGetAttacks_WithPaginationParams_PassesToSDK() throws Exception {
-        // Given
-        AttacksResponse mockResponse = createMockAttacksResponse(2, null);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(100), eq("firstEventTime")))
-                .thenReturn(mockResponse);
-        });
-
-        // When
-        adrService.getAttacks(null, null, null, null, null, "firstEventTime", 3, 50);
-
-        // Then
-        SDKExtension extension = mockedSDKExtension.constructed().get(0);
-        verify(extension).getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(100), eq("firstEventTime"));
-    }
-
-    // ========== Test: Combined Filters ==========
-
-    @Test
-    void testGetAttacks_WithMultipleFilters_AllPassedCorrectly() throws Exception {
-        // Given
-        AttacksResponse mockResponse = createMockAttacksResponse(1, null);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(25), eq(50), eq("severity")))
-                .thenReturn(mockResponse);
-        });
-
-        // When
-        adrService.getAttacks("EXPLOITED", "xss", true, true, false, "severity", 3, 25);
-
-        // Then
-        SDKExtension extension = mockedSDKExtension.constructed().get(0);
-        ArgumentCaptor<AttacksFilterBody> captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
-        verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(25), eq(50), eq("severity"));
-
-        AttacksFilterBody filter = captor.getValue();
-        assertEquals("EXPLOITED", filter.getQuickFilter());
-        assertEquals("xss", filter.getKeyword());
-        assertTrue(filter.isIncludeSuppressed());
-        assertTrue(filter.isIncludeBotBlockers());
-        assertFalse(filter.isIncludeIpBlacklist());
-    }
-
-    // ========== Test: Empty Results ==========
-
-    @Test
-    void testGetAttacks_EmptyResults_ReturnsEmptyList() throws Exception {
-        // Given
-        AttacksResponse emptyResponse = createMockAttacksResponse(0, 0);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                .thenReturn(emptyResponse);
-        });
-
-        // When
-        PaginatedResponse<AttackSummary> result = adrService.getAttacks(null, null, null, null, null, null, null, null);
-
-        // Then
-        assertNotNull(result);
-        assertTrue(result.items().isEmpty());
-        assertFalse(result.hasMorePages());
-        assertNotNull(result.message(), "Empty results should have explanatory message");
-        assertTrue(result.message().contains("No items found"),
-            "Message should explain empty results to AI");
-    }
-
-    // ========== Test: Null Results ==========
-
-    @Test
-    void testGetAttacks_NullResults_ReturnsEmptyList() throws Exception {
-        // Given
-        AttacksResponse nullResponse = new AttacksResponse();
-        nullResponse.setAttacks(null); // Simulate null attacks list
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                .thenReturn(nullResponse);
-        });
-
-        // When
-        PaginatedResponse<AttackSummary> result = adrService.getAttacks(null, null, null, null, null, null, null, null);
-
-        // Then
-        assertNotNull(result);
-        assertTrue(result.items().isEmpty());
-    }
-
-    // ========== Test: SDK Exception ==========
-
-    @Test
-    void testGetAttacks_SDKThrowsException_PropagatesException() throws Exception {
-        // Given
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                .thenThrow(new RuntimeException("API connection failed"));
-        });
-
-        // When/Then
-        Exception exception = assertThrows(Exception.class, () -> {
-            adrService.getAttacks(null, null, null, null, null, null, null, null);
-        });
-
-        assertTrue(exception.getMessage().contains("API connection failed") ||
-                   exception.getCause() != null && exception.getCause().getMessage().contains("API connection failed"));
-    }
-
-    // ========== Test: Null Filters Don't Override Defaults ==========
-
-    @Test
-    void testGetAttacks_NullFilters_DoesNotSetFilterBodyFields() throws Exception {
-        // Given
-        AttacksResponse mockResponse = createMockAttacksResponse(1, null);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                .thenReturn(mockResponse);
-        });
-
-        // When
-        adrService.getAttacks(null, null, null, null, null, null, null, null);
-
-        // Then
-        SDKExtension extension = mockedSDKExtension.constructed().get(0);
-        ArgumentCaptor<AttacksFilterBody> captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
-        verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
-
-        AttacksFilterBody filter = captor.getValue();
-        // Verify null parameters didn't set fields (they should remain at constructor defaults)
-        assertNotNull(filter); // Filter body is created but fields remain unset
-    }
-
-    // ========== Pagination Tests ==========
-
-    @Test
-    void testGetAttacks_WithTotalCount_ProvidesAccurateHasMorePages() throws Exception {
-        // Given: API returns 50 items with totalCount=150 (3 pages total)
-        AttacksResponse mockResponse = createMockAttacksResponse(50, 150);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                .thenReturn(mockResponse);
-        });
-
-        // When
-        PaginatedResponse<AttackSummary> result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
-
-        // Then
-        assertEquals(50, result.items().size());
-        assertEquals(1, result.page());
-        assertEquals(50, result.pageSize());
-        assertEquals(150, result.totalItems());
-        assertTrue(result.hasMorePages(), "Should have more pages (page 1 of 3)");
-    }
-
-    @Test
-    void testGetAttacks_LastPage_WithTotalCount_HasMorePagesFalse() throws Exception {
-        // Given: Page 3 of 3 (offset=100, returns 50 items, total=150)
-        AttacksResponse mockResponse = createMockAttacksResponse(50, 150);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(100), isNull()))
-                .thenReturn(mockResponse);
-        });
-
-        // When
-        PaginatedResponse<AttackSummary> result = adrService.getAttacks(null, null, null, null, null, null, 3, 50);
-
-        // Then
-        assertEquals(50, result.items().size());
-        assertEquals(3, result.page());
-        assertEquals(50, result.pageSize());
-        assertEquals(150, result.totalItems());
-        assertFalse(result.hasMorePages(), "Last page should have hasMorePages=false");
-    }
-
-    @Test
-    void testGetAttacks_InvalidPageSize_ClampsAndWarns() throws Exception {
-        // Given
-        AttacksResponse mockResponse = createMockAttacksResponse(100, 200);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            // Should be clamped to 100 (max)
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(100), eq(0), isNull()))
-                .thenReturn(mockResponse);
-        });
-
-        // When: Request pageSize=500 (exceeds max of 100)
-        PaginatedResponse<AttackSummary> result = adrService.getAttacks(null, null, null, null, null, null, 1, 500);
-
-        // Then
-        assertEquals(100, result.pageSize(), "PageSize should be clamped to 100");
-        assertNotNull(result.message(), "Should have warning message");
-        assertTrue(result.message().contains("500"), "Message should mention original value");
-        assertTrue(result.message().contains("100"), "Message should mention clamped value");
-    }
-
-    @Test
-    void testGetAttacks_InvalidPage_ClampsAndWarns() throws Exception {
-        // Given
-        AttacksResponse mockResponse = createMockAttacksResponse(50, null);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            // Should be clamped to page 1 (offset=0)
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                .thenReturn(mockResponse);
-        });
-
-        // When: Request page=0 or negative (invalid)
-        PaginatedResponse<AttackSummary> result = adrService.getAttacks(null, null, null, null, null, null, 0, 50);
-
-        // Then
-        assertEquals(1, result.page(), "Page should be clamped to 1");
-        assertNotNull(result.message(), "Should have warning message");
-        assertTrue(result.message().contains("Invalid page"), "Message should indicate invalid page");
-    }
-
-    @Test
-    void testGetAttacks_WithoutTotalCount_UsesHeuristic() throws Exception {
-        // Given: Full page of results (50 items), no totalCount
-        AttacksResponse mockResponse = createMockAttacksResponse(50, null);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                .thenReturn(mockResponse);
-        });
-
-        // When
-        PaginatedResponse<AttackSummary> result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
-
-        // Then
-        assertNull(result.totalItems(), "TotalItems should be null when not provided");
-        assertTrue(result.hasMorePages(), "Heuristic: full page suggests more pages exist");
-    }
-
-    @Test
-    void testGetAttacks_PartialPageWithoutCount_NoMorePages() throws Exception {
-        // Given: Partial page (25 items when pageSize=50), no totalCount
-        AttacksResponse mockResponse = createMockAttacksResponse(25, null);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                .thenReturn(mockResponse);
-        });
-
-        // When
-        PaginatedResponse<AttackSummary> result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
-
-        // Then
-        assertEquals(25, result.items().size());
-        assertNull(result.totalItems(), "TotalItems should be null when not provided");
-        assertFalse(result.hasMorePages(), "Heuristic: partial page suggests no more pages");
-    }
-
-    // ========== Test: Smart Defaults and Messages ==========
-
-    @Test
-    void testGetAttacks_SmartDefaults_ReturnsMessages() throws Exception {
-        // Given: No filters provided, should use smart defaults
-        AttacksResponse mockResponse = createMockAttacksResponse(10, null);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                .thenReturn(mockResponse);
-        });
-
-        // When: No filters provided
-        PaginatedResponse<AttackSummary> result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
-
-        // Then: Should have messages about smart defaults
-        assertNotNull(result.message(), "Should have messages about smart defaults");
-        assertTrue(result.message().contains("No quickFilter applied"),
-            "Should have message about quickFilter default");
-        assertTrue(result.message().contains("Excluding suppressed attacks by default"),
-            "Should have message about includeSuppressed default");
-    }
-
-    @Test
-    void testGetAttacks_ExplicitFilters_NoSmartDefaultMessages() throws Exception {
-        // Given: Explicit filters provided
-        AttacksResponse mockResponse = createMockAttacksResponse(5, null);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                .thenReturn(mockResponse);
-        });
-
-        // When: Explicit filters provided
-        PaginatedResponse<AttackSummary> result = adrService.getAttacks(
-            "EXPLOITED", null, true, null, null, null, 1, 50
-        );
-
-        // Then: Should NOT have smart default messages
-        if (result.message() != null) {
-            assertFalse(result.message().contains("No quickFilter applied"),
-                "Should not have quickFilter message when explicitly provided");
-            assertFalse(result.message().contains("Excluding suppressed attacks by default"),
-                "Should not have includeSuppressed message when explicitly provided");
-        }
-    }
-
-    @Test
-    void testGetAttacks_InvalidQuickFilter_ReturnsError() throws Exception {
-        // When: Invalid quickFilter provided
-        PaginatedResponse<AttackSummary> result = adrService.getAttacks(
-            "INVALID_FILTER", null, null, null, null, null, 1, 50
-        );
-
-        // Then: Should return error response with descriptive message
-        assertNotNull(result.message(), "Should have error message");
-        assertTrue(result.message().contains("Invalid quickFilter 'INVALID_FILTER'"),
-            "Should explain the invalid quickFilter");
-        assertTrue(result.message().contains("Valid: EXPLOITED, PROBED, BLOCKED, INEFFECTIVE, ALL"),
-            "Should list valid options");
-        assertEquals(0, result.items().size(), "Should return empty items on error");
-    }
-
-    @Test
-    void testGetAttacks_InvalidSort_ReturnsError() throws Exception {
-        // When: Invalid sort format provided
-        PaginatedResponse<AttackSummary> result = adrService.getAttacks(
-            "EXPLOITED", null, false, null, null, "invalid sort!", 1, 50
-        );
-
-        // Then: Should return error response with descriptive message
-        assertNotNull(result.message(), "Should have error message");
-        assertTrue(result.message().contains("Invalid sort format 'invalid sort!'"),
-            "Should explain the invalid sort format");
-        assertTrue(result.message().contains("Must be a field name with optional '-' prefix"),
-            "Should explain the correct format");
-        assertEquals(0, result.items().size(), "Should return empty items on error");
-    }
-
-    @Test
-    void testGetAttacks_MultipleValidationErrors_CombinesErrors() throws Exception {
-        // When: Multiple invalid parameters provided
-        PaginatedResponse<AttackSummary> result = adrService.getAttacks(
-            "BAD_FILTER", null, null, null, null, "bad-format!", 1, 50
-        );
-
-        // Then: Should return combined error messages
-        assertNotNull(result.message(), "Should have error message");
-        assertTrue(result.message().contains("Invalid quickFilter"),
-            "Should include quickFilter error");
-        assertTrue(result.message().contains("Invalid sort format"),
-            "Should include sort error");
-        assertEquals(0, result.items().size(), "Should return empty items on error");
-    }
-
-    // ========== Tests for get_ADR_Protect_Rules_by_app_id ==========
-
-    @Test
-    void testGetProtectDataByAppID_Success() throws Exception {
-        // Given
-        ProtectData mockProtectData = createMockProtectData(3);
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
-                .thenReturn(mockProtectData);
-        });
-
-        // When
-        ProtectData result =
-            adrService.getProtectDataByAppID(TEST_APP_ID);
-
-        // Then
-        assertNotNull(result, "Result should not be null");
-        assertNotNull(result.getRules(), "Rules should not be null");
-        assertEquals(3, result.getRules().size(), "Should have 3 protect rules");
-    }
-
-    @Test
-    void testGetProtectDataByAppID_WithRules() throws Exception {
-        // Given
-        ProtectData mockProtectData = createMockProtectDataWithRules();
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
-                .thenReturn(mockProtectData);
-        });
-
-        // When
-        ProtectData result =
-            adrService.getProtectDataByAppID(TEST_APP_ID);
-
-        // Then
-        assertNotNull(result);
-        assertNotNull(result.getRules());
-        assertFalse(result.getRules().isEmpty());
-
-        // Verify rule details
-        var firstRule = result.getRules().get(0);
-        assertNotNull(firstRule.getName(), "Rule should have a name");
-        assertNotNull(firstRule.getProduction(), "Rule should have a production mode");
-    }
-
-    @Test
-    void testGetProtectDataByAppID_EmptyAppID() {
-        // When/Then
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            adrService.getProtectDataByAppID("");
-        });
-
-        assertTrue(exception.getMessage().contains("Application ID cannot be null or empty"),
-            "Should have descriptive error message");
-    }
-
-    @Test
-    void testGetProtectDataByAppID_NullAppID() {
-        // When/Then
-        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
-            adrService.getProtectDataByAppID(null);
-        });
-
-        assertTrue(exception.getMessage().contains("Application ID cannot be null or empty"),
-            "Should have descriptive error message");
-    }
-
-    @Test
-    void testGetProtectDataByAppID_SDKFailure() throws Exception {
-        // Given - SDK throws exception
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getProtectConfig(eq(TEST_ORG_ID), anyString()))
-                .thenThrow(new RuntimeException("Failed to fetch protect config"));
-        });
-
-        // When/Then
-        Exception exception = assertThrows(Exception.class, () -> {
-            adrService.getProtectDataByAppID(TEST_APP_ID);
-        });
-
-        assertTrue(exception.getMessage().contains("Failed to fetch protect config") ||
-                   (exception.getCause() != null &&
-                    exception.getCause().getMessage().contains("Failed to fetch protect config")),
-            "Should propagate SDK exception");
-    }
-
-    @Test
-    void testGetProtectDataByAppID_NoProtectDataReturned() throws Exception {
-        // Given - SDK returns null (app exists but no protect config)
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
-                .thenReturn(null);
-        });
-
-        // When
-        ProtectData result =
-            adrService.getProtectDataByAppID(TEST_APP_ID);
-
-        // Then
-        assertNull(result, "Should return null when no protect data available");
-    }
-
-    @Test
-    void testGetProtectDataByAppID_EmptyRulesList() throws Exception {
-        // Given - Protect enabled but no rules configured
-        ProtectData mockProtectData =
-            new ProtectData();
-        mockProtectData.setRules(new ArrayList<>());
-
-        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
-            when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
-                .thenReturn(mockProtectData);
-        });
-
-        // When
-        ProtectData result =
-            adrService.getProtectDataByAppID(TEST_APP_ID);
-
-        // Then
-        assertNotNull(result);
-        assertNotNull(result.getRules());
-        assertTrue(result.getRules().isEmpty(), "Should have empty rules list");
-    }
-
-    // ========== Helper Methods ==========
-
-    private AttacksResponse createMockAttacksResponse(int count, Integer totalCount) {
-        AttacksResponse response = new AttacksResponse();
-        response.setAttacks(createMockAttacks(count));
-        response.setCount(totalCount);
-        return response;
-    }
-
-
-    private List<Attack> createMockAttacks(int count) {
-        List<Attack> attacks = new ArrayList<>();
-        long baseTime = System.currentTimeMillis();
-
-        for (int i = 0; i < count; i++) {
-            Attack attack = new Attack();
-            attack.setUuid("attack-uuid-" + i);
-            attack.setStatus("PROBED");
-            attack.setSource("192.168.1." + (100 + i));
-            attack.setRules(List.of("sql-injection", "xss-reflected"));
-            attack.setProbes(10 + i);
-            attack.setStart_time(baseTime + (i * 1000));
-            attack.setEnd_time(baseTime + (i * 1000) + 5000);
-            attack.setFirst_event_time(baseTime + (i * 1000));
-            attack.setLast_event_time(baseTime + (i * 1000) + 5000);
-            attack.setAttacksApplication(List.of());
-            attacks.add(attack);
-        }
-
-        return attacks;
-    }
-
-
-    private ProtectData createMockProtectData(int ruleCount) {
-        ProtectData protectData =
-            new ProtectData();
-
-        List<Rule> rules = new ArrayList<>();
-        for (int i = 0; i < ruleCount; i++) {
-            Rule rule =
-                new Rule();
-            rule.setName("protect-rule-" + i);
-            rule.setProduction(i % 2 == 0 ? "block" : "monitor");
-            rules.add(rule);
-        }
-
-        protectData.setRules(rules);
-        return protectData;
-    }
-
-
-    private ProtectData createMockProtectDataWithRules() {
-        ProtectData protectData =
-            new ProtectData();
-
-        List<Rule> rules = new ArrayList<>();
-
-        // SQL Injection rule
-        Rule sqlRule =
-            new Rule();
-        sqlRule.setName("sql-injection");
-        sqlRule.setProduction("block");
-        rules.add(sqlRule);
-
-        // XSS rule
-        Rule xssRule =
-            new Rule();
-        xssRule.setName("xss-reflected");
-        xssRule.setProduction("monitor");
-        rules.add(xssRule);
-
-        protectData.setRules(rules);
-        return protectData;
-    }
+    protectData.setRules(rules);
+    return protectData;
+  }
+
+  /** Creates mock ProtectData with realistic rule configuration */
+  private com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData
+      createMockProtectDataWithRules() {
+    var protectData = new com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData();
+
+    var rules = new ArrayList<com.contrast.labs.ai.mcp.contrast.sdkextension.data.Rule>();
+
+    // SQL Injection rule
+    var sqlRule = new com.contrast.labs.ai.mcp.contrast.sdkextension.data.Rule();
+    sqlRule.setName("sql-injection");
+    sqlRule.setProduction("block");
+    rules.add(sqlRule);
+
+    // XSS rule
+    var xssRule = new com.contrast.labs.ai.mcp.contrast.sdkextension.data.Rule();
+    xssRule.setName("xss-reflected");
+    xssRule.setProduction("monitor");
+    rules.add(xssRule);
+
+    protectData.setRules(rules);
+    return protectData;
+  }
 }

@@ -16,15 +16,14 @@
 package com.contrast.labs.ai.mcp.contrast.data;
 
 import com.contrast.labs.ai.mcp.contrast.FilterHelper;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.Attack;
-
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.Attack;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * Simplified attack data record focusing on key information for MCP tools.
- * Contains: dates, rules, status, severity, applications, source IP, and probe count.
+ * Simplified attack data record focusing on key information for MCP tools. Contains: dates, rules,
+ * status, severity, applications, source IP, and probe count.
  */
 public record AttackSummary(
     String attackId,
@@ -40,64 +39,56 @@ public record AttackSummary(
     String lastEventTime,
     long firstEventTimeMs,
     long lastEventTimeMs,
-    List<ApplicationAttackInfo> applications
-) {
-    
-    /**
-     * Creates an AttackSummary from a full Attack object, extracting key information.
-     */
-    public static AttackSummary fromAttack(Attack attack) {
-        List<ApplicationAttackInfo> appInfos = Optional.ofNullable(attack.getAttacksApplication())
-            .orElse(List.of())
-            .stream()
+    List<ApplicationAttackInfo> applications) {
+
+  /** Creates an AttackSummary from a full Attack object, extracting key information. */
+  public static AttackSummary fromAttack(Attack attack) {
+    var appInfos =
+        Optional.ofNullable(attack.getAttacksApplication()).orElse(List.of()).stream()
             .map(ApplicationAttackInfo::fromAttackApplication)
             .collect(Collectors.toList());
-            
-        return new AttackSummary(
-            attack.getUuid(),
-            attack.getStatus(),
-            attack.getSource(),
-            attack.getRules(),
-            attack.getProbes(),
-            FilterHelper.formatTimestamp(attack.getStart_time()),
-            FilterHelper.formatTimestamp(attack.getEnd_time()),
-            attack.getStart_time(),
-            attack.getEnd_time(),
-            FilterHelper.formatTimestamp(attack.getFirst_event_time()),
-            FilterHelper.formatTimestamp(attack.getLast_event_time()),
-            attack.getFirst_event_time(),
-            attack.getLast_event_time(),
-            appInfos
-        );
+
+    return new AttackSummary(
+        attack.getUuid(),
+        attack.getStatus(),
+        attack.getSource(),
+        attack.getRules(),
+        attack.getProbes(),
+        FilterHelper.formatTimestamp(attack.getStart_time()),
+        FilterHelper.formatTimestamp(attack.getEnd_time()),
+        attack.getStart_time(),
+        attack.getEnd_time(),
+        FilterHelper.formatTimestamp(attack.getFirst_event_time()),
+        FilterHelper.formatTimestamp(attack.getLast_event_time()),
+        attack.getFirst_event_time(),
+        attack.getLast_event_time(),
+        appInfos);
+  }
+
+  /** Information about an application involved in the attack. */
+  public record ApplicationAttackInfo(
+      String applicationId,
+      String applicationName,
+      String language,
+      String severity,
+      String status,
+      String startTime,
+      String endTime,
+      long startTimeMs,
+      long endTimeMs) {
+
+    public static ApplicationAttackInfo fromAttackApplication(
+        Attack.ApplicationAttackInfo attackApp) {
+      return new ApplicationAttackInfo(
+          attackApp.getApplication().getApp_id(),
+          attackApp.getApplication().getName(),
+          attackApp.getApplication().getLanguage(),
+          attackApp.getSeverity(),
+          attackApp.getStatus(),
+          FilterHelper.formatTimestamp(attackApp.getStartTime()),
+          FilterHelper.formatTimestamp(attackApp.getEndTime()),
+          attackApp.getStartTime(),
+          attackApp.getEndTime());
     }
-    
-    /**
-     * Information about an application involved in the attack.
-     */
-    public record ApplicationAttackInfo(
-        String applicationId,
-        String applicationName,
-        String language,
-        String severity,
-        String status,
-        String startTime,
-        String endTime,
-        long startTimeMs,
-        long endTimeMs
-    ) {
-        
-        public static ApplicationAttackInfo fromAttackApplication(Attack.ApplicationAttackInfo attackApp) {
-            return new ApplicationAttackInfo(
-                attackApp.getApplication().getApp_id(),
-                attackApp.getApplication().getName(),
-                attackApp.getApplication().getLanguage(),
-                attackApp.getSeverity(),
-                attackApp.getStatus(),
-                FilterHelper.formatTimestamp(attackApp.getStartTime()),
-                FilterHelper.formatTimestamp(attackApp.getEndTime()),
-                attackApp.getStartTime(),
-                attackApp.getEndTime()
-            );
-        }
-    }
+  }
 }

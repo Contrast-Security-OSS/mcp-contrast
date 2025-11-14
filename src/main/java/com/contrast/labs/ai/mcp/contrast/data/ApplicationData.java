@@ -17,8 +17,12 @@ package com.contrast.labs.ai.mcp.contrast.data;
 
 import java.util.List;
 
-public record ApplicationData(String name, String status, String appID,
-                              String lastSeenAt,
-                              String language, List<Metadata> metadata,List<String> tags,
-                              List<String> technologies) {
-}
+public record ApplicationData(
+    String name,
+    String status,
+    String appID,
+    String lastSeenAt,
+    String language,
+    List<Metadata> metadata,
+    List<String> tags,
+    List<String> technologies) {}

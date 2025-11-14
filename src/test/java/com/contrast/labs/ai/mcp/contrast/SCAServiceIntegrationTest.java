@@ -15,13 +15,13 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.CveData;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.ApplicationsResponse;
-import com.contrastsecurity.sdk.ContrastSDK;
+import static org.junit.jupiter.api.Assertions.*;
+
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
+import java.io.IOException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -30,454 +30,489 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import java.io.IOException;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * Integration test for SCAService that validates library and CVE data from real TeamServer.
  *
- * This test automatically discovers suitable test data by querying the Contrast API.
- * It looks for applications with third-party libraries and optionally CVE vulnerabilities.
+ * <p>This test automatically discovers suitable test data by querying the Contrast API. It looks
+ * for applications with third-party libraries and optionally CVE vulnerabilities.
  *
- * This test only runs if CONTRAST_HOST_NAME environment variable is set.
+ * <p>This test only runs if CONTRAST_HOST_NAME environment variable is set.
  *
- * Required environment variables:
- * - CONTRAST_HOST_NAME (e.g., app.contrastsecurity.com)
- * - CONTRAST_API_KEY
- * - CONTRAST_SERVICE_KEY
- * - CONTRAST_USERNAME
- * - CONTRAST_ORG_ID
+ * <p>Required environment variables: - CONTRAST_HOST_NAME (e.g., app.contrastsecurity.com) -
+ * CONTRAST_API_KEY - CONTRAST_SERVICE_KEY - CONTRAST_USERNAME - CONTRAST_ORG_ID
  *
- * Run locally:
- *   source .env.integration-test  # Load credentials
- *   mvn verify
+ * <p>Run locally: source .env.integration-test # Load credentials mvn verify
  *
- * Or skip integration tests:
- *   mvn verify -DskipITs
+ * <p>Or skip integration tests: mvn verify -DskipITs
  */
 @SpringBootTest
 @EnabledIfEnvironmentVariable(named = "CONTRAST_HOST_NAME", matches = ".+")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class SCAServiceIntegrationTest {
 
-    @Autowired
-    private SCAService scaService;
+  @Autowired private SCAService scaService;
 
-    @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
-    private String hostName;
+  @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
+  private String hostName;
 
-    @Value("${contrast.api-key:${CONTRAST_API_KEY:}}")
-    private String apiKey;
+  @Value("${contrast.api-key:${CONTRAST_API_KEY:}}")
+  private String apiKey;
 
-    @Value("${contrast.service-key:${CONTRAST_SERVICE_KEY:}}")
-    private String serviceKey;
+  @Value("${contrast.service-key:${CONTRAST_SERVICE_KEY:}}")
+  private String serviceKey;
 
-    @Value("${contrast.username:${CONTRAST_USERNAME:}}")
-    private String userName;
+  @Value("${contrast.username:${CONTRAST_USERNAME:}}")
+  private String userName;
 
-    @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
-    private String orgID;
+  @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
+  private String orgID;
 
-    @Value("${http.proxy.host:${http_proxy_host:}}")
-    private String httpProxyHost;
+  @Value("${http.proxy.host:${http_proxy_host:}}")
+  private String httpProxyHost;
 
-    @Value("${http.proxy.port:${http_proxy_port:}}")
-    private String httpProxyPort;
+  @Value("${http.proxy.port:${http_proxy_port:}}")
+  private String httpProxyPort;
 
-    // Discovered test data - populated in @BeforeAll
-    private static TestData testData;
+  // Discovered test data - populated in @BeforeAll
+  private static TestData testData;
 
-    /**
-     * Container for discovered test data
-     */
-    private static class TestData {
-        String appId;
-        String appName;
-        boolean hasLibraries;
-        int libraryCount;
-        String vulnerableCveId;  // CVE for testing CVE lookup
-        boolean hasVulnerableLibrary;
+  /** Container for discovered test data */
+  private static class TestData {
+    String appId;
+    String appName;
+    boolean hasLibraries;
+    int libraryCount;
+    String vulnerableCveId; // CVE for testing CVE lookup
+    boolean hasVulnerableLibrary;
 
-        @Override
-        public String toString() {
-            return String.format(
-                "TestData{appId='%s', appName='%s', hasLibraries=%s, libraryCount=%d, " +
-                "hasVulnerableLibrary=%s, vulnerableCveId='%s'}",
-                appId, appName, hasLibraries, libraryCount, hasVulnerableLibrary, vulnerableCveId
-            );
-        }
+    @Override
+    public String toString() {
+      return String.format(
+          "TestData{appId='%s', appName='%s', hasLibraries=%s, libraryCount=%d, "
+              + "hasVulnerableLibrary=%s, vulnerableCveId='%s'}",
+          appId, appName, hasLibraries, libraryCount, hasVulnerableLibrary, vulnerableCveId);
     }
+  }
 
-    @BeforeAll
-    void discoverTestData() {
-        System.out.println("\n╔════════════════════════════════════════════════════════════════════════════════╗");
-        System.out.println("║   SCA Service Integration Test - Discovering Test Data                        ║");
-        System.out.println("╚════════════════════════════════════════════════════════════════════════════════╝");
+  @BeforeAll
+  void discoverTestData() {
+    System.out.println(
+        "\n╔════════════════════════════════════════════════════════════════════════════════╗");
+    System.out.println(
+        "║   SCA Service Integration Test - Discovering Test Data                        ║");
+    System.out.println(
+        "╚════════════════════════════════════════════════════════════════════════════════╝");
+
+    try {
+      var sdk =
+          SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+      var sdkExtension = new SDKExtension(sdk);
+
+      // Get all applications
+      System.out.println("\n🔍 Step 1: Fetching all applications...");
+      var appsResponse = sdkExtension.getApplications(orgID);
+      var applications = appsResponse.getApplications();
+      System.out.println("   Found " + applications.size() + " application(s) in organization");
+
+      if (applications.isEmpty()) {
+        System.out.println("\n⚠️  NO APPLICATIONS FOUND");
+        System.out.println("   The integration tests require at least one application with:");
+        System.out.println("   1. Third-party libraries");
+        System.out.println("   2. Optionally: Libraries with known CVEs");
+        return;
+      }
+
+      // Search for application with libraries
+      System.out.println("\n🔍 Step 2: Searching for application with libraries...");
+      TestData bestCandidate = null;
+      TestData fallbackCandidate = null;
+      int appsChecked = 0;
+      int maxAppsToCheck = Math.min(applications.size(), 50);
+
+      for (Application app : applications) {
+        if (appsChecked >= maxAppsToCheck) {
+          System.out.println(
+              "   Reached max apps to check (" + maxAppsToCheck + "), stopping search");
+          break;
+        }
+        appsChecked++;
+
+        System.out.println(
+            "   Checking app "
+                + appsChecked
+                + "/"
+                + maxAppsToCheck
+                + ": "
+                + app.getName()
+                + " (ID: "
+                + app.getAppId()
+                + ")");
 
         try {
-            ContrastSDK sdk = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-            SDKExtension sdkExtension = new SDKExtension(sdk);
+          // Check for libraries
+          var libraries = SDKHelper.getLibsForID(app.getAppId(), orgID, sdkExtension);
+          if (libraries != null && !libraries.isEmpty()) {
+            System.out.println("      ✓ Has " + libraries.size() + " library/libraries");
 
-            // Get all applications
-            System.out.println("\n🔍 Step 1: Fetching all applications...");
-            ApplicationsResponse appsResponse = sdkExtension.getApplications(orgID);
-            List<Application> applications = appsResponse.getApplications();
-            System.out.println("   Found " + applications.size() + " application(s) in organization");
+            var candidate = new TestData();
+            candidate.appId = app.getAppId();
+            candidate.appName = app.getName();
+            candidate.hasLibraries = true;
+            candidate.libraryCount = libraries.size();
 
-            if (applications.isEmpty()) {
-                System.out.println("\n⚠️  NO APPLICATIONS FOUND");
-                System.out.println("   The integration tests require at least one application with:");
-                System.out.println("   1. Third-party libraries");
-                System.out.println("   2. Optionally: Libraries with known CVEs");
-                return;
+            // Check if any library has vulnerabilities (CVEs)
+            for (LibraryExtended lib : libraries) {
+              if (lib.getVulnerabilities() != null && !lib.getVulnerabilities().isEmpty()) {
+                candidate.hasVulnerableLibrary = true;
+                // Get first CVE ID for testing
+                var firstVuln = lib.getVulnerabilities().get(0);
+                if (firstVuln.getName() != null && firstVuln.getName().startsWith("CVE-")) {
+                  candidate.vulnerableCveId = firstVuln.getName();
+                  System.out.println(
+                      "      ✓ Has vulnerable library with CVE: " + candidate.vulnerableCveId);
+                  break;
+                }
+              }
             }
 
-            // Search for application with libraries
-            System.out.println("\n🔍 Step 2: Searching for application with libraries...");
-            TestData bestCandidate = null;
-            TestData fallbackCandidate = null;
-            int appsChecked = 0;
-            int maxAppsToCheck = Math.min(applications.size(), 50);
-
-            for (Application app : applications) {
-                if (appsChecked >= maxAppsToCheck) {
-                    System.out.println("   Reached max apps to check (" + maxAppsToCheck + "), stopping search");
-                    break;
-                }
-                appsChecked++;
-
-                System.out.println("   Checking app " + appsChecked + "/" + maxAppsToCheck + ": " +
-                                   app.getName() + " (ID: " + app.getAppId() + ")");
-
-                try {
-                    // Check for libraries
-                    List<LibraryExtended> libraries = SDKHelper.getLibsForID(app.getAppId(), orgID, sdkExtension);
-                    if (libraries != null && !libraries.isEmpty()) {
-                        System.out.println("      ✓ Has " + libraries.size() + " library/libraries");
-
-                        TestData candidate = new TestData();
-                        candidate.appId = app.getAppId();
-                        candidate.appName = app.getName();
-                        candidate.hasLibraries = true;
-                        candidate.libraryCount = libraries.size();
-
-                        // Check if any library has vulnerabilities (CVEs)
-                        for (LibraryExtended lib : libraries) {
-                            if (lib.getVulnerabilities() != null && !lib.getVulnerabilities().isEmpty()) {
-                                candidate.hasVulnerableLibrary = true;
-                                // Get first CVE ID for testing
-                                var firstVuln = lib.getVulnerabilities().get(0);
-                                if (firstVuln.getName() != null && firstVuln.getName().startsWith("CVE-")) {
-                                    candidate.vulnerableCveId = firstVuln.getName();
-                                    System.out.println("      ✓ Has vulnerable library with CVE: " + candidate.vulnerableCveId);
-                                    break;
-                                }
-                            }
-                        }
-
-                        // Perfect candidate: has libraries AND vulnerable libraries with CVEs
-                        if (candidate.hasVulnerableLibrary && candidate.vulnerableCveId != null) {
-                            System.out.println("\n   ✅ Found PERFECT application with libraries AND CVEs!");
-                            bestCandidate = candidate;
-                            break;
-                        }
-
-                        // Fallback: has libraries but no CVEs
-                        if (fallbackCandidate == null) {
-                            System.out.println("      ℹ Saving as fallback (has libraries but no CVEs found)");
-                            fallbackCandidate = candidate;
-                        }
-                    } else {
-                        System.out.println("      ℹ No libraries found");
-                    }
-                } catch (Exception e) {
-                    System.out.println("      ℹ Error checking libraries: " + e.getMessage());
-                }
+            // Perfect candidate: has libraries AND vulnerable libraries with CVEs
+            if (candidate.hasVulnerableLibrary && candidate.vulnerableCveId != null) {
+              System.out.println("\n   ✅ Found PERFECT application with libraries AND CVEs!");
+              bestCandidate = candidate;
+              break;
             }
 
-            // Use best candidate if found, otherwise fallback
-            TestData candidate = bestCandidate != null ? bestCandidate : fallbackCandidate;
-
-            if (candidate != null) {
-                testData = candidate;
-                System.out.println("\n╔════════════════════════════════════════════════════════════════════════════════╗");
-                System.out.println("║   Test Data Discovery Complete                                                 ║");
-                System.out.println("╚════════════════════════════════════════════════════════════════════════════════╝");
-                System.out.println(testData);
-                System.out.println();
-
-                // Warn if no CVEs found
-                if (!candidate.hasVulnerableLibrary) {
-                    System.err.println("\n⚠️  WARNING: Application has libraries but NO VULNERABLE LIBRARIES");
-                    System.err.println("   CVE-related tests will be skipped.");
-                    System.err.println("   To enable full testing, use an application with vulnerable dependencies.");
-                }
-            } else {
-                String errorMsg = buildTestDataErrorMessage(appsChecked);
-                System.err.println(errorMsg);
-                fail(errorMsg);
+            // Fallback: has libraries but no CVEs
+            if (fallbackCandidate == null) {
+              System.out.println("      ℹ Saving as fallback (has libraries but no CVEs found)");
+              fallbackCandidate = candidate;
             }
-
+          } else {
+            System.out.println("      ℹ No libraries found");
+          }
         } catch (Exception e) {
-            String errorMsg = "❌ ERROR during test data discovery: " + e.getMessage();
-            System.err.println("\n" + errorMsg);
-            e.printStackTrace();
-            fail(errorMsg);
+          System.out.println("      ℹ Error checking libraries: " + e.getMessage());
         }
+      }
+
+      // Use best candidate if found, otherwise fallback
+      var candidate = bestCandidate != null ? bestCandidate : fallbackCandidate;
+
+      if (candidate != null) {
+        testData = candidate;
+        System.out.println(
+            "\n╔════════════════════════════════════════════════════════════════════════════════╗");
+        System.out.println(
+            "║   Test Data Discovery Complete                                                 ║");
+        System.out.println(
+            "╚════════════════════════════════════════════════════════════════════════════════╝");
+        System.out.println(testData);
+        System.out.println();
+
+        // Warn if no CVEs found
+        if (!candidate.hasVulnerableLibrary) {
+          System.err.println(
+              "\n⚠️  WARNING: Application has libraries but NO VULNERABLE LIBRARIES");
+          System.err.println("   CVE-related tests will be skipped.");
+          System.err.println(
+              "   To enable full testing, use an application with vulnerable dependencies.");
+        }
+      } else {
+        String errorMsg = buildTestDataErrorMessage(appsChecked);
+        System.err.println(errorMsg);
+        fail(errorMsg);
+      }
+
+    } catch (Exception e) {
+      String errorMsg = "❌ ERROR during test data discovery: " + e.getMessage();
+      System.err.println("\n" + errorMsg);
+      e.printStackTrace();
+      fail(errorMsg);
+    }
+  }
+
+  /** Build detailed error message when no suitable test data is found */
+  private String buildTestDataErrorMessage(int appsChecked) {
+    var msg = new StringBuilder();
+    msg.append(
+        "\n╔════════════════════════════════════════════════════════════════════════════════╗\n");
+    msg.append(
+        "║   INTEGRATION TEST SETUP FAILED - NO SUITABLE TEST DATA                       ║\n");
+    msg.append(
+        "╚════════════════════════════════════════════════════════════════════════════════╝\n");
+    msg.append("\nChecked ")
+        .append(appsChecked)
+        .append(" application(s) but none had library data.\n");
+    msg.append("\n📋 REQUIRED TEST DATA:\n");
+    msg.append("   The integration tests require at least ONE application with:\n");
+    msg.append("   ✓ Third-party libraries (JAR files, NPM packages, etc.)\n");
+    msg.append("   ✓ Optionally: Libraries with known CVE vulnerabilities\n");
+    msg.append("\n🔧 HOW TO CREATE TEST DATA:\n");
+    msg.append("\n1. Deploy an application with third-party dependencies\n");
+    msg.append("   Example (Java with Maven):\n");
+    msg.append("   java -javaagent:/path/to/contrast.jar \\\n");
+    msg.append("        -Dcontrast.api.key=... \\\n");
+    msg.append("        -Dcontrast.agent.java.standalone_app_name=test-app \\\n");
+    msg.append("        -jar your-app-with-dependencies.jar\n");
+    msg.append("\n2. Ensure application has dependencies\n");
+    msg.append("   - For Java: Include libraries in pom.xml or build.gradle\n");
+    msg.append("   - For Node.js: Include packages in package.json\n");
+    msg.append("   - For Python: Include packages in requirements.txt\n");
+    msg.append("   - Contrast agent will automatically detect and report libraries\n");
+    msg.append("\n3. Wait for agent to report library data\n");
+    msg.append("   - Start the application with Contrast agent\n");
+    msg.append("   - Wait 30-60 seconds for agent to inventory libraries\n");
+    msg.append("   - Library data is reported on first startup\n");
+    msg.append("\n4. Verify libraries are detected:\n");
+    msg.append("   - Login to Contrast UI\n");
+    msg.append("   - Go to Applications → Your Application\n");
+    msg.append("   - Click on 'Libraries' tab\n");
+    msg.append("   - Verify libraries are listed\n");
+    msg.append("\n5. (Optional) For CVE testing:\n");
+    msg.append("   - Use an application with older dependencies that have known CVEs\n");
+    msg.append("   - Example vulnerable libraries:\n");
+    msg.append("     • log4j-core:2.14.1 (CVE-2021-44228)\n");
+    msg.append("     • spring-core:5.2.0 (various CVEs)\n");
+    msg.append("     • commons-collections:3.2.1 (CVE-2015-6420)\n");
+    msg.append("   - Contrast will automatically identify CVEs in these libraries\n");
+    msg.append("\n6. Re-run integration tests:\n");
+    msg.append("   source .env.integration-test && mvn verify\n");
+    msg.append("\n💡 ALTERNATIVE:\n");
+    msg.append("   Set TEST_APP_ID environment variable to an application ID with libraries:\n");
+    msg.append("   export TEST_APP_ID=<your-app-id>\n");
+    msg.append("\n📝 NOTE:\n");
+    msg.append("   - Most modern applications have third-party libraries\n");
+    msg.append("   - Even a simple 'Hello World' web application typically has dependencies\n");
+    msg.append("   - Ensure the Contrast agent is properly configured to report library data\n");
+    msg.append("\n");
+    return msg.toString();
+  }
+
+  // ========== Test Case 1: Test Data Validation ==========
+
+  @Test
+  void testDiscoveredTestDataExists() {
+    System.out.println("\n=== Integration Test: Validate test data discovery ===");
+
+    assertNotNull(testData, "Test data should have been discovered in @BeforeAll");
+    assertNotNull(testData.appId, "Test application ID should be set");
+    assertTrue(testData.hasLibraries, "Test application should have libraries");
+    assertTrue(testData.libraryCount > 0, "Test application should have at least 1 library");
+
+    System.out.println("✓ Test data validated:");
+    System.out.println("  App ID: " + testData.appId);
+    System.out.println("  App Name: " + testData.appName);
+    System.out.println("  Library Count: " + testData.libraryCount);
+    System.out.println("  Has Vulnerable Libraries: " + testData.hasVulnerableLibrary);
+    if (testData.vulnerableCveId != null) {
+      System.out.println("  Sample CVE: " + testData.vulnerableCveId);
+    }
+  }
+
+  // ========== Test Case 2: List Application Libraries ==========
+
+  @Test
+  void testListApplicationLibraries_Success() throws IOException {
+    System.out.println("\n=== Integration Test: list_application_libraries_by_app_id ===");
+
+    assertNotNull(testData, "Test data must be discovered before running tests");
+
+    // Act
+    var libraries = scaService.getApplicationLibrariesByID(testData.appId);
+
+    // Assert
+    assertNotNull(libraries, "Libraries list should not be null");
+    assertTrue(libraries.size() > 0, "Should have at least 1 library");
+
+    System.out.println(
+        "✓ Retrieved " + libraries.size() + " libraries for application: " + testData.appName);
+
+    // Print sample libraries
+    System.out.println("  Sample libraries:");
+    libraries.stream()
+        .limit(5)
+        .forEach(
+            lib -> {
+              System.out.println(
+                  "    - "
+                      + lib.getFilename()
+                      + " (version: "
+                      + lib.getVersion()
+                      + ", classes used: "
+                      + lib.getClassedUsed()
+                      + "/"
+                      + lib.getClassCount()
+                      + ")");
+            });
+
+    // Verify library structure
+    for (LibraryExtended lib : libraries) {
+      assertNotNull(lib.getFilename(), "Library filename should not be null");
+      assertNotNull(lib.getHash(), "Library hash should not be null");
+      assertTrue(lib.getClassCount() >= 0, "Class count should be non-negative");
+      assertTrue(lib.getClassedUsed() >= 0, "Classes used should be non-negative");
+    }
+  }
+
+  @Test
+  void testListApplicationLibraries_ClassUsageIndicatesUsage() throws IOException {
+    System.out.println("\n=== Integration Test: Class usage statistics ===");
+
+    assertNotNull(testData, "Test data must be discovered before running tests");
+
+    // Act
+    var libraries = scaService.getApplicationLibrariesByID(testData.appId);
+
+    // Assert
+    assertNotNull(libraries);
+    assertFalse(libraries.isEmpty());
+
+    System.out.println("✓ Analyzing class usage for " + libraries.size() + " libraries:");
+
+    // Count libraries by usage
+    long activeLibs = libraries.stream().filter(lib -> lib.getClassedUsed() > 0).count();
+    long unusedLibs = libraries.stream().filter(lib -> lib.getClassedUsed() == 0).count();
+
+    System.out.println("  Active libraries (classes used > 0): " + activeLibs);
+    System.out.println("  Likely unused libraries (classes used = 0): " + unusedLibs);
+
+    // Verify class usage makes sense
+    for (LibraryExtended lib : libraries) {
+      assertTrue(
+          lib.getClassedUsed() <= lib.getClassCount(),
+          "Classes used should not exceed total class count for " + lib.getFilename());
     }
 
-    /**
-     * Build detailed error message when no suitable test data is found
-     */
-    private String buildTestDataErrorMessage(int appsChecked) {
-        StringBuilder msg = new StringBuilder();
-        msg.append("\n╔════════════════════════════════════════════════════════════════════════════════╗\n");
-        msg.append("║   INTEGRATION TEST SETUP FAILED - NO SUITABLE TEST DATA                       ║\n");
-        msg.append("╚════════════════════════════════════════════════════════════════════════════════╝\n");
-        msg.append("\nChecked ").append(appsChecked).append(" application(s) but none had library data.\n");
-        msg.append("\n📋 REQUIRED TEST DATA:\n");
-        msg.append("   The integration tests require at least ONE application with:\n");
-        msg.append("   ✓ Third-party libraries (JAR files, NPM packages, etc.)\n");
-        msg.append("   ✓ Optionally: Libraries with known CVE vulnerabilities\n");
-        msg.append("\n🔧 HOW TO CREATE TEST DATA:\n");
-        msg.append("\n1. Deploy an application with third-party dependencies\n");
-        msg.append("   Example (Java with Maven):\n");
-        msg.append("   java -javaagent:/path/to/contrast.jar \\\n");
-        msg.append("        -Dcontrast.api.key=... \\\n");
-        msg.append("        -Dcontrast.agent.java.standalone_app_name=test-app \\\n");
-        msg.append("        -jar your-app-with-dependencies.jar\n");
-        msg.append("\n2. Ensure application has dependencies\n");
-        msg.append("   - For Java: Include libraries in pom.xml or build.gradle\n");
-        msg.append("   - For Node.js: Include packages in package.json\n");
-        msg.append("   - For Python: Include packages in requirements.txt\n");
-        msg.append("   - Contrast agent will automatically detect and report libraries\n");
-        msg.append("\n3. Wait for agent to report library data\n");
-        msg.append("   - Start the application with Contrast agent\n");
-        msg.append("   - Wait 30-60 seconds for agent to inventory libraries\n");
-        msg.append("   - Library data is reported on first startup\n");
-        msg.append("\n4. Verify libraries are detected:\n");
-        msg.append("   - Login to Contrast UI\n");
-        msg.append("   - Go to Applications → Your Application\n");
-        msg.append("   - Click on 'Libraries' tab\n");
-        msg.append("   - Verify libraries are listed\n");
-        msg.append("\n5. (Optional) For CVE testing:\n");
-        msg.append("   - Use an application with older dependencies that have known CVEs\n");
-        msg.append("   - Example vulnerable libraries:\n");
-        msg.append("     • log4j-core:2.14.1 (CVE-2021-44228)\n");
-        msg.append("     • spring-core:5.2.0 (various CVEs)\n");
-        msg.append("     • commons-collections:3.2.1 (CVE-2015-6420)\n");
-        msg.append("   - Contrast will automatically identify CVEs in these libraries\n");
-        msg.append("\n6. Re-run integration tests:\n");
-        msg.append("   source .env.integration-test && mvn verify\n");
-        msg.append("\n💡 ALTERNATIVE:\n");
-        msg.append("   Set TEST_APP_ID environment variable to an application ID with libraries:\n");
-        msg.append("   export TEST_APP_ID=<your-app-id>\n");
-        msg.append("\n📝 NOTE:\n");
-        msg.append("   - Most modern applications have third-party libraries\n");
-        msg.append("   - Even a simple 'Hello World' web application typically has dependencies\n");
-        msg.append("   - Ensure the Contrast agent is properly configured to report library data\n");
-        msg.append("\n");
-        return msg.toString();
+    System.out.println("✓ Class usage statistics are valid");
+  }
+
+  // ========== Test Case 3: CVE Lookup (if CVE available) ==========
+
+  @Test
+  void testListApplicationsVulnerableToCVE_Success() throws IOException {
+    System.out.println("\n=== Integration Test: list_applications_vulnerable_to_cve ===");
+
+    if (testData.vulnerableCveId == null) {
+      System.out.println("⚠️  SKIPPED: No vulnerable libraries with CVEs found in test data");
+      System.out.println("   To enable this test, use an application with vulnerable dependencies");
+      return;
     }
 
-    // ========== Test Case 1: Test Data Validation ==========
+    assertNotNull(testData, "Test data must be discovered before running tests");
 
-    @Test
-    void testDiscoveredTestDataExists() {
-        System.out.println("\n=== Integration Test: Validate test data discovery ===");
+    // Act
+    var cveData = scaService.listCVESForApplication(testData.vulnerableCveId);
 
-        assertNotNull(testData, "Test data should have been discovered in @BeforeAll");
-        assertNotNull(testData.appId, "Test application ID should be set");
-        assertTrue(testData.hasLibraries, "Test application should have libraries");
-        assertTrue(testData.libraryCount > 0, "Test application should have at least 1 library");
+    // Assert
+    assertNotNull(cveData, "CVE data should not be null");
+    assertNotNull(cveData.getApps(), "Apps list should not be null");
+    assertNotNull(cveData.getLibraries(), "Libraries list should not be null");
 
-        System.out.println("✓ Test data validated:");
-        System.out.println("  App ID: " + testData.appId);
-        System.out.println("  App Name: " + testData.appName);
-        System.out.println("  Library Count: " + testData.libraryCount);
-        System.out.println("  Has Vulnerable Libraries: " + testData.hasVulnerableLibrary);
-        if (testData.vulnerableCveId != null) {
-            System.out.println("  Sample CVE: " + testData.vulnerableCveId);
-        }
+    System.out.println("✓ Retrieved CVE data for: " + testData.vulnerableCveId);
+    System.out.println("  Affected applications: " + cveData.getApps().size());
+    System.out.println("  Vulnerable libraries: " + cveData.getLibraries().size());
+
+    // Verify our test app is in the list
+    boolean foundTestApp =
+        cveData.getApps().stream().anyMatch(app -> app.getApp_id().equals(testData.appId));
+
+    if (foundTestApp) {
+      System.out.println("  ✓ Test application '" + testData.appName + "' is in the affected list");
     }
 
-    // ========== Test Case 2: List Application Libraries ==========
+    // Verify library data
+    assertFalse(cveData.getLibraries().isEmpty(), "Should have at least one vulnerable library");
 
-    @Test
-    void testListApplicationLibraries_Success() throws IOException {
-        System.out.println("\n=== Integration Test: list_application_libraries_by_app_id ===");
+    System.out.println("  Sample vulnerable libraries:");
+    cveData.getLibraries().stream()
+        .limit(3)
+        .forEach(
+            lib -> {
+              System.out.println(
+                  "    - " + lib.getFile_name() + " (version: " + lib.getVersion() + ")");
+            });
+  }
 
-        assertNotNull(testData, "Test data must be discovered before running tests");
+  @Test
+  void testListApplicationsVulnerableToCVE_ClassUsagePopulated() throws IOException {
+    System.out.println("\n=== Integration Test: CVE class usage population ===");
 
-        // Act
-        List<LibraryExtended> libraries = scaService.getApplicationLibrariesByID(testData.appId);
-
-        // Assert
-        assertNotNull(libraries, "Libraries list should not be null");
-        assertTrue(libraries.size() > 0, "Should have at least 1 library");
-
-        System.out.println("✓ Retrieved " + libraries.size() + " libraries for application: " + testData.appName);
-
-        // Print sample libraries
-        System.out.println("  Sample libraries:");
-        libraries.stream().limit(5).forEach(lib -> {
-            System.out.println("    - " + lib.getFilename() +
-                             " (version: " + lib.getVersion() +
-                             ", classes used: " + lib.getClassedUsed() + "/" + lib.getClassCount() + ")");
-        });
-
-        // Verify library structure
-        for (LibraryExtended lib : libraries) {
-            assertNotNull(lib.getFilename(), "Library filename should not be null");
-            assertNotNull(lib.getHash(), "Library hash should not be null");
-            assertTrue(lib.getClassCount() >= 0, "Class count should be non-negative");
-            assertTrue(lib.getClassedUsed() >= 0, "Classes used should be non-negative");
-        }
+    if (testData.vulnerableCveId == null) {
+      System.out.println("⚠️  SKIPPED: No vulnerable libraries with CVEs found in test data");
+      return;
     }
 
-    @Test
-    void testListApplicationLibraries_ClassUsageIndicatesUsage() throws IOException {
-        System.out.println("\n=== Integration Test: Class usage statistics ===");
+    // Act
+    var cveData = scaService.listCVESForApplication(testData.vulnerableCveId);
 
-        assertNotNull(testData, "Test data must be discovered before running tests");
+    // Assert
+    assertNotNull(cveData);
+    assertNotNull(cveData.getApps());
 
-        // Act
-        List<LibraryExtended> libraries = scaService.getApplicationLibrariesByID(testData.appId);
+    System.out.println(
+        "✓ Checking class usage data for " + cveData.getApps().size() + " affected applications:");
 
-        // Assert
-        assertNotNull(libraries);
-        assertFalse(libraries.isEmpty());
+    // Verify class usage is populated for apps (implementation populates this)
+    for (var app : cveData.getApps()) {
+      System.out.println(
+          "  App: "
+              + app.getName()
+              + " (class count: "
+              + app.getClassCount()
+              + ", class usage: "
+              + app.getClassUsage()
+              + ")");
 
-        System.out.println("✓ Analyzing class usage for " + libraries.size() + " libraries:");
-
-        // Count libraries by usage
-        long activeLibs = libraries.stream().filter(lib -> lib.getClassedUsed() > 0).count();
-        long unusedLibs = libraries.stream().filter(lib -> lib.getClassedUsed() == 0).count();
-
-        System.out.println("  Active libraries (classes used > 0): " + activeLibs);
-        System.out.println("  Likely unused libraries (classes used = 0): " + unusedLibs);
-
-        // Verify class usage makes sense
-        for (LibraryExtended lib : libraries) {
-            assertTrue(lib.getClassedUsed() <= lib.getClassCount(),
-                "Classes used should not exceed total class count for " + lib.getFilename());
-        }
-
-        System.out.println("✓ Class usage statistics are valid");
+      // Class count should be >= 0
+      assertTrue(
+          app.getClassCount() >= 0, "Class count should be non-negative for app: " + app.getName());
     }
 
-    // ========== Test Case 3: CVE Lookup (if CVE available) ==========
+    System.out.println("✓ Class usage data is populated correctly");
+  }
 
-    @Test
-    void testListApplicationsVulnerableToCVE_Success() throws IOException {
-        System.out.println("\n=== Integration Test: list_applications_vulnerable_to_cve ===");
+  // ========== Test Case 4: Error Handling ==========
 
-        if (testData.vulnerableCveId == null) {
-            System.out.println("⚠️  SKIPPED: No vulnerable libraries with CVEs found in test data");
-            System.out.println("   To enable this test, use an application with vulnerable dependencies");
-            return;
-        }
+  @Test
+  void testListApplicationLibraries_InvalidAppId() {
+    System.out.println("\n=== Integration Test: Invalid app ID handling ===");
 
-        assertNotNull(testData, "Test data must be discovered before running tests");
+    // Act - Use an invalid app ID
+    boolean caughtException = false;
+    try {
+      var libraries = scaService.getApplicationLibrariesByID("invalid-app-id-12345");
 
-        // Act
-        CveData cveData = scaService.listCVESForApplication(testData.vulnerableCveId);
+      // If we get here, API handled it gracefully
+      System.out.println("✓ API handled invalid app ID gracefully");
+      System.out.println(
+          "  Libraries returned: " + (libraries != null ? libraries.size() : "null"));
 
-        // Assert
-        assertNotNull(cveData, "CVE data should not be null");
-        assertNotNull(cveData.getApps(), "Apps list should not be null");
-        assertNotNull(cveData.getLibraries(), "Libraries list should not be null");
-
-        System.out.println("✓ Retrieved CVE data for: " + testData.vulnerableCveId);
-        System.out.println("  Affected applications: " + cveData.getApps().size());
-        System.out.println("  Vulnerable libraries: " + cveData.getLibraries().size());
-
-        // Verify our test app is in the list
-        boolean foundTestApp = cveData.getApps().stream()
-            .anyMatch(app -> app.getApp_id().equals(testData.appId));
-
-        if (foundTestApp) {
-            System.out.println("  ✓ Test application '" + testData.appName + "' is in the affected list");
-        }
-
-        // Verify library data
-        assertFalse(cveData.getLibraries().isEmpty(), "Should have at least one vulnerable library");
-
-        System.out.println("  Sample vulnerable libraries:");
-        cveData.getLibraries().stream().limit(3).forEach(lib -> {
-            System.out.println("    - " + lib.getFile_name() + " (version: " + lib.getVersion() + ")");
-        });
+    } catch (Exception e) {
+      caughtException = true;
+      System.out.println(
+          "✓ API rejected invalid app ID with exception: " + e.getClass().getSimpleName());
     }
 
-    @Test
-    void testListApplicationsVulnerableToCVE_ClassUsagePopulated() throws IOException {
-        System.out.println("\n=== Integration Test: CVE class usage population ===");
+    assertTrue(true, "Test passes if either exception or graceful handling occurs");
+  }
 
-        if (testData.vulnerableCveId == null) {
-            System.out.println("⚠️  SKIPPED: No vulnerable libraries with CVEs found in test data");
-            return;
-        }
+  @Test
+  void testListApplicationsVulnerableToCVE_InvalidCVE() {
+    System.out.println("\n=== Integration Test: Invalid CVE ID handling ===");
 
-        // Act
-        CveData cveData = scaService.listCVESForApplication(testData.vulnerableCveId);
+    // Act & Assert - Non-existent CVE should throw IOException
+    var exception =
+        assertThrows(
+            IOException.class,
+            () -> {
+              scaService.listCVESForApplication("CVE-9999-NONEXISTENT");
+            },
+            "Non-existent CVE should throw IOException");
 
-        // Assert
-        assertNotNull(cveData);
-        assertNotNull(cveData.getApps());
-
-        System.out.println("✓ Checking class usage data for " + cveData.getApps().size() + " affected applications:");
-
-        // Verify class usage is populated for apps (implementation populates this)
-        for (var app : cveData.getApps()) {
-            System.out.println("  App: " + app.getName() +
-                             " (class count: " + app.getClassCount() +
-                             ", class usage: " + app.getClassUsage() + ")");
-
-            // Class count should be >= 0
-            assertTrue(app.getClassCount() >= 0,
-                "Class count should be non-negative for app: " + app.getName());
-        }
-
-        System.out.println("✓ Class usage data is populated correctly");
-    }
-
-    // ========== Test Case 4: Error Handling ==========
-
-    @Test
-    void testListApplicationLibraries_InvalidAppId() {
-        System.out.println("\n=== Integration Test: Invalid app ID handling ===");
-
-        // Act - Use an invalid app ID
-        boolean caughtException = false;
-        try {
-            List<LibraryExtended> libraries = scaService.getApplicationLibrariesByID("invalid-app-id-12345");
-
-            // If we get here, API handled it gracefully
-            System.out.println("✓ API handled invalid app ID gracefully");
-            System.out.println("  Libraries returned: " + (libraries != null ? libraries.size() : "null"));
-
-        } catch (Exception e) {
-            caughtException = true;
-            System.out.println("✓ API rejected invalid app ID with exception: " + e.getClass().getSimpleName());
-        }
-
-        assertTrue(true, "Test passes if either exception or graceful handling occurs");
-    }
-
-    @Test
-    void testListApplicationsVulnerableToCVE_InvalidCVE() {
-        System.out.println("\n=== Integration Test: Invalid CVE ID handling ===");
-
-        // Act & Assert - Non-existent CVE should throw IOException
-        IOException exception = assertThrows(IOException.class, () -> {
-            scaService.listCVESForApplication("CVE-9999-NONEXISTENT");
-        }, "Non-existent CVE should throw IOException");
-
-        System.out.println("✓ Non-existent CVE correctly rejected with IOException");
-        System.out.println("  Exception message: " + exception.getMessage());
-        assertTrue(exception.getMessage().contains("Failed to retrieve CVE data"),
-            "Exception message should indicate CVE retrieval failure");
-    }
+    System.out.println("✓ Non-existent CVE correctly rejected with IOException");
+    System.out.println("  Exception message: " + exception.getMessage());
+    assertTrue(
+        exception.getMessage().contains("Failed to retrieve CVE data"),
+        "Exception message should indicate CVE retrieval failure");
+  }
 }

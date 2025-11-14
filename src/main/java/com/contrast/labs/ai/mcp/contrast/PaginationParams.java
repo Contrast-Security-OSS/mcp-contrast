@@ -19,8 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Pagination parameters with validation and SDK conversion.
- * Handles page/pageSize validation with graceful degradation (soft failures only).
+ * Pagination parameters with validation and SDK conversion. Handles page/pageSize validation with
+ * graceful degradation (soft failures only).
  *
  * @param page Validated 1-based page number (min: 1)
  * @param pageSize Validated page size (range: 1-100, default: 50)
@@ -29,61 +29,50 @@ import java.util.List;
  * @param warnings Validation warnings (soft failures - execution continues with corrected values)
  */
 public record PaginationParams(
-    int page,
-    int pageSize,
-    int offset,
-    int limit,
-    List<String> warnings
-) {
-    /**
-     * Parse and validate pagination parameters.
-     * Invalid values are clamped to acceptable defaults with warnings.
-     *
-     * @param page Requested page number (1-based), null defaults to 1
-     * @param pageSize Requested page size, null defaults to 50
-     * @return PaginationParams with validated values and warnings
-     */
-    public static PaginationParams of(Integer page, Integer pageSize) {
-        List<String> warnings = new ArrayList<>();
+    int page, int pageSize, int offset, int limit, List<String> warnings) {
+  /**
+   * Parse and validate pagination parameters. Invalid values are clamped to acceptable defaults
+   * with warnings.
+   *
+   * @param page Requested page number (1-based), null defaults to 1
+   * @param pageSize Requested page size, null defaults to 50
+   * @return PaginationParams with validated values and warnings
+   */
+  public static PaginationParams of(Integer page, Integer pageSize) {
+    List<String> warnings = new ArrayList<>();
 
-        // Soft failure: invalid page → clamp to 1
-        int actualPage = page != null && page > 0 ? page : 1;
-        if (page != null && page < 1) {
-            warnings.add(String.format(
-                "Invalid page number %d, using page 1", page
-            ));
-        }
-
-        // Soft failure: invalid pageSize → clamp to range
-        int actualSize = pageSize != null && pageSize > 0 ? pageSize : 50;
-        if (pageSize != null && pageSize < 1) {
-            warnings.add(String.format(
-                "Invalid pageSize %d, using default 50", pageSize
-            ));
-            actualSize = 50;
-        } else if (pageSize != null && pageSize > 100) {
-            warnings.add(String.format(
-                "Requested pageSize %d exceeds maximum 100, capped to 100", pageSize
-            ));
-            actualSize = 100;
-        }
-
-        return new PaginationParams(
-            actualPage,
-            actualSize,
-            (actualPage - 1) * actualSize,  // 0-based offset
-            actualSize,                      // limit
-            List.copyOf(warnings)
-        );
+    // Soft failure: invalid page → clamp to 1
+    int actualPage = page != null && page > 0 ? page : 1;
+    if (page != null && page < 1) {
+      warnings.add(String.format("Invalid page number %d, using page 1", page));
     }
 
-    /**
-     * Pagination params are always valid (soft failures only).
-     * Invalid values are clamped to acceptable defaults.
-     *
-     * @return true always
-     */
-    public boolean isValid() {
-        return true;  // Always valid - uses graceful degradation
+    // Soft failure: invalid pageSize → clamp to range
+    int actualSize = pageSize != null && pageSize > 0 ? pageSize : 50;
+    if (pageSize != null && pageSize < 1) {
+      warnings.add(String.format("Invalid pageSize %d, using default 50", pageSize));
+      actualSize = 50;
+    } else if (pageSize != null && pageSize > 100) {
+      warnings.add(
+          String.format("Requested pageSize %d exceeds maximum 100, capped to 100", pageSize));
+      actualSize = 100;
     }
+
+    return new PaginationParams(
+        actualPage,
+        actualSize,
+        (actualPage - 1) * actualSize, // 0-based offset
+        actualSize, // limit
+        List.copyOf(warnings));
+  }
+
+  /**
+   * Pagination params are always valid (soft failures only). Invalid values are clamped to
+   * acceptable defaults.
+   *
+   * @return true always
+   */
+  public boolean isValid() {
+    return true; // Always valid - uses graceful degradation
+  }
 }

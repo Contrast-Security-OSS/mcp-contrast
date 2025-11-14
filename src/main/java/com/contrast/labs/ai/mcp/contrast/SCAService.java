@@ -15,102 +15,104 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.App;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.CveData;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Library;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
-import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.application.Application;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.App;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CveData;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrastsecurity.http.LibraryFilterForm;
-import com.contrastsecurity.sdk.ContrastSDK;
+import java.io.IOException;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-
 @Service
 public class SCAService {
 
-    private static final Logger logger = LoggerFactory.getLogger(SCAService.class);
+  private static final Logger logger = LoggerFactory.getLogger(SCAService.class);
 
+  @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
+  private String hostName;
 
-    @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
-    private String hostName;
+  @Value("${contrast.api-key:${CONTRAST_API_KEY:}}")
+  private String apiKey;
 
-    @Value("${contrast.api-key:${CONTRAST_API_KEY:}}")
-    private String apiKey;
+  @Value("${contrast.service-key:${CONTRAST_SERVICE_KEY:}}")
+  private String serviceKey;
 
-    @Value("${contrast.service-key:${CONTRAST_SERVICE_KEY:}}")
-    private String serviceKey;
+  @Value("${contrast.username:${CONTRAST_USERNAME:}}")
+  private String userName;
 
-    @Value("${contrast.username:${CONTRAST_USERNAME:}}")
-    private String userName;
+  @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
+  private String orgID;
 
-    @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
-    private String orgID;
+  @Value("${http.proxy.host:${http_proxy_host:}}")
+  private String httpProxyHost;
 
-    @Value("${http.proxy.host:${http_proxy_host:}}")
-    private String httpProxyHost;
+  @Value("${http.proxy.port:${http_proxy_port:}}")
+  private String httpProxyPort;
 
-    @Value("${http.proxy.port:${http_proxy_port:}}")
-    private String httpProxyPort;
-
-
-    @Tool(name = "list_application_libraries", description = "Takes an application ID and returns the libraries used in the application. Use list_applications_with_name first to get the application ID from a name. Note: if class usage count is 0 the library is unlikely to be used")
-    public List<LibraryExtended> getApplicationLibrariesByID(String appID) throws IOException {
-        if (appID == null || appID.isBlank()) {
-            throw new IllegalArgumentException("Application ID cannot be null or empty");
-        }
-        logger.info("Retrieving libraries for application id: {}", appID);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        logger.debug("ContrastSDK initialized with host: {}", hostName);
-
-        SDKExtension extendedSDK = new SDKExtension(contrastSDK);
-        return SDKHelper.getLibsForID(appID,orgID, extendedSDK);
-
+  @Tool(
+      name = "list_application_libraries",
+      description =
+          "Takes an application ID and returns the libraries used in the application. Use"
+              + " list_applications_with_name first to get the application ID from a name. Note: if"
+              + " class usage count is 0 the library is unlikely to be used")
+  public List<LibraryExtended> getApplicationLibrariesByID(String appID) throws IOException {
+    if (appID == null || appID.isEmpty()) {
+      throw new IllegalArgumentException("Application ID cannot be null or empty");
     }
+    logger.info("Retrieving libraries for application id: {}", appID);
+    var contrastSDK =
+        SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+    logger.debug("ContrastSDK initialized with host: {}", hostName);
 
-    @Tool(name= "list_applications_vulnerable_to_cve", description = "takes a cve id and returns the applications and servers vulnerable to the cve. Please note if the application class usage is 0, its unlikely to be vulnerable")
-    public CveData listCVESForApplication(String cveid) throws IOException {
-        logger.info("Retrieving applications vulnerable to CVE: {}", cveid);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+    var extendedSDK = new SDKExtension(contrastSDK);
+    return SDKHelper.getLibsForID(appID, orgID, extendedSDK);
+  }
 
-        logger.debug("ContrastSDK initialized with host: {}", hostName);
-        contrastSDK.getLibrariesWithFilter(orgID, new LibraryFilterForm());
-        try {
-            SDKExtension extendedSDK = new SDKExtension(contrastSDK);
-            CveData result = extendedSDK.getAppsForCVE(orgID, cveid);
-            logger.info("Successfully retrieved data for CVE: {}, found {} vulnerable applications",
-                    cveid, result != null && result.getApps() != null ? result.getApps().size() : 0);
-            logger.info(result.toString());
-            List<Library> vulnerableLibs = result.getLibraries();
-            for(App app : result.getApps()) {
-                List<LibraryExtended> libData = SDKHelper.getLibsForID(app.getApp_id(), orgID, extendedSDK);
-                for(LibraryExtended lib:libData) {
-                    for(Library vulnLib:vulnerableLibs) {
-                        if(lib.getHash().equals(vulnLib.getHash())) {
-                            if(lib.getClassedUsed()>0) {
-                                app.setClassCount(lib.getClassCount());
-                                app.setClassUsage(lib.getClassedUsed());
-                            }
-                        }
-                    }
-                }
+  @Tool(
+      name = "list_applications_vulnerable_to_cve",
+      description =
+          "takes a cve id and returns the applications and servers vulnerable to the cve. Please"
+              + " note if the application class usage is 0, its unlikely to be vulnerable")
+  public CveData listCVESForApplication(String cveid) throws IOException {
+    logger.info("Retrieving applications vulnerable to CVE: {}", cveid);
+    var contrastSDK =
+        SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+
+    logger.debug("ContrastSDK initialized with host: {}", hostName);
+    contrastSDK.getLibrariesWithFilter(orgID, new LibraryFilterForm());
+    try {
+      var extendedSDK = new SDKExtension(contrastSDK);
+      var result = extendedSDK.getAppsForCVE(orgID, cveid);
+      logger.info(
+          "Successfully retrieved data for CVE: {}, found {} vulnerable applications",
+          cveid,
+          result != null && result.getApps() != null ? result.getApps().size() : 0);
+      logger.info(result.toString());
+      var vulnerableLibs = result.getLibraries();
+      for (App app : result.getApps()) {
+        var libData = SDKHelper.getLibsForID(app.getApp_id(), orgID, extendedSDK);
+        for (LibraryExtended lib : libData) {
+          for (Library vulnLib : vulnerableLibs) {
+            if (lib.getHash().equals(vulnLib.getHash())) {
+              if (lib.getClassedUsed() > 0) {
+                app.setClassCount(lib.getClassCount());
+                app.setClassUsage(lib.getClassedUsed());
+              }
             }
-            return result;
-        } catch (Exception e) {
-            logger.error("Error retrieving applications vulnerable to CVE: {}", cveid, e);
-            throw new IOException("Failed to retrieve CVE data: " + e.getMessage(), e);
+          }
         }
+      }
+      return result;
+    } catch (Exception e) {
+      logger.error("Error retrieving applications vulnerable to CVE: {}", cveid, e);
+      throw new IOException("Failed to retrieve CVE data: " + e.getMessage(), e);
     }
-
-
-
-
+  }
 }
