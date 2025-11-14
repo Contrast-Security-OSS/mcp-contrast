@@ -234,18 +234,19 @@ public class AssessService {
             List<VulnLight> vulns =  listVulnsByAppId(appID);
             List<VulnLight> returnVulns = new ArrayList<>();
             for(VulnLight vuln : vulns) {
-                if(vuln.sessionMetadata()!=null) {
-                    for(SessionMetadata sm : vuln.sessionMetadata()) {
-                        for(MetadataItem metadataItem : sm.getMetadata()) {
-                            if(metadataItem.getDisplayLabel().equalsIgnoreCase(session_Metadata_Name) &&
-                                    metadataItem.getValue().equalsIgnoreCase(session_Metadata_Value)) {
-                                returnVulns.add(vuln);
-                                logger.debug("Found matching vulnerability with ID: {}", vuln.vulnID());
-                                break;
-                            }
-                        }
-                    }
+              if (vuln.sessionMetadata() == null) {
+                continue;
+              }
+              for (SessionMetadata sm : vuln.sessionMetadata()) {
+                for (MetadataItem metadataItem : sm.getMetadata()) {
+                  if (metadataItem.getDisplayLabel().equalsIgnoreCase(session_Metadata_Name) &&
+                      metadataItem.getValue().equalsIgnoreCase(session_Metadata_Value)) {
+                    returnVulns.add(vuln);
+                    logger.debug("Found matching vulnerability with ID: {}", vuln.vulnID());
+                    break;
+                  }
                 }
+              }
             }
             return returnVulns;
         } catch (Exception e) {

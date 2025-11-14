@@ -19,6 +19,8 @@ import com.contrast.labs.ai.mcp.contrast.data.AttackSummary;
 import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.Attack;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksFilterBody;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.adr.AttacksResponse;
@@ -545,7 +547,7 @@ class ADRServiceTest {
     @Test
     void testGetProtectDataByAppID_Success() throws Exception {
         // Given
-        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData mockProtectData = createMockProtectData(3);
+        ProtectData mockProtectData = createMockProtectData(3);
 
         mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
             when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
@@ -553,7 +555,7 @@ class ADRServiceTest {
         });
 
         // When
-        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData result =
+        ProtectData result =
             adrService.getProtectDataByAppID(TEST_APP_ID);
 
         // Then
@@ -565,7 +567,7 @@ class ADRServiceTest {
     @Test
     void testGetProtectDataByAppID_WithRules() throws Exception {
         // Given
-        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData mockProtectData = createMockProtectDataWithRules();
+        ProtectData mockProtectData = createMockProtectDataWithRules();
 
         mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
             when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
@@ -573,7 +575,7 @@ class ADRServiceTest {
         });
 
         // When
-        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData result =
+        ProtectData result =
             adrService.getProtectDataByAppID(TEST_APP_ID);
 
         // Then
@@ -637,7 +639,7 @@ class ADRServiceTest {
         });
 
         // When
-        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData result =
+        ProtectData result =
             adrService.getProtectDataByAppID(TEST_APP_ID);
 
         // Then
@@ -647,8 +649,8 @@ class ADRServiceTest {
     @Test
     void testGetProtectDataByAppID_EmptyRulesList() throws Exception {
         // Given - Protect enabled but no rules configured
-        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData mockProtectData =
-            new com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData();
+        ProtectData mockProtectData =
+            new ProtectData();
         mockProtectData.setRules(new ArrayList<>());
 
         mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
@@ -657,7 +659,7 @@ class ADRServiceTest {
         });
 
         // When
-        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData result =
+        ProtectData result =
             adrService.getProtectDataByAppID(TEST_APP_ID);
 
         // Then
@@ -668,9 +670,6 @@ class ADRServiceTest {
 
     // ========== Helper Methods ==========
 
-    /**
-     * Creates mock AttacksResponse for testing
-     */
     private AttacksResponse createMockAttacksResponse(int count, Integer totalCount) {
         AttacksResponse response = new AttacksResponse();
         response.setAttacks(createMockAttacks(count));
@@ -678,9 +677,7 @@ class ADRServiceTest {
         return response;
     }
 
-    /**
-     * Creates mock Attack objects for testing
-     */
+
     private List<Attack> createMockAttacks(int count) {
         List<Attack> attacks = new ArrayList<>();
         long baseTime = System.currentTimeMillis();
@@ -703,17 +700,15 @@ class ADRServiceTest {
         return attacks;
     }
 
-    /**
-     * Creates mock ProtectData for testing
-     */
-    private com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData createMockProtectData(int ruleCount) {
-        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData protectData =
-            new com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData();
 
-        List<com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule> rules = new ArrayList<>();
+    private ProtectData createMockProtectData(int ruleCount) {
+        ProtectData protectData =
+            new ProtectData();
+
+        List<Rule> rules = new ArrayList<>();
         for (int i = 0; i < ruleCount; i++) {
-            com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule rule =
-                new com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule();
+            Rule rule =
+                new Rule();
             rule.setName("protect-rule-" + i);
             rule.setProduction(i % 2 == 0 ? "block" : "monitor");
             rules.add(rule);
@@ -723,25 +718,23 @@ class ADRServiceTest {
         return protectData;
     }
 
-    /**
-     * Creates mock ProtectData with realistic rule configuration
-     */
-    private com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData createMockProtectDataWithRules() {
-        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData protectData =
-            new com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData();
 
-        List<com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule> rules = new ArrayList<>();
+    private ProtectData createMockProtectDataWithRules() {
+        ProtectData protectData =
+            new ProtectData();
+
+        List<Rule> rules = new ArrayList<>();
 
         // SQL Injection rule
-        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule sqlRule =
-            new com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule();
+        Rule sqlRule =
+            new Rule();
         sqlRule.setName("sql-injection");
         sqlRule.setProduction("block");
         rules.add(sqlRule);
 
         // XSS rule
-        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule xssRule =
-            new com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule();
+        Rule xssRule =
+            new Rule();
         xssRule.setName("xss-reflected");
         xssRule.setProduction("monitor");
         rules.add(xssRule);

@@ -17,7 +17,9 @@ package com.contrast.labs.ai.mcp.contrast;
 
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.App;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.CveData;
+import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkexstension.data.LibraryExtended;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.junit.jupiter.api.AfterEach;
@@ -360,21 +362,21 @@ class SCAServiceTest {
     private CveData createMockCveDataWithApps() {
         CveData cveData = new CveData();
 
-        var app = mock(com.contrast.labs.ai.mcp.contrast.sdkexstension.data.App.class);
+        var app = mock(App.class);
         when(app.getApp_id()).thenReturn(TEST_APP_ID);
         when(app.getName()).thenReturn("Test Application");
         when(app.getClassCount()).thenReturn(0);
 
-        var apps = new ArrayList<com.contrast.labs.ai.mcp.contrast.sdkexstension.data.App>();
+        var apps = new ArrayList<App>();
         apps.add(app);
         cveData.setApps(apps);
 
-        var lib = mock(com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Library.class);
+        var lib = mock(Library.class);
         when(lib.getHash()).thenReturn("matching-hash-789");
         when(lib.getFile_name()).thenReturn("vulnerable-lib.jar");
         when(lib.getVersion()).thenReturn("1.0.0");
 
-        var libs = new ArrayList<com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Library>();
+        var libs = new ArrayList<Library>();
         libs.add(lib);
         cveData.setLibraries(libs);
 
