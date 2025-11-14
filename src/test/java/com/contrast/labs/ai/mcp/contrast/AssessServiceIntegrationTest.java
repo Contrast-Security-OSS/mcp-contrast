@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,7 @@ import org.springframework.boot.test.context.SpringBootTest;
  *
  * <p>Or skip integration tests: mvn verify -DskipITs
  */
+@Slf4j
 @SpringBootTest
 @EnabledIfEnvironmentVariable(named = "CONTRAST_HOST_NAME", matches = ".+")
 public class AssessServiceIntegrationTest {
@@ -46,7 +48,7 @@ public class AssessServiceIntegrationTest {
 
   @Test
   void testEnvironmentsAndTagsArePopulated() throws IOException {
-    System.out.println("\n=== Integration Test: Environments and Tags ===");
+    log.info("\n=== Integration Test: Environments and Tags ===");
 
     // Get vulnerabilities from real TeamServer
     var response =
@@ -66,7 +68,7 @@ public class AssessServiceIntegrationTest {
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.items()).as("Should have at least one vulnerability").isNotEmpty();
 
-    System.out.println("Retrieved " + response.items().size() + " vulnerabilities");
+    log.info("Retrieved " + response.items().size() + " vulnerabilities");
 
     // Analyze first few vulnerabilities
     int withEnvironments = 0;
@@ -77,26 +79,26 @@ public class AssessServiceIntegrationTest {
       assertThat(vuln.tags()).as("Tags should never be null").isNotNull();
 
       // Debug: Show all environment and tag data
-      System.out.println("Vuln " + vuln.vulnID() + ":");
-      System.out.println(
+      log.info("Vuln " + vuln.vulnID() + ":");
+      log.info(
           "  environments: " + vuln.environments() + " (size: " + vuln.environments().size() + ")");
-      System.out.println("  tags: " + vuln.tags() + " (size: " + vuln.tags().size() + ")");
+      log.info("  tags: " + vuln.tags() + " (size: " + vuln.tags().size() + ")");
 
       if (!vuln.environments().isEmpty()) {
         withEnvironments++;
-        System.out.println("  ✓ Has environments: " + vuln.environments());
+        log.info("  ✓ Has environments: " + vuln.environments());
       }
 
       if (!vuln.tags().isEmpty()) {
         withTags++;
-        System.out.println("  ✓ Has tags: " + vuln.tags());
+        log.info("  ✓ Has tags: " + vuln.tags());
       }
     }
 
-    System.out.println("\nResults:");
-    System.out.println(
+    log.info("\nResults:");
+    log.info(
         "  Vulnerabilities with environments: " + withEnvironments + "/" + response.items().size());
-    System.out.println("  Vulnerabilities with tags: " + withTags + "/" + response.items().size());
+    log.info("  Vulnerabilities with tags: " + withTags + "/" + response.items().size());
 
     // At least verify the fields are being returned (even if empty)
     // This ensures the API is returning the fields and they're being deserialized
@@ -107,12 +109,12 @@ public class AssessServiceIntegrationTest {
       assertThat(vuln.tags()).as("Tags field should exist (even if empty list)").isNotNull();
     }
 
-    System.out.println("✓ Integration test passed: environments and tags fields are present");
+    log.info("✓ Integration test passed: environments and tags fields are present");
   }
 
   @Test
   void testSessionMetadataIsPopulated() throws IOException {
-    System.out.println("\n=== Integration Test: Session Metadata ===");
+    log.info("\n=== Integration Test: Session Metadata ===");
 
     // Get vulnerabilities from real TeamServer with session metadata expanded
     var response =
@@ -132,7 +134,7 @@ public class AssessServiceIntegrationTest {
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.items()).as("Should have at least one vulnerability").isNotEmpty();
 
-    System.out.println("Retrieved " + response.items().size() + " vulnerabilities");
+    log.info("Retrieved " + response.items().size() + " vulnerabilities");
 
     // Analyze session metadata in vulnerabilities
     int withSessionMetadata = 0;
@@ -142,8 +144,8 @@ public class AssessServiceIntegrationTest {
       assertThat(vuln.sessionMetadata()).as("Session metadata should never be null").isNotNull();
 
       // Debug: Show session metadata
-      System.out.println("Vuln " + vuln.vulnID() + ":");
-      System.out.println("  sessionMetadata: " + vuln.sessionMetadata().size() + " session(s)");
+      log.info("Vuln " + vuln.vulnID() + ":");
+      log.info("  sessionMetadata: " + vuln.sessionMetadata().size() + " session(s)");
 
       if (!vuln.sessionMetadata().isEmpty()) {
         withSessionMetadata++;
@@ -151,25 +153,24 @@ public class AssessServiceIntegrationTest {
 
         // Show details of first session
         var firstSession = vuln.sessionMetadata().get(0);
-        System.out.println("  ✓ Has session metadata:");
-        System.out.println("    - Session ID: " + firstSession.getSessionId());
+        log.info("  ✓ Has session metadata:");
+        log.info("    - Session ID: " + firstSession.getSessionId());
         if (firstSession.getMetadata() != null && !firstSession.getMetadata().isEmpty()) {
-          System.out.println("    - Metadata items: " + firstSession.getMetadata().size());
+          log.info("    - Metadata items: " + firstSession.getMetadata().size());
           // Show first metadata item
           var firstItem = firstSession.getMetadata().get(0);
-          System.out.println(
-              "      * " + firstItem.getDisplayLabel() + ": " + firstItem.getValue());
+          log.info("      * " + firstItem.getDisplayLabel() + ": " + firstItem.getValue());
         }
       }
     }
 
-    System.out.println("\nResults:");
-    System.out.println(
+    log.info("\nResults:");
+    log.info(
         "  Vulnerabilities with session metadata: "
             + withSessionMetadata
             + "/"
             + response.items().size());
-    System.out.println("  Total sessions found: " + totalSessions);
+    log.info("  Total sessions found: " + totalSessions);
 
     // Verify the session metadata field exists (even if empty) - this confirms SDK expansion works
     for (VulnLight vuln : response.items()) {
@@ -178,13 +179,13 @@ public class AssessServiceIntegrationTest {
           .isNotNull();
     }
 
-    System.out.println(
+    log.info(
         "✓ Integration test passed: session metadata field is present and SDK expansion works");
   }
 
   @Test
   void testVulnerabilitiesHaveBasicFields() throws IOException {
-    System.out.println("\n=== Integration Test: Basic Fields ===");
+    log.info("\n=== Integration Test: Basic Fields ===");
 
     var response =
         assessService.getAllVulnerabilities(1, 5, null, null, null, null, null, null, null, null);
@@ -208,7 +209,7 @@ public class AssessServiceIntegrationTest {
       assertThat(vuln.appID()).as("appID should not be empty").isNotEmpty();
       assertThat(vuln.appName()).as("appName should not be empty").isNotEmpty();
 
-      System.out.println(
+      log.info(
           "✓ "
               + vuln.vulnID()
               + ": "
@@ -222,13 +223,13 @@ public class AssessServiceIntegrationTest {
               + ")");
     }
 
-    System.out.println("✓ All vulnerabilities have required fields including appID and appName");
+    log.info("✓ All vulnerabilities have required fields including appID and appName");
   }
 
   @Test
   void testVulnTagsWithSpacesHandledBySDK() throws IOException {
-    System.out.println("\n=== Integration Test: VulnTags with Spaces ===");
-    System.out.println("Testing that SDK properly handles URL encoding of tags with spaces");
+    log.info("\n=== Integration Test: VulnTags with Spaces ===");
+    log.info("Testing that SDK properly handles URL encoding of tags with spaces");
 
     // Query with a tag that contains spaces - this should work now that AIML-193 is complete
     // The SDK should handle URL encoding internally
@@ -247,50 +248,50 @@ public class AssessServiceIntegrationTest {
             );
 
     assertThat(response).as("Response should not be null").isNotNull();
-    System.out.println(
+    log.info(
         "Query completed successfully (returned " + response.items().size() + " vulnerabilities)");
 
     // The query should complete without error - whether we get results depends on the org's data
     // The important thing is that the SDK properly encoded the tag with spaces
     if (response.items().size() > 0) {
-      System.out.println("✓ Found vulnerabilities with 'SmartFix Remediated' tag:");
+      log.info("✓ Found vulnerabilities with 'SmartFix Remediated' tag:");
       for (VulnLight vuln : response.items()) {
-        System.out.println("  - " + vuln.vulnID() + ": " + vuln.title());
-        System.out.println("    Tags: " + vuln.tags());
+        log.info("  - " + vuln.vulnID() + ": " + vuln.title());
+        log.info("    Tags: " + vuln.tags());
       }
     } else {
-      System.out.println("ℹ No vulnerabilities found with 'SmartFix Remediated' tag (this is OK)");
+      log.info("ℹ No vulnerabilities found with 'SmartFix Remediated' tag (this is OK)");
     }
 
     // Try with multiple tags including spaces and special characters
-    System.out.println("\nTesting multiple tags with spaces:");
+    log.info("\nTesting multiple tags with spaces:");
     response =
         assessService.getAllVulnerabilities(
             1, 10, null, null, null, null, null, null, null, "Tag With Spaces,another-tag");
 
     assertThat(response).as("Response should not be null").isNotNull();
-    System.out.println("✓ Query with multiple tags completed successfully");
-    System.out.println("  (returned " + response.items().size() + " vulnerabilities)");
+    log.info("✓ Query with multiple tags completed successfully");
+    log.info("  (returned " + response.items().size() + " vulnerabilities)");
 
-    System.out.println("\n✓ Integration test passed: SDK properly handles vulnTags with spaces");
+    log.info("\n✓ Integration test passed: SDK properly handles vulnTags with spaces");
   }
 
   @Test
   void testListVulnsByAppIdWithSessionMetadata() throws IOException {
-    System.out.println("\n=== Integration Test: listVulnsByAppId() with Session Metadata ===");
+    log.info("\n=== Integration Test: listVulnsByAppId() with Session Metadata ===");
 
     // Step 1: Get some vulnerabilities to find an appId (single API call)
-    System.out.println("Step 1: Getting vulnerabilities to discover an appId...");
+    log.info("Step 1: Getting vulnerabilities to discover an appId...");
     var allVulns =
         assessService.getAllVulnerabilities(1, 10, null, null, null, null, null, null, null, null);
 
     assertThat(allVulns).as("Response should not be null").isNotNull();
     assertThat(allVulns.items()).as("Should have at least one vulnerability").isNotEmpty();
 
-    System.out.println("  ✓ Found " + allVulns.items().size() + " vulnerability(ies)");
+    log.info("  ✓ Found " + allVulns.items().size() + " vulnerability(ies)");
 
     // Step 2: Get applications list (single API call)
-    System.out.println("Step 2: Getting first application with vulnerabilities...");
+    log.info("Step 2: Getting first application with vulnerabilities...");
     var applications = assessService.getAllApplications();
     assertThat(applications).as("Applications list should not be null").isNotNull();
     assertThat(applications).as("Should have at least one application").isNotEmpty();
@@ -298,22 +299,22 @@ public class AssessServiceIntegrationTest {
     // Just use the first application - no iteration needed
     var testAppId = applications.get(0).appID();
     var testAppName = applications.get(0).name();
-    System.out.println("  ✓ Using application: " + testAppName + " (ID: " + testAppId + ")");
+    log.info("  ✓ Using application: " + testAppName + " (ID: " + testAppId + ")");
 
     // Step 3: Call listVulnsByAppId() with the discovered appId
-    System.out.println("Step 3: Calling listVulnsByAppId() for app: " + testAppName);
+    log.info("Step 3: Calling listVulnsByAppId() for app: " + testAppName);
     var vulnerabilities = assessService.listVulnsByAppId(testAppId);
 
     assertThat(vulnerabilities).as("Vulnerabilities list should not be null").isNotNull();
-    System.out.println("  ✓ Retrieved " + vulnerabilities.size() + " vulnerability(ies)");
+    log.info("  ✓ Retrieved " + vulnerabilities.size() + " vulnerability(ies)");
 
     if (vulnerabilities.isEmpty()) {
-      System.out.println("  ℹ No vulnerabilities for this app (this is OK for the test)");
+      log.info("  ℹ No vulnerabilities for this app (this is OK for the test)");
       return;
     }
 
     // Step 4: Verify session metadata is populated
-    System.out.println("Step 4: Verifying session metadata is populated...");
+    log.info("Step 4: Verifying session metadata is populated...");
     int withSessionMetadata = 0;
 
     for (VulnLight vuln : vulnerabilities) {
@@ -321,31 +322,31 @@ public class AssessServiceIntegrationTest {
 
       if (!vuln.sessionMetadata().isEmpty()) {
         withSessionMetadata++;
-        System.out.println(
+        log.info(
             "  ✓ Vuln " + vuln.vulnID() + " has " + vuln.sessionMetadata().size() + " session(s)");
       }
     }
 
-    System.out.println("\nResults:");
-    System.out.println(
+    log.info("\nResults:");
+    log.info(
         "  Vulnerabilities with session metadata: "
             + withSessionMetadata
             + "/"
             + vulnerabilities.size());
-    System.out.println(
+    log.info(
         "✓ Integration test passed: listVulnsByAppId() returns vulnerabilities with session"
             + " metadata");
   }
 
   @Test
   void testListVulnsInAppByNameForLatestSessionWithDynamicSessionId() throws IOException {
-    System.out.println(
+    log.info(
         "\n"
             + "=== Integration Test: listVulnsByAppIdForLatestSession() with Dynamic Session"
             + " Discovery ===");
 
     // Step 1: Get applications list (single API call)
-    System.out.println("Step 1: Getting first application...");
+    log.info("Step 1: Getting first application...");
     var applications = assessService.getAllApplications();
 
     assertThat(applications).as("Applications list should not be null").isNotNull();
@@ -354,26 +355,25 @@ public class AssessServiceIntegrationTest {
     // Just use the first application - no iteration needed
     var testAppID = applications.get(0).appID();
     var testAppName = applications.get(0).name();
-    System.out.println("  ✓ Using application: " + testAppName + " (ID: " + testAppID + ")");
+    log.info("  ✓ Using application: " + testAppName + " (ID: " + testAppID + ")");
 
     // Step 2: Call listVulnsByAppIdForLatestSession() with the discovered app ID
-    System.out.println(
-        "Step 2: Calling listVulnsByAppIdForLatestSession() for appID: " + testAppID);
+    log.info("Step 2: Calling listVulnsByAppIdForLatestSession() for appID: " + testAppID);
     var latestSessionVulns = assessService.listVulnsByAppIdForLatestSession(testAppID);
 
     assertThat(latestSessionVulns).as("Vulnerabilities list should not be null").isNotNull();
-    System.out.println(
+    log.info(
         "  ✓ Retrieved " + latestSessionVulns.size() + " vulnerability(ies) for latest session");
 
     if (latestSessionVulns.isEmpty()) {
-      System.out.println(
+      log.info(
           "  ℹ No vulnerabilities in latest session (this is valid if latest session has no"
               + " vulns)");
       return;
     }
 
     // Step 3: Verify session metadata is populated in results
-    System.out.println("Step 3: Verifying session metadata is populated...");
+    log.info("Step 3: Verifying session metadata is populated...");
     int withSessionMetadata = 0;
 
     for (VulnLight vuln : latestSessionVulns) {
@@ -382,18 +382,18 @@ public class AssessServiceIntegrationTest {
       if (!vuln.sessionMetadata().isEmpty()) {
         withSessionMetadata++;
         String sessionId = vuln.sessionMetadata().get(0).getSessionId();
-        System.out.println("  ✓ Vuln " + vuln.vulnID() + " has session ID: " + sessionId);
+        log.info("  ✓ Vuln " + vuln.vulnID() + " has session ID: " + sessionId);
       }
     }
 
-    System.out.println("\nResults:");
-    System.out.println("  Vulnerabilities returned: " + latestSessionVulns.size());
-    System.out.println(
+    log.info("\nResults:");
+    log.info("  Vulnerabilities returned: " + latestSessionVulns.size());
+    log.info(
         "  Vulnerabilities with session metadata: "
             + withSessionMetadata
             + "/"
             + latestSessionVulns.size());
-    System.out.println(
+    log.info(
         "✓ Integration test passed: listVulnsByAppIdForLatestSession() returns vulnerabilities with"
             + " session metadata");
   }
