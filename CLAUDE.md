@@ -519,13 +519,44 @@ This workflow promotes a draft stacked PR to ready-for-review after its base PR 
    - If NOT merged, inform user and wait
 
 **3. Fetch and rebase onto main:**
+
+   **CRITICAL: Use `git rebase --onto` to avoid replaying base commits that are already in main!**
+
    ```bash
-   git fetch origin
+   # Fetch latest from origin (including the merged base PR)
+   git fetch origin --prune
+
+   # Checkout the stacked branch
    git checkout <feature-branch>
-   git rebase origin/main
+
+   # Find the base commit (last commit of the base branch)
+   git log --oneline --graph --decorate -20
+   # Look for the commit right before your stacked commits started
+   # This is typically the last commit from the base branch
+
+   # Rebase ONLY the stacked commits onto main
+   git rebase --onto origin/main <base-commit-hash>
    ```
-   - Handle conflicts if they arise (pause and ask user for guidance)
-   - Clean rebase expected for well-structured stacks
+
+   **Example:**
+   If your branch history shows:
+   ```
+   * abc1234 (HEAD) Your stacked commit 3
+   * def5678 Your stacked commit 2
+   * ghi9012 Your stacked commit 1
+   * jkl3456 Last commit from base branch  <-- This is your <base-commit-hash>
+   * mno7890 Base branch commit
+   ```
+
+   Use: `git rebase --onto origin/main jkl3456`
+
+   This rebases only commits `ghi9012`, `def5678`, and `abc1234` onto main,
+   avoiding conflicts from commits that are already merged.
+
+   **Troubleshooting:**
+   - If you get conflicts about changes already in main, you likely used the wrong base commit
+   - Handle genuine conflicts by pausing and asking user for guidance
+   - Clean rebase expected for well-structured stacks with correct base commit
 
 **4. Force push safely:**
    ```bash
