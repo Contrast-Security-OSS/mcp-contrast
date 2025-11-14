@@ -447,7 +447,7 @@ public class RouteCoverageServiceIntegrationTest {
         .as("Routes should not be null when success is true")
         .isNotNull();
 
-    log.info("✓ Retrieved " + response.getRoutes().size() + " routes from latest session");
+    log.info("✓ Retrieved {} routes from latest session", response.getRoutes().size());
     log.info("  Application: {}", testData.appName);
 
     // Count exercised vs discovered
@@ -543,7 +543,7 @@ public class RouteCoverageServiceIntegrationTest {
     } catch (Exception e) {
       // Catch other exceptions like UnauthorizedException
       caughtException = true;
-      log.info("✓ API rejected invalid app ID with error: " + e.getClass().getSimpleName());
+      log.info("✓ API rejected invalid app ID with error: {}", e.getClass().getSimpleName());
     }
 
     assertThat(caughtException || true)

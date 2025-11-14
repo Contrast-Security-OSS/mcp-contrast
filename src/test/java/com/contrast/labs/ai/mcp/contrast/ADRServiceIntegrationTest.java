@@ -110,7 +110,7 @@ public class ADRServiceIntegrationTest {
       log.info("\n🔍 Step 1: Fetching all applications...");
       var appsResponse = sdkExtension.getApplications(orgID);
       var applications = appsResponse.getApplications();
-      log.info("   Found {}", applications.size() + " application(s) in organization");
+      log.info("   Found {} application(s) in organization", applications.size());
 
       if (applications.isEmpty()) {
         log.info("\n⚠️  NO APPLICATIONS FOUND");
@@ -132,21 +132,17 @@ public class ADRServiceIntegrationTest {
 
       for (Application app : applications) {
         if (appsChecked >= maxAppsToCheck) {
-          log.info("   Reached max apps to check (" + maxAppsToCheck + "), stopping search");
+          log.info("   Reached max apps to check ({}), stopping search", maxAppsToCheck);
           break;
         }
         appsChecked++;
 
         log.info(
-            "   Checking app "
-                + appsChecked
-                + "/"
-                + maxAppsToCheck
-                + ": "
-                + app.getName()
-                + " (ID: "
-                + app.getAppId()
-                + ")");
+            "   Checking app {}/{}: {} (ID: {})",
+            appsChecked,
+            maxAppsToCheck,
+            app.getName(),
+            app.getAppId());
 
         try {
           // Check for Protect configuration
@@ -154,7 +150,7 @@ public class ADRServiceIntegrationTest {
           if (protectData != null
               && protectData.getRules() != null
               && !protectData.getRules().isEmpty()) {
-            log.info("      ✓ Has {}", protectData.getRules().size() + " Protect rule(s)");
+            log.info("      ✓ Has {} Protect rule(s)", protectData.getRules().size());
 
             candidate = new TestData();
             candidate.appId = app.getAppId();
@@ -295,7 +291,7 @@ public class ADRServiceIntegrationTest {
     log.info("  Rules configured:");
     for (var rule : response.getRules()) {
       String mode = rule.getProduction() != null ? rule.getProduction() : "not set";
-      log.info("    - {}", rule.getName() + " (production mode: " + mode + ")");
+      log.info("    - {} (production mode: {})", rule.getName(), mode);
     }
 
     // Verify rule structure
@@ -323,15 +319,13 @@ public class ADRServiceIntegrationTest {
         log.info("  Response: null (no Protect data for invalid app)");
       } else {
         log.info(
-            "  Response: "
-                + (response.getRules() != null ? response.getRules().size() : 0)
-                + " rules");
+            "  Response: {} rules", (response.getRules() != null ? response.getRules().size() : 0));
       }
 
     } catch (Exception e) {
       // This is acceptable - API rejected the invalid app ID
       caughtException = true;
-      log.info("✓ API rejected invalid app ID with exception: " + e.getClass().getSimpleName());
+      log.info("✓ API rejected invalid app ID with exception: {}", e.getClass().getSimpleName());
       log.info("  Message: {}", e.getMessage());
     }
 
@@ -387,7 +381,7 @@ public class ADRServiceIntegrationTest {
     assertThat(response.getRules()).isNotNull();
     assertThat(response.getRules()).isNotEmpty();
 
-    log.info("✓ Verifying rule details for {}", response.getRules().size() + " rules:");
+    log.info("✓ Verifying rule details for {} rules:", response.getRules().size());
 
     // Detailed verification of each rule
     for (var rule : response.getRules()) {
