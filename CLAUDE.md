@@ -630,6 +630,44 @@ mvn clean verify
 - Verify workflow configuration targets main branch
 - Check `.github/workflows/` for PR triggers
 
+### After PR is Merged
+
+**When a PR is merged to main:**
+
+This workflow completes the development cycle by closing the bead and updating the Jira ticket status.
+
+**Steps:**
+
+**1. Close the bead:**
+   ```bash
+   bd close <bead-id>
+   ```
+   - Provide a brief reason mentioning the merged PR
+   - Example: "PR #28 merged to main. Successfully added appID and appName fields to VulnLight record."
+
+**2. Update Jira status to "Ready to Deploy":**
+   - Use the Atlassian MCP to transition the Jira ticket
+   - Transition to "Ready to Deploy" status (NOT "Closed")
+   - "Closed" status is reserved for when code is actually released/deployed
+   - Example:
+   ```python
+   mcp__atlassian__transitionJiraIssue(
+       cloudId="https://contrast.atlassian.net",
+       issueIdOrKey="AIML-XXX",
+       transition={"id": "51"}  # "Ready to Deploy" transition
+   )
+   ```
+
+**3. Check for dependent beads/PRs:**
+   - If this was a base PR for stacked PRs, the dependent PRs can now be promoted
+   - Check for beads with `stacked-branch` label that depend on this one
+   - Follow the "Promoting Stacked PR to Ready for Review" workflow for each dependent PR
+
+**Rationale:**
+- "Ready to Deploy" indicates the code is merged and ready for the next release
+- "Closed" should only be used when the code is actually deployed/released to production
+- This allows tracking what code is ready to go out in the next release vs what's already deployed
+
 ### Landing the Plane
 
 **When user says "let's land the plane":**
