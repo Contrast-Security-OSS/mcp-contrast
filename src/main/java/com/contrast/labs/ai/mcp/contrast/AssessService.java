@@ -221,89 +221,72 @@ public class AssessService {
 
 
 
-    @Tool(name = "list_vulnerabilities_by_application_and_session_metadata", description = "Takes an application name ( app_name ) and session metadata in the form of name / value. and returns a list of vulnerabilities matching that application name and session metadata.")
-    public List<VulnLight> listVulnsInAppByNameAndSessionMetadata(
-            @ToolParam(description = "Application name") String app_name,
+    @Tool(name = "list_vulns_by_app_and_metadata", description = "Takes an application ID (appID) and session metadata in the form of name / value and returns a list of vulnerabilities matching that application ID and session metadata. Use list_applications_with_name first to get the application ID from a name.")
+    public List<VulnLight> listVulnsByAppIdAndSessionMetadata(
+            @ToolParam(description = "Application ID") String appID,
             @ToolParam(description = "Session metadata field name") String session_Metadata_Name,
             @ToolParam(description = "Session metadata field value") String session_Metadata_Value) throws IOException {
-        logger.info("Listing vulnerabilities for application: {}", app_name);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
+        logger.info("Listing vulnerabilities for application: {}", appID);
 
         logger.info("metadata : " + session_Metadata_Name+session_Metadata_Value);
 
-        logger.debug("Searching for application ID matching name: {}", app_name);
-
-        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
-        if(application.isPresent()) {
-            try {
-                List<VulnLight> vulns =  listVulnsByAppId(application.get().getAppId());
-                List<VulnLight> returnVulns = new ArrayList<>();
-                for(VulnLight vuln : vulns) {
-                    if(vuln.sessionMetadata()!=null) {
-                        for(SessionMetadata sm : vuln.sessionMetadata()) {
-                            for(MetadataItem metadataItem : sm.getMetadata()) {
-                                if(metadataItem.getDisplayLabel().equalsIgnoreCase(session_Metadata_Name) &&
-                                        metadataItem.getValue().equalsIgnoreCase(session_Metadata_Value)) {
-                                    returnVulns.add(vuln);
-                                    logger.debug("Found matching vulnerability with ID: {}", vuln.vulnID());
-                                    break;
-                                }
-                            }
-                        }
-                    }
+        try {
+            List<VulnLight> vulns =  listVulnsByAppId(appID);
+            List<VulnLight> returnVulns = new ArrayList<>();
+            for(VulnLight vuln : vulns) {
+              if (vuln.sessionMetadata() == null) {
+                continue;
+              }
+              for (SessionMetadata sm : vuln.sessionMetadata()) {
+                for (MetadataItem metadataItem : sm.getMetadata()) {
+                  if (metadataItem.getDisplayLabel().equalsIgnoreCase(session_Metadata_Name) &&
+                      metadataItem.getValue().equalsIgnoreCase(session_Metadata_Value)) {
+                    returnVulns.add(vuln);
+                    logger.debug("Found matching vulnerability with ID: {}", vuln.vulnID());
+                    break;
+                  }
                 }
-                return returnVulns;
-            } catch (Exception e) {
-                logger.error("Error listing vulnerabilities for application: {}", app_name, e);
-                throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
+              }
             }
-        } else {
-            logger.debug("Application with name {} not found, returning empty list", app_name);
-            return new ArrayList<>();
+            return returnVulns;
+        } catch (Exception e) {
+            logger.error("Error listing vulnerabilities for application: {}", appID, e);
+            throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
         }
     }
 
 
-    @Tool(name = "list_vulnerabilities_by_application_and_latest_session", description = "Takes an application name ( app_name ) and returns a list of vulnerabilities for the latest session matching that application name. This is useful for getting the most recent vulnerabilities without needing to specify session metadata.")
-    public List<VulnLight> listVulnsInAppByNameForLatestSession(
-            @ToolParam(description = "Application name") String app_name) throws IOException {
-        logger.info("Listing vulnerabilities for application: {}", app_name);
+    @Tool(name = "list_vulns_by_app_latest_session", description = "Takes an application ID (appID) and returns a list of vulnerabilities for the latest session matching that application ID. This is useful for getting the most recent vulnerabilities without needing to specify session metadata. Use list_applications_with_name first to get the application ID from a name.")
+    public List<VulnLight> listVulnsByAppIdForLatestSession(
+            @ToolParam(description = "Application ID") String appID) throws IOException {
+        logger.info("Listing vulnerabilities for application: {}", appID);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
 
+        try {
+            SDKExtension extension = new SDKExtension(contrastSDK);
+            SessionMetadataResponse latest = extension.getLatestSessionMetadata(orgID, appID);
 
-        logger.debug("Searching for application ID matching name: {}", app_name);
-        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
-
-        if(application.isPresent()) {
-            try {
-                SDKExtension extension = new SDKExtension(contrastSDK);
-                SessionMetadataResponse latest = extension.getLatestSessionMetadata(orgID,application.get().getAppId());
-
-                // Use SDK's native TraceFilterBody with agentSessionId field
-                var filterBody = new com.contrastsecurity.models.TraceFilterBody();
-                if (latest != null && latest.getAgentSession() != null && latest.getAgentSession().getAgentSessionId() != null) {
-                    filterBody.setAgentSessionId(latest.getAgentSession().getAgentSessionId());
-                }
-
-                // Use SDK's native getTraces() with expand parameter
-                Traces tracesResponse = contrastSDK.getTraces(
-                    orgID,
-                    application.get().getAppId(),
-                    filterBody,
-                    EnumSet.of(TraceFilterForm.TraceExpandValue.SESSION_METADATA)
-                );
-
-                List<VulnLight> vulns = tracesResponse.getTraces().stream()
-                    .map(vulnerabilityMapper::toVulnLight)
-                    .collect(Collectors.toList());
-                return vulns;
-            } catch (Exception e) {
-                logger.error("Error listing vulnerabilities for application: {}", app_name, e);
-                throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
+            // Use SDK's native TraceFilterBody with agentSessionId field
+            com.contrastsecurity.models.TraceFilterBody filterBody = new com.contrastsecurity.models.TraceFilterBody();
+            if(latest!=null&&latest.getAgentSession()!=null&&latest.getAgentSession().getAgentSessionId()!=null) {
+                filterBody.setAgentSessionId(latest.getAgentSession().getAgentSessionId());
             }
-        } else {
-            logger.debug("Application with name {} not found, returning empty list", app_name);
-            return new ArrayList<>();
+
+            // Use SDK's native getTraces() with expand parameter
+            Traces tracesResponse = contrastSDK.getTraces(
+                orgID,
+                appID,
+                filterBody,
+                EnumSet.of(TraceFilterForm.TraceExpandValue.SESSION_METADATA)
+            );
+
+            List<VulnLight> vulns = tracesResponse.getTraces().stream()
+                .map(vulnerabilityMapper::toVulnLight)
+                .collect(Collectors.toList());
+            return vulns;
+        } catch (Exception e) {
+            logger.error("Error listing vulnerabilities for application: {}", appID, e);
+            throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
         }
     }
 
