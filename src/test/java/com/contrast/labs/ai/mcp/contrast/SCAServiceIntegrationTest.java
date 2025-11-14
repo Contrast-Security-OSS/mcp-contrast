@@ -114,7 +114,7 @@ public class SCAServiceIntegrationTest {
       log.info("\n🔍 Step 1: Fetching all applications...");
       var appsResponse = sdkExtension.getApplications(orgID);
       var applications = appsResponse.getApplications();
-      log.info("   Found {}", applications.size() + " application(s) in organization");
+      log.info("   Found {} application(s) in organization", applications.size());
 
       if (applications.isEmpty()) {
         log.info("\n⚠️  NO APPLICATIONS FOUND");
@@ -133,27 +133,23 @@ public class SCAServiceIntegrationTest {
 
       for (Application app : applications) {
         if (appsChecked >= maxAppsToCheck) {
-          log.info("   Reached max apps to check (" + maxAppsToCheck + "), stopping search");
+          log.info("   Reached max apps to check ({}), stopping search", maxAppsToCheck);
           break;
         }
         appsChecked++;
 
         log.info(
-            "   Checking app "
-                + appsChecked
-                + "/"
-                + maxAppsToCheck
-                + ": "
-                + app.getName()
-                + " (ID: "
-                + app.getAppId()
-                + ")");
+            "   Checking app {}/{}: {} (ID: {})",
+            appsChecked,
+            maxAppsToCheck,
+            app.getName(),
+            app.getAppId());
 
         try {
           // Check for libraries
           var libraries = SDKHelper.getLibsForID(app.getAppId(), orgID, sdkExtension);
           if (libraries != null && !libraries.isEmpty()) {
-            log.info("      ✓ Has {}", libraries.size() + " library/libraries");
+            log.info("      ✓ Has {} library/libraries", libraries.size());
 
             var candidate = new TestData();
             candidate.appId = app.getAppId();
@@ -169,7 +165,8 @@ public class SCAServiceIntegrationTest {
                 var firstVuln = lib.getVulnerabilities().get(0);
                 if (firstVuln.getName() != null && firstVuln.getName().startsWith("CVE-")) {
                   candidate.vulnerableCveId = firstVuln.getName();
-                  log.info("      ✓ Has vulnerable library with CVE: " + candidate.vulnerableCveId);
+                  log.info(
+                      "      ✓ Has vulnerable library with CVE: {}", candidate.vulnerableCveId);
                   break;
                 }
               }
@@ -322,9 +319,9 @@ public class SCAServiceIntegrationTest {
 
     // Assert
     assertThat(libraries).as("Libraries list should not be null").isNotNull();
-    assertThat(libraries.size() > 0).as("Should have at least 1 library").isTrue();
+    assertThat(libraries).as("Should have at least 1 library").isNotEmpty();
 
-    log.info("✓ Retrieved " + libraries.size() + " libraries for application: " + testData.appName);
+    log.info("✓ Retrieved {} libraries for application: {}", libraries.size(), testData.appName);
 
     // Print sample libraries
     log.info("  Sample libraries:");
@@ -333,23 +330,19 @@ public class SCAServiceIntegrationTest {
         .forEach(
             lib -> {
               log.info(
-                  "    - "
-                      + lib.getFilename()
-                      + " (version: "
-                      + lib.getVersion()
-                      + ", classes used: "
-                      + lib.getClassedUsed()
-                      + "/"
-                      + lib.getClassCount()
-                      + ")");
+                  "    - {} (version: {}, classes used: {}/{})",
+                  lib.getFilename(),
+                  lib.getVersion(),
+                  lib.getClassedUsed(),
+                  lib.getClassCount());
             });
 
     // Verify library structure
     for (LibraryExtended lib : libraries) {
       assertThat(lib.getFilename()).as("Library filename should not be null").isNotNull();
       assertThat(lib.getHash()).as("Library hash should not be null").isNotNull();
-      assertThat(lib.getClassCount() >= 0).as("Class count should be non-negative").isTrue();
-      assertThat(lib.getClassedUsed() >= 0).as("Classes used should be non-negative").isTrue();
+      assertThat(lib.getClassCount()).as("Class count should be non-negative").isNotNegative();
+      assertThat(lib.getClassedUsed()).as("Classes used should be non-negative").isNotNegative();
     }
   }
 
@@ -366,7 +359,7 @@ public class SCAServiceIntegrationTest {
     assertThat(libraries).isNotNull();
     assertThat(libraries).isNotEmpty();
 
-    log.info("✓ Analyzing class usage for {}", libraries.size() + " libraries:");
+    log.info("✓ Analyzing class usage for {} libraries:", libraries.size());
 
     // Count libraries by usage
     long activeLibs = libraries.stream().filter(lib -> lib.getClassedUsed() > 0).count();
@@ -416,7 +409,7 @@ public class SCAServiceIntegrationTest {
         cveData.getApps().stream().anyMatch(app -> app.getApp_id().equals(testData.appId));
 
     if (foundTestApp) {
-      log.info("  ✓ Test application '{}", testData.appName + "' is in the affected list");
+      log.info("  ✓ Test application '{}' is in the affected list", testData.appName);
     }
 
     // Verify library data
@@ -429,7 +422,7 @@ public class SCAServiceIntegrationTest {
         .limit(3)
         .forEach(
             lib -> {
-              log.info("    - " + lib.getFile_name() + " (version: " + lib.getVersion() + ")");
+              log.info("    - {} (version: {})", lib.getFile_name(), lib.getVersion());
             });
   }
 
@@ -449,8 +442,7 @@ public class SCAServiceIntegrationTest {
     assertThat(cveData).isNotNull();
     assertThat(cveData.getApps()).isNotNull();
 
-    log.info(
-        "✓ Checking class usage data for " + cveData.getApps().size() + " affected applications:");
+    log.info("✓ Checking class usage data for {} affected applications:", cveData.getApps().size());
 
     // Verify class usage is populated for apps (implementation populates this)
     for (var app : cveData.getApps()) {
@@ -485,11 +477,11 @@ public class SCAServiceIntegrationTest {
 
       // If we get here, API handled it gracefully
       log.info("✓ API handled invalid app ID gracefully");
-      log.info("  Libraries returned: " + (libraries != null ? libraries.size() : "null"));
+      log.info("  Libraries returned: {}", (libraries != null ? libraries.size() : "null"));
 
     } catch (Exception e) {
       caughtException = true;
-      log.info("✓ API rejected invalid app ID with exception: " + e.getClass().getSimpleName());
+      log.info("✓ API rejected invalid app ID with exception: {}", e.getClass().getSimpleName());
     }
 
     assertThat(true).as("Test passes if either exception or graceful handling occurs").isTrue();

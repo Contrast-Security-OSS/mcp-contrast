@@ -30,7 +30,7 @@ class PaginationParamsTest {
     assertThat(params.pageSize()).isEqualTo(50);
     assertThat(params.offset()).isEqualTo(0);
     assertThat(params.limit()).isEqualTo(50);
-    assertThat(params.warnings().isEmpty()).isTrue();
+    assertThat(params.warnings()).isEmpty();
     assertThat(params.isValid()).isTrue();
   }
 
@@ -42,7 +42,7 @@ class PaginationParamsTest {
     assertThat(params.pageSize()).isEqualTo(25);
     assertThat(params.offset()).isEqualTo(50); // (3-1) * 25
     assertThat(params.limit()).isEqualTo(25);
-    assertThat(params.warnings().isEmpty()).isTrue();
+    assertThat(params.warnings()).isEmpty();
     assertThat(params.isValid()).isTrue();
   }
 
@@ -147,12 +147,12 @@ class PaginationParamsTest {
     // Min valid
     var pMin = PaginationParams.of(1, 1);
     assertThat(pMin.pageSize()).isEqualTo(1);
-    assertThat(pMin.warnings().isEmpty()).isTrue();
+    assertThat(pMin.warnings()).isEmpty();
 
     // Max valid
     var pMax = PaginationParams.of(1, 100);
     assertThat(pMax.pageSize()).isEqualTo(100);
-    assertThat(pMax.warnings().isEmpty()).isTrue();
+    assertThat(pMax.warnings()).isEmpty();
 
     // Just over max
     var pOver = PaginationParams.of(1, 101);
