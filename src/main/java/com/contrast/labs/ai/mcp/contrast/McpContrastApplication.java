@@ -15,47 +15,52 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
+import static java.util.List.of;
+
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
-import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Bean;
 
-import java.util.List;
-
-import static java.util.List.of;
-
 @SpringBootApplication
 public class McpContrastApplication {
 
-	private static final Logger logger = LoggerFactory.getLogger(McpContrastApplication.class);
+  private static final Logger logger = LoggerFactory.getLogger(McpContrastApplication.class);
 
-	public static void main(String[] args)  {
-		SpringApplication.run(McpContrastApplication.class, args);
-	}
+  public static void main(String[] args) {
+    SpringApplication.run(McpContrastApplication.class, args);
+  }
 
-	@Bean
-	public ApplicationRunner logVersion(org.springframework.beans.factory.ObjectProvider<BuildProperties> buildPropertiesProvider) {
-		return args -> {
-			BuildProperties buildProperties = buildPropertiesProvider.getIfAvailable();
-			logger.info("=".repeat(60));
-			if (buildProperties != null) {
-				logger.info("Contrast MCP Server - Version {}", buildProperties.getVersion());
-			} else {
-				logger.info("Contrast MCP Server - Version information not available");
-			}
-			logger.info("=".repeat(60));
-		};
-	}
+  @Bean
+  public ApplicationRunner logVersion(
+      org.springframework.beans.factory.ObjectProvider<BuildProperties> buildPropertiesProvider) {
+    return args -> {
+      BuildProperties buildProperties = buildPropertiesProvider.getIfAvailable();
+      logger.info("=".repeat(60));
+      if (buildProperties != null) {
+        logger.info("Contrast MCP Server - Version {}", buildProperties.getVersion());
+      } else {
+        logger.info("Contrast MCP Server - Version information not available");
+      }
+      logger.info("=".repeat(60));
+    };
+  }
 
-	@Bean
-	public List<ToolCallback> tools(AssessService assessService, SastService sastService,SCAService scaService,ADRService adrService,RouteCoverageService routeCoverageService) {
-		return of(ToolCallbacks.from(assessService,sastService,scaService,adrService,routeCoverageService));
-	}
-
+  @Bean
+  public List<ToolCallback> tools(
+      AssessService assessService,
+      SastService sastService,
+      SCAService scaService,
+      ADRService adrService,
+      RouteCoverageService routeCoverageService) {
+    return of(
+        ToolCallbacks.from(
+            assessService, sastService, scaService, adrService, routeCoverageService));
+  }
 }
