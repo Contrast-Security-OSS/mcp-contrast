@@ -64,7 +64,7 @@ public class SCAService {
 
     @Tool(name = "list_application_libraries", description = "Takes an application ID and returns the libraries used in the application. Use list_applications_with_name first to get the application ID from a name. Note: if class usage count is 0 the library is unlikely to be used")
     public List<LibraryExtended> getApplicationLibrariesByID(String appID) throws IOException {
-        if (appID == null || appID.isEmpty()) {
+        if (appID == null || appID.isBlank()) {
             throw new IllegalArgumentException("Application ID cannot be null or empty");
         }
         logger.info("Retrieving libraries for application id: {}", appID);

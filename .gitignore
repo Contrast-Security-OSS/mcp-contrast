@@ -40,3 +40,4 @@ build/
 
 ### Beads ###
 .beads/
+test-plan-*.md
