@@ -195,11 +195,12 @@ public class AssessService {
         logger.info("Listing vulnerabilities for application ID: {}", appID);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
         try {
-            // Use SDK native API with SESSION_METADATA expand
+            // Use SDK native API with SESSION_METADATA, SERVER_ENVIRONMENTS, and APPLICATION expand
             TraceFilterForm form = new TraceFilterForm();
             form.setExpand(EnumSet.of(
                 TraceFilterForm.TraceExpandValue.SESSION_METADATA,
-                TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS
+                TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
+                TraceFilterForm.TraceExpandValue.APPLICATION
             ));
 
             Traces traces = contrastSDK.getTraces(orgID, appID, form);
@@ -277,7 +278,10 @@ public class AssessService {
                 orgID,
                 appID,
                 filterBody,
-                EnumSet.of(TraceFilterForm.TraceExpandValue.SESSION_METADATA)
+                EnumSet.of(
+                    TraceFilterForm.TraceExpandValue.SESSION_METADATA,
+                    TraceFilterForm.TraceExpandValue.APPLICATION
+                )
             );
 
             List<VulnLight> vulns = tracesResponse.getTraces().stream()
@@ -492,7 +496,8 @@ public class AssessService {
             filterForm.setOffset(pagination.offset());
             filterForm.setExpand(EnumSet.of(
                 TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
-                TraceFilterForm.TraceExpandValue.SESSION_METADATA
+                TraceFilterForm.TraceExpandValue.SESSION_METADATA,
+                TraceFilterForm.TraceExpandValue.APPLICATION
             ));
 
             // Try organization-level API (or app-specific if appId provided)
