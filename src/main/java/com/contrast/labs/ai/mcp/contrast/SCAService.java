@@ -62,8 +62,11 @@ public class SCAService {
     private String httpProxyPort;
 
 
-    @Tool(name = "list_application_libraries_by_app_id", description = "Takes a application ID and returns the libraries used in the application, note if class usage count is 0 the library is unlikely to be used")
+    @Tool(name = "list_application_libraries", description = "Takes an application ID and returns the libraries used in the application. Use list_applications_with_name first to get the application ID from a name. Note: if class usage count is 0 the library is unlikely to be used")
     public List<LibraryExtended> getApplicationLibrariesByID(String appID) throws IOException {
+        if (appID == null || appID.isEmpty()) {
+            throw new IllegalArgumentException("Application ID cannot be null or empty");
+        }
         logger.info("Retrieving libraries for application id: {}", appID);
         ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
         logger.debug("ContrastSDK initialized with host: {}", hostName);
@@ -71,25 +74,6 @@ public class SCAService {
         SDKExtension extendedSDK = new SDKExtension(contrastSDK);
         return SDKHelper.getLibsForID(appID,orgID, extendedSDK);
 
-    }
-
-
-    @Tool(name = "list_application_libraries", description = "takes a application name and returns the libraries used in the application, note if class usage count is 0 the library is unlikely to be used")
-    public List<LibraryExtended> getApplicationLibraries(String app_name) throws IOException {
-        logger.info("Retrieving libraries for application: {}", app_name);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        logger.debug("ContrastSDK initialized with host: {}", hostName);
-        
-        SDKExtension extendedSDK = new SDKExtension(contrastSDK);
-        logger.debug("Searching for application ID matching name: {}", app_name);
-
-        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
-        if(application.isPresent()) {
-            return SDKHelper.getLibsForID(application.get().getAppId(),orgID, extendedSDK);
-        } else {
-            logger.error("Application not found: {}", app_name);
-            throw new IOException("Application not found");
-        }
     }
 
     @Tool(name= "list_applications_vulnerable_to_cve", description = "takes a cve id and returns the applications and servers vulnerable to the cve. Please note if the application class usage is 0, its unlikely to be vulnerable")

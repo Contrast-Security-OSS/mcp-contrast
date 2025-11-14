@@ -57,6 +57,7 @@ class ADRServiceTest {
     private static final String TEST_API_KEY = "test-api-key";
     private static final String TEST_SERVICE_KEY = "test-service-key";
     private static final String TEST_USERNAME = "test-user";
+    private static final String TEST_APP_ID = "test-app-456";
 
     @BeforeEach
     void setUp() throws Exception {
@@ -539,6 +540,132 @@ class ADRServiceTest {
         assertEquals(0, result.items().size(), "Should return empty items on error");
     }
 
+    // ========== Tests for get_ADR_Protect_Rules_by_app_id ==========
+
+    @Test
+    void testGetProtectDataByAppID_Success() throws Exception {
+        // Given
+        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData mockProtectData = createMockProtectData(3);
+
+        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
+            when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                .thenReturn(mockProtectData);
+        });
+
+        // When
+        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData result =
+            adrService.getProtectDataByAppID(TEST_APP_ID);
+
+        // Then
+        assertNotNull(result, "Result should not be null");
+        assertNotNull(result.getRules(), "Rules should not be null");
+        assertEquals(3, result.getRules().size(), "Should have 3 protect rules");
+    }
+
+    @Test
+    void testGetProtectDataByAppID_WithRules() throws Exception {
+        // Given
+        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData mockProtectData = createMockProtectDataWithRules();
+
+        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
+            when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                .thenReturn(mockProtectData);
+        });
+
+        // When
+        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData result =
+            adrService.getProtectDataByAppID(TEST_APP_ID);
+
+        // Then
+        assertNotNull(result);
+        assertNotNull(result.getRules());
+        assertFalse(result.getRules().isEmpty());
+
+        // Verify rule details
+        var firstRule = result.getRules().get(0);
+        assertNotNull(firstRule.getName(), "Rule should have a name");
+        assertNotNull(firstRule.getProduction(), "Rule should have a production mode");
+    }
+
+    @Test
+    void testGetProtectDataByAppID_EmptyAppID() {
+        // When/Then
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            adrService.getProtectDataByAppID("");
+        });
+
+        assertTrue(exception.getMessage().contains("Application ID cannot be null or empty"),
+            "Should have descriptive error message");
+    }
+
+    @Test
+    void testGetProtectDataByAppID_NullAppID() {
+        // When/Then
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            adrService.getProtectDataByAppID(null);
+        });
+
+        assertTrue(exception.getMessage().contains("Application ID cannot be null or empty"),
+            "Should have descriptive error message");
+    }
+
+    @Test
+    void testGetProtectDataByAppID_SDKFailure() throws Exception {
+        // Given - SDK throws exception
+        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
+            when(mock.getProtectConfig(eq(TEST_ORG_ID), anyString()))
+                .thenThrow(new RuntimeException("Failed to fetch protect config"));
+        });
+
+        // When/Then
+        Exception exception = assertThrows(Exception.class, () -> {
+            adrService.getProtectDataByAppID(TEST_APP_ID);
+        });
+
+        assertTrue(exception.getMessage().contains("Failed to fetch protect config") ||
+                   (exception.getCause() != null &&
+                    exception.getCause().getMessage().contains("Failed to fetch protect config")),
+            "Should propagate SDK exception");
+    }
+
+    @Test
+    void testGetProtectDataByAppID_NoProtectDataReturned() throws Exception {
+        // Given - SDK returns null (app exists but no protect config)
+        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
+            when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                .thenReturn(null);
+        });
+
+        // When
+        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData result =
+            adrService.getProtectDataByAppID(TEST_APP_ID);
+
+        // Then
+        assertNull(result, "Should return null when no protect data available");
+    }
+
+    @Test
+    void testGetProtectDataByAppID_EmptyRulesList() throws Exception {
+        // Given - Protect enabled but no rules configured
+        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData mockProtectData =
+            new com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData();
+        mockProtectData.setRules(new ArrayList<>());
+
+        mockedSDKExtension = mockConstruction(SDKExtension.class, (mock, context) -> {
+            when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                .thenReturn(mockProtectData);
+        });
+
+        // When
+        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData result =
+            adrService.getProtectDataByAppID(TEST_APP_ID);
+
+        // Then
+        assertNotNull(result);
+        assertNotNull(result.getRules());
+        assertTrue(result.getRules().isEmpty(), "Should have empty rules list");
+    }
+
     // ========== Helper Methods ==========
 
     /**
@@ -574,5 +701,52 @@ class ADRServiceTest {
         }
 
         return attacks;
+    }
+
+    /**
+     * Creates mock ProtectData for testing
+     */
+    private com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData createMockProtectData(int ruleCount) {
+        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData protectData =
+            new com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData();
+
+        List<com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule> rules = new ArrayList<>();
+        for (int i = 0; i < ruleCount; i++) {
+            com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule rule =
+                new com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule();
+            rule.setName("protect-rule-" + i);
+            rule.setProduction(i % 2 == 0 ? "block" : "monitor");
+            rules.add(rule);
+        }
+
+        protectData.setRules(rules);
+        return protectData;
+    }
+
+    /**
+     * Creates mock ProtectData with realistic rule configuration
+     */
+    private com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData createMockProtectDataWithRules() {
+        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData protectData =
+            new com.contrast.labs.ai.mcp.contrast.sdkexstension.data.ProtectData();
+
+        List<com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule> rules = new ArrayList<>();
+
+        // SQL Injection rule
+        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule sqlRule =
+            new com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule();
+        sqlRule.setName("sql-injection");
+        sqlRule.setProduction("block");
+        rules.add(sqlRule);
+
+        // XSS rule
+        com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule xssRule =
+            new com.contrast.labs.ai.mcp.contrast.sdkexstension.data.Rule();
+        xssRule.setName("xss-reflected");
+        xssRule.setProduction("monitor");
+        rules.add(xssRule);
+
+        protectData.setRules(rules);
+        return protectData;
     }
 }

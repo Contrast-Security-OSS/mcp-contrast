@@ -71,39 +71,7 @@ public class ADRService {
     private String httpProxyPort;
 
 
-    @Tool(name = "get_ADR_Protect_Rules", description = "takes a application name and returns the protect / adr rules for the application")
-    public ProtectData getProtectData(
-            @ToolParam(description = "Application name") String applicationName) throws IOException {
-        logger.info("Starting retrieval of protection rules for application: {}", applicationName);
-        long startTime = System.currentTimeMillis();
-
-        try {
-            ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-            logger.debug("ContrastSDK initialized successfully for application: {}", applicationName);
-
-            // Get application ID from name
-            logger.debug("Looking up application ID for name: {}", applicationName);
-            Optional<Application> app = SDKHelper.getApplicationByName(applicationName, orgID, contrastSDK);
-            if (app.isEmpty()) {
-                logger.warn("No application ID found for application: {}", applicationName);
-                return null;
-            }
-            logger.debug("Found application ID: {} for application: {}", app.get().getAppId(), applicationName);
-
-            ProtectData result = getProtectDataByAppID(app.get().getAppId());
-            long duration = System.currentTimeMillis() - startTime;
-            logger.info("Completed retrieval of protection rules for application: {} (took {} ms)", applicationName, duration);
-            return result;
-        } catch (Exception e) {
-            long duration = System.currentTimeMillis() - startTime;
-            logger.error("Error retrieving protection rules for application: {} (after {} ms): {}",
-                    applicationName, duration, e.getMessage(), e);
-            throw e;
-        }
-    }
-
-
-    @Tool(name = "get_ADR_Protect_Rules_by_app_id", description = "takes a application ID and returns the protect / adr rules for the application")
+    @Tool(name = "get_ADR_Protect_Rules", description = "Takes an application ID and returns the Protect/ADR rules for the application. Use list_applications_with_name first to get the application ID from a name")
     public ProtectData getProtectDataByAppID(
             @ToolParam(description = "Application ID") String appID) throws IOException {
         if (appID == null || appID.isEmpty()) {

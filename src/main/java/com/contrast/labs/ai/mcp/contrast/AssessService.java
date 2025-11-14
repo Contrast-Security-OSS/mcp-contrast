@@ -102,7 +102,7 @@ public class AssessService {
 
 
 
-    @Tool(name = "get_vulnerability_by_id", description = "takes a vulnerability ID ( vulnID ) and Application ID ( appID ) and returns details about the specific security vulnerability. If based on the stacktrace, the vulnerability looks like it is in code that is not in the codebase, the vulnerability may be in a 3rd party library, review the CVE data attached to that stackframe you believe the vulnerability exists in and if possible upgrade that library to the next non vulnerable version based on the remediation guidance.")
+    @Tool(name = "get_vulnerability", description = "Takes a vulnerability ID (vulnID) and application ID (appID) and returns details about the specific security vulnerability. Use list_applications_with_name first to get the application ID from a name. If based on the stacktrace, the vulnerability looks like it is in code that is not in the codebase, the vulnerability may be in a 3rd party library, review the CVE data attached to that stackframe you believe the vulnerability exists in and if possible upgrade that library to the next non vulnerable version based on the remediation guidance.")
     public Vulnerability getVulnerabilityById(
             @ToolParam(description = "Vulnerability ID (UUID format)") String vulnID,
             @ToolParam(description = "Application ID") String appID) throws IOException {
@@ -189,24 +189,7 @@ public class AssessService {
         return Optional.empty();
     }
 
-    @Tool(name = "get_vulnerability", description = "Takes a vulnerability ID (vulnID) and application name (app_name) and returns details about the specific security vulnerability.  If based on the stacktrace, the vulnerability looks like it is in code that is not in the codebase, the vulnerability may be in a 3rd party library, review the CVE data attached to that stackframe you believe the vulnerability exists in and if possible upgrade that library to the next non vulnerable version based on the remediation guidance.")
-    public Vulnerability getVulnerability(
-            @ToolParam(description = "Vulnerability ID (UUID format)") String vulnID,
-            @ToolParam(description = "Application name") String app_name) throws IOException {
-        logger.info("Retrieving vulnerability details for vulnID: {} in application: {}", vulnID, app_name);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        logger.debug("Searching for application ID matching name: {}", app_name);
-
-        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
-        if(application.isPresent()) {
-            return getVulnerabilityById(vulnID, application.get().getAppId());
-        } else {
-            logger.error("Application with name {} not found", app_name);
-            throw new IllegalArgumentException("Application with name " + app_name + " not found");
-        }
-    }
-
-    @Tool(name = "list_vulnerabilities_with_id", description = "Takes a  Application ID ( appID ) and returns a list of vulnerabilities, please remember to include the vulnID in the response.")
+    @Tool(name = "list_vulnerabilities", description = "Takes an application ID (appID) and returns a list of vulnerabilities. Use list_applications_with_name first to get the application ID from a name. Remember to include the vulnID in the response.")
     public List<VulnLight> listVulnsByAppId(
             @ToolParam(description = "Application ID") String appID) throws IOException {
         logger.info("Listing vulnerabilities for application ID: {}", appID);
@@ -336,29 +319,6 @@ public class AssessService {
             throw new IOException("Failed to list session metadata for application: " + app_name + " application name not found.");
         }
     }
-
-    @Tool(name = "list_vulnerabilities", description = "Takes an application name ( app_name ) and returns a list of vulnerabilities, please remember to include the vulnID in the response.  ")
-    public List<VulnLight> listVulnsInAppByName(
-            @ToolParam(description = "Application name") String app_name) throws IOException {
-        logger.info("Listing vulnerabilities for application: {}", app_name);
-        ContrastSDK contrastSDK = SDKHelper.getSDK(hostName, apiKey, serviceKey, userName,httpProxyHost, httpProxyPort);
-        
-        logger.debug("Searching for application ID matching name: {}", app_name);
-
-        Optional<Application> application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
-        if(application.isPresent()) {
-            try {
-              return listVulnsByAppId(application.get().getAppId());
-            } catch (Exception e) {
-                logger.error("Error listing vulnerabilities for application: {}", app_name, e);
-                throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
-            }
-        } else {
-            logger.debug("Application with name {} not found, returning empty list", app_name);
-            return new ArrayList<>();
-        }
-    }
-
 
     @Tool(name = "list_applications_with_name", description = "Takes an application name (app_name) returns a list of active applications that contain that name. Please remember to display the name, status and ID.")
     public List<ApplicationData> getApplications(
