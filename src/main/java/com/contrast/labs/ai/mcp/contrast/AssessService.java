@@ -221,7 +221,7 @@ public class AssessService {
 
 
 
-    @Tool(name = "list_vulns_by_app_and_metadata", description = "Takes an application ID (appID) and session metadata in the form of name / value. and returns a list of vulnerabilities matching that application ID and session metadata. Use list_applications_with_name first to get the application ID from a name.")
+    @Tool(name = "list_vulns_by_app_and_metadata", description = "Takes an application ID (appID) and session metadata in the form of name / value and returns a list of vulnerabilities matching that application ID and session metadata. Use list_applications_with_name first to get the application ID from a name.")
     public List<VulnLight> listVulnsByAppIdAndSessionMetadata(
             @ToolParam(description = "Application ID") String appID,
             @ToolParam(description = "Session metadata field name") String session_Metadata_Name,
