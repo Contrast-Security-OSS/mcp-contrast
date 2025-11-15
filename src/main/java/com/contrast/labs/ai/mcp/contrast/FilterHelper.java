@@ -23,7 +23,6 @@ import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -76,10 +75,7 @@ public class FilterHelper {
       return null;
     }
     List<String> result =
-        Arrays.stream(input.split(","))
-            .map(String::trim)
-            .filter(s -> !s.isEmpty())
-            .collect(Collectors.toList());
+        Arrays.stream(input.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
 
     return result.isEmpty() ? null : result;
   }
@@ -144,7 +140,7 @@ public class FilterHelper {
     if (parsed == null) {
       return null;
     }
-    return parsed.stream().map(String::toUpperCase).collect(Collectors.toList());
+    return parsed.stream().map(String::toUpperCase).toList();
   }
 
   /**
@@ -160,7 +156,7 @@ public class FilterHelper {
     if (parsed == null) {
       return null;
     }
-    return parsed.stream().map(String::toLowerCase).collect(Collectors.toList());
+    return parsed.stream().map(String::toLowerCase).toList();
   }
 
   /**
