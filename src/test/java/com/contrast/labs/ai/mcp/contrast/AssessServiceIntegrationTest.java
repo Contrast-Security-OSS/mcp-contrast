@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.fail;
 import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
+import com.contrast.labs.ai.mcp.contrast.util.IntegrationTestDiskCache;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
@@ -91,6 +92,19 @@ public class AssessServiceIntegrationTest {
         "\n╔════════════════════════════════════════════════════════════════════════════════╗");
     log.info("║   Assess Service Integration Test - Discovering Test Data                     ║");
     log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
+
+    if (IntegrationTestDiskCache.loadIfPresent(
+        "AssessServiceIntegrationTest",
+        orgID,
+        TestData.class,
+        cached -> {
+          testData = cached;
+          discoveryDurationMs = 0;
+          log.info("✓ Loaded cached test data: {}", testData);
+        })) {
+      return;
+    }
+
     log.info("Starting test data discovery (using shared SDK)...");
 
     long startTime = System.currentTimeMillis();
@@ -123,6 +137,8 @@ public class AssessServiceIntegrationTest {
       log.info("{}", testData);
       log.info("✓ Test data discovery completed in {}ms", discoveryDurationMs);
       log.info("");
+
+      IntegrationTestDiskCache.write("AssessServiceIntegrationTest", orgID, testData);
 
     } catch (Exception e) {
       String errorMsg = "❌ ERROR during test data discovery: " + e.getMessage();

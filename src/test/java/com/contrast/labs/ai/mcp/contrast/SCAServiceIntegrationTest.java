@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.fail;
 import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
+import com.contrast.labs.ai.mcp.contrast.util.IntegrationTestDiskCache;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import java.io.IOException;
 import java.util.List;
@@ -102,6 +103,17 @@ public class SCAServiceIntegrationTest {
         "\n╔════════════════════════════════════════════════════════════════════════════════╗");
     log.info("║   SCA Service Integration Test - Discovering Test Data                        ║");
     log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
+    if (IntegrationTestDiskCache.loadIfPresent(
+        "SCAServiceIntegrationTest",
+        orgID,
+        TestData.class,
+        cached -> {
+          testData = cached;
+          discoveryDurationMs = 0;
+          log.info("✓ Loaded cached test data: {}", testData);
+        })) {
+      return;
+    }
     log.info("Starting test data discovery (using shared SDK)...");
 
     long startTime = System.currentTimeMillis();
@@ -139,6 +151,8 @@ public class SCAServiceIntegrationTest {
       log.info("{}", testData);
       log.info("✓ Test data discovery completed in {}ms", discoveryDurationMs);
       log.info("");
+
+      IntegrationTestDiskCache.write("SCAServiceIntegrationTest", orgID, testData);
 
       // Warn if no CVEs found
       if (!testData.hasVulnerableLibrary) {

@@ -21,8 +21,11 @@ import static org.assertj.core.api.Assertions.fail;
 
 import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
+import com.contrast.labs.ai.mcp.contrast.util.IntegrationTestDiskCache;
+import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
+import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper.ApplicationWithProtectRules;
 import java.io.IOException;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -96,76 +99,34 @@ public class ADRServiceIntegrationTest {
         "\n╔════════════════════════════════════════════════════════════════════════════════╗");
     log.info("║   ADR Service Integration Test - Discovering Test Data                        ║");
     log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
+    if (IntegrationTestDiskCache.loadIfPresent(
+        "ADRServiceIntegrationTest",
+        orgID,
+        TestData.class,
+        cached -> {
+          testData = cached;
+          discoveryDurationMs = 0;
+          log.info("✓ Loaded cached test data: {}", testData);
+        })) {
+      return;
+    }
     log.info("Starting test data discovery...");
 
     long startTime = System.currentTimeMillis();
 
     try {
-      // Use shared SDK extension (injected via @Autowired)
-      log.info("\n🔍 Step 1: Fetching all applications (using shared SDK)...");
-      var appsResponse = sdkExtension.getApplications(orgID);
-      var applications = appsResponse.getApplications();
-      log.info("   Found {} application(s) in organization", applications.size());
+      log.info("\n🔍 Fast discovery: using cached Protect data helper...");
+      Optional<ApplicationWithProtectRules> protectCandidate =
+          TestDataDiscoveryHelper.findApplicationWithProtectRules(orgID, sdkExtension);
 
-      if (applications.isEmpty()) {
-        log.info("\n⚠️  NO APPLICATIONS FOUND");
-        log.info("   The integration tests require at least one application with:");
-        log.info("   1. Protect/ADR enabled");
-        log.info("   2. At least one protection rule configured");
-        log.info("\n   To create test data:");
-        log.info("   - Deploy an application with Contrast agent");
-        log.info("   - Enable Protect in Contrast UI for that application");
-        log.info("   - Configure at least one protection rule");
-        return;
-      }
+      if (protectCandidate.isPresent()) {
+        var candidate = protectCandidate.get();
+        testData = new TestData();
+        testData.appId = candidate.getApplication().getAppId();
+        testData.appName = candidate.getApplication().getName();
+        testData.hasProtectRules = candidate.getRuleCount() > 0;
+        testData.ruleCount = candidate.getRuleCount();
 
-      // Search for application with Protect/ADR rules
-      log.info("\n🔍 Step 2: Searching for application with Protect/ADR rules...");
-      TestData candidate = null;
-      int appsChecked = 0;
-      int maxAppsToCheck = Math.min(applications.size(), 50); // Check up to 50 apps
-
-      for (Application app : applications) {
-        if (appsChecked >= maxAppsToCheck) {
-          log.info("   Reached max apps to check ({}), stopping search", maxAppsToCheck);
-          break;
-        }
-        appsChecked++;
-
-        log.info(
-            "   Checking app {}/{}: {} (ID: {})",
-            appsChecked,
-            maxAppsToCheck,
-            app.getName(),
-            app.getAppId());
-
-        try {
-          // Check for Protect configuration
-          var protectData = sdkExtension.getProtectConfig(orgID, app.getAppId());
-          if (protectData != null
-              && protectData.getRules() != null
-              && !protectData.getRules().isEmpty()) {
-            log.info("      ✓ Has {} Protect rule(s)", protectData.getRules().size());
-
-            candidate = new TestData();
-            candidate.appId = app.getAppId();
-            candidate.appName = app.getName();
-            candidate.hasProtectRules = true;
-            candidate.ruleCount = protectData.getRules().size();
-
-            log.info("\n   ✅ Found application with Protect/ADR rules!");
-            break; // Found what we need
-          } else {
-            log.info("      ℹ No Protect rules configured");
-          }
-        } catch (Exception e) {
-          // Skip this app, continue searching
-          log.info("      ℹ No Protect data or error: {}", e.getMessage());
-        }
-      }
-
-      if (candidate != null) {
-        testData = candidate;
         discoveryDurationMs = System.currentTimeMillis() - startTime;
 
         log.info(
@@ -177,8 +138,10 @@ public class ADRServiceIntegrationTest {
         log.info("{}", testData);
         log.info("✓ Test data discovery completed in {}ms", discoveryDurationMs);
         log.info("");
+
+        IntegrationTestDiskCache.write("ADRServiceIntegrationTest", orgID, testData);
       } else {
-        String errorMsg = buildTestDataErrorMessage(appsChecked);
+        String errorMsg = buildTestDataErrorMessage(50);
         log.error(errorMsg);
         fail(errorMsg);
       }
