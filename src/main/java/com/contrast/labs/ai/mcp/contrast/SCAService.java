@@ -24,17 +24,14 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrastsecurity.http.LibraryFilterForm;
 import java.io.IOException;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class SCAService {
-
-  private static final Logger logger = LoggerFactory.getLogger(SCAService.class);
-
   @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
   private String hostName;
 
@@ -66,10 +63,10 @@ public class SCAService {
     if (appID == null || appID.isEmpty()) {
       throw new IllegalArgumentException("Application ID cannot be null or empty");
     }
-    logger.info("Retrieving libraries for application id: {}", appID);
+    log.info("Retrieving libraries for application id: {}", appID);
     var contrastSDK =
         SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-    logger.debug("ContrastSDK initialized with host: {}", hostName);
+    log.debug("ContrastSDK initialized with host: {}", hostName);
 
     var extendedSDK = new SDKExtension(contrastSDK);
     return SDKHelper.getLibsForID(appID, orgID, extendedSDK);
@@ -81,20 +78,20 @@ public class SCAService {
           "takes a cve id and returns the applications and servers vulnerable to the cve. Please"
               + " note if the application class usage is 0, its unlikely to be vulnerable")
   public CveData listCVESForApplication(String cveid) throws IOException {
-    logger.info("Retrieving applications vulnerable to CVE: {}", cveid);
+    log.info("Retrieving applications vulnerable to CVE: {}", cveid);
     var contrastSDK =
         SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
 
-    logger.debug("ContrastSDK initialized with host: {}", hostName);
+    log.debug("ContrastSDK initialized with host: {}", hostName);
     contrastSDK.getLibrariesWithFilter(orgID, new LibraryFilterForm());
     try {
       var extendedSDK = new SDKExtension(contrastSDK);
       var result = extendedSDK.getAppsForCVE(orgID, cveid);
-      logger.info(
+      log.info(
           "Successfully retrieved data for CVE: {}, found {} vulnerable applications",
           cveid,
           result != null && result.getApps() != null ? result.getApps().size() : 0);
-      logger.info(result.toString());
+      log.info(result.toString());
       var vulnerableLibs = result.getLibraries();
       for (App app : result.getApps()) {
         var libData = SDKHelper.getLibsForID(app.getApp_id(), orgID, extendedSDK);
@@ -111,7 +108,7 @@ public class SCAService {
       }
       return result;
     } catch (Exception e) {
-      logger.error("Error retrieving applications vulnerable to CVE: {}", cveid, e);
+      log.error("Error retrieving applications vulnerable to CVE: {}", cveid, e);
       throw new IOException("Failed to retrieve CVE data: " + e.getMessage(), e);
     }
   }

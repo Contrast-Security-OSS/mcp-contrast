@@ -47,15 +47,14 @@ import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class SDKExtension {
 
   private final ContrastSDK contrastSDK;
   private final UrlBuilder urlBuilder;
   private final Gson gson;
-  private static final Logger logger = LoggerFactory.getLogger(SDKExtension.class);
 
   public SDKExtension(ContrastSDK contrastSDK) {
     this.contrastSDK = contrastSDK;
@@ -260,10 +259,10 @@ public class SDKExtension {
         urlBuilder.getApplicationsUrl(organizationId) + "&expand=metadata,technologies,skip_links";
 
     // When debug logging is enabled, buffer the response for logging
-    if (logger.isDebugEnabled()) {
+    if (log.isDebugEnabled()) {
       try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url)) {
         var responseContent = convertStreamToString(is);
-        logger.debug("Applications API response: {}", responseContent);
+        log.debug("Applications API response: {}", responseContent);
 
         // Parse the buffered response string
         try (Reader reader = new StringReader(responseContent)) {
