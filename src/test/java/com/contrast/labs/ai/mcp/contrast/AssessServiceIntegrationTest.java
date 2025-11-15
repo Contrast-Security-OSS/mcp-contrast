@@ -16,25 +16,16 @@
 package com.contrast.labs.ai.mcp.contrast;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 
 import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
-import com.contrast.labs.ai.mcp.contrast.util.IntegrationTestDiskCache;
+import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
@@ -56,27 +47,13 @@ import org.springframework.context.annotation.Import;
 @SpringBootTest
 @Import(IntegrationTestConfig.class)
 @EnabledIfEnvironmentVariable(named = "CONTRAST_HOST_NAME", matches = ".+")
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class AssessServiceIntegrationTest {
+public class AssessServiceIntegrationTest
+    extends AbstractIntegrationTest<AssessServiceIntegrationTest.TestData> {
 
   @Autowired private AssessService assessService;
 
-  @Autowired private SDKExtension sdkExtension;
-
-  @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
-  private String orgID;
-
-  // Discovered test data - populated in @BeforeAll
-  private static TestData testData;
-
-  // Performance metrics
-  private static long discoveryDurationMs;
-  private long testStartTimeMs;
-  private long totalTestTimeMs = 0;
-  private int testCount = 0;
-
   /** Container for discovered test data */
-  private static class TestData {
+  static class TestData {
     String appId;
     String appName;
 
@@ -86,66 +63,35 @@ public class AssessServiceIntegrationTest {
     }
   }
 
-  @BeforeAll
-  void discoverTestData() {
-    log.info(
-        "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-    log.info("║   Assess Service Integration Test - Discovering Test Data                     ║");
-    log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
+  @Override
+  protected String testDisplayName() {
+    return "Assess Service Integration Test";
+  }
 
-    if (IntegrationTestDiskCache.loadIfPresent(
-        "AssessServiceIntegrationTest",
-        orgID,
-        TestData.class,
-        cached -> {
-          testData = cached;
-          discoveryDurationMs = 0;
-          log.info("✓ Loaded cached test data: {}", testData);
-        })) {
-      return;
+  @Override
+  protected Class<TestData> testDataType() {
+    return TestData.class;
+  }
+
+  @Override
+  protected TestData performDiscovery() throws IOException {
+    var appOptional = TestDataDiscoveryHelper.findFirstApplication(orgID, sdkExtension);
+
+    if (appOptional.isEmpty()) {
+      throw new NoTestDataException(buildTestDataErrorMessage(0));
     }
 
-    log.info("Starting test data discovery (using shared SDK)...");
+    var app = appOptional.get();
+    var data = new TestData();
+    data.appId = app.getAppId();
+    data.appName = app.getName();
+    return data;
+  }
 
-    long startTime = System.currentTimeMillis();
-
-    try {
-      // Use shared discovery helper with injected SDK
-      var appOptional = TestDataDiscoveryHelper.findFirstApplication(orgID, sdkExtension);
-
-      if (appOptional.isEmpty()) {
-        String errorMsg = buildTestDataErrorMessage(0);
-        log.error(errorMsg);
-        fail(errorMsg);
-        return;
-      }
-
-      var app = appOptional.get();
-      testData = new TestData();
-      testData.appId = app.getAppId();
-      testData.appName = app.getName();
-
-      discoveryDurationMs = System.currentTimeMillis() - startTime;
-
-      log.info("\n   ✅ Using application: {} (ID: {})", testData.appName, testData.appId);
-      log.info(
-          "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-      log.info(
-          "║   Test Data Discovery Complete                                                 ║");
-      log.info(
-          "╚════════════════════════════════════════════════════════════════════════════════╝");
-      log.info("{}", testData);
-      log.info("✓ Test data discovery completed in {}ms", discoveryDurationMs);
-      log.info("");
-
-      IntegrationTestDiskCache.write("AssessServiceIntegrationTest", orgID, testData);
-
-    } catch (Exception e) {
-      String errorMsg = "❌ ERROR during test data discovery: " + e.getMessage();
-      log.error("\n❌ ERROR during test data discovery: {}", e.getMessage());
-      e.printStackTrace();
-      fail(errorMsg);
-    }
+  @Override
+  protected void logTestDataDetails(TestData data) {
+    log.info("\n   ✅ Using application: {} (ID: {})", data.appName, data.appId);
+    log.info("{}", data);
   }
 
   /** Build detailed error message when no suitable test data is found */
@@ -498,35 +444,5 @@ public class AssessServiceIntegrationTest {
     log.info(
         "✓ Integration test passed: listVulnsByAppIdForLatestSession() returns vulnerabilities with"
             + " session metadata");
-  }
-
-  @BeforeEach
-  void logTestStart(TestInfo testInfo) {
-    log.info("\n▶ Starting test: {}", testInfo.getDisplayName());
-    testStartTimeMs = System.currentTimeMillis();
-  }
-
-  @AfterEach
-  void logTestEnd(TestInfo testInfo) {
-    long duration = System.currentTimeMillis() - testStartTimeMs;
-    totalTestTimeMs += duration;
-    testCount++;
-    log.info("✓ Test completed in {}ms: {}\n", duration, testInfo.getDisplayName());
-  }
-
-  @AfterAll
-  void logSummary() {
-    log.info(
-        "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-    log.info("║   Integration Test Performance Summary                                        ║");
-    log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
-    log.info("Discovery time: {}ms", discoveryDurationMs);
-    log.info("Total test time: {}ms", totalTestTimeMs);
-    log.info("Tests executed: {}", testCount);
-    if (testCount > 0) {
-      log.info("Average per test: {}ms", totalTestTimeMs / testCount);
-    }
-    log.info(
-        "╚════════════════════════════════════════════════════════════════════════════════╝\n");
   }
 }

@@ -16,27 +16,18 @@
 package com.contrast.labs.ai.mcp.contrast;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 
 import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
-import com.contrast.labs.ai.mcp.contrast.util.IntegrationTestDiskCache;
+import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper.RouteCoverageTestData;
 import java.io.IOException;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
@@ -60,27 +51,14 @@ import org.springframework.context.annotation.Import;
 @SpringBootTest
 @Import(IntegrationTestConfig.class)
 @EnabledIfEnvironmentVariable(named = "CONTRAST_HOST_NAME", matches = ".+")
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class RouteCoverageServiceIntegrationTest {
+public class RouteCoverageServiceIntegrationTest
+    extends AbstractIntegrationTest<RouteCoverageServiceIntegrationTest.TestData> {
 
   @Autowired private RouteCoverageService routeCoverageService;
 
-  @Autowired private SDKExtension sdkExtension;
-
-  @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
-  private String orgID;
-
   // Discovered test data - populated in @BeforeAll
-  private static TestData testData;
-
-  // Performance metrics
-  private static long discoveryDurationMs;
-  private long testStartTimeMs;
-  private long totalTestTimeMs = 0;
-  private int testCount = 0;
-
   /** Container for discovered test data */
-  private static class TestData {
+  static class TestData {
     String appId;
     String appName;
     boolean hasRouteCoverage;
@@ -104,77 +82,62 @@ public class RouteCoverageServiceIntegrationTest {
     }
   }
 
-  @BeforeAll
-  void discoverTestData() {
-    log.info(
-        "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-    log.info("║   Route Coverage Integration Test - Discovering Test Data                     ║");
-    log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
+  @Override
+  protected String testDisplayName() {
+    return "Route Coverage Integration Test";
+  }
 
-    if (IntegrationTestDiskCache.loadIfPresent(
-        "RouteCoverageServiceIntegrationTest",
-        orgID,
-        TestData.class,
-        cached -> {
-          testData = cached;
-          discoveryDurationMs = 0;
-          log.info("✓ Loaded cached test data: {}", testData);
-          if (!testData.hasSessionMetadata) {
-            log.warn("\n⚠️  WARNING: Application has route coverage but NO SESSION METADATA");
-            log.warn("   Some metadata-dependent assertions may be skipped.");
-          }
-        })) {
-      return;
+  @Override
+  protected Class<TestData> testDataType() {
+    return TestData.class;
+  }
+
+  @Override
+  protected void onDiscoveryStart() {
+    super.onDiscoveryStart();
+    log.info("\n🔍 Fast discovery: using cached route coverage helper...");
+  }
+
+  @Override
+  protected TestData performDiscovery() throws IOException {
+    Optional<RouteCoverageTestData> routeCandidate =
+        TestDataDiscoveryHelper.findApplicationWithRouteCoverage(orgID, sdkExtension);
+
+    if (routeCandidate.isEmpty()) {
+      throw new NoTestDataException(buildTestDataErrorMessage(50));
     }
-    log.info("Starting test data discovery...");
 
-    long startTime = System.currentTimeMillis();
+    var candidate = routeCandidate.get();
+    var data = new TestData();
+    data.appId = candidate.application().getAppId();
+    data.appName = candidate.application().getName();
+    data.hasRouteCoverage = true;
+    data.routeCount = candidate.routeCount();
+    data.hasSessionMetadata = candidate.hasSessionMetadata();
+    data.sessionMetadataName = candidate.sessionMetadataName();
+    data.sessionMetadataValue = candidate.sessionMetadataValue();
+    return data;
+  }
 
-    try {
-      log.info("\n🔍 Fast discovery: using cached route coverage helper...");
-      Optional<RouteCoverageTestData> routeCandidate =
-          TestDataDiscoveryHelper.findApplicationWithRouteCoverage(orgID, sdkExtension);
+  @Override
+  protected void logTestDataDetails(TestData data) {
+    log.info("{}", data);
+  }
 
-      if (routeCandidate.isPresent()) {
-        var candidate = routeCandidate.get();
-        testData = new TestData();
-        testData.appId = candidate.application().getAppId();
-        testData.appName = candidate.application().getName();
-        testData.hasRouteCoverage = true;
-        testData.routeCount = candidate.routeCount();
-        testData.hasSessionMetadata = candidate.hasSessionMetadata();
-        testData.sessionMetadataName = candidate.sessionMetadataName();
-        testData.sessionMetadataValue = candidate.sessionMetadataValue();
+  @Override
+  protected void afterCacheHit(TestData data) {
+    warnIfNoSessionMetadata(data);
+  }
 
-        discoveryDurationMs = System.currentTimeMillis() - startTime;
+  @Override
+  protected void afterDiscovery(TestData data) {
+    warnIfNoSessionMetadata(data);
+  }
 
-        log.info(
-            "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-        log.info(
-            "║   Test Data Discovery Complete                                                 ║");
-        log.info(
-            "╚════════════════════════════════════════════════════════════════════════════════╝");
-        log.info("{}", testData);
-        log.info("✓ Test data discovery completed in {}ms", discoveryDurationMs);
-        log.info("");
-
-        if (!candidate.hasSessionMetadata()) {
-          log.warn("\n⚠️  WARNING: Application has route coverage but NO SESSION METADATA");
-          log.warn("   Some metadata-dependent assertions may be skipped.");
-        }
-
-        IntegrationTestDiskCache.write("RouteCoverageServiceIntegrationTest", orgID, testData);
-      } else {
-        String errorMsg = buildTestDataErrorMessage(50);
-        log.error(errorMsg);
-        fail(errorMsg);
-      }
-
-    } catch (Exception e) {
-      String errorMsg = "❌ ERROR during test data discovery: " + e.getMessage();
-      log.error("\n{}", errorMsg);
-      e.printStackTrace();
-      fail(errorMsg);
+  private void warnIfNoSessionMetadata(TestData data) {
+    if (!data.hasSessionMetadata) {
+      log.warn("\n⚠️  WARNING: Application has route coverage but NO SESSION METADATA");
+      log.warn("   Some metadata-dependent assertions may be skipped.");
     }
   }
 
@@ -524,35 +487,5 @@ public class RouteCoverageServiceIntegrationTest {
       }
       log.info("✓ All routes have valid route details");
     }
-  }
-
-  @BeforeEach
-  void logTestStart(TestInfo testInfo) {
-    log.info("\n▶ Starting test: {}", testInfo.getDisplayName());
-    testStartTimeMs = System.currentTimeMillis();
-  }
-
-  @AfterEach
-  void logTestEnd(TestInfo testInfo) {
-    long duration = System.currentTimeMillis() - testStartTimeMs;
-    totalTestTimeMs += duration;
-    testCount++;
-    log.info("✓ Test completed in {}ms: {}\n", duration, testInfo.getDisplayName());
-  }
-
-  @AfterAll
-  void logSummary() {
-    log.info(
-        "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-    log.info("║   Integration Test Performance Summary                                        ║");
-    log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
-    log.info("Discovery time: {}ms", discoveryDurationMs);
-    log.info("Total test time: {}ms", totalTestTimeMs);
-    log.info("Tests executed: {}", testCount);
-    if (testCount > 0) {
-      log.info("Average per test: {}ms", totalTestTimeMs / testCount);
-    }
-    log.info(
-        "╚════════════════════════════════════════════════════════════════════════════════╝\n");
   }
 }

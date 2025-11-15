@@ -17,26 +17,17 @@ package com.contrast.labs.ai.mcp.contrast;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
 
 import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
-import com.contrast.labs.ai.mcp.contrast.util.IntegrationTestDiskCache;
+import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import java.io.IOException;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
@@ -59,27 +50,13 @@ import org.springframework.context.annotation.Import;
 @SpringBootTest
 @Import(IntegrationTestConfig.class)
 @EnabledIfEnvironmentVariable(named = "CONTRAST_HOST_NAME", matches = ".+")
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class SCAServiceIntegrationTest {
+public class SCAServiceIntegrationTest
+    extends AbstractIntegrationTest<SCAServiceIntegrationTest.TestData> {
 
   @Autowired private SCAService scaService;
 
-  @Autowired private SDKExtension sdkExtension;
-
-  @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
-  private String orgID;
-
-  // Discovered test data - populated in @BeforeAll
-  private static TestData testData;
-
-  // Performance metrics
-  private static long discoveryDurationMs;
-  private long testStartTimeMs;
-  private long totalTestTimeMs = 0;
-  private int testCount = 0;
-
   /** Container for discovered test data */
-  private static class TestData {
+  static class TestData {
     String appId;
     String appName;
     boolean hasLibraries;
@@ -97,75 +74,57 @@ public class SCAServiceIntegrationTest {
     }
   }
 
-  @BeforeAll
-  void discoverTestData() {
-    log.info(
-        "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-    log.info("║   SCA Service Integration Test - Discovering Test Data                        ║");
-    log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
-    if (IntegrationTestDiskCache.loadIfPresent(
-        "SCAServiceIntegrationTest",
-        orgID,
-        TestData.class,
-        cached -> {
-          testData = cached;
-          discoveryDurationMs = 0;
-          log.info("✓ Loaded cached test data: {}", testData);
-        })) {
-      return;
+  @Override
+  protected String testDisplayName() {
+    return "SCA Service Integration Test";
+  }
+
+  @Override
+  protected Class<TestData> testDataType() {
+    return TestData.class;
+  }
+
+  @Override
+  protected TestData performDiscovery() throws IOException {
+    var appWithLibrariesOptional =
+        TestDataDiscoveryHelper.findApplicationWithLibraries(orgID, sdkExtension);
+
+    if (appWithLibrariesOptional.isEmpty()) {
+      throw new NoTestDataException(buildTestDataErrorMessage(0));
     }
-    log.info("Starting test data discovery (using shared SDK)...");
 
-    long startTime = System.currentTimeMillis();
+    var appWithLibraries = appWithLibrariesOptional.get();
+    var data = new TestData();
+    data.appId = appWithLibraries.getApplication().getAppId();
+    data.appName = appWithLibraries.getApplication().getName();
+    data.hasLibraries = true;
+    data.libraryCount = appWithLibraries.getLibraries().size();
+    data.libraries = appWithLibraries.getLibraries();
+    data.hasVulnerableLibrary = appWithLibraries.hasVulnerableLibrary();
+    data.vulnerableCveId = appWithLibraries.getVulnerableCveId();
+    return data;
+  }
 
-    try {
-      // Use shared discovery helper with injected SDK
-      var appWithLibrariesOptional =
-          TestDataDiscoveryHelper.findApplicationWithLibraries(orgID, sdkExtension);
+  @Override
+  protected void logTestDataDetails(TestData data) {
+    log.info("{}", data);
+  }
 
-      if (appWithLibrariesOptional.isEmpty()) {
-        String errorMsg = buildTestDataErrorMessage(0);
-        log.error(errorMsg);
-        fail(errorMsg);
-        return;
-      }
+  @Override
+  protected void afterCacheHit(TestData data) {
+    warnIfNoVulnerableLibraries(data);
+  }
 
-      var appWithLibraries = appWithLibrariesOptional.get();
-      testData = new TestData();
-      testData.appId = appWithLibraries.getApplication().getAppId();
-      testData.appName = appWithLibraries.getApplication().getName();
-      testData.hasLibraries = true;
-      testData.libraryCount = appWithLibraries.getLibraries().size();
-      testData.libraries = appWithLibraries.getLibraries();
-      testData.hasVulnerableLibrary = appWithLibraries.hasVulnerableLibrary();
-      testData.vulnerableCveId = appWithLibraries.getVulnerableCveId();
+  @Override
+  protected void afterDiscovery(TestData data) {
+    warnIfNoVulnerableLibraries(data);
+  }
 
-      discoveryDurationMs = System.currentTimeMillis() - startTime;
-
-      log.info(
-          "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-      log.info(
-          "║   Test Data Discovery Complete                                                 ║");
-      log.info(
-          "╚════════════════════════════════════════════════════════════════════════════════╝");
-      log.info("{}", testData);
-      log.info("✓ Test data discovery completed in {}ms", discoveryDurationMs);
-      log.info("");
-
-      IntegrationTestDiskCache.write("SCAServiceIntegrationTest", orgID, testData);
-
-      // Warn if no CVEs found
-      if (!testData.hasVulnerableLibrary) {
-        log.error("\n⚠️  WARNING: Application has libraries but NO VULNERABLE LIBRARIES");
-        log.error("   CVE-related tests will be skipped.");
-        log.error("   To enable full testing, use an application with vulnerable dependencies.");
-      }
-
-    } catch (Exception e) {
-      String errorMsg = "❌ ERROR during test data discovery: " + e.getMessage();
-      log.error("\n{}", errorMsg);
-      e.printStackTrace();
-      fail(errorMsg);
+  private void warnIfNoVulnerableLibraries(TestData data) {
+    if (!data.hasVulnerableLibrary) {
+      log.error("\n⚠️  WARNING: Application has libraries but NO VULNERABLE LIBRARIES");
+      log.error("   CVE-related tests will be skipped.");
+      log.error("   To enable full testing, use an application with vulnerable dependencies.");
     }
   }
 
@@ -444,35 +403,5 @@ public class SCAServiceIntegrationTest {
         .hasMessageContaining("Failed to retrieve CVE data");
 
     log.info("✓ Non-existent CVE correctly rejected with IOException");
-  }
-
-  @BeforeEach
-  void logTestStart(TestInfo testInfo) {
-    log.info("\n▶ Starting test: {}", testInfo.getDisplayName());
-    testStartTimeMs = System.currentTimeMillis();
-  }
-
-  @AfterEach
-  void logTestEnd(TestInfo testInfo) {
-    long duration = System.currentTimeMillis() - testStartTimeMs;
-    totalTestTimeMs += duration;
-    testCount++;
-    log.info("✓ Test completed in {}ms: {}\n", duration, testInfo.getDisplayName());
-  }
-
-  @AfterAll
-  void logSummary() {
-    log.info(
-        "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-    log.info("║   Integration Test Performance Summary                                        ║");
-    log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
-    log.info("Discovery time: {}ms", discoveryDurationMs);
-    log.info("Total test time: {}ms", totalTestTimeMs);
-    log.info("Tests executed: {}", testCount);
-    if (testCount > 0) {
-      log.info("Average per test: {}ms", totalTestTimeMs / testCount);
-    }
-    log.info(
-        "╚════════════════════════════════════════════════════════════════════════════════╝\n");
   }
 }

@@ -17,26 +17,17 @@ package com.contrast.labs.ai.mcp.contrast;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.fail;
 
 import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
-import com.contrast.labs.ai.mcp.contrast.util.IntegrationTestDiskCache;
+import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper.ApplicationWithProtectRules;
 import java.io.IOException;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
@@ -59,27 +50,13 @@ import org.springframework.context.annotation.Import;
 @SpringBootTest
 @Import(IntegrationTestConfig.class)
 @EnabledIfEnvironmentVariable(named = "CONTRAST_HOST_NAME", matches = ".+")
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class ADRServiceIntegrationTest {
+public class ADRServiceIntegrationTest
+    extends AbstractIntegrationTest<ADRServiceIntegrationTest.TestData> {
 
   @Autowired private ADRService adrService;
 
-  @Autowired private SDKExtension sdkExtension;
-
-  @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
-  private String orgID;
-
-  // Discovered test data - populated in @BeforeAll
-  private static TestData testData;
-
-  // Performance metrics
-  private static long discoveryDurationMs;
-  private long testStartTimeMs;
-  private long totalTestTimeMs = 0;
-  private int testCount = 0;
-
   /** Container for discovered test data */
-  private static class TestData {
+  static class TestData {
     String appId;
     String appName;
     boolean hasProtectRules;
@@ -93,65 +70,43 @@ public class ADRServiceIntegrationTest {
     }
   }
 
-  @BeforeAll
-  void discoverTestData() {
-    log.info(
-        "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-    log.info("║   ADR Service Integration Test - Discovering Test Data                        ║");
-    log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
-    if (IntegrationTestDiskCache.loadIfPresent(
-        "ADRServiceIntegrationTest",
-        orgID,
-        TestData.class,
-        cached -> {
-          testData = cached;
-          discoveryDurationMs = 0;
-          log.info("✓ Loaded cached test data: {}", testData);
-        })) {
-      return;
+  @Override
+  protected String testDisplayName() {
+    return "ADR Service Integration Test";
+  }
+
+  @Override
+  protected Class<TestData> testDataType() {
+    return TestData.class;
+  }
+
+  @Override
+  protected void onDiscoveryStart() {
+    super.onDiscoveryStart();
+    log.info("\n🔍 Fast discovery: using cached Protect data helper...");
+  }
+
+  @Override
+  protected TestData performDiscovery() throws IOException {
+    Optional<ApplicationWithProtectRules> protectCandidate =
+        TestDataDiscoveryHelper.findApplicationWithProtectRules(orgID, sdkExtension);
+
+    if (protectCandidate.isEmpty()) {
+      throw new NoTestDataException(buildTestDataErrorMessage(50));
     }
-    log.info("Starting test data discovery...");
 
-    long startTime = System.currentTimeMillis();
+    var candidate = protectCandidate.get();
+    var data = new TestData();
+    data.appId = candidate.getApplication().getAppId();
+    data.appName = candidate.getApplication().getName();
+    data.hasProtectRules = candidate.getRuleCount() > 0;
+    data.ruleCount = candidate.getRuleCount();
+    return data;
+  }
 
-    try {
-      log.info("\n🔍 Fast discovery: using cached Protect data helper...");
-      Optional<ApplicationWithProtectRules> protectCandidate =
-          TestDataDiscoveryHelper.findApplicationWithProtectRules(orgID, sdkExtension);
-
-      if (protectCandidate.isPresent()) {
-        var candidate = protectCandidate.get();
-        testData = new TestData();
-        testData.appId = candidate.getApplication().getAppId();
-        testData.appName = candidate.getApplication().getName();
-        testData.hasProtectRules = candidate.getRuleCount() > 0;
-        testData.ruleCount = candidate.getRuleCount();
-
-        discoveryDurationMs = System.currentTimeMillis() - startTime;
-
-        log.info(
-            "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-        log.info(
-            "║   Test Data Discovery Complete                                                 ║");
-        log.info(
-            "╚════════════════════════════════════════════════════════════════════════════════╝");
-        log.info("{}", testData);
-        log.info("✓ Test data discovery completed in {}ms", discoveryDurationMs);
-        log.info("");
-
-        IntegrationTestDiskCache.write("ADRServiceIntegrationTest", orgID, testData);
-      } else {
-        String errorMsg = buildTestDataErrorMessage(50);
-        log.error(errorMsg);
-        fail(errorMsg);
-      }
-
-    } catch (Exception e) {
-      String errorMsg = "❌ ERROR during test data discovery: " + e.getMessage();
-      log.error("\n❌ ERROR during test data discovery: {}", e.getMessage());
-      e.printStackTrace();
-      fail(errorMsg);
-    }
+  @Override
+  protected void logTestDataDetails(TestData data) {
+    log.info("{}", data);
   }
 
   /** Build detailed error message when no suitable test data is found */
@@ -355,35 +310,5 @@ public class ADRServiceIntegrationTest {
     }
 
     log.info("\n✓ All rules have valid structure and required fields");
-  }
-
-  @BeforeEach
-  void logTestStart(TestInfo testInfo) {
-    log.info("\n▶ Starting test: {}", testInfo.getDisplayName());
-    testStartTimeMs = System.currentTimeMillis();
-  }
-
-  @AfterEach
-  void logTestEnd(TestInfo testInfo) {
-    long duration = System.currentTimeMillis() - testStartTimeMs;
-    totalTestTimeMs += duration;
-    testCount++;
-    log.info("✓ Test completed in {}ms: {}\n", duration, testInfo.getDisplayName());
-  }
-
-  @AfterAll
-  void logSummary() {
-    log.info(
-        "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-    log.info("║   Integration Test Performance Summary                                        ║");
-    log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
-    log.info("Discovery time: {}ms", discoveryDurationMs);
-    log.info("Total test time: {}ms", totalTestTimeMs);
-    log.info("Tests executed: {}", testCount);
-    if (testCount > 0) {
-      log.info("Average per test: {}ms", totalTestTimeMs / testCount);
-    }
-    log.info(
-        "╚════════════════════════════════════════════════════════════════════════════════╝\n");
   }
 }
