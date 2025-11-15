@@ -40,6 +40,7 @@ build/
 
 ### Beads ###
 .beads/
+.beads.zip
 test-plan-*.md
 results-*.md
 plans/
