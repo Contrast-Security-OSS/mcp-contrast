@@ -57,8 +57,16 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<!-- mockito-inline removed: In Mockito 5.x, inline mocking (static/constructor)
-		     is built into mockito-core by default, which comes from spring-boot-starter-test -->
+		<!-- mockito-inline: Required for sandboxed environments (like Codex) where Java agent attachment
+		     is restricted. In Mockito 5.x, inline mocking is in mockito-core for normal environments,
+		     but mockito-inline provides a fallback implementation for restricted JVMs.
+		     Note: mockito-inline 5.2.0 is the last published version for Mockito 5.x line. -->
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-inline</artifactId>
+			<version>5.2.0</version>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
