@@ -24,8 +24,12 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Applicati
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,6 +84,12 @@ public class RouteCoverageServiceIntegrationTest {
   // Discovered test data - populated in @BeforeAll
   private static TestData testData;
 
+  // Performance metrics
+  private static long discoveryDurationMs;
+  private long testStartTimeMs;
+  private long totalTestTimeMs = 0;
+  private int testCount = 0;
+
   /** Container for discovered test data */
   private static class TestData {
     String appId;
@@ -111,6 +121,9 @@ public class RouteCoverageServiceIntegrationTest {
         "\n╔════════════════════════════════════════════════════════════════════════════════╗");
     log.info("║   Route Coverage Integration Test - Discovering Test Data                     ║");
     log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
+    log.info("Starting test data discovery...");
+
+    long startTime = System.currentTimeMillis();
 
     try {
       var sdk =
@@ -223,6 +236,8 @@ public class RouteCoverageServiceIntegrationTest {
 
       if (candidate != null) {
         testData = candidate;
+        discoveryDurationMs = System.currentTimeMillis() - startTime;
+
         log.info(
             "\n╔════════════════════════════════════════════════════════════════════════════════╗");
         log.info(
@@ -230,6 +245,7 @@ public class RouteCoverageServiceIntegrationTest {
         log.info(
             "╚════════════════════════════════════════════════════════════════════════════════╝");
         log.info("{}", testData);
+        log.info("✓ Test data discovery completed in {}ms", discoveryDurationMs);
         log.info("");
 
         // Validate that we have session metadata for complete testing
@@ -601,5 +617,35 @@ public class RouteCoverageServiceIntegrationTest {
       }
       log.info("✓ All routes have valid route details");
     }
+  }
+
+  @BeforeEach
+  void logTestStart(TestInfo testInfo) {
+    log.info("\n▶ Starting test: {}", testInfo.getDisplayName());
+    testStartTimeMs = System.currentTimeMillis();
+  }
+
+  @AfterEach
+  void logTestEnd(TestInfo testInfo) {
+    long duration = System.currentTimeMillis() - testStartTimeMs;
+    totalTestTimeMs += duration;
+    testCount++;
+    log.info("✓ Test completed in {}ms: {}\n", duration, testInfo.getDisplayName());
+  }
+
+  @AfterAll
+  void logSummary() {
+    log.info(
+        "\n╔════════════════════════════════════════════════════════════════════════════════╗");
+    log.info("║   Integration Test Performance Summary                                        ║");
+    log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
+    log.info("Discovery time: {}ms", discoveryDurationMs);
+    log.info("Total test time: {}ms", totalTestTimeMs);
+    log.info("Tests executed: {}", testCount);
+    if (testCount > 0) {
+      log.info("Average per test: {}ms", totalTestTimeMs / testCount);
+    }
+    log.info(
+        "╚════════════════════════════════════════════════════════════════════════════════╝\n");
   }
 }
