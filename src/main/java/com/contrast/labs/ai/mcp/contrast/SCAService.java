@@ -28,6 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 @Slf4j
@@ -60,7 +61,7 @@ public class SCAService {
               + " list_applications_with_name first to get the application ID from a name. Note: if"
               + " class usage count is 0 the library is unlikely to be used")
   public List<LibraryExtended> getApplicationLibrariesByID(String appID) throws IOException {
-    if (appID == null || appID.isEmpty()) {
+    if (!StringUtils.hasText(appID)) {
       throw new IllegalArgumentException("Application ID cannot be null or empty");
     }
     log.info("Retrieving libraries for application id: {}", appID);

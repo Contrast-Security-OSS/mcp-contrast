@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 
 /**
  * Utility class for parsing filter parameters in MCP tools. Provides reusable methods for parsing
@@ -71,7 +72,7 @@ public class FilterHelper {
    * @example parseCommaSeparated(" ") → null
    */
   public static List<String> parseCommaSeparated(String input) {
-    if (input == null || input.trim().isEmpty()) {
+    if (!StringUtils.hasText(input)) {
       return null;
     }
     List<String> result =
@@ -94,7 +95,7 @@ public class FilterHelper {
    * @example parseDate(null, "lastSeenAfter") → ParseResult(null, null)
    */
   public static ParseResult<Date> parseDateWithValidation(String dateStr, String paramName) {
-    if (dateStr == null || dateStr.trim().isEmpty()) {
+    if (!StringUtils.hasText(dateStr)) {
       return new ParseResult<>(null);
     }
     try {
