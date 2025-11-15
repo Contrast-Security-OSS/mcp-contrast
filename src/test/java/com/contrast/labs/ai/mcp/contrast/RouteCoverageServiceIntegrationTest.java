@@ -16,21 +16,20 @@
 package com.contrast.labs.ai.mcp.contrast;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
+import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
+import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
+import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
+import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper.RouteCoverageTestData;
 import java.io.IOException;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
 /**
  * Integration test for RouteCoverageService that validates route coverage data from real
@@ -50,38 +49,16 @@ import org.springframework.boot.test.context.SpringBootTest;
  */
 @Slf4j
 @SpringBootTest
+@Import(IntegrationTestConfig.class)
 @EnabledIfEnvironmentVariable(named = "CONTRAST_HOST_NAME", matches = ".+")
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class RouteCoverageServiceIntegrationTest {
+public class RouteCoverageServiceIntegrationTest
+    extends AbstractIntegrationTest<RouteCoverageServiceIntegrationTest.TestData> {
 
   @Autowired private RouteCoverageService routeCoverageService;
 
-  @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
-  private String hostName;
-
-  @Value("${contrast.api-key:${CONTRAST_API_KEY:}}")
-  private String apiKey;
-
-  @Value("${contrast.service-key:${CONTRAST_SERVICE_KEY:}}")
-  private String serviceKey;
-
-  @Value("${contrast.username:${CONTRAST_USERNAME:}}")
-  private String userName;
-
-  @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
-  private String orgID;
-
-  @Value("${http.proxy.host:${http_proxy_host:}}")
-  private String httpProxyHost;
-
-  @Value("${http.proxy.port:${http_proxy_port:}}")
-  private String httpProxyPort;
-
   // Discovered test data - populated in @BeforeAll
-  private static TestData testData;
-
   /** Container for discovered test data */
-  private static class TestData {
+  static class TestData {
     String appId;
     String appName;
     boolean hasRouteCoverage;
@@ -105,153 +82,62 @@ public class RouteCoverageServiceIntegrationTest {
     }
   }
 
-  @BeforeAll
-  void discoverTestData() {
-    log.info(
-        "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-    log.info("║   Route Coverage Integration Test - Discovering Test Data                     ║");
-    log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
+  @Override
+  protected String testDisplayName() {
+    return "Route Coverage Integration Test";
+  }
 
-    try {
-      var sdk =
-          SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-      var sdkExtension = new SDKExtension(sdk);
+  @Override
+  protected Class<TestData> testDataType() {
+    return TestData.class;
+  }
 
-      // Get all applications
-      log.info("\n🔍 Step 1: Fetching all applications...");
-      var appsResponse = sdkExtension.getApplications(orgID);
-      var applications = appsResponse.getApplications();
-      log.info("   Found {} application(s) in organization", applications.size());
+  @Override
+  protected void onDiscoveryStart() {
+    super.onDiscoveryStart();
+    log.info("\n🔍 Fast discovery: using cached route coverage helper...");
+  }
 
-      if (applications.isEmpty()) {
-        log.info("\n⚠️  NO APPLICATIONS FOUND");
-        log.info("   The integration tests require at least one application with:");
-        log.info("   1. Route coverage data (routes discovered or exercised)");
-        log.info("   2. Session metadata (optional but recommended)");
-        log.info("\n   To create test data:");
-        log.info("   - Deploy an application with Contrast agent");
-        log.info("   - Exercise some routes (make HTTP requests)");
-        log.info("   - Optionally: Configure session metadata in agent");
-        return;
-      }
+  @Override
+  protected TestData performDiscovery() throws IOException {
+    Optional<RouteCoverageTestData> routeCandidate =
+        TestDataDiscoveryHelper.findApplicationWithRouteCoverage(orgID, sdkExtension);
 
-      // Search for suitable test application - prioritize apps with BOTH routes AND session
-      // metadata
-      log.info(
-          "\n🔍 Step 2: Searching for application with route coverage AND session metadata...");
-      TestData bestCandidate = null;
-      TestData fallbackCandidate = null; // App with routes but no session metadata
-      int appsChecked = 0;
-      int maxAppsToCheck = Math.min(applications.size(), 50); // Check up to 50 apps
+    if (routeCandidate.isEmpty()) {
+      throw new NoTestDataException(buildTestDataErrorMessage(50));
+    }
 
-      for (Application app : applications) {
-        if (appsChecked >= maxAppsToCheck) {
-          log.info("   Reached max apps to check ({}), stopping search", maxAppsToCheck);
-          break;
-        }
-        appsChecked++;
+    var candidate = routeCandidate.get();
+    var data = new TestData();
+    data.appId = candidate.application().getAppId();
+    data.appName = candidate.application().getName();
+    data.hasRouteCoverage = true;
+    data.routeCount = candidate.routeCount();
+    data.hasSessionMetadata = candidate.hasSessionMetadata();
+    data.sessionMetadataName = candidate.sessionMetadataName();
+    data.sessionMetadataValue = candidate.sessionMetadataValue();
+    return data;
+  }
 
-        log.info(
-            "   Checking app {}/{}: {} (ID: {})",
-            appsChecked,
-            maxAppsToCheck,
-            app.getName(),
-            app.getAppId());
+  @Override
+  protected void logTestDataDetails(TestData data) {
+    log.info("{}", data);
+  }
 
-        try {
-          // Check for route coverage
-          var routeResponse = sdkExtension.getRouteCoverage(orgID, app.getAppId(), null);
-          if (routeResponse != null
-              && routeResponse.getRoutes() != null
-              && !routeResponse.getRoutes().isEmpty()) {
-            log.info("      ✓ Has {} route(s)", routeResponse.getRoutes().size());
+  @Override
+  protected void afterCacheHit(TestData data) {
+    warnIfNoSessionMetadata(data);
+  }
 
-            var candidate = new TestData();
-            candidate.appId = app.getAppId();
-            candidate.appName = app.getName();
-            candidate.hasRouteCoverage = true;
-            candidate.routeCount = routeResponse.getRoutes().size();
+  @Override
+  protected void afterDiscovery(TestData data) {
+    warnIfNoSessionMetadata(data);
+  }
 
-            // Check for session metadata
-            try {
-              var sessionResponse = sdkExtension.getLatestSessionMetadata(orgID, app.getAppId());
-              if (sessionResponse != null && sessionResponse.getAgentSession() != null) {
-                // Try to extract a metadata field from metadataSessions list
-                if (sessionResponse.getAgentSession().getMetadataSessions() != null
-                    && !sessionResponse.getAgentSession().getMetadataSessions().isEmpty()) {
-                  var firstMetadata =
-                      sessionResponse.getAgentSession().getMetadataSessions().get(0);
-                  if (firstMetadata.getMetadataField() != null
-                      && firstMetadata.getMetadataField().getAgentLabel() != null
-                      && firstMetadata.getValue() != null) {
-                    candidate.hasSessionMetadata = true;
-                    candidate.sessionMetadataName =
-                        firstMetadata.getMetadataField().getAgentLabel();
-                    candidate.sessionMetadataValue = firstMetadata.getValue();
-                    log.info("      ✓ Has session metadata");
-                    log.info(
-                        "      ✓ Session metadata field: {}={}",
-                        candidate.sessionMetadataName,
-                        candidate.sessionMetadataValue);
-
-                    // Found perfect candidate with both routes and session metadata!
-                    log.info(
-                        "\n   ✅ Found PERFECT test application with routes AND session metadata!");
-                    bestCandidate = candidate;
-                    break; // Stop searching - we found what we need
-                  }
-                }
-              }
-            } catch (Exception e) {
-              log.info("      ℹ No session metadata: {}", e.getMessage());
-            }
-
-            // Save as fallback if we haven't found a perfect candidate yet
-            if (!candidate.hasSessionMetadata && fallbackCandidate == null) {
-              log.info("      ℹ Saving as fallback candidate (has routes but no session metadata)");
-              fallbackCandidate = candidate;
-            }
-          }
-        } catch (Exception e) {
-          // Skip this app, continue searching
-          log.info("      ℹ No route coverage or error: {}", e.getMessage());
-        }
-      }
-
-      // Determine which candidate to use
-      var candidate = bestCandidate != null ? bestCandidate : fallbackCandidate;
-
-      if (candidate != null) {
-        testData = candidate;
-        log.info(
-            "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-        log.info(
-            "║   Test Data Discovery Complete                                                 ║");
-        log.info(
-            "╚════════════════════════════════════════════════════════════════════════════════╝");
-        log.info("{}", testData);
-        log.info("");
-
-        // Validate that we have session metadata for complete testing
-        if (!candidate.hasSessionMetadata) {
-          log.error("\n⚠️  WARNING: Application has route coverage but NO SESSION METADATA");
-          log.error("   Some tests will fail. To fix this:");
-          log.error("   1. Configure session metadata in your Contrast agent");
-          log.error("   2. Restart the application");
-          log.error("   3. Make some HTTP requests to exercise routes");
-          log.error("   4. Re-run the integration tests");
-        }
-      } else {
-        String errorMsg = buildTestDataErrorMessage(appsChecked);
-        log.error(errorMsg);
-        fail(errorMsg);
-      }
-
-    } catch (Exception e) {
-      String errorMsg = "❌ ERROR during test data discovery: " + e.getMessage();
-      log.error("\n{}", errorMsg);
-      e.printStackTrace();
-      fail(errorMsg);
+  private void warnIfNoSessionMetadata(TestData data) {
+    if (!data.hasSessionMetadata) {
+      log.warn("\n⚠️  WARNING: Application has route coverage but NO SESSION METADATA");
+      log.warn("   Some metadata-dependent assertions may be skipped.");
     }
   }
 

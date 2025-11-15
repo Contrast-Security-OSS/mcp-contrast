@@ -38,8 +38,12 @@ build/
 .LSOverride
 .env.integration-test
 
+# Integration test cache (local-only artifacts)
+test-cache/
+
 ### Beads ###
 .beads/
+.beads.zip
 test-plan-*.md
 results-*.md
 plans/

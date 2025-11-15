@@ -57,6 +57,16 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- mockito-inline: Required for sandboxed environments (like Codex) where Java agent attachment
+		     is restricted. In Mockito 5.x, inline mocking is in mockito-core for normal environments,
+		     but mockito-inline provides a fallback implementation for restricted JVMs.
+		     Note: mockito-inline 5.2.0 is the last published version for Mockito 5.x line. -->
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-inline</artifactId>
+			<version>5.2.0</version>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
@@ -83,6 +93,11 @@
 				<filtering>true</filtering>
 			</resource>
 		</resources>
+		<testResources>
+			<testResource>
+				<directory>src/test/resources</directory>
+			</testResource>
+		</testResources>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
@@ -94,6 +109,16 @@
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!-- Exclude integration tests from unit test phase -->
+					<excludes>
+						<exclude>**/*IntegrationTest.java</exclude>
+					</excludes>
+				</configuration>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -120,6 +145,20 @@
 					</execution>
 				</executions>
 				<configuration>
+					<!-- Include integration test pattern -->
+					<includes>
+						<include>**/*IntegrationTest.java</include>
+					</includes>
+					<!-- Configure JUnit 5 parallel execution -->
+					<properties>
+						<configurationParameters>
+							junit.jupiter.execution.parallel.enabled=true
+							junit.jupiter.execution.parallel.mode.default=same_thread
+							junit.jupiter.execution.parallel.mode.classes.default=concurrent
+							junit.jupiter.execution.parallel.config.strategy=fixed
+							junit.jupiter.execution.parallel.config.fixed.parallelism=4
+						</configurationParameters>
+					</properties>
 					<systemPropertyVariables>
 						<!-- Pass environment variables to tests -->
 						<CONTRAST_HOST_NAME>${env.CONTRAST_HOST_NAME}</CONTRAST_HOST_NAME>
@@ -128,6 +167,11 @@
 						<CONTRAST_USERNAME>${env.CONTRAST_USERNAME}</CONTRAST_USERNAME>
 						<CONTRAST_ORG_ID>${env.CONTRAST_ORG_ID}</CONTRAST_ORG_ID>
 					</systemPropertyVariables>
+					<!-- Capture test output to see performance instrumentation -->
+					<redirectTestOutputToFile>true</redirectTestOutputToFile>
+					<useFile>true</useFile>
+					<forkCount>1</forkCount>
+					<reuseForks>false</reuseForks>
 				</configuration>
 			</plugin>
 			<plugin>

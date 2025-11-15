@@ -17,13 +17,17 @@ package com.contrast.labs.ai.mcp.contrast;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
+import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
+import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
 /**
  * Integration test for AssessService that validates vulnerability data from real TeamServer.
@@ -41,10 +45,85 @@ import org.springframework.boot.test.context.SpringBootTest;
  */
 @Slf4j
 @SpringBootTest
+@Import(IntegrationTestConfig.class)
 @EnabledIfEnvironmentVariable(named = "CONTRAST_HOST_NAME", matches = ".+")
-public class AssessServiceIntegrationTest {
+public class AssessServiceIntegrationTest
+    extends AbstractIntegrationTest<AssessServiceIntegrationTest.TestData> {
 
   @Autowired private AssessService assessService;
+
+  /** Container for discovered test data */
+  static class TestData {
+    String appId;
+    String appName;
+
+    @Override
+    public String toString() {
+      return String.format("TestData{appId='%s', appName='%s'}", appId, appName);
+    }
+  }
+
+  @Override
+  protected String testDisplayName() {
+    return "Assess Service Integration Test";
+  }
+
+  @Override
+  protected Class<TestData> testDataType() {
+    return TestData.class;
+  }
+
+  @Override
+  protected TestData performDiscovery() throws IOException {
+    var appOptional = TestDataDiscoveryHelper.findFirstApplication(orgID, sdkExtension);
+
+    if (appOptional.isEmpty()) {
+      throw new NoTestDataException(buildTestDataErrorMessage(0));
+    }
+
+    var app = appOptional.get();
+    var data = new TestData();
+    data.appId = app.getAppId();
+    data.appName = app.getName();
+    return data;
+  }
+
+  @Override
+  protected void logTestDataDetails(TestData data) {
+    log.info("\n   ✅ Using application: {} (ID: {})", data.appName, data.appId);
+    log.info("{}", data);
+  }
+
+  /** Build detailed error message when no suitable test data is found */
+  private String buildTestDataErrorMessage(int appsChecked) {
+    var msg = new StringBuilder();
+    msg.append(
+        "\n╔════════════════════════════════════════════════════════════════════════════════╗\n");
+    msg.append(
+        "║   INTEGRATION TEST SETUP FAILED - NO SUITABLE TEST DATA                       ║\n");
+    msg.append(
+        "╚════════════════════════════════════════════════════════════════════════════════╝\n");
+    msg.append("\nNo applications found in organization.\n");
+    msg.append("\n📋 REQUIRED TEST DATA:\n");
+    msg.append("   The integration tests require at least ONE application:\n");
+    msg.append("   ✓ Application deployed with Contrast agent\n");
+    msg.append("   ✓ Application visible in this organization\n");
+    msg.append("\n🔧 HOW TO CREATE TEST DATA:\n");
+    msg.append("\n1. Deploy an application with a Contrast agent\n");
+    msg.append("   Example (Java):\n");
+    msg.append("   java -javaagent:/path/to/contrast.jar \\\n");
+    msg.append("        -Dcontrast.api.key=... \\\n");
+    msg.append("        -Dcontrast.agent.java.standalone_app_name=test-app \\\n");
+    msg.append("        -jar your-app.jar\n");
+    msg.append("\n2. Verify application appears in Contrast UI\n");
+    msg.append("   - Login to Contrast TeamServer\n");
+    msg.append("   - Navigate to Applications\n");
+    msg.append("   - Verify your application is listed\n");
+    msg.append("\n3. Re-run integration tests:\n");
+    msg.append("   source .env.integration-test && mvn verify\n");
+    msg.append("\n");
+    return msg.toString();
+  }
 
   @Test
   void testEnvironmentsAndTagsArePopulated() throws IOException {
@@ -277,30 +356,11 @@ public class AssessServiceIntegrationTest {
   void testListVulnsByAppIdWithSessionMetadata() throws IOException {
     log.info("\n=== Integration Test: listVulnsByAppId() with Session Metadata ===");
 
-    // Step 1: Get some vulnerabilities to find an appId (single API call)
-    log.info("Step 1: Getting vulnerabilities to discover an appId...");
-    var allVulns =
-        assessService.getAllVulnerabilities(1, 10, null, null, null, null, null, null, null, null);
+    assertThat(testData).as("Test data must be discovered before running tests").isNotNull();
 
-    assertThat(allVulns).as("Response should not be null").isNotNull();
-    assertThat(allVulns.items()).as("Should have at least one vulnerability").isNotEmpty();
-
-    log.info("  ✓ Found {} vulnerability(ies)", allVulns.items().size());
-
-    // Step 2: Get applications list (single API call)
-    log.info("Step 2: Getting first application with vulnerabilities...");
-    var applications = assessService.getAllApplications();
-    assertThat(applications).as("Applications list should not be null").isNotNull();
-    assertThat(applications).as("Should have at least one application").isNotEmpty();
-
-    // Just use the first application - no iteration needed
-    var testAppId = applications.get(0).appID();
-    var testAppName = applications.get(0).name();
-    log.info("  ✓ Using application: {} (ID: {})", testAppName, testAppId);
-
-    // Step 3: Call listVulnsByAppId() with the discovered appId
-    log.info("Step 3: Calling listVulnsByAppId() for app: {}", testAppName);
-    var vulnerabilities = assessService.listVulnsByAppId(testAppId);
+    // Call listVulnsByAppId() with the discovered appId from @BeforeAll
+    log.info("Calling listVulnsByAppId() for app: {} (ID: {})", testData.appName, testData.appId);
+    var vulnerabilities = assessService.listVulnsByAppId(testData.appId);
 
     assertThat(vulnerabilities).as("Vulnerabilities list should not be null").isNotNull();
     log.info("  ✓ Retrieved {} vulnerability(ies)", vulnerabilities.size());
@@ -310,8 +370,8 @@ public class AssessServiceIntegrationTest {
       return;
     }
 
-    // Step 4: Verify session metadata is populated
-    log.info("Step 4: Verifying session metadata is populated...");
+    // Verify session metadata is populated
+    log.info("Verifying session metadata is populated...");
     int withSessionMetadata = 0;
 
     for (VulnLight vuln : vulnerabilities) {
@@ -342,21 +402,14 @@ public class AssessServiceIntegrationTest {
             + "=== Integration Test: listVulnsByAppIdForLatestSession() with Dynamic Session"
             + " Discovery ===");
 
-    // Step 1: Get applications list (single API call)
-    log.info("Step 1: Getting first application...");
-    var applications = assessService.getAllApplications();
+    assertThat(testData).as("Test data must be discovered before running tests").isNotNull();
 
-    assertThat(applications).as("Applications list should not be null").isNotNull();
-    assertThat(applications).as("Should have at least one application").isNotEmpty();
-
-    // Just use the first application - no iteration needed
-    var testAppID = applications.get(0).appID();
-    var testAppName = applications.get(0).name();
-    log.info("  ✓ Using application: {} (ID: {})", testAppName, testAppID);
-
-    // Step 2: Call listVulnsByAppIdForLatestSession() with the discovered app ID
-    log.info("Step 2: Calling listVulnsByAppIdForLatestSession() for appID: {}", testAppID);
-    var latestSessionVulns = assessService.listVulnsByAppIdForLatestSession(testAppID);
+    // Call listVulnsByAppIdForLatestSession() with the discovered app ID from @BeforeAll
+    log.info(
+        "Calling listVulnsByAppIdForLatestSession() for app: {} (ID: {})",
+        testData.appName,
+        testData.appId);
+    var latestSessionVulns = assessService.listVulnsByAppIdForLatestSession(testData.appId);
 
     assertThat(latestSessionVulns).as("Vulnerabilities list should not be null").isNotNull();
     log.info("  ✓ Retrieved {} vulnerability(ies) for latest session", latestSessionVulns.size());
@@ -368,8 +421,8 @@ public class AssessServiceIntegrationTest {
       return;
     }
 
-    // Step 3: Verify session metadata is populated in results
-    log.info("Step 3: Verifying session metadata is populated...");
+    // Verify session metadata is populated in results
+    log.info("Verifying session metadata is populated...");
     int withSessionMetadata = 0;
 
     for (VulnLight vuln : latestSessionVulns) {
