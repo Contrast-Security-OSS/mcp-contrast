@@ -16,44 +16,14 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr;
 
 import java.util.List;
+import lombok.Data;
 
 /** Root class for deserializing attack event data from JSON. */
+@Data
 public class AttackEvent {
   private boolean success;
   private List<String> messages;
   private EventSummary summary;
 
   private String runBook;
-
-  public boolean isSuccess() {
-    return success;
-  }
-
-  public void setSuccess(boolean success) {
-    this.success = success;
-  }
-
-  public List<String> getMessages() {
-    return messages;
-  }
-
-  public void setMessages(List<String> messages) {
-    this.messages = messages;
-  }
-
-  public EventSummary getSummary() {
-    return summary;
-  }
-
-  public void setSummary(EventSummary summary) {
-    this.summary = summary;
-  }
-
-  public String getRunBook() {
-    return runBook;
-  }
-
-  public void setRunBook(String runBook) {
-    this.runBook = runBook;
-  }
 }

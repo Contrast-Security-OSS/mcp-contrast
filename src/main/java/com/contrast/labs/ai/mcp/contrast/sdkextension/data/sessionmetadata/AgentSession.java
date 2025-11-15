@@ -16,43 +16,13 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata;
 
 import java.util.List;
+import lombok.Data;
 
 /** Represents an agent session with its metadata */
+@Data
 public class AgentSession {
   private String agentSessionId;
   private List<MetadataSession> metadataSessions;
   private double createdDate;
   private String sessionStatus;
-
-  public String getAgentSessionId() {
-    return agentSessionId;
-  }
-
-  public void setAgentSessionId(String agentSessionId) {
-    this.agentSessionId = agentSessionId;
-  }
-
-  public List<MetadataSession> getMetadataSessions() {
-    return metadataSessions;
-  }
-
-  public void setMetadataSessions(List<MetadataSession> metadataSessions) {
-    this.metadataSessions = metadataSessions;
-  }
-
-  public double getCreatedDate() {
-    return createdDate;
-  }
-
-  public void setCreatedDate(double createdDate) {
-    this.createdDate = createdDate;
-  }
-
-  public String getSessionStatus() {
-    return sessionStatus;
-  }
-
-  public void setSessionStatus(String sessionStatus) {
-    this.sessionStatus = sessionStatus;
-  }
 }

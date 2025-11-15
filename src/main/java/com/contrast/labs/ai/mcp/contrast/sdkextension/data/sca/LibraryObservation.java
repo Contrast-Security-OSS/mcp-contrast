@@ -16,46 +16,11 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca;
 
 import java.time.Instant;
+import lombok.Data;
 
+@Data
 public class LibraryObservation {
   private String name;
   private Instant firstObservedTime;
   private Instant lastObservedTime;
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public Instant getFirstObservedTime() {
-    return firstObservedTime;
-  }
-
-  public void setFirstObservedTime(Instant firstObservedTime) {
-    this.firstObservedTime = firstObservedTime;
-  }
-
-  public Instant getLastObservedTime() {
-    return lastObservedTime;
-  }
-
-  public void setLastObservedTime(Instant lastObservedTime) {
-    this.lastObservedTime = lastObservedTime;
-  }
-
-  @Override
-  public String toString() {
-    return "LibraryObservation{"
-        + "name='"
-        + name
-        + '\''
-        + ", firstObservedTime="
-        + firstObservedTime
-        + ", lastObservedTime="
-        + lastObservedTime
-        + '}';
-  }
 }

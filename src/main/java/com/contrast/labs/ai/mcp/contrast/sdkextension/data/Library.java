@@ -15,43 +15,14 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 
+import lombok.Data;
+
 /** Class representing library information for a vulnerability. */
+@Data
 public class Library {
 
   private String hash;
   private String version;
   private String file_name;
   private String group;
-
-  public String getHash() {
-    return hash;
-  }
-
-  public void setHash(String hash) {
-    this.hash = hash;
-  }
-
-  public String getVersion() {
-    return version;
-  }
-
-  public void setVersion(String version) {
-    this.version = version;
-  }
-
-  public String getFile_name() {
-    return file_name;
-  }
-
-  public void setFile_name(String file_name) {
-    this.file_name = file_name;
-  }
-
-  public String getGroup() {
-    return group;
-  }
-
-  public void setGroup(String group) {
-    this.group = group;
-  }
 }

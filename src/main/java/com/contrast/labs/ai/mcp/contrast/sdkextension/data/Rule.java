@@ -15,8 +15,11 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 
+import com.google.gson.annotations.SerializedName;
 import java.util.List;
+import lombok.Data;
 
+@Data
 public class Rule {
   private String name;
   private String type;
@@ -26,149 +29,30 @@ public class Rule {
   private String production;
   private int id;
   private String uuid;
-  private Boolean can_block_at_perimeter;
-  private Boolean is_monitor_at_perimeter;
-  private Boolean can_block;
-  private String parent_rule_uuid;
-  private String parent_rule_name;
+
+  @SerializedName("can_block_at_perimeter")
+  private Boolean canBlockAtPerimeter;
+
+  @SerializedName("is_monitor_at_perimeter")
+  private Boolean isMonitorAtPerimeter;
+
+  @SerializedName("can_block")
+  private Boolean canBlock;
+
+  @SerializedName("parent_rule_uuid")
+  private String parentRuleUuid;
+
+  @SerializedName("parent_rule_name")
+  private String parentRuleName;
+
   private List<Cve> cves;
-  private Boolean enabled_dev;
-  private Boolean enabled_qa;
-  private Boolean enabled_prod;
 
-  public String getName() {
-    return name;
-  }
+  @SerializedName("enabled_dev")
+  private Boolean enabledDev;
 
-  public void setName(String name) {
-    this.name = name;
-  }
+  @SerializedName("enabled_qa")
+  private Boolean enabledQa;
 
-  public String getType() {
-    return type;
-  }
-
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  public String getDescription() {
-    return description;
-  }
-
-  public void setDescription(String description) {
-    this.description = description;
-  }
-
-  public String getDevelopment() {
-    return development;
-  }
-
-  public void setDevelopment(String development) {
-    this.development = development;
-  }
-
-  public String getQa() {
-    return qa;
-  }
-
-  public void setQa(String qa) {
-    this.qa = qa;
-  }
-
-  public String getProduction() {
-    return production;
-  }
-
-  public void setProduction(String production) {
-    this.production = production;
-  }
-
-  public int getId() {
-    return id;
-  }
-
-  public void setId(int id) {
-    this.id = id;
-  }
-
-  public String getUuid() {
-    return uuid;
-  }
-
-  public void setUuid(String uuid) {
-    this.uuid = uuid;
-  }
-
-  public Boolean getCanBlockAtPerimeter() {
-    return can_block_at_perimeter;
-  }
-
-  public void setCanBlockAtPerimeter(Boolean canBlockAtPerimeter) {
-    this.can_block_at_perimeter = canBlockAtPerimeter;
-  }
-
-  public Boolean getIsMonitorAtPerimeter() {
-    return is_monitor_at_perimeter;
-  }
-
-  public void setIsMonitorAtPerimeter(Boolean isMonitorAtPerimeter) {
-    this.is_monitor_at_perimeter = isMonitorAtPerimeter;
-  }
-
-  public Boolean getCanBlock() {
-    return can_block;
-  }
-
-  public void setCanBlock(Boolean canBlock) {
-    this.can_block = canBlock;
-  }
-
-  public String getParentRuleUuid() {
-    return parent_rule_uuid;
-  }
-
-  public void setParentRuleUuid(String parentRuleUuid) {
-    this.parent_rule_uuid = parentRuleUuid;
-  }
-
-  public String getParentRuleName() {
-    return parent_rule_name;
-  }
-
-  public void setParentRuleName(String parentRuleName) {
-    this.parent_rule_name = parentRuleName;
-  }
-
-  public List<Cve> getCves() {
-    return cves;
-  }
-
-  public void setCves(List<Cve> cves) {
-    this.cves = cves;
-  }
-
-  public Boolean getEnabledDev() {
-    return enabled_dev;
-  }
-
-  public void setEnabledDev(Boolean enabledDev) {
-    this.enabled_dev = enabledDev;
-  }
-
-  public Boolean getEnabledQa() {
-    return enabled_qa;
-  }
-
-  public void setEnabledQa(Boolean enabledQa) {
-    this.enabled_qa = enabledQa;
-  }
-
-  public Boolean getEnabledProd() {
-    return enabled_prod;
-  }
-
-  public void setEnabledProd(Boolean enabledProd) {
-    this.enabled_prod = enabledProd;
-  }
+  @SerializedName("enabled_prod")
+  private Boolean enabledProd;
 }

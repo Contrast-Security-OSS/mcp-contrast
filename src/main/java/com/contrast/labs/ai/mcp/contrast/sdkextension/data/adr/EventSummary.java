@@ -15,7 +15,10 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr;
 
+import lombok.Data;
+
 /** Class representing the summary structure in an attack event. */
+@Data
 public class EventSummary {
   private Event event;
   private Story story;
@@ -23,52 +26,4 @@ public class EventSummary {
   private Request request;
   private String ruleUUID;
   private boolean hidden;
-
-  public Event getEvent() {
-    return event;
-  }
-
-  public void setEvent(Event event) {
-    this.event = event;
-  }
-
-  public Story getStory() {
-    return story;
-  }
-
-  public void setStory(Story story) {
-    this.story = story;
-  }
-
-  public EventDetails getDetails() {
-    return details;
-  }
-
-  public void setDetails(EventDetails details) {
-    this.details = details;
-  }
-
-  public Request getRequest() {
-    return request;
-  }
-
-  public void setRequest(Request request) {
-    this.request = request;
-  }
-
-  public String getRuleUUID() {
-    return ruleUUID;
-  }
-
-  public void setRuleUUID(String ruleUUID) {
-    this.ruleUUID = ruleUUID;
-  }
-
-  public boolean isHidden() {
-    return hidden;
-  }
-
-  public void setHidden(boolean hidden) {
-    this.hidden = hidden;
-  }
 }

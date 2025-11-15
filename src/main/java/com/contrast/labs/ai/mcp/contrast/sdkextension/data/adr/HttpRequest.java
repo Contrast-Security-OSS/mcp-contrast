@@ -15,7 +15,10 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr;
 
+import lombok.Data;
+
 /** Class representing HTTP request information in an attack event. */
+@Data
 public class HttpRequest {
   private String uri;
   private String method;
@@ -25,68 +28,4 @@ public class HttpRequest {
   private String headers;
   private String parameters;
   private boolean valid;
-
-  public String getUri() {
-    return uri;
-  }
-
-  public void setUri(String uri) {
-    this.uri = uri;
-  }
-
-  public String getMethod() {
-    return method;
-  }
-
-  public void setMethod(String method) {
-    this.method = method;
-  }
-
-  public String getQs() {
-    return qs;
-  }
-
-  public void setQs(String qs) {
-    this.qs = qs;
-  }
-
-  public String getVersion() {
-    return version;
-  }
-
-  public void setVersion(String version) {
-    this.version = version;
-  }
-
-  public String getBody() {
-    return body;
-  }
-
-  public void setBody(String body) {
-    this.body = body;
-  }
-
-  public String getHeaders() {
-    return headers;
-  }
-
-  public void setHeaders(String headers) {
-    this.headers = headers;
-  }
-
-  public String getParameters() {
-    return parameters;
-  }
-
-  public void setParameters(String parameters) {
-    this.parameters = parameters;
-  }
-
-  public boolean isValid() {
-    return valid;
-  }
-
-  public void setValid(boolean valid) {
-    this.valid = valid;
-  }
 }

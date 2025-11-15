@@ -15,24 +15,11 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata;
 
+import lombok.Data;
+
 /** Represents a metadata field with display and agent labels */
+@Data
 public class MetadataField {
   private String displayLabel;
   private String agentLabel;
-
-  public String getDisplayLabel() {
-    return displayLabel;
-  }
-
-  public void setDisplayLabel(String displayLabel) {
-    this.displayLabel = displayLabel;
-  }
-
-  public String getAgentLabel() {
-    return agentLabel;
-  }
-
-  public void setAgentLabel(String agentLabel) {
-    this.agentLabel = agentLabel;
-  }
 }

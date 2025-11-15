@@ -16,12 +16,14 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr;
 
 import java.util.List;
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
 /** Class representing a complete attack event with all associated applications and servers. */
 @Getter
 @Setter
+@Data
 public class Attack {
   private String status;
   private String type;

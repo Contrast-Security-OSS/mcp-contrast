@@ -16,59 +16,14 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage;
 
 import java.util.List;
+import lombok.Data;
 
 /** Represents the response for route details containing observations. */
+@Data
 public class RouteDetailsResponse {
 
   private boolean success;
   private List<String> messages;
   private List<Observation> observations;
   private int total;
-
-  // Getters and setters
-  public boolean isSuccess() {
-    return success;
-  }
-
-  public void setSuccess(boolean success) {
-    this.success = success;
-  }
-
-  public List<String> getMessages() {
-    return messages;
-  }
-
-  public void setMessages(List<String> messages) {
-    this.messages = messages;
-  }
-
-  public List<Observation> getObservations() {
-    return observations;
-  }
-
-  public void setObservations(List<Observation> observations) {
-    this.observations = observations;
-  }
-
-  public int getTotal() {
-    return total;
-  }
-
-  public void setTotal(int total) {
-    this.total = total;
-  }
-
-  @Override
-  public String toString() {
-    return "RouteDetailsResponse{"
-        + "success="
-        + success
-        + ", messages="
-        + messages
-        + ", observations="
-        + observations
-        + ", total="
-        + total
-        + '}';
-  }
 }

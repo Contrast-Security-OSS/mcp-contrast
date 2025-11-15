@@ -15,7 +15,10 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 
+import lombok.Data;
+
 /** Class representing server information affected by a vulnerability. */
+@Data
 public class Server {
 
   private int server_id;
@@ -25,60 +28,4 @@ public class Server {
   private String type;
   private String environment;
   private String status;
-
-  public int getServer_id() {
-    return server_id;
-  }
-
-  public void setServer_id(int server_id) {
-    this.server_id = server_id;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public String getHostname() {
-    return hostname;
-  }
-
-  public void setHostname(String hostname) {
-    this.hostname = hostname;
-  }
-
-  public String getPath() {
-    return path;
-  }
-
-  public void setPath(String path) {
-    this.path = path;
-  }
-
-  public String getType() {
-    return type;
-  }
-
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  public String getEnvironment() {
-    return environment;
-  }
-
-  public void setEnvironment(String environment) {
-    this.environment = environment;
-  }
-
-  public String getStatus() {
-    return status;
-  }
-
-  public void setStatus(String status) {
-    this.status = status;
-  }
 }

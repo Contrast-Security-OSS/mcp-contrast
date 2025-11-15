@@ -16,8 +16,10 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 
 import java.util.List;
+import lombok.Data;
 
 /** Class representing CVE vulnerability information. */
+@Data
 public class Cve {
   private String availabilityImpact;
   private String name;
@@ -31,100 +33,4 @@ public class Cve {
   private String integrityImpact;
   private double score;
   private List<String> references;
-
-  public String getAvailabilityImpact() {
-    return availabilityImpact;
-  }
-
-  public void setAvailabilityImpact(String availabilityImpact) {
-    this.availabilityImpact = availabilityImpact;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public String getUuid() {
-    return uuid;
-  }
-
-  public void setUuid(String uuid) {
-    this.uuid = uuid;
-  }
-
-  public String getDescription() {
-    return description;
-  }
-
-  public void setDescription(String description) {
-    this.description = description;
-  }
-
-  public String getStatus() {
-    return status;
-  }
-
-  public void setStatus(String status) {
-    this.status = status;
-  }
-
-  public String getAccessVector() {
-    return accessVector;
-  }
-
-  public void setAccessVector(String accessVector) {
-    this.accessVector = accessVector;
-  }
-
-  public String getAccessComplexity() {
-    return accessComplexity;
-  }
-
-  public void setAccessComplexity(String accessComplexity) {
-    this.accessComplexity = accessComplexity;
-  }
-
-  public String getAuthentication() {
-    return authentication;
-  }
-
-  public void setAuthentication(String authentication) {
-    this.authentication = authentication;
-  }
-
-  public String getConfidentialityImpact() {
-    return confidentialityImpact;
-  }
-
-  public void setConfidentialityImpact(String confidentialityImpact) {
-    this.confidentialityImpact = confidentialityImpact;
-  }
-
-  public String getIntegrityImpact() {
-    return integrityImpact;
-  }
-
-  public void setIntegrityImpact(String integrityImpact) {
-    this.integrityImpact = integrityImpact;
-  }
-
-  public double getScore() {
-    return score;
-  }
-
-  public void setScore(double score) {
-    this.score = score;
-  }
-
-  public List<String> getReferences() {
-    return references;
-  }
-
-  public void setReferences(List<String> references) {
-    this.references = references;
-  }
 }
