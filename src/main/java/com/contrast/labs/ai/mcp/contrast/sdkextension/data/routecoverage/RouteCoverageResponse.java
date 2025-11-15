@@ -16,51 +16,16 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage;
 
 import java.util.List;
+import lombok.Data;
 
 /**
  * Root class that represents the route coverage response. This class maps to the root level of the
  * JSON response.
  */
+@Data
 public class RouteCoverageResponse {
 
   private boolean success;
   private List<String> messages;
   private List<Route> routes;
-
-  // Getters and setters
-  public boolean isSuccess() {
-    return success;
-  }
-
-  public void setSuccess(boolean success) {
-    this.success = success;
-  }
-
-  public List<String> getMessages() {
-    return messages;
-  }
-
-  public void setMessages(List<String> messages) {
-    this.messages = messages;
-  }
-
-  public List<Route> getRoutes() {
-    return routes;
-  }
-
-  public void setRoutes(List<Route> routes) {
-    this.routes = routes;
-  }
-
-  @Override
-  public String toString() {
-    return "RouteCoverageResponse{"
-        + "success="
-        + success
-        + ", messages="
-        + messages
-        + ", routes="
-        + routes
-        + '}';
-  }
 }

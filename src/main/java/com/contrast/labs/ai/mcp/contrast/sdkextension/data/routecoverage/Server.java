@@ -16,8 +16,10 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage;
 
 import com.google.gson.annotations.SerializedName;
+import lombok.Data;
 
 /** Represents a server in the route coverage response. */
+@Data
 public class Server {
 
   private String name;
@@ -31,86 +33,4 @@ public class Server {
 
   @SerializedName("agent_version")
   private String agentVersion;
-
-  // Getters and setters
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
-
-  public String getHostname() {
-    return hostname;
-  }
-
-  public void setHostname(String hostname) {
-    this.hostname = hostname;
-  }
-
-  public String getServerpath() {
-    return serverpath;
-  }
-
-  public void setServerpath(String serverpath) {
-    this.serverpath = serverpath;
-  }
-
-  public String getEnvironment() {
-    return environment;
-  }
-
-  public void setEnvironment(String environment) {
-    this.environment = environment;
-  }
-
-  public boolean isEnabled() {
-    return enabled;
-  }
-
-  public void setEnabled(boolean enabled) {
-    this.enabled = enabled;
-  }
-
-  public long getServerId() {
-    return serverId;
-  }
-
-  public void setServerId(long serverId) {
-    this.serverId = serverId;
-  }
-
-  public String getAgentVersion() {
-    return agentVersion;
-  }
-
-  public void setAgentVersion(String agentVersion) {
-    this.agentVersion = agentVersion;
-  }
-
-  @Override
-  public String toString() {
-    return "Server{"
-        + "name='"
-        + name
-        + '\''
-        + ", hostname='"
-        + hostname
-        + '\''
-        + ", serverpath='"
-        + serverpath
-        + '\''
-        + ", environment='"
-        + environment
-        + '\''
-        + ", enabled="
-        + enabled
-        + ", serverId="
-        + serverId
-        + ", agentVersion='"
-        + agentVersion
-        + '\''
-        + '}';
-  }
 }

@@ -16,25 +16,11 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr;
 
 import java.util.List;
+import lombok.Data;
 
 /** Class representing the request information in an attack event. */
+@Data
 public class Request {
   private String sampleId;
   private List<Chapter> chapters;
-
-  public String getSampleId() {
-    return sampleId;
-  }
-
-  public void setSampleId(String sampleId) {
-    this.sampleId = sampleId;
-  }
-
-  public List<Chapter> getChapters() {
-    return chapters;
-  }
-
-  public void setChapters(List<Chapter> chapters) {
-    this.chapters = chapters;
-  }
 }

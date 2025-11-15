@@ -16,31 +16,17 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 
 import java.util.List;
+import lombok.Data;
 
 /** Base class for api calls for libraries. */
+@Data
 public class LibrariesExtended {
-
-  public String getAverageScoreLetter() {
-    return averageScoreLetter;
-  }
 
   private String averageScoreLetter = null;
 
-  public Integer getAverageScore() {
-    return averageScore;
-  }
-
   private Integer averageScore = null;
 
-  public Integer getAverageMonths() {
-    return averageMonths;
-  }
-
   private Integer averageMonths = null;
-
-  public List<LibraryExtended> getLibraries() {
-    return libraries;
-  }
 
   private List<LibraryExtended> libraries;
 }

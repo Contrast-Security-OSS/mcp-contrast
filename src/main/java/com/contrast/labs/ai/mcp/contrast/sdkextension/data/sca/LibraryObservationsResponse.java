@@ -16,46 +16,11 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca;
 
 import java.util.List;
+import lombok.Data;
 
+@Data
 public class LibraryObservationsResponse {
   private List<LibraryObservation> observations;
   private int total;
   private String id;
-
-  public List<LibraryObservation> getObservations() {
-    return observations;
-  }
-
-  public void setObservations(List<LibraryObservation> observations) {
-    this.observations = observations;
-  }
-
-  public int getTotal() {
-    return total;
-  }
-
-  public void setTotal(int total) {
-    this.total = total;
-  }
-
-  public String getId() {
-    return id;
-  }
-
-  public void setId(String id) {
-    this.id = id;
-  }
-
-  @Override
-  public String toString() {
-    return "LibraryObservationsResponse{"
-        + "observations="
-        + observations
-        + ", total="
-        + total
-        + ", id='"
-        + id
-        + '\''
-        + '}';
-  }
 }
