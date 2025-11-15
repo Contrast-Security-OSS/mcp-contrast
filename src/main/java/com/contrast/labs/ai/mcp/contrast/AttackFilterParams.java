@@ -19,8 +19,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksFilterBody
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Attack filter parameters with validation and SDK conversion. Hard failures (errors) stop
@@ -31,10 +30,9 @@ import org.slf4j.LoggerFactory;
  * @param messages Informational context for AI (smart defaults applied, filter interpretations)
  * @param errors Validation errors (hard failures - execution must stop)
  */
+@Slf4j
 public record AttackFilterParams(
     AttacksFilterBody filterBody, List<String> messages, List<String> errors) {
-  private static final Logger logger = LoggerFactory.getLogger(AttackFilterParams.class);
-
   // Valid quickFilter values for validation
   private static final Set<String> VALID_QUICK_FILTERS =
       Set.of("ALL", "EXPLOITED", "PROBED", "BLOCKED", "INEFFECTIVE");
@@ -68,9 +66,9 @@ public record AttackFilterParams(
       String normalizedFilter = quickFilter.trim().toUpperCase();
       if (VALID_QUICK_FILTERS.contains(normalizedFilter)) {
         filterBuilder.quickFilter(normalizedFilter);
-        logger.debug("QuickFilter set to: {}", normalizedFilter);
+        log.debug("QuickFilter set to: {}", normalizedFilter);
       } else {
-        logger.warn("Invalid quickFilter value: {}", quickFilter);
+        log.warn("Invalid quickFilter value: {}", quickFilter);
         errors.add(
             String.format(
                 "Invalid quickFilter '%s'. Valid: EXPLOITED, PROBED, BLOCKED, INEFFECTIVE, ALL."
@@ -81,13 +79,13 @@ public record AttackFilterParams(
       // No quickFilter provided - use default "ALL"
       filterBuilder.quickFilter("ALL");
       messages.add("No quickFilter applied - showing all attack types");
-      logger.debug("Using default quickFilter: ALL");
+      log.debug("Using default quickFilter: ALL");
     }
 
     // Parse keyword (no validation - pass through)
     if (keyword != null && !keyword.trim().isEmpty()) {
       filterBuilder.keyword(keyword.trim());
-      logger.debug("Keyword set to: {}", keyword);
+      log.debug("Keyword set to: {}", keyword);
     }
 
     // Parse includeSuppressed with smart default
@@ -96,10 +94,10 @@ public record AttackFilterParams(
       // Smart default: exclude suppressed attacks
       filterBuilder.includeSuppressed(false);
       usingDefaultSuppressed = true;
-      logger.debug("Using smart default for includeSuppressed: false");
+      log.debug("Using smart default for includeSuppressed: false");
     } else {
       filterBuilder.includeSuppressed(includeSuppressed);
-      logger.debug("includeSuppressed set to: {}", includeSuppressed);
+      log.debug("includeSuppressed set to: {}", includeSuppressed);
     }
 
     if (usingDefaultSuppressed) {
@@ -111,13 +109,13 @@ public record AttackFilterParams(
     // Parse includeBotBlockers (no default needed - builder handles it)
     if (includeBotBlockers != null) {
       filterBuilder.includeBotBlockers(includeBotBlockers);
-      logger.debug("includeBotBlockers set to: {}", includeBotBlockers);
+      log.debug("includeBotBlockers set to: {}", includeBotBlockers);
     }
 
     // Parse includeIpBlacklist (no default needed - builder handles it)
     if (includeIpBlacklist != null) {
       filterBuilder.includeIpBlacklist(includeIpBlacklist);
-      logger.debug("includeIpBlacklist set to: {}", includeIpBlacklist);
+      log.debug("includeIpBlacklist set to: {}", includeIpBlacklist);
     }
 
     // Parse sort (basic validation for format)
@@ -126,9 +124,9 @@ public record AttackFilterParams(
       // Basic validation: sort should be a field name, optionally prefixed with '-' for descending
       if (trimmedSort.matches("^-?[a-zA-Z][a-zA-Z0-9_]*$")) {
         // Sort looks valid - will be passed to SDK/API
-        logger.debug("Sort parameter: {}", trimmedSort);
+        log.debug("Sort parameter: {}", trimmedSort);
       } else {
-        logger.warn("Invalid sort format: {}", sort);
+        log.warn("Invalid sort format: {}", sort);
         errors.add(
             String.format(
                 "Invalid sort format '%s'. Must be a field name with optional '-' prefix for"

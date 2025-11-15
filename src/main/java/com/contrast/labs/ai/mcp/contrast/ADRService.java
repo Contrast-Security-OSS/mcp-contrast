@@ -25,23 +25,18 @@ import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class ADRService {
-
-  private static final Logger logger = LoggerFactory.getLogger(ADRService.class);
-
   private final PaginationHandler paginationHandler;
-
-  public ADRService(PaginationHandler paginationHandler) {
-    this.paginationHandler = paginationHandler;
-  }
 
   @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
   private String hostName;
@@ -72,36 +67,36 @@ public class ADRService {
   public ProtectData getProtectDataByAppID(@ToolParam(description = "Application ID") String appID)
       throws IOException {
     if (appID == null || appID.isEmpty()) {
-      logger.error("Cannot retrieve protection rules - application ID is null or empty");
+      log.error("Cannot retrieve protection rules - application ID is null or empty");
       throw new IllegalArgumentException("Application ID cannot be null or empty");
     }
 
-    logger.info("Starting retrieval of protection rules for application ID: {}", appID);
+    log.info("Starting retrieval of protection rules for application ID: {}", appID);
     long startTime = System.currentTimeMillis();
 
     try {
       // Initialize ContrastSDK
       var contrastSDK =
           SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-      logger.debug("ContrastSDK initialized successfully for application ID: {}", appID);
+      log.debug("ContrastSDK initialized successfully for application ID: {}", appID);
 
       // Initialize SDK extension
       var extendedSDK = new SDKExtension(contrastSDK);
-      logger.debug("SDKExtension initialized successfully for application ID: {}", appID);
+      log.debug("SDKExtension initialized successfully for application ID: {}", appID);
 
       // Get protect configuration
-      logger.debug("Retrieving protection configuration for application ID: {}", appID);
+      log.debug("Retrieving protection configuration for application ID: {}", appID);
       var protectData = extendedSDK.getProtectConfig(orgID, appID);
       long duration = System.currentTimeMillis() - startTime;
 
       if (protectData == null) {
-        logger.warn(
+        log.warn(
             "No protection data returned for application ID: {} (took {} ms)", appID, duration);
         return null;
       }
 
       int ruleCount = protectData.getRules() != null ? protectData.getRules().size() : 0;
-      logger.info(
+      log.info(
           "Successfully retrieved {} protection rules for application ID: {} (took {} ms)",
           ruleCount,
           appID,
@@ -109,7 +104,7 @@ public class ADRService {
       return protectData;
     } catch (Exception e) {
       long duration = System.currentTimeMillis() - startTime;
-      logger.error(
+      log.error(
           "Error retrieving protection rules for application ID: {} (after {} ms): {}",
           appID,
           duration,
@@ -155,7 +150,7 @@ public class ADRService {
       throws IOException {
     var pagination = PaginationParams.of(page, pageSize);
 
-    logger.info(
+    log.info(
         "Retrieving attacks from Contrast ADR (quickFilter: {}, keyword: {}, sort: {}, page: {},"
             + " pageSize: {})",
         quickFilter,
@@ -171,7 +166,7 @@ public class ADRService {
             quickFilter, keyword, includeSuppressed, includeBotBlockers, includeIpBlacklist, sort);
 
     if (!filters.isValid()) {
-      logger.warn("Invalid attack filter parameters: {}", String.join("; ", filters.errors()));
+      log.warn("Invalid attack filter parameters: {}", String.join("; ", filters.errors()));
       return PaginatedResponse.error(
           pagination.page(), pagination.pageSize(), String.join(" ", filters.errors()));
     }
@@ -179,10 +174,10 @@ public class ADRService {
     try {
       var contrastSDK =
           SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-      logger.debug("ContrastSDK initialized successfully for attacks retrieval");
+      log.debug("ContrastSDK initialized successfully for attacks retrieval");
 
       var extendedSDK = new SDKExtension(contrastSDK);
-      logger.debug("SDKExtension initialized successfully for attacks retrieval");
+      log.debug("SDKExtension initialized successfully for attacks retrieval");
 
       var attacksResponse =
           extendedSDK.getAttacks(
@@ -202,7 +197,7 @@ public class ADRService {
           paginationHandler.createPaginatedResponse(
               summaries, pagination, totalItems, filters.messages());
 
-      logger.info(
+      log.info(
           "Successfully retrieved {} attacks (page: {}, pageSize: {}, totalItems: {}, hasMorePages:"
               + " {}, took {} ms)",
           response.items().size(),
@@ -215,7 +210,7 @@ public class ADRService {
       return response;
     } catch (Exception e) {
       long duration = System.currentTimeMillis() - startTime;
-      logger.error("Error retrieving attacks (after {} ms): {}", duration, e.getMessage(), e);
+      log.error("Error retrieving attacks (after {} ms): {}", duration, e.getMessage(), e);
       throw e;
     }
   }

@@ -22,17 +22,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
 public class SastService {
-
-  private static final Logger logger = LoggerFactory.getLogger(SastService.class);
-
   @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
   private String hostName;
 
@@ -58,10 +55,10 @@ public class SastService {
       name = "list_Scan_Project",
       description = "takes a scan project name and returns the project details")
   public Project getScanProject(String projectName) throws IOException {
-    logger.info("Retrieving scan project details for project: {}", projectName);
+    log.info("Retrieving scan project details for project: {}", projectName);
     var contrastSDK =
         SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-    logger.debug("ContrastSDK initialized with host: {}", hostName);
+    log.debug("ContrastSDK initialized with host: {}", hostName);
 
     try {
       var project =
@@ -70,10 +67,10 @@ public class SastService {
               .projects()
               .findByName(projectName)
               .orElseThrow(() -> new IOException("Project not found"));
-      logger.info("Successfully found project: {}", projectName);
+      log.info("Successfully found project: {}", projectName);
       return project;
     } catch (IOException e) {
-      logger.error("Failed to find project {}: {}", projectName, e.getMessage());
+      log.error("Failed to find project {}: {}", projectName, e.getMessage());
       throw e;
     }
   }
@@ -82,10 +79,10 @@ public class SastService {
       name = "list_Scan_Results",
       description = "takes a scan project name and returns the latest results in Sarif format")
   public String getLatestScanResult(String projectName) throws IOException {
-    logger.info("Retrieving latest scan results in SARIF format for project: {}", projectName);
+    log.info("Retrieving latest scan results in SARIF format for project: {}", projectName);
     var contrastSDK =
         SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-    logger.debug("ContrastSDK initialized with host: {}", hostName);
+    log.debug("ContrastSDK initialized with host: {}", hostName);
 
     try {
       var project =
@@ -94,22 +91,22 @@ public class SastService {
               .projects()
               .findByName(projectName)
               .orElseThrow(() -> new IOException("Project not found"));
-      logger.debug("Found project with id: {}", project.id());
+      log.debug("Found project with id: {}", project.id());
 
       var scans = contrastSDK.scan(orgID).scans(project.id());
-      logger.debug("Retrieved scans for project, last scan id: {}", project.lastScanId());
+      log.debug("Retrieved scans for project, last scan id: {}", project.lastScanId());
 
       var scan = scans.get(project.lastScanId());
-      logger.debug("Retrieved scan with id: {}", project.lastScanId());
+      log.debug("Retrieved scan with id: {}", project.lastScanId());
 
       try (InputStream sarifStream = scan.sarif();
           BufferedReader reader = new BufferedReader(new InputStreamReader(sarifStream))) {
         var result = reader.lines().collect(Collectors.joining(System.lineSeparator()));
-        logger.info("Successfully retrieved SARIF data for project: {}", projectName);
+        log.info("Successfully retrieved SARIF data for project: {}", projectName);
         return result;
       }
     } catch (IOException e) {
-      logger.error("Error retrieving SARIF data for project {}: {}", projectName, e.getMessage());
+      log.error("Error retrieving SARIF data for project {}: {}", projectName, e.getMessage());
       throw e;
     }
   }

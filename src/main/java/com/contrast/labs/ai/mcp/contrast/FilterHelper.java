@@ -24,18 +24,15 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Utility class for parsing filter parameters in MCP tools. Provides reusable methods for parsing
  * comma-separated lists, dates, and other common filter formats. Returns validation messages for AI
  * feedback when input is invalid.
  */
+@Slf4j
 public class FilterHelper {
-
-  private static final Logger logger = LoggerFactory.getLogger(FilterHelper.class);
-
   /** Result of parsing with optional validation message for AI feedback */
   public static class ParseResult<T> {
     private final T value;
@@ -120,7 +117,7 @@ public class FilterHelper {
                 "Invalid %s date '%s'. Expected ISO format (YYYY-MM-DD) like '2025-01-15' or epoch"
                     + " timestamp like '1705276800000'.",
                 paramName, dateStr);
-        logger.warn(message);
+        log.warn(message);
         return new ParseResult<>(null, message);
       }
     }
