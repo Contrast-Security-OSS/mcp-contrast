@@ -19,11 +19,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
+import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
+import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import java.io.IOException;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -36,6 +37,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
 /**
  * Integration test for SCAService that validates library and CVE data from real TeamServer.
@@ -54,32 +56,17 @@ import org.springframework.boot.test.context.SpringBootTest;
  */
 @Slf4j
 @SpringBootTest
+@Import(IntegrationTestConfig.class)
 @EnabledIfEnvironmentVariable(named = "CONTRAST_HOST_NAME", matches = ".+")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class SCAServiceIntegrationTest {
 
   @Autowired private SCAService scaService;
 
-  @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
-  private String hostName;
-
-  @Value("${contrast.api-key:${CONTRAST_API_KEY:}}")
-  private String apiKey;
-
-  @Value("${contrast.service-key:${CONTRAST_SERVICE_KEY:}}")
-  private String serviceKey;
-
-  @Value("${contrast.username:${CONTRAST_USERNAME:}}")
-  private String userName;
+  @Autowired private SDKExtension sdkExtension;
 
   @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
   private String orgID;
-
-  @Value("${http.proxy.host:${http_proxy_host:}}")
-  private String httpProxyHost;
-
-  @Value("${http.proxy.port:${http_proxy_port:}}")
-  private String httpProxyPort;
 
   // Discovered test data - populated in @BeforeAll
   private static TestData testData;
@@ -96,6 +83,7 @@ public class SCAServiceIntegrationTest {
     String appName;
     boolean hasLibraries;
     int libraryCount;
+    List<LibraryExtended> libraries;
     String vulnerableCveId; // CVE for testing CVE lookup
     boolean hasVulnerableLibrary;
 
@@ -114,124 +102,49 @@ public class SCAServiceIntegrationTest {
         "\n╔════════════════════════════════════════════════════════════════════════════════╗");
     log.info("║   SCA Service Integration Test - Discovering Test Data                        ║");
     log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
-    log.info("Starting test data discovery...");
+    log.info("Starting test data discovery (using shared SDK)...");
 
     long startTime = System.currentTimeMillis();
 
     try {
-      var sdk =
-          SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-      var sdkExtension = new SDKExtension(sdk);
+      // Use shared discovery helper with injected SDK
+      var appWithLibrariesOptional =
+          TestDataDiscoveryHelper.findApplicationWithLibraries(orgID, sdkExtension);
 
-      // Get all applications
-      log.info("\n🔍 Step 1: Fetching all applications...");
-      var appsResponse = sdkExtension.getApplications(orgID);
-      var applications = appsResponse.getApplications();
-      log.info("   Found {} application(s) in organization", applications.size());
-
-      if (applications.isEmpty()) {
-        log.info("\n⚠️  NO APPLICATIONS FOUND");
-        log.info("   The integration tests require at least one application with:");
-        log.info("   1. Third-party libraries");
-        log.info("   2. Optionally: Libraries with known CVEs");
+      if (appWithLibrariesOptional.isEmpty()) {
+        String errorMsg = buildTestDataErrorMessage(0);
+        log.error(errorMsg);
+        fail(errorMsg);
         return;
       }
 
-      // Search for application with libraries
-      log.info("\n🔍 Step 2: Searching for application with libraries...");
-      TestData bestCandidate = null;
-      TestData fallbackCandidate = null;
-      int appsChecked = 0;
-      int maxAppsToCheck = Math.min(applications.size(), 50);
+      var appWithLibraries = appWithLibrariesOptional.get();
+      testData = new TestData();
+      testData.appId = appWithLibraries.getApplication().getAppId();
+      testData.appName = appWithLibraries.getApplication().getName();
+      testData.hasLibraries = true;
+      testData.libraryCount = appWithLibraries.getLibraries().size();
+      testData.libraries = appWithLibraries.getLibraries();
+      testData.hasVulnerableLibrary = appWithLibraries.hasVulnerableLibrary();
+      testData.vulnerableCveId = appWithLibraries.getVulnerableCveId();
 
-      for (Application app : applications) {
-        if (appsChecked >= maxAppsToCheck) {
-          log.info("   Reached max apps to check ({}), stopping search", maxAppsToCheck);
-          break;
-        }
-        appsChecked++;
+      discoveryDurationMs = System.currentTimeMillis() - startTime;
 
-        log.info(
-            "   Checking app {}/{}: {} (ID: {})",
-            appsChecked,
-            maxAppsToCheck,
-            app.getName(),
-            app.getAppId());
+      log.info(
+          "\n╔════════════════════════════════════════════════════════════════════════════════╗");
+      log.info(
+          "║   Test Data Discovery Complete                                                 ║");
+      log.info(
+          "╚════════════════════════════════════════════════════════════════════════════════╝");
+      log.info("{}", testData);
+      log.info("✓ Test data discovery completed in {}ms", discoveryDurationMs);
+      log.info("");
 
-        try {
-          // Check for libraries
-          var libraries = SDKHelper.getLibsForID(app.getAppId(), orgID, sdkExtension);
-          if (libraries != null && !libraries.isEmpty()) {
-            log.info("      ✓ Has {} library/libraries", libraries.size());
-
-            var candidate = new TestData();
-            candidate.appId = app.getAppId();
-            candidate.appName = app.getName();
-            candidate.hasLibraries = true;
-            candidate.libraryCount = libraries.size();
-
-            // Check if any library has vulnerabilities (CVEs)
-            for (LibraryExtended lib : libraries) {
-              if (lib.getVulnerabilities() != null && !lib.getVulnerabilities().isEmpty()) {
-                candidate.hasVulnerableLibrary = true;
-                // Get first CVE ID for testing
-                var firstVuln = lib.getVulnerabilities().get(0);
-                if (firstVuln.getName() != null && firstVuln.getName().startsWith("CVE-")) {
-                  candidate.vulnerableCveId = firstVuln.getName();
-                  log.info(
-                      "      ✓ Has vulnerable library with CVE: {}", candidate.vulnerableCveId);
-                  break;
-                }
-              }
-            }
-
-            // Perfect candidate: has libraries AND vulnerable libraries with CVEs
-            if (candidate.hasVulnerableLibrary && candidate.vulnerableCveId != null) {
-              log.info("\n   ✅ Found PERFECT application with libraries AND CVEs!");
-              bestCandidate = candidate;
-              break;
-            }
-
-            // Fallback: has libraries but no CVEs
-            if (fallbackCandidate == null) {
-              log.info("      ℹ Saving as fallback (has libraries but no CVEs found)");
-              fallbackCandidate = candidate;
-            }
-          } else {
-            log.info("      ℹ No libraries found");
-          }
-        } catch (Exception e) {
-          log.info("      ℹ Error checking libraries: {}", e.getMessage());
-        }
-      }
-
-      // Use best candidate if found, otherwise fallback
-      var candidate = bestCandidate != null ? bestCandidate : fallbackCandidate;
-
-      if (candidate != null) {
-        testData = candidate;
-        discoveryDurationMs = System.currentTimeMillis() - startTime;
-
-        log.info(
-            "\n╔════════════════════════════════════════════════════════════════════════════════╗");
-        log.info(
-            "║   Test Data Discovery Complete                                                 ║");
-        log.info(
-            "╚════════════════════════════════════════════════════════════════════════════════╝");
-        log.info("{}", testData);
-        log.info("✓ Test data discovery completed in {}ms", discoveryDurationMs);
-        log.info("");
-
-        // Warn if no CVEs found
-        if (!candidate.hasVulnerableLibrary) {
-          log.error("\n⚠️  WARNING: Application has libraries but NO VULNERABLE LIBRARIES");
-          log.error("   CVE-related tests will be skipped.");
-          log.error("   To enable full testing, use an application with vulnerable dependencies.");
-        }
-      } else {
-        String errorMsg = buildTestDataErrorMessage(appsChecked);
-        log.error(errorMsg);
-        fail(errorMsg);
+      // Warn if no CVEs found
+      if (!testData.hasVulnerableLibrary) {
+        log.error("\n⚠️  WARNING: Application has libraries but NO VULNERABLE LIBRARIES");
+        log.error("   CVE-related tests will be skipped.");
+        log.error("   To enable full testing, use an application with vulnerable dependencies.");
       }
 
     } catch (Exception e) {

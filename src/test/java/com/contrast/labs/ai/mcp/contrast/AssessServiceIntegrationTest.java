@@ -18,9 +18,10 @@ package com.contrast.labs.ai.mcp.contrast;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
@@ -34,6 +35,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
 /**
  * Integration test for AssessService that validates vulnerability data from real TeamServer.
@@ -51,32 +53,17 @@ import org.springframework.boot.test.context.SpringBootTest;
  */
 @Slf4j
 @SpringBootTest
+@Import(IntegrationTestConfig.class)
 @EnabledIfEnvironmentVariable(named = "CONTRAST_HOST_NAME", matches = ".+")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class AssessServiceIntegrationTest {
 
   @Autowired private AssessService assessService;
 
-  @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
-  private String hostName;
-
-  @Value("${contrast.api-key:${CONTRAST_API_KEY:}}")
-  private String apiKey;
-
-  @Value("${contrast.service-key:${CONTRAST_SERVICE_KEY:}}")
-  private String serviceKey;
-
-  @Value("${contrast.username:${CONTRAST_USERNAME:}}")
-  private String userName;
+  @Autowired private SDKExtension sdkExtension;
 
   @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
   private String orgID;
-
-  @Value("${http.proxy.host:${http_proxy_host:}}")
-  private String httpProxyHost;
-
-  @Value("${http.proxy.port:${http_proxy_port:}}")
-  private String httpProxyPort;
 
   // Discovered test data - populated in @BeforeAll
   private static TestData testData;
@@ -104,30 +91,22 @@ public class AssessServiceIntegrationTest {
         "\n╔════════════════════════════════════════════════════════════════════════════════╗");
     log.info("║   Assess Service Integration Test - Discovering Test Data                     ║");
     log.info("╚════════════════════════════════════════════════════════════════════════════════╝");
-    log.info("Starting test data discovery...");
+    log.info("Starting test data discovery (using shared SDK)...");
 
     long startTime = System.currentTimeMillis();
 
     try {
-      var sdk =
-          SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-      var sdkExtension = new SDKExtension(sdk);
+      // Use shared discovery helper with injected SDK
+      var appOptional = TestDataDiscoveryHelper.findFirstApplication(orgID, sdkExtension);
 
-      // Get all applications
-      log.info("\n🔍 Fetching applications...");
-      var appsResponse = sdkExtension.getApplications(orgID);
-      var applications = appsResponse.getApplications();
-      log.info("   Found {} application(s) in organization", applications.size());
-
-      if (applications.isEmpty()) {
+      if (appOptional.isEmpty()) {
         String errorMsg = buildTestDataErrorMessage(0);
         log.error(errorMsg);
         fail(errorMsg);
         return;
       }
 
-      // Use first application (matches current test behavior)
-      var app = applications.get(0);
+      var app = appOptional.get();
       testData = new TestData();
       testData.appId = app.getAppId();
       testData.appName = app.getName();
