@@ -30,6 +30,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 @Slf4j
@@ -65,7 +66,7 @@ public class ADRService {
               + " list_applications_with_name first to get the application ID from a name")
   public ProtectData getProtectDataByAppID(@ToolParam(description = "Application ID") String appID)
       throws IOException {
-    if (appID == null || appID.isEmpty()) {
+    if (!StringUtils.hasText(appID)) {
       log.error("Cannot retrieve protection rules - application ID is null or empty");
       throw new IllegalArgumentException("Application ID cannot be null or empty");
     }

@@ -1,5 +1,7 @@
 package com.contrast.labs.ai.mcp.contrast.hints;
 
+import org.springframework.util.StringUtils;
+
 /**
  * Generator for vulnerability remediation hints. This class uses the RuleHints enum to generate
  * appropriate hints based on rule types.
@@ -18,7 +20,7 @@ public class HintGenerator {
    * @return A formatted string containing all applicable hints for the rule
    */
   public static String generateVulnerabilityFixHint(String rule) {
-    if (rule == null || rule.isEmpty()) {
+    if (!StringUtils.hasText(rule)) {
       return DEFAULT_HINT;
     }
 
