@@ -734,3 +734,50 @@ This workflow is for ending the current session while preserving all state so wo
 **For child beads:** When closing a child bead, complete time tracking using the **"Completing Time Tracking"** process in the Time Tracking section. This captures the time spent on that specific subtask.
 
 **For parent beads:** Time tracking is completed when the PR is created, not when the bead is closed. Beads typically remain `in_progress` (with `in-review` label) until the PR review is complete and merged. Only close beads when explicitly instructed by the user.
+
+### After Completing a Bead - Suggesting Next Steps
+
+**When a bead is completed (closed or moved to review), proactively suggest what to work on next:**
+
+**1. Check for parent bead context:**
+   - If the completed bead is a child bead, check the parent bead using `bd show <parent-bead-id>`
+   - Look in the parent bead's `notes` field for recommended execution order or priority guidance
+   - Example: "Recommended execution order for child beads: 1. mcp-981, 2. mcp-dw1, 3. mcp-j1i..."
+
+**2. Identify next bead options:**
+   - Look at other child beads of the same parent (siblings)
+   - Check for beads that are `status=open` and have no blocking dependencies
+   - Use `bd ready` to find beads ready to work on
+   - Consider priority levels (Priority 1 > Priority 2 > Priority 3)
+
+**3. Present recommendations to the user:**
+   - Clearly state the recommended next bead with its ID and title
+   - Explain WHY it's recommended (e.g., "highest priority", "easy config with big impact", "follows logical sequence")
+   - Provide a brief summary of what the bead involves
+   - Show alternative beads if there are multiple good options
+   - Ask the user if they want to work on the recommended bead or choose another
+
+**Example response format:**
+```
+Based on the recommended execution order in the parent bead, the next task is:
+
+## **mcp-dw1 - Enable parallel test execution** (Priority 2)
+
+**Description:** Configure Maven Failsafe plugin to execute integration test classes in parallel.
+
+**Why this next:**
+- "Easy config, big impact" per parent bead notes
+- Expected 2-4x speedup depending on CPU cores
+- Quick configuration change
+
+**Other available beads** (can work in any order):
+- mcp-j1i - Add performance instrumentation (Priority 3)
+- mcp-xni - Extract shared utilities (Priority 2)
+
+Would you like to work on **mcp-dw1** next, or would you prefer a different one?
+```
+
+**When there are no more child beads:**
+- If all child beads are closed and parent is complete, suggest moving parent to review
+- If this was a standalone bead, suggest using `bd ready` to find next available work
+- Check for any blocked beads that might now be unblocked
