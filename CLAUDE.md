@@ -78,11 +78,48 @@ Required environment variables/arguments:
 
 ### Coding Standards
 
-- **Prefer `var`** for local variables when the type is obvious from the right-hand side
-- **Use `isEmpty()`** instead of `size() > 0` or `size() == 0` for collection checks
-- **No wildcard imports** - All imports must be explicit. Do not use `import package.*` syntax
-- **Simplified mock() syntax** - Use `mock()` without class parameter (Mockito 5.x+). When using `var`, specify the type explicitly: `ClassName mock = mock();` instead of `var mock = mock(ClassName.class);`. For explicit types: `ClassName mock = mock();` instead of `ClassName mock = mock(ClassName.class);`
-- **Use AssertJ for test assertions** - Prefer AssertJ's fluent API over JUnit assertions for more readable and expressive tests. Use `assertThat(actual).isEqualTo(expected)` instead of `assertEquals(expected, actual)`, and `assertThat(condition).isTrue()` instead of `assertTrue(condition)`
+**CLAUDE.md Principle**: Maximum conciseness to minimize token usage. Violate grammar rules for brevity. No verbose examples.
+
+**Java Style:**
+- `var` for obvious types: `var list = new ArrayList<String>()`
+- No wildcard imports - explicit only
+- Import order: static first, blank line, third-party alphabetically (Spotless handles)
+- `.toList()` not `.collect(Collectors.toList())` (Java 16+)
+- Guard clauses over nested ifs
+- No fully-qualified class names - use imports
+- `isEmpty()` not `size() > 0` for collections
+
+**String Validation:**
+- `StringUtils.hasText()` or `isNotBlank()` over manual null/empty checks
+- `isBlank()` better than `isEmpty()` (whitespace handling)
+
+**Lombok:**
+- `@RequiredArgsConstructor` on `@Service` classes with `final` fields
+- `@Slf4j` for logging (not manual `Logger` declaration)
+- `@Value` + `@Builder` for immutable DTOs
+- `@Data` for mutable POJOs needing getters/setters/toString/equals/hashCode (e.g., data classes, SDK extensions)
+- `@Getter`/`@Setter` alone when only accessors needed (no equals/hashCode/toString)
+
+**Logging:**
+- `@Slf4j` annotation for logger injection
+- SLF4J fluent API: `log.atInfo().setMessage("msg").addKeyValue("key", val).log()`
+- Markers for categorization: `log.atInfo().addMarker(MCP_CONTRAST).log()`
+- Levels: DEBUG (diagnostics), INFO (business events), WARN (handled exceptions), ERROR (critical failures)
+
+**Null Handling:**
+- `Optional<T>` for methods that may not return value
+- Never return null collections - use `Collections.emptyList()` or empty collection
+
+**Testing:**
+- Simplified `mock()`: `ClassName mock = mock()` not `mock(ClassName.class)`
+- AssertJ fluent: `assertThat(x).isEqualTo(y)` not `assertEquals(y, x)`
+- Naming: `methodName_should_expectedBehavior_when_condition()`
+- Example: `getVulnerability_should_return_data_when_valid_id()`
+
+**Javadoc:**
+- Minimal - code should self-document
+- Use only for: public APIs, complex business logic, non-obvious behavior
+- Never state obvious from method signature
 
 ### Security Considerations
 
