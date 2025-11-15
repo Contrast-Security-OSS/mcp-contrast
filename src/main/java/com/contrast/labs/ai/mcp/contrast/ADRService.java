@@ -24,7 +24,6 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.Attack;
 import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -187,8 +186,7 @@ public class ADRService {
       List<Attack> safeAttacks =
           (attacksResponse.getAttacks() != null) ? attacksResponse.getAttacks() : List.of();
 
-      var summaries =
-          safeAttacks.stream().map(AttackSummary::fromAttack).collect(Collectors.toList());
+      var summaries = safeAttacks.stream().map(AttackSummary::fromAttack).toList();
 
       // Get totalItems from API response if available
       var totalItems = attacksResponse.getTotalCount();

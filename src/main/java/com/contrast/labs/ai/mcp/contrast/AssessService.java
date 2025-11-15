@@ -44,7 +44,6 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -213,10 +212,7 @@ public class AssessService {
           traces.getTraces() != null ? traces.getTraces().size() : 0,
           appID);
 
-      var vulns =
-          traces.getTraces().stream()
-              .map(vulnerabilityMapper::toVulnLight)
-              .collect(Collectors.toList());
+      var vulns = traces.getTraces().stream().map(vulnerabilityMapper::toVulnLight).toList();
 
       log.info(
           "Successfully retrieved {} vulnerabilities for application ID: {}", vulns.size(), appID);
@@ -303,9 +299,7 @@ public class AssessService {
                   TraceFilterForm.TraceExpandValue.APPLICATION));
 
       var vulns =
-          tracesResponse.getTraces().stream()
-              .map(vulnerabilityMapper::toVulnLight)
-              .collect(Collectors.toList());
+          tracesResponse.getTraces().stream().map(vulnerabilityMapper::toVulnLight).toList();
       return vulns;
     } catch (Exception e) {
       log.error("Error listing vulnerabilities for application: {}", appID, e);
@@ -412,8 +406,7 @@ public class AssessService {
     var allApps = getAllApplications();
     log.debug("Retrieved {} total applications, filtering by tag", allApps.size());
 
-    var filteredApps =
-        allApps.stream().filter(app -> app.tags().contains(tag)).collect(Collectors.toList());
+    var filteredApps = allApps.stream().filter(app -> app.tags().contains(tag)).toList();
 
     log.info("Found {} applications with tag '{}'", filteredApps.size(), tag);
     return filteredApps;
@@ -448,7 +441,7 @@ public class AssessService {
                                         && m.name().equalsIgnoreCase(metadata_name)
                                         && m.value() != null
                                         && m.value().equalsIgnoreCase(metadata_value)))
-            .collect(Collectors.toList());
+            .toList();
 
     log.info(
         "Found {} applications with metadata - Name: {}, Value: {}",
@@ -479,7 +472,7 @@ public class AssessService {
                                     m != null
                                         && m.name() != null
                                         && m.name().equalsIgnoreCase(metadata_name)))
-            .collect(Collectors.toList());
+            .toList();
 
     log.info("Found {} applications with metadata - Name: {}", filteredApps.size(), metadata_name);
     return filteredApps;
@@ -660,9 +653,7 @@ public class AssessService {
         // Organization API worked (empty list with count=0 is valid - means no vulnerabilities or
         // no EAC access)
         var vulnerabilities =
-            traces.getTraces().stream()
-                .map(vulnerabilityMapper::toVulnLight)
-                .collect(Collectors.toList());
+            traces.getTraces().stream().map(vulnerabilityMapper::toVulnLight).toList();
 
         // Get totalItems if available from SDK response (don't make extra query)
         var totalItems = (traces.getCount() != null) ? traces.getCount() : null;
@@ -746,7 +737,7 @@ public class AssessService {
               .filter(name -> name != null && !name.trim().isEmpty())
               .map(String::trim)
               .sorted()
-              .collect(Collectors.toList());
+              .toList();
 
       log.info("Retrieved {} vulnerability types", ruleNames.size());
       return ruleNames;
