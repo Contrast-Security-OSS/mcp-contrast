@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 @Slf4j
@@ -72,9 +73,7 @@ public class RouteCoverageService {
     log.info("Retrieving route coverage for application ID: {}", appId);
 
     // Validate parameters - treat empty strings as null
-    if (sessionMetadataName != null
-        && !sessionMetadataName.isEmpty()
-        && (sessionMetadataValue == null || sessionMetadataValue.isEmpty())) {
+    if (StringUtils.hasText(sessionMetadataName) && !StringUtils.hasText(sessionMetadataValue)) {
       var errorMsg = "sessionMetadataValue is required when sessionMetadataName is provided";
       log.error(errorMsg);
       throw new IllegalArgumentException(errorMsg);
@@ -107,7 +106,7 @@ public class RouteCoverageService {
       requestExtended.setSessionId(latest.getAgentSession().getAgentSessionId());
       log.debug("Using latest session ID: {}", latest.getAgentSession().getAgentSessionId());
 
-    } else if (sessionMetadataName != null && !sessionMetadataName.isEmpty()) {
+    } else if (StringUtils.hasText(sessionMetadataName)) {
       // Filter by session metadata
       log.debug("Filtering by session metadata: {}={}", sessionMetadataName, sessionMetadataValue);
       requestExtended = new RouteCoverageBySessionIDAndMetadataRequestExtended();
