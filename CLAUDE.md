@@ -160,6 +160,35 @@ This project uses Beads (bd) for issue tracking. See the MCP resource `beads://q
 - `in_progress` → Actively working on task (SET THIS WHEN YOU START!)
 - `closed` → Task complete, tested, and merged
 
+### AI Model Labeling
+
+**When a bead is worked on by an AI system, label it to track which model performed the work:**
+
+**Codex CLI (autonomous agent):**
+- When user mentions codex is working on a bead, add labels:
+  - `codex-cli` - Identifies work done by autonomous codex agent
+  - `model-gpt-5-codex` - Identifies the specific model version
+
+**Claude Code (interactive agent):**
+- Beads worked on interactively don't require special labels
+- User can manually add model labels if desired for tracking
+
+**Apply labels when:**
+- User mentions codex is working on or has completed a bead
+- Before closing beads that codex worked on
+- When reviewing autonomous agent work
+
+**Example:**
+```bash
+bd label add mcp-xyz codex-cli
+bd label add mcp-xyz model-gpt-5-codex
+```
+
+This enables analysis of:
+- Which types of tasks work well for autonomous agents vs interactive
+- Effectiveness comparison between different AI models
+- Cost optimization for AI-assisted development
+
 ### Managing Bead Dependencies
 
 **Command syntax:** `bd dep add <dependent-task> <prerequisite-task>`
