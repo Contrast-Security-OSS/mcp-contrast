@@ -16,34 +16,12 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata;
 
 import java.util.List;
+import lombok.Data;
 
 /** Represents the complete response for session metadata */
+@Data
 public class SessionMetadataResponse {
   private boolean success;
   private List<String> messages;
   private AgentSession agentSession;
-
-  public boolean isSuccess() {
-    return success;
-  }
-
-  public void setSuccess(boolean success) {
-    this.success = success;
-  }
-
-  public List<String> getMessages() {
-    return messages;
-  }
-
-  public void setMessages(List<String> messages) {
-    this.messages = messages;
-  }
-
-  public AgentSession getAgentSession() {
-    return agentSession;
-  }
-
-  public void setAgentSession(AgentSession agentSession) {
-    this.agentSession = agentSession;
-  }
 }

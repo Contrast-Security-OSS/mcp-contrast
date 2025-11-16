@@ -23,19 +23,16 @@ import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 
 /**
  * Utility class for parsing filter parameters in MCP tools. Provides reusable methods for parsing
  * comma-separated lists, dates, and other common filter formats. Returns validation messages for AI
  * feedback when input is invalid.
  */
+@Slf4j
 public class FilterHelper {
-
-  private static final Logger logger = LoggerFactory.getLogger(FilterHelper.class);
-
   /** Result of parsing with optional validation message for AI feedback */
   public static class ParseResult<T> {
     private final T value;
@@ -59,7 +56,7 @@ public class FilterHelper {
     }
 
     public boolean hasValidationMessage() {
-      return validationMessage != null && !validationMessage.isEmpty();
+      return StringUtils.hasText(validationMessage);
     }
   }
 
@@ -75,14 +72,11 @@ public class FilterHelper {
    * @example parseCommaSeparated(" ") → null
    */
   public static List<String> parseCommaSeparated(String input) {
-    if (input == null || input.trim().isEmpty()) {
+    if (!StringUtils.hasText(input)) {
       return null;
     }
     List<String> result =
-        Arrays.stream(input.split(","))
-            .map(String::trim)
-            .filter(s -> !s.isEmpty())
-            .collect(Collectors.toList());
+        Arrays.stream(input.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
 
     return result.isEmpty() ? null : result;
   }
@@ -101,7 +95,7 @@ public class FilterHelper {
    * @example parseDate(null, "lastSeenAfter") → ParseResult(null, null)
    */
   public static ParseResult<Date> parseDateWithValidation(String dateStr, String paramName) {
-    if (dateStr == null || dateStr.trim().isEmpty()) {
+    if (!StringUtils.hasText(dateStr)) {
       return new ParseResult<>(null);
     }
     try {
@@ -120,7 +114,7 @@ public class FilterHelper {
                 "Invalid %s date '%s'. Expected ISO format (YYYY-MM-DD) like '2025-01-15' or epoch"
                     + " timestamp like '1705276800000'.",
                 paramName, dateStr);
-        logger.warn(message);
+        log.warn(message);
         return new ParseResult<>(null, message);
       }
     }
@@ -147,7 +141,7 @@ public class FilterHelper {
     if (parsed == null) {
       return null;
     }
-    return parsed.stream().map(String::toUpperCase).collect(Collectors.toList());
+    return parsed.stream().map(String::toUpperCase).toList();
   }
 
   /**
@@ -163,7 +157,7 @@ public class FilterHelper {
     if (parsed == null) {
       return null;
     }
-    return parsed.stream().map(String::toLowerCase).collect(Collectors.toList());
+    return parsed.stream().map(String::toLowerCase).toList();
   }
 
   /**

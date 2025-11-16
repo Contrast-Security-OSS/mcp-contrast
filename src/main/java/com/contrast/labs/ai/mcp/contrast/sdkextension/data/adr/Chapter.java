@@ -16,8 +16,10 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr;
 
 import java.util.Map;
+import lombok.Data;
 
 /** Class representing a chapter in the story of an attack event. */
+@Data
 public class Chapter {
   private String type;
   private String introText;
@@ -27,68 +29,4 @@ public class Chapter {
   private String bodyFormat;
   private Map<String, Object> bodyFormatVariables;
   private String vector;
-
-  public String getType() {
-    return type;
-  }
-
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  public String getIntroText() {
-    return introText;
-  }
-
-  public void setIntroText(String introText) {
-    this.introText = introText;
-  }
-
-  public String getIntroTextFormat() {
-    return introTextFormat;
-  }
-
-  public void setIntroTextFormat(String introTextFormat) {
-    this.introTextFormat = introTextFormat;
-  }
-
-  public Map<String, Object> getIntroTextVariables() {
-    return introTextVariables;
-  }
-
-  public void setIntroTextVariables(Map<String, Object> introTextVariables) {
-    this.introTextVariables = introTextVariables;
-  }
-
-  public String getBody() {
-    return body;
-  }
-
-  public void setBody(String body) {
-    this.body = body;
-  }
-
-  public String getBodyFormat() {
-    return bodyFormat;
-  }
-
-  public void setBodyFormat(String bodyFormat) {
-    this.bodyFormat = bodyFormat;
-  }
-
-  public Map<String, Object> getBodyFormatVariables() {
-    return bodyFormatVariables;
-  }
-
-  public void setBodyFormatVariables(Map<String, Object> bodyFormatVariables) {
-    this.bodyFormatVariables = bodyFormatVariables;
-  }
-
-  public String getVector() {
-    return vector;
-  }
-
-  public void setVector(String vector) {
-    this.vector = vector;
-  }
 }

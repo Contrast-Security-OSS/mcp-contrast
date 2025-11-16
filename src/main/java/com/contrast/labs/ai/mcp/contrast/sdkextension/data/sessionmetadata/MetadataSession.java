@@ -15,24 +15,11 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata;
 
+import lombok.Data;
+
 /** Represents a metadata session value with its associated field */
+@Data
 public class MetadataSession {
   private String value;
   private MetadataField metadataField;
-
-  public String getValue() {
-    return value;
-  }
-
-  public void setValue(String value) {
-    this.value = value;
-  }
-
-  public MetadataField getMetadataField() {
-    return metadataField;
-  }
-
-  public void setMetadataField(MetadataField metadataField) {
-    this.metadataField = metadataField;
-  }
 }

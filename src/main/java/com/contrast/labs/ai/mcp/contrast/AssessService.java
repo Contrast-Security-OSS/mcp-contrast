@@ -44,27 +44,19 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
+@Slf4j
+@RequiredArgsConstructor
 public class AssessService {
-
-  private static final Logger logger = LoggerFactory.getLogger(AssessService.class);
-
   private final VulnerabilityMapper vulnerabilityMapper;
   private final PaginationHandler paginationHandler;
-
-  public AssessService(
-      VulnerabilityMapper vulnerabilityMapper, PaginationHandler paginationHandler) {
-    this.vulnerabilityMapper = vulnerabilityMapper;
-    this.paginationHandler = paginationHandler;
-  }
 
   @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
   private String hostName;
@@ -101,11 +93,11 @@ public class AssessService {
       @ToolParam(description = "Vulnerability ID (UUID format)") String vulnID,
       @ToolParam(description = "Application ID") String appID)
       throws IOException {
-    logger.info(
+    log.info(
         "Retrieving vulnerability details for vulnID: {} in application ID: {}", vulnID, appID);
     var contrastSDK =
         SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-    logger.debug("ContrastSDK initialized with host: {}", hostName);
+    log.debug("ContrastSDK initialized with host: {}", hostName);
 
     try {
       var trace =
@@ -113,7 +105,7 @@ public class AssessService {
               .filter(t -> t.getUuid().equalsIgnoreCase(vulnID))
               .findFirst()
               .orElseThrow();
-      logger.debug("Found trace with title: {} and rule: {}", trace.getTitle(), trace.getRule());
+      log.debug("Found trace with title: {} and rule: {}", trace.getTitle(), trace.getRule());
 
       var recommendationResponse = contrastSDK.getRecommendation(orgID, vulnID);
       var requestResponse = contrastSDK.getHttpRequest(orgID, vulnID);
@@ -129,7 +121,7 @@ public class AssessService {
         var sTrace = triggerEvent.get().getEvent().getStacktraces();
         if (sTrace != null) {
           stackTraces.addAll(sTrace.stream().map(Stacktrace::getDescription).toList());
-          logger.debug("Found {} stack traces for vulnerability", stackTraces.size());
+          log.debug("Found {} stack traces for vulnerability", stackTraces.size());
         }
       }
       var libs = SDKHelper.getLibsForID(appID, orgID, new SDKExtension(contrastSDK));
@@ -173,10 +165,10 @@ public class AssessService {
               .httpRequest(httpRequestText)
               .build();
 
-      logger.info("Successfully retrieved vulnerability details for vulnID: {}", vulnID);
+      log.info("Successfully retrieved vulnerability details for vulnID: {}", vulnID);
       return vulnerabilityMapper.toFullVulnerability(trace, context);
     } catch (Exception e) {
-      logger.error("Error retrieving vulnerability details for vulnID: {}", vulnID, e);
+      log.error("Error retrieving vulnerability details for vulnID: {}", vulnID, e);
       throw new IOException("Failed to retrieve vulnerability details: " + e.getMessage(), e);
     }
   }
@@ -202,7 +194,7 @@ public class AssessService {
               + " to include the vulnID in the response.")
   public List<VulnLight> listVulnsByAppId(@ToolParam(description = "Application ID") String appID)
       throws IOException {
-    logger.info("Listing vulnerabilities for application ID: {}", appID);
+    log.info("Listing vulnerabilities for application ID: {}", appID);
     var contrastSDK =
         SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
     try {
@@ -215,21 +207,18 @@ public class AssessService {
               TraceFilterForm.TraceExpandValue.APPLICATION));
 
       var traces = contrastSDK.getTraces(orgID, appID, form);
-      logger.debug(
+      log.debug(
           "Found {} vulnerability traces for application ID: {}",
           traces.getTraces() != null ? traces.getTraces().size() : 0,
           appID);
 
-      var vulns =
-          traces.getTraces().stream()
-              .map(vulnerabilityMapper::toVulnLight)
-              .collect(Collectors.toList());
+      var vulns = traces.getTraces().stream().map(vulnerabilityMapper::toVulnLight).toList();
 
-      logger.info(
+      log.info(
           "Successfully retrieved {} vulnerabilities for application ID: {}", vulns.size(), appID);
       return vulns;
     } catch (Exception e) {
-      logger.error("Error listing vulnerabilities for application ID: {}", appID, e);
+      log.error("Error listing vulnerabilities for application ID: {}", appID, e);
       throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
     }
   }
@@ -246,9 +235,9 @@ public class AssessService {
       @ToolParam(description = "Session metadata field name") String session_Metadata_Name,
       @ToolParam(description = "Session metadata field value") String session_Metadata_Value)
       throws IOException {
-    logger.info("Listing vulnerabilities for application: {}", appID);
+    log.info("Listing vulnerabilities for application: {}", appID);
 
-    logger.info("metadata : " + session_Metadata_Name + session_Metadata_Value);
+    log.info("metadata : " + session_Metadata_Name + session_Metadata_Value);
 
     try {
       var vulns = listVulnsByAppId(appID);
@@ -260,7 +249,7 @@ public class AssessService {
               if (metadataItem.getDisplayLabel().equalsIgnoreCase(session_Metadata_Name)
                   && metadataItem.getValue().equalsIgnoreCase(session_Metadata_Value)) {
                 returnVulns.add(vuln);
-                logger.debug("Found matching vulnerability with ID: {}", vuln.vulnID());
+                log.debug("Found matching vulnerability with ID: {}", vuln.vulnID());
                 break;
               }
             }
@@ -269,7 +258,7 @@ public class AssessService {
       }
       return returnVulns;
     } catch (Exception e) {
-      logger.error("Error listing vulnerabilities for application: {}", appID, e);
+      log.error("Error listing vulnerabilities for application: {}", appID, e);
       throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
     }
   }
@@ -283,7 +272,7 @@ public class AssessService {
               + " list_applications_with_name first to get the application ID from a name.")
   public List<VulnLight> listVulnsByAppIdForLatestSession(
       @ToolParam(description = "Application ID") String appID) throws IOException {
-    logger.info("Listing vulnerabilities for application: {}", appID);
+    log.info("Listing vulnerabilities for application: {}", appID);
     var contrastSDK =
         SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
 
@@ -310,12 +299,10 @@ public class AssessService {
                   TraceFilterForm.TraceExpandValue.APPLICATION));
 
       var vulns =
-          tracesResponse.getTraces().stream()
-              .map(vulnerabilityMapper::toVulnLight)
-              .collect(Collectors.toList());
+          tracesResponse.getTraces().stream().map(vulnerabilityMapper::toVulnLight).toList();
       return vulns;
     } catch (Exception e) {
-      logger.error("Error listing vulnerabilities for application: {}", appID, e);
+      log.error("Error listing vulnerabilities for application: {}", appID, e);
       throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
     }
   }
@@ -335,7 +322,7 @@ public class AssessService {
       return contrastSDK.getSessionMetadataForApplication(
           orgID, application.get().getAppId(), null);
     } else {
-      logger.info("Application with name {} not found, returning empty list", app_name);
+      log.info("Application with name {} not found, returning empty list", app_name);
       throw new IOException(
           "Failed to list session metadata for application: "
               + app_name
@@ -352,12 +339,12 @@ public class AssessService {
       @ToolParam(description = "Application name (supports partial matching, case-insensitive)")
           String app_name)
       throws IOException {
-    logger.info("Listing active applications matching name: {}", app_name);
+    log.info("Listing active applications matching name: {}", app_name);
     var contrastSDK =
         SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
     try {
       var applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
-      logger.debug("Retrieved {} total applications from Contrast", applications.size());
+      log.debug("Retrieved {} total applications from Contrast", applications.size());
 
       var filteredApps = new ArrayList<ApplicationData>();
       for (Application app : applications) {
@@ -372,7 +359,7 @@ public class AssessService {
                   getMetadataFromApp(app),
                   app.getTags(),
                   app.getTechs()));
-          logger.debug(
+          log.debug(
               "Found matching application - ID: {}, Name: {}, Status: {}",
               app.getAppId(),
               app.getName(),
@@ -393,7 +380,7 @@ public class AssessService {
                     getMetadataFromApp(app),
                     app.getTags(),
                     app.getTechs()));
-            logger.debug(
+            log.debug(
                 "Found matching application - ID: {}, Name: {}, Status: {}",
                 app.getAppId(),
                 app.getName(),
@@ -402,10 +389,10 @@ public class AssessService {
         }
       }
 
-      logger.info("Found {} applications matching '{}'", filteredApps.size(), app_name);
+      log.info("Found {} applications matching '{}'", filteredApps.size(), app_name);
       return filteredApps;
     } catch (Exception e) {
-      logger.error("Error listing applications matching name: {}", app_name, e);
+      log.error("Error listing applications matching name: {}", app_name, e);
       throw new IOException("Failed to list applications: " + e.getMessage(), e);
     }
   }
@@ -415,14 +402,13 @@ public class AssessService {
       description = "Takes a tag name and returns a list of applications that have that tag.")
   public List<ApplicationData> getAllApplicationsByTag(
       @ToolParam(description = "Tag name to filter by") String tag) throws IOException {
-    logger.info("Retrieving applications with tag: {}", tag);
+    log.info("Retrieving applications with tag: {}", tag);
     var allApps = getAllApplications();
-    logger.debug("Retrieved {} total applications, filtering by tag", allApps.size());
+    log.debug("Retrieved {} total applications, filtering by tag", allApps.size());
 
-    var filteredApps =
-        allApps.stream().filter(app -> app.tags().contains(tag)).collect(Collectors.toList());
+    var filteredApps = allApps.stream().filter(app -> app.tags().contains(tag)).toList();
 
-    logger.info("Found {} applications with tag '{}'", filteredApps.size(), tag);
+    log.info("Found {} applications with tag '{}'", filteredApps.size(), tag);
     return filteredApps;
   }
 
@@ -435,12 +421,12 @@ public class AssessService {
       @ToolParam(description = "Metadata field name (case-insensitive)") String metadata_name,
       @ToolParam(description = "Metadata field value (case-insensitive)") String metadata_value)
       throws IOException {
-    logger.info(
+    log.info(
         "Retrieving applications with metadata - Name: {}, Value: {}",
         metadata_name,
         metadata_value);
     var allApps = getAllApplications();
-    logger.debug("Retrieved {} total applications, filtering by metadata", allApps.size());
+    log.debug("Retrieved {} total applications, filtering by metadata", allApps.size());
 
     var filteredApps =
         allApps.stream()
@@ -455,9 +441,9 @@ public class AssessService {
                                         && m.name().equalsIgnoreCase(metadata_name)
                                         && m.value() != null
                                         && m.value().equalsIgnoreCase(metadata_value)))
-            .collect(Collectors.toList());
+            .toList();
 
-    logger.info(
+    log.info(
         "Found {} applications with metadata - Name: {}, Value: {}",
         filteredApps.size(),
         metadata_name,
@@ -471,9 +457,9 @@ public class AssessService {
   public List<ApplicationData> getApplicationsByMetadataName(
       @ToolParam(description = "Metadata field name (case-insensitive)") String metadata_name)
       throws IOException {
-    logger.info("Retrieving applications with metadata - Name: {}", metadata_name);
+    log.info("Retrieving applications with metadata - Name: {}", metadata_name);
     var allApps = getAllApplications();
-    logger.debug("Retrieved {} total applications, filtering by metadata", allApps.size());
+    log.debug("Retrieved {} total applications, filtering by metadata", allApps.size());
 
     var filteredApps =
         allApps.stream()
@@ -486,10 +472,9 @@ public class AssessService {
                                     m != null
                                         && m.name() != null
                                         && m.name().equalsIgnoreCase(metadata_name)))
-            .collect(Collectors.toList());
+            .toList();
 
-    logger.info(
-        "Found {} applications with metadata - Name: {}", filteredApps.size(), metadata_name);
+    log.info("Found {} applications with metadata - Name: {}", filteredApps.size(), metadata_name);
     return filteredApps;
   }
 
@@ -497,12 +482,12 @@ public class AssessService {
       name = "list_all_applications",
       description = "Takes no argument and list all the applications")
   public List<ApplicationData> getAllApplications() throws IOException {
-    logger.info("Listing all applications");
+    log.info("Listing all applications");
     var contrastSDK =
         SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
     try {
       var applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
-      logger.debug("Retrieved {} total applications from Contrast", applications.size());
+      log.debug("Retrieved {} total applications from Contrast", applications.size());
 
       var returnedApps = new ArrayList<ApplicationData>();
       for (Application app : applications) {
@@ -518,11 +503,11 @@ public class AssessService {
                 app.getTechs()));
       }
 
-      logger.info("Found {} applications", returnedApps.size());
+      log.info("Found {} applications", returnedApps.size());
       return returnedApps;
 
     } catch (Exception e) {
-      logger.error("Error listing all applications", e);
+      log.error("Error listing all applications", e);
       throw new IOException("Failed to list applications: " + e.getMessage(), e);
     }
   }
@@ -603,7 +588,7 @@ public class AssessService {
               required = false)
           String vulnTags)
       throws IOException {
-    logger.info(
+    log.info(
         "Listing all vulnerabilities - page: {}, pageSize: {}, filters: severities={}, statuses={},"
             + " appId={}, vulnTypes={}, environments={}, lastSeenAfter={}, lastSeenBefore={},"
             + " vulnTags={}",
@@ -635,7 +620,7 @@ public class AssessService {
     // Check for hard failures - return error immediately if invalid
     if (!filters.isValid()) {
       var errorMessage = String.join(" ", filters.errors());
-      logger.error("Validation errors: {}", errorMessage);
+      log.error("Validation errors: {}", errorMessage);
       return PaginatedResponse.error(pagination.page(), pagination.pageSize(), errorMessage);
     }
 
@@ -657,7 +642,7 @@ public class AssessService {
       Traces traces;
       if (appId != null && !appId.trim().isEmpty()) {
         // Use app-specific API for better performance
-        logger.debug("Using app-specific API for appId: {}", appId);
+        log.debug("Using app-specific API for appId: {}", appId);
         traces = contrastSDK.getTraces(orgID, appId, filterForm);
       } else {
         // Use org-level API
@@ -668,9 +653,7 @@ public class AssessService {
         // Organization API worked (empty list with count=0 is valid - means no vulnerabilities or
         // no EAC access)
         var vulnerabilities =
-            traces.getTraces().stream()
-                .map(vulnerabilityMapper::toVulnLight)
-                .collect(Collectors.toList());
+            traces.getTraces().stream().map(vulnerabilityMapper::toVulnLight).toList();
 
         // Get totalItems if available from SDK response (don't make extra query)
         var totalItems = (traces.getCount() != null) ? traces.getCount() : null;
@@ -681,7 +664,7 @@ public class AssessService {
                 vulnerabilities, pagination, totalItems, filters.warnings());
 
         long duration = System.currentTimeMillis() - startTime;
-        logger.info(
+        log.info(
             "Retrieved {} vulnerabilities for page {} (pageSize: {}, totalItems: {}, took {} ms)",
             response.items().size(),
             response.page(),
@@ -699,12 +682,12 @@ public class AssessService {
                     + " should return an empty list if no vulnerabilities exist. Please check API"
                     + " connectivity and permissions.",
                 orgID);
-        logger.error(errorMsg);
+        log.error(errorMsg);
         return PaginatedResponse.error(pagination.page(), pagination.pageSize(), errorMsg);
       }
 
     } catch (Exception e) {
-      logger.error("Error listing all vulnerabilities", e);
+      log.error("Error listing all vulnerabilities", e);
       throw new IOException("Failed to list all vulnerabilities: " + e.getMessage(), e);
     }
   }
@@ -735,7 +718,7 @@ public class AssessService {
           configured for your organization, so it's always current.
           """)
   public List<String> listVulnerabilityTypes() throws IOException {
-    logger.info("Retrieving all vulnerability types (rule names) for organization: {}", orgID);
+    log.info("Retrieving all vulnerability types (rule names) for organization: {}", orgID);
     var contrastSDK =
         SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
 
@@ -743,7 +726,7 @@ public class AssessService {
       var rules = contrastSDK.getRules(orgID);
 
       if (rules == null || rules.getRules() == null) {
-        logger.warn("No rules returned from Contrast API");
+        log.warn("No rules returned from Contrast API");
         return new ArrayList<>();
       }
 
@@ -754,13 +737,13 @@ public class AssessService {
               .filter(name -> name != null && !name.trim().isEmpty())
               .map(String::trim)
               .sorted()
-              .collect(Collectors.toList());
+              .toList();
 
-      logger.info("Retrieved {} vulnerability types", ruleNames.size());
+      log.info("Retrieved {} vulnerability types", ruleNames.size());
       return ruleNames;
 
     } catch (Exception e) {
-      logger.error("Error retrieving vulnerability types", e);
+      log.error("Error retrieving vulnerability types", e);
       throw new IOException("Failed to retrieve vulnerability types: " + e.getMessage(), e);
     }
   }

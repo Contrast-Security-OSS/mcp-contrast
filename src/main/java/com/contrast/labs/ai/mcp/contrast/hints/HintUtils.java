@@ -2,6 +2,7 @@ package com.contrast.labs.ai.mcp.contrast.hints;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.springframework.util.CollectionUtils;
 
 /** Utility class for hint manipulation operations. */
 public class HintUtils {
@@ -32,7 +33,7 @@ public class HintUtils {
    * @return A formatted string containing all hints
    */
   public static String formatHints(List<String> hints) {
-    if (hints == null || hints.isEmpty()) {
+    if (CollectionUtils.isEmpty(hints)) {
       return "";
     }
 
