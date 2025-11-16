@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 /**
  * Centralized pagination handler for all MCP Server endpoints. Provides consistent pagination logic
@@ -133,7 +134,7 @@ public class PaginationHandler {
       }
     }
 
-    if (resultMessage != null && !resultMessage.isEmpty()) {
+    if (StringUtils.hasText(resultMessage)) {
       allMessages.add(resultMessage);
     }
 
