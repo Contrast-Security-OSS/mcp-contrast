@@ -92,13 +92,17 @@ public class RouteCoverageService {
       log.debug("Fetching latest session metadata for application ID: {}", appId);
       var latest = sdkExtension.getLatestSessionMetadata(orgID, appId);
 
-      if (latest == null || latest.getAgentSession() == null) {
+      if (latest == null) {
         log.error("No session metadata found for application ID: {}", appId);
         var noRouteCoverageResponse = new RouteCoverageResponse();
         noRouteCoverageResponse.setSuccess(false);
-        log.debug(
-            "No Agent session found in latest session metadata response for application ID: {}",
-            appId);
+        return noRouteCoverageResponse;
+      }
+
+      if (latest.getAgentSession() == null) {
+        log.error("No agent session found for application ID: {}", appId);
+        var noRouteCoverageResponse = new RouteCoverageResponse();
+        noRouteCoverageResponse.setSuccess(false);
         return noRouteCoverageResponse;
       }
 
