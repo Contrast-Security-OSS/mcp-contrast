@@ -29,17 +29,24 @@
 		<java.version>17</java.version>
 		<spring-ai.version>1.0.1</spring-ai.version>
 		<maven-release-plugin.version>3.1.1</maven-release-plugin.version>
+		<guava.version>33.4.7-jre</guava.version>
+		<contrast.sdk.version>3.5.0</contrast.sdk.version>
+		<mockito-inline.version>5.2.0</mockito-inline.version>
+		<assertj.version>3.27.6</assertj.version>
+		<maven-failsafe-plugin.version>3.5.3</maven-failsafe-plugin.version>
+		<spotless-maven-plugin.version>2.43.0</spotless-maven-plugin.version>
+		<google-java-format.version>1.26.0</google-java-format.version>
 	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>33.4.7-jre</version> <!-- Use the latest stable version -->
+			<version>${guava.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.contrastsecurity</groupId>
 			<artifactId>contrast-sdk-java</artifactId>
-			<version>3.5.0</version>
+			<version>${contrast.sdk.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.ai</groupId>
@@ -64,13 +71,13 @@
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-inline</artifactId>
-			<version>5.2.0</version>
+			<version>${mockito-inline.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
-			<version>3.27.6</version>
+			<version>${assertj.version}</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -135,7 +142,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-failsafe-plugin</artifactId>
-				<version>3.5.3</version>
+				<version>${maven-failsafe-plugin.version}</version>
 				<executions>
 					<execution>
 						<goals>
@@ -177,11 +184,11 @@
 			<plugin>
 				<groupId>com.diffplug.spotless</groupId>
 				<artifactId>spotless-maven-plugin</artifactId>
-				<version>2.43.0</version>
+				<version>${spotless-maven-plugin.version}</version>
 				<configuration>
 					<java>
 						<googleJavaFormat>
-							<version>1.26.0</version>
+							<version>${google-java-format.version}</version>
 							<style>GOOGLE</style>
 							<reflowLongStrings>true</reflowLongStrings>
 							<reorderImports>true</reorderImports>
