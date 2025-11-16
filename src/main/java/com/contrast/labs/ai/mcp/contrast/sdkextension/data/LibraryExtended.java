@@ -17,6 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 
 import com.contrastsecurity.models.Application;
 import com.contrastsecurity.models.Server;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
 import lombok.Data;
@@ -60,6 +61,7 @@ public class LibraryExtended {
   private String appId;
 
   @SerializedName("app_name")
+  @JsonProperty("app_name")
   private String appName;
 
   @SerializedName("app_context_path")
@@ -90,4 +92,14 @@ public class LibraryExtended {
 
   @SerializedName("months_outdated")
   private int monthsOutdated;
+
+  public String getFilename() {
+    return filename;
+  }
+
+  // Preserve legacy camelCase JSON property expected by existing MCP clients.
+  @JsonProperty("fileName")
+  public String getFileName() {
+    return filename;
+  }
 }
