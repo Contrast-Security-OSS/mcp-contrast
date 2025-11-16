@@ -34,6 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Component
 @Slf4j
@@ -210,9 +211,8 @@ public class SDKHelper {
             .withApiUrl(apiUrl)
             .withUserAgentProduct(UserAgentProduct.of(MCP_SERVER_NAME, mcpVersion));
 
-    if (httpProxyHost != null && !httpProxyHost.isEmpty()) {
-      int port =
-          httpProxyPort != null && !httpProxyPort.isEmpty() ? Integer.parseInt(httpProxyPort) : 80;
+    if (StringUtils.hasText(httpProxyHost)) {
+      int port = StringUtils.hasText(httpProxyPort) ? Integer.parseInt(httpProxyPort) : 80;
       log.debug("Configuring HTTP proxy: {}:{}", httpProxyHost, port);
 
       var proxy =

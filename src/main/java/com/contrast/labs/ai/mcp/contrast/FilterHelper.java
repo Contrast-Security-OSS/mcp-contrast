@@ -56,7 +56,7 @@ public class FilterHelper {
     }
 
     public boolean hasValidationMessage() {
-      return validationMessage != null && !validationMessage.isEmpty();
+      return StringUtils.hasText(validationMessage);
     }
   }
 
