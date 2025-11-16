@@ -116,11 +116,6 @@ Required environment variables/arguments:
 - Naming: `methodName_should_expectedBehavior_when_condition()`
 - Example: `getVulnerability_should_return_data_when_valid_id()`
 
-**Javadoc:**
-- Minimal - code should self-document
-- Use only for: public APIs, complex business logic, non-obvious behavior
-- Never state obvious from method signature
-
 ### Security Considerations
 
 This codebase handles sensitive vulnerability data. The README contains critical warnings about data privacy when using with AI models. Never expose Contrast credentials or vulnerability data to untrusted AI services.
