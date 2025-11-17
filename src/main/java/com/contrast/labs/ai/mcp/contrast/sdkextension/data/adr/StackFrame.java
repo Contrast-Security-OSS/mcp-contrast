@@ -15,7 +15,10 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr;
 
+import lombok.Data;
+
 /** Class representing a stack frame in the event details. */
+@Data
 public class StackFrame {
   private String type;
   private String description;
@@ -24,60 +27,4 @@ public class StackFrame {
   private int lineNumber;
   private String className;
   private String methodName;
-
-  public String getType() {
-    return type;
-  }
-
-  public void setType(String type) {
-    this.type = type;
-  }
-
-  public String getDescription() {
-    return description;
-  }
-
-  public void setDescription(String description) {
-    this.description = description;
-  }
-
-  public String getShortSummary() {
-    return shortSummary;
-  }
-
-  public void setShortSummary(String shortSummary) {
-    this.shortSummary = shortSummary;
-  }
-
-  public String getFileName() {
-    return fileName;
-  }
-
-  public void setFileName(String fileName) {
-    this.fileName = fileName;
-  }
-
-  public int getLineNumber() {
-    return lineNumber;
-  }
-
-  public void setLineNumber(int lineNumber) {
-    this.lineNumber = lineNumber;
-  }
-
-  public String getClassName() {
-    return className;
-  }
-
-  public void setClassName(String className) {
-    this.className = className;
-  }
-
-  public String getMethodName() {
-    return methodName;
-  }
-
-  public void setMethodName(String methodName) {
-    this.methodName = methodName;
-  }
 }

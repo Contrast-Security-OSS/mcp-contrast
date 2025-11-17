@@ -17,89 +17,33 @@ package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 
 import com.contrastsecurity.models.Application;
 import com.contrastsecurity.models.Server;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
+import lombok.Data;
 
 /** An application library. */
+@Data
 public class LibraryExtended {
 
-  /**
-   * Return the filename for this library.
-   *
-   * @return the simple name of the library, like 'log4j-2.1.4.jar'.
-   */
-  public String getFilename() {
-    return fileName;
-  }
-
   @SerializedName("file_name")
-  private String fileName;
-
-  /**
-   * Return the version of this library according to the library authority like Maven Central or
-   * NuGet.
-   *
-   * @return the version of this library
-   */
-  public String getVersion() {
-    return version;
-  }
+  private String filename;
 
   private String version;
 
-  public List<Application> getApplications() {
-    return apps;
-  }
-
-  private List<Application> apps;
-
-  public List<Server> getServers() {
-    return servers;
-  }
+  @SerializedName("apps")
+  private List<Application> applications;
 
   private List<Server> servers;
 
-  public List<LibraryVulnerabilityExtended> getVulnerabilities() {
-    return vulns;
-  }
-
-  private List<LibraryVulnerabilityExtended> vulns;
-
-  /**
-   * Return the number of classes in this library.
-   *
-   * @return the number of classes in this library
-   */
-  public int getClassCount() {
-    return classCount;
-  }
+  @SerializedName("vulns")
+  private List<LibraryVulnerabilityExtended> vulnerabilities;
 
   @SerializedName("class_count")
   private int classCount;
 
-  /**
-   * Return the number of classes used by this library. Right now, this only returns the maximum
-   * number of classes used by any one instance of the running application. In the future, this will
-   * be changed to represent the total number of distinct classes used across all instances of the
-   * running application.
-   *
-   * @return the maximum number of classes used in any instance of this library
-   */
-  public int getClassedUsed() {
-    return classesUsed;
-  }
-
   @SerializedName("classes_used")
-  private int classesUsed;
-
-  /**
-   * Return the blob of MANIFEST.MF in plaintext.
-   *
-   * @return the plaintext MANIFEST.MF file in one String
-   */
-  public String getManifest() {
-    return manifest;
-  }
+  private int classedUsed;
 
   private String manifest;
 
@@ -117,7 +61,8 @@ public class LibraryExtended {
   private String appId;
 
   @SerializedName("app_name")
-  private String app_name;
+  @JsonProperty("app_name")
+  private String appName;
 
   @SerializedName("app_context_path")
   private String appContextPath;
@@ -148,75 +93,13 @@ public class LibraryExtended {
   @SerializedName("months_outdated")
   private int monthsOutdated;
 
-  public long getLibraryId() {
-    return libraryId;
+  public String getFilename() {
+    return filename;
   }
 
-  public String getGrade() {
-    return grade;
-  }
-
-  public String getHash() {
-    return hash;
-  }
-
+  // Preserve legacy camelCase JSON property expected by existing MCP clients.
+  @JsonProperty("fileName")
   public String getFileName() {
-    return fileName;
-  }
-
-  public String getGroup() {
-    return group;
-  }
-
-  public String getFileVersion() {
-    return fileVersion;
-  }
-
-  public String getLatestVersion() {
-    return latestVersion;
-  }
-
-  public long getReleaseDate() {
-    return releaseDate;
-  }
-
-  public long getLatestReleaseDate() {
-    return latestReleaseDate;
-  }
-
-  public int getTotalVulnerabilities() {
-    return totalVulnerabilities;
-  }
-
-  public int getHighVulnerabilities() {
-    return highVulnerabilities;
-  }
-
-  public boolean getCustom() {
-    return custom;
-  }
-
-  public double getLibScore() {
-    return libScore;
-  }
-
-  public String getAppLanguage() {
-    return appLanguage;
-  }
-
-  public int getMonthsOutdated() {
-    return monthsOutdated;
-  }
-
-  public String getAppId() {
-    return appId;
-  }
-
-  public String getapp_name() {
-    return app_name;
-  }
-
-  public String getAppContextPath() {
-    return appContextPath;
+    return filename;
   }
 }

@@ -20,6 +20,8 @@ import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 /**
  * Centralized pagination handler for all MCP Server endpoints. Provides consistent pagination logic
@@ -127,12 +129,12 @@ public class PaginationHandler {
 
     // Flatten all warning lists
     for (List<String> warnings : warningLists) {
-      if (warnings != null && !warnings.isEmpty()) {
+      if (!CollectionUtils.isEmpty(warnings)) {
         allMessages.addAll(warnings);
       }
     }
 
-    if (resultMessage != null && !resultMessage.isEmpty()) {
+    if (StringUtils.hasText(resultMessage)) {
       allMessages.add(resultMessage);
     }
 

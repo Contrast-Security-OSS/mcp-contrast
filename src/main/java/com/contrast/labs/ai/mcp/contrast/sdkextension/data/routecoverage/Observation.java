@@ -15,31 +15,12 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage;
 
+import lombok.Data;
+
 /** Represents an observation in the route details response. */
+@Data
 public class Observation {
 
   private String verb;
   private String url;
-
-  // Getters and setters
-  public String getVerb() {
-    return verb;
-  }
-
-  public void setVerb(String verb) {
-    this.verb = verb;
-  }
-
-  public String getUrl() {
-    return url;
-  }
-
-  public void setUrl(String url) {
-    this.url = url;
-  }
-
-  @Override
-  public String toString() {
-    return "Observation{" + "verb='" + verb + '\'' + ", url='" + url + '\'' + '}';
-  }
 }

@@ -15,7 +15,10 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 
+import lombok.Data;
+
 /** Class representing the impact statistics for a CVE. */
+@Data
 public class ImpactStats {
 
   private int impactedAppCount;
@@ -24,52 +27,4 @@ public class ImpactStats {
   private int totalServerCount;
   private double appPercentage;
   private double serverPercentage;
-
-  public int getImpactedAppCount() {
-    return impactedAppCount;
-  }
-
-  public void setImpactedAppCount(int impactedAppCount) {
-    this.impactedAppCount = impactedAppCount;
-  }
-
-  public int getTotalAppCount() {
-    return totalAppCount;
-  }
-
-  public void setTotalAppCount(int totalAppCount) {
-    this.totalAppCount = totalAppCount;
-  }
-
-  public int getImpactedServerCount() {
-    return impactedServerCount;
-  }
-
-  public void setImpactedServerCount(int impactedServerCount) {
-    this.impactedServerCount = impactedServerCount;
-  }
-
-  public int getTotalServerCount() {
-    return totalServerCount;
-  }
-
-  public void setTotalServerCount(int totalServerCount) {
-    this.totalServerCount = totalServerCount;
-  }
-
-  public double getAppPercentage() {
-    return appPercentage;
-  }
-
-  public void setAppPercentage(double appPercentage) {
-    this.appPercentage = appPercentage;
-  }
-
-  public double getServerPercentage() {
-    return serverPercentage;
-  }
-
-  public void setServerPercentage(double serverPercentage) {
-    this.serverPercentage = serverPercentage;
-  }
 }

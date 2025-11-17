@@ -7,17 +7,15 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCo
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrastsecurity.models.RouteCoverageMetadataLabelValues;
 import java.io.IOException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
+@Slf4j
 public class RouteCoverageService {
-
-  private static final Logger logger = LoggerFactory.getLogger(RouteCoverageService.class);
-
   @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
   private String hostName;
 
@@ -72,14 +70,12 @@ public class RouteCoverageService {
       Boolean useLatestSession)
       throws IOException {
 
-    logger.info("Retrieving route coverage for application ID: {}", appId);
+    log.info("Retrieving route coverage for application ID: {}", appId);
 
     // Validate parameters - treat empty strings as null
-    if (sessionMetadataName != null
-        && !sessionMetadataName.isEmpty()
-        && (sessionMetadataValue == null || sessionMetadataValue.isEmpty())) {
+    if (StringUtils.hasText(sessionMetadataName) && !StringUtils.hasText(sessionMetadataValue)) {
       var errorMsg = "sessionMetadataValue is required when sessionMetadataName is provided";
-      logger.error(errorMsg);
+      log.error(errorMsg);
       throw new IllegalArgumentException(errorMsg);
     }
 
@@ -93,50 +89,53 @@ public class RouteCoverageService {
 
     if (useLatestSession != null && useLatestSession) {
       // Filter by latest session
-      logger.debug("Fetching latest session metadata for application ID: {}", appId);
+      log.debug("Fetching latest session metadata for application ID: {}", appId);
       var latest = sdkExtension.getLatestSessionMetadata(orgID, appId);
 
-      if (latest == null || latest.getAgentSession() == null) {
-        logger.error("No session metadata found for application ID: {}", appId);
+      if (latest == null) {
+        log.error("No session metadata found for application ID: {}", appId);
         var noRouteCoverageResponse = new RouteCoverageResponse();
         noRouteCoverageResponse.setSuccess(false);
-        logger.debug(
-            "No Agent session found in latest session metadata response for application ID: {}",
-            appId);
+        return noRouteCoverageResponse;
+      }
+
+      if (latest.getAgentSession() == null) {
+        log.error("No agent session found for application ID: {}", appId);
+        var noRouteCoverageResponse = new RouteCoverageResponse();
+        noRouteCoverageResponse.setSuccess(false);
         return noRouteCoverageResponse;
       }
 
       requestExtended = new RouteCoverageBySessionIDAndMetadataRequestExtended();
       requestExtended.setSessionId(latest.getAgentSession().getAgentSessionId());
-      logger.debug("Using latest session ID: {}", latest.getAgentSession().getAgentSessionId());
+      log.debug("Using latest session ID: {}", latest.getAgentSession().getAgentSessionId());
 
-    } else if (sessionMetadataName != null && !sessionMetadataName.isEmpty()) {
+    } else if (StringUtils.hasText(sessionMetadataName)) {
       // Filter by session metadata
-      logger.debug(
-          "Filtering by session metadata: {}={}", sessionMetadataName, sessionMetadataValue);
+      log.debug("Filtering by session metadata: {}={}", sessionMetadataName, sessionMetadataValue);
       requestExtended = new RouteCoverageBySessionIDAndMetadataRequestExtended();
       var metadataLabelValue = new RouteCoverageMetadataLabelValues();
       metadataLabelValue.setLabel(sessionMetadataName);
       metadataLabelValue.getValues().add(sessionMetadataValue);
       requestExtended.getValues().add(metadataLabelValue);
     } else {
-      logger.debug("No filters applied - retrieving all route coverage");
+      log.debug("No filters applied - retrieving all route coverage");
     }
 
     // Call SDK to get route coverage
-    logger.debug("Fetching route coverage data for application ID: {}", appId);
+    log.debug("Fetching route coverage data for application ID: {}", appId);
     var response = sdkExtension.getRouteCoverage(orgID, appId, requestExtended);
-    logger.debug("Found {} routes for application", response.getRoutes().size());
+    log.debug("Found {} routes for application", response.getRoutes().size());
 
     // Fetch route details for each route
-    logger.debug("Retrieving route details for each route");
+    log.debug("Retrieving route details for each route");
     for (Route route : response.getRoutes()) {
-      logger.trace("Fetching details for route: {}", route.getSignature());
+      log.trace("Fetching details for route: {}", route.getSignature());
       var routeDetailsResponse = sdkExtension.getRouteDetails(orgID, appId, route.getRouteHash());
       route.setRouteDetailsResponse(routeDetailsResponse);
     }
 
-    logger.info(
+    log.info(
         "Successfully retrieved route coverage for application ID: {} ({} routes)",
         appId,
         response.getRoutes().size());

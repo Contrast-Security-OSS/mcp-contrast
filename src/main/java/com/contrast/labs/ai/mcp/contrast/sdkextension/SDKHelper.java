@@ -30,21 +30,19 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 @Component
+@Slf4j
 public class SDKHelper {
 
   private static final String MCP_SERVER_NAME = "contrast-mcp";
   private static final String HTTPS_PROTOCOL = "https://";
   private static final String HTTP_PROTOCOL = "http://";
-
-  private static final Logger logger = LoggerFactory.getLogger(SDKHelper.class);
-
   private static Environment environment;
 
   @Autowired
@@ -66,10 +64,10 @@ public class SDKHelper {
     // Check cache for existing result
     var cachedLibraries = libraryCache.getIfPresent(appID);
     if (cachedLibraries != null) {
-      logger.info("Cache hit for appID: {}", appID);
+      log.info("Cache hit for appID: {}", appID);
       return cachedLibraries;
     }
-    logger.info("Cache miss for appID: {}, fetching libraries from SDK", appID);
+    log.info("Cache miss for appID: {}, fetching libraries from SDK", appID);
     int libraryCallSize = 50;
     var filterForm = new LibraryFilterForm();
     filterForm.setLimit(libraryCallSize);
@@ -79,15 +77,14 @@ public class SDKHelper {
     libs.addAll(libraries.getLibraries());
     int offset = libraryCallSize;
     while (libraries.getLibraries().size() == libraryCallSize) {
-      logger.debug(
-          "Retrieved {} libraries, fetching more with offset: {}", libraryCallSize, offset);
+      log.debug("Retrieved {} libraries, fetching more with offset: {}", libraryCallSize, offset);
       filterForm.setOffset(offset);
       libraries = extendedSDK.getLibrariesWithFilter(orgID, appID, filterForm);
       libs.addAll(libraries.getLibraries());
       offset += libraryCallSize;
     }
 
-    logger.info("Successfully retrieved {} libraries for application id: {}", libs.size(), appID);
+    log.info("Successfully retrieved {} libraries for application id: {}", libs.size(), appID);
 
     // Store result in cache
     libraryCache.put(appID, libs);
@@ -117,14 +114,14 @@ public class SDKHelper {
     // Check cache for existing result
     var cachedObservations = libraryObservationsCache.getIfPresent(cacheKey);
     if (cachedObservations != null) {
-      logger.info("Cache hit for library observations: {}", cacheKey);
+      log.info("Cache hit for library observations: {}", cacheKey);
       return cachedObservations;
     }
 
-    logger.info("Cache miss for library observations: {}, fetching from API", cacheKey);
+    log.info("Cache miss for library observations: {}, fetching from API", cacheKey);
     var observations = extendedSDK.getLibraryObservations(orgId, appId, libraryId, pageSize);
 
-    logger.info(
+    log.info(
         "Successfully retrieved {} library observations for library: {} in app: {}",
         observations.size(),
         libraryId,
@@ -201,11 +198,11 @@ public class SDKHelper {
       String userName,
       String httpProxyHost,
       String httpProxyPort) {
-    logger.info("Initializing ContrastSDK with username: {}, host: {}", userName, hostName);
+    log.info("Initializing ContrastSDK with username: {}, host: {}", userName, hostName);
 
     var baseUrl = getProtocolAndServer(hostName);
     var apiUrl = baseUrl + "/Contrast/api";
-    logger.info("API URL will be : {}", apiUrl);
+    log.info("API URL will be : {}", apiUrl);
 
     var mcpVersion = SDKHelper.environment.getProperty("spring.ai.mcp.server.version", "unknown");
 
@@ -214,10 +211,9 @@ public class SDKHelper {
             .withApiUrl(apiUrl)
             .withUserAgentProduct(UserAgentProduct.of(MCP_SERVER_NAME, mcpVersion));
 
-    if (httpProxyHost != null && !httpProxyHost.isEmpty()) {
-      int port =
-          httpProxyPort != null && !httpProxyPort.isEmpty() ? Integer.parseInt(httpProxyPort) : 80;
-      logger.debug("Configuring HTTP proxy: {}:{}", httpProxyHost, port);
+    if (StringUtils.hasText(httpProxyHost)) {
+      int port = StringUtils.hasText(httpProxyPort) ? Integer.parseInt(httpProxyPort) : 80;
+      log.debug("Configuring HTTP proxy: {}:{}", httpProxyHost, port);
 
       var proxy =
           new java.net.Proxy(
@@ -231,19 +227,19 @@ public class SDKHelper {
 
   public static Optional<Application> getApplicationByName(
       String appName, String orgId, ContrastSDK contrastSDK) throws IOException {
-    logger.debug("Searching for application by name: {}", appName);
+    log.debug("Searching for application by name: {}", appName);
     for (Application app : getApplicationsWithCache(orgId, contrastSDK)) {
       if (app.getName().equalsIgnoreCase(appName)) {
-        logger.info("Found application - ID: {}, Name: {}", app.getAppId(), app.getName());
+        log.info("Found application - ID: {}, Name: {}", app.getAppId(), app.getName());
         return Optional.of(app);
       }
     }
 
-    logger.warn("No application found with name: {}, clearing cache and retrying", appName);
+    log.warn("No application found with name: {}, clearing cache and retrying", appName);
     clearApplicationsCache();
     for (Application app : getApplicationsWithCache(orgId, contrastSDK)) {
       if (app.getName().equalsIgnoreCase(appName)) {
-        logger.info(
+        log.info(
             "Found application after cache clear - ID: {}, Name: {}",
             app.getAppId(),
             app.getName());
@@ -269,13 +265,13 @@ public class SDKHelper {
     // Check cache for existing result
     var cachedApplications = applicationsCache.getIfPresent(cacheKey);
     if (cachedApplications != null) {
-      logger.info("Cache hit for applications in org: {}", orgId);
+      log.info("Cache hit for applications in org: {}", orgId);
       return cachedApplications;
     }
 
-    logger.info("Cache miss for applications in org: {}, fetching from API", orgId);
+    log.info("Cache miss for applications in org: {}, fetching from API", orgId);
     var applications = new SDKExtension(contrastSDK).getApplications(orgId).getApplications();
-    logger.info(
+    log.info(
         "Successfully retrieved {} applications from organization: {}", applications.size(), orgId);
 
     // Store result in cache
@@ -293,7 +289,7 @@ public class SDKHelper {
     long size = libraryCache.size();
     libraryCache.invalidateAll();
     libraryCache.cleanUp();
-    logger.info("Cleared {} entries from library cache", size);
+    log.info("Cleared {} entries from library cache", size);
     return size;
   }
 
@@ -306,7 +302,7 @@ public class SDKHelper {
     long size = libraryObservationsCache.size();
     libraryObservationsCache.invalidateAll();
     libraryObservationsCache.cleanUp();
-    logger.info("Cleared {} entries from library observations cache", size);
+    log.info("Cleared {} entries from library observations cache", size);
     return size;
   }
 
@@ -319,7 +315,7 @@ public class SDKHelper {
     long size = applicationsCache.size();
     applicationsCache.invalidateAll();
     applicationsCache.cleanUp();
-    logger.info("Cleared {} entries from applications cache", size);
+    log.info("Cleared {} entries from applications cache", size);
     return size;
   }
 
@@ -334,7 +330,7 @@ public class SDKHelper {
     long applicationsEntries = clearApplicationsCache();
 
     long totalCleared = libraryEntries + observationsEntries + applicationsEntries;
-    logger.info("Cleared a total of {} entries from all caches", totalCleared);
+    log.info("Cleared a total of {} entries from all caches", totalCleared);
 
     return totalCleared;
   }

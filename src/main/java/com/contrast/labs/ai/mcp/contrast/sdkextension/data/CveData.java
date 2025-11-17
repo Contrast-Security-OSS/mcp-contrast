@@ -16,8 +16,10 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 
 import java.util.List;
+import lombok.Data;
 
 /** Root class for deserializing CVE data from JSON. */
+@Data
 public class CveData {
 
   private Cve cve;
@@ -25,44 +27,4 @@ public class CveData {
   private List<Library> libraries;
   private List<App> apps;
   private List<Server> servers;
-
-  public Cve getCve() {
-    return cve;
-  }
-
-  public void setCve(Cve cve) {
-    this.cve = cve;
-  }
-
-  public ImpactStats getImpactStats() {
-    return impactStats;
-  }
-
-  public void setImpactStats(ImpactStats impactStats) {
-    this.impactStats = impactStats;
-  }
-
-  public List<Library> getLibraries() {
-    return libraries;
-  }
-
-  public void setLibraries(List<Library> libraries) {
-    this.libraries = libraries;
-  }
-
-  public List<App> getApps() {
-    return apps;
-  }
-
-  public void setApps(List<App> apps) {
-    this.apps = apps;
-  }
-
-  public List<Server> getServers() {
-    return servers;
-  }
-
-  public void setServers(List<Server> servers) {
-    this.servers = servers;
-  }
 }

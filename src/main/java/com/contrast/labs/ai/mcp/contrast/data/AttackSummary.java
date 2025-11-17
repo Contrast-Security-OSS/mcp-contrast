@@ -19,7 +19,6 @@ import com.contrast.labs.ai.mcp.contrast.FilterHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.Attack;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Simplified attack data record focusing on key information for MCP tools. Contains: dates, rules,
@@ -46,7 +45,7 @@ public record AttackSummary(
     var appInfos =
         Optional.ofNullable(attack.getAttacksApplication()).orElse(List.of()).stream()
             .map(ApplicationAttackInfo::fromAttackApplication)
-            .collect(Collectors.toList());
+            .toList();
 
     return new AttackSummary(
         attack.getUuid(),
