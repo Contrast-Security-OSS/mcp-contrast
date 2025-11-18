@@ -474,19 +474,22 @@ This workflow creates a standard PR ready for immediate review, targeting the `m
    - Create/apply labels: `pr-created` and `in-review`
    - Apply to all beads worked on in this branch
 
-**2. Push to remote:**
+**2. Update Jira status (if applicable):**
+   - If bead has linked Jira ticket, transition to "In Review" or equivalent review status
+
+**3. Push to remote:**
    - Push the feature branch to remote repository
 
-**3. Complete time tracking:**
+**4. Complete time tracking:**
    - Follow the **"Completing Time Tracking"** process in the Time Tracking section
    - This is for parent beads only (child beads were already rated when closed)
 
-**4. Create or update Pull Request:**
+**5. Create or update Pull Request:**
    - If PR doesn't exist, create it with base branch `main`
    - If PR exists, update the description
    - PR should be ready for review (NOT draft)
 
-**5. Generate comprehensive PR description:**
+**6. Generate comprehensive PR description:**
    - Follow the **"Creating High-Quality PR Descriptions"** section above
    - Use the standard structure: Why / What / How / Walkthrough / Testing
    - No special warnings or dependency context needed
@@ -506,14 +509,17 @@ This workflow creates a draft PR that depends on another unmerged PR (stacked br
    - **Do NOT add `in-review` label yet** (only added when promoted to ready-for-review)
    - Apply to all beads worked on in this branch
 
-**3. Push to remote:**
+**3. Update Jira status (if applicable):**
+   - If bead has linked Jira ticket, keep status as "In Progress" (draft PR, not ready for review yet)
+
+**4. Push to remote:**
    - Push the feature branch: `git push -u origin <branch-name>`
 
-**4. Complete time tracking:**
+**5. Complete time tracking:**
    - Follow the **"Completing Time Tracking"** process in the Time Tracking section
    - This is for parent beads only (child beads were already rated when closed)
 
-**5. Create DRAFT Pull Request:**
+**6. Create DRAFT Pull Request:**
    - **Base branch**: Set to the parent PR's branch (NOT main)
    - **Status**: MUST be draft
    - **Title**: Include `[STACKED]` indicator
@@ -536,7 +542,7 @@ This workflow creates a draft PR that depends on another unmerged PR (stacked br
    - After the warning and dependency context, follow the **"Creating High-Quality PR Descriptions"** section
    - Use the standard structure: Why / What / How / Walkthrough / Testing
 
-**6. Verify configuration:**
+**7. Verify configuration:**
    - Confirm PR is in draft status
    - Confirm base branch is the parent PR's branch
    - Confirm warning and dependency context are prominently displayed
