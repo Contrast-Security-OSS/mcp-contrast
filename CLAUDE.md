@@ -76,6 +76,18 @@ Required environment variables/arguments:
 3. **Hint Generation**: Rule-based system provides contextual security guidance
 4. **Defensive Design**: All external API calls include error handling and logging
 
+### MCP Tool Standards
+
+**All MCP tool development MUST follow the standards defined in [MCP_STANDARDS.md](./MCP_STANDARDS.md).**
+
+When creating or modifying MCP tools:
+- Read MCP_STANDARDS.md for complete naming and design standards
+- Use `action_entity` naming convention (e.g., `search_vulnerabilities`, `get_vulnerability`)
+- Follow verb hierarchy: `search_*` (flexible filtering) > `list_*` (scoped) > `get_*` (single item)
+- Use camelCase for parameters, snake_case for tool names
+- Document all tools with clear descriptions and parameter specifications
+- See MCP_STANDARDS.md for anti-patterns, examples, and detailed requirements
+
 ### Coding Standards
 
 **CLAUDE.md Principle**: Maximum conciseness to minimize token usage. Violate grammar rules for brevity. No verbose examples.
