@@ -133,6 +133,10 @@ When creating or modifying MCP tools:
 - AssertJ fluent: `assertThat(x).isEqualTo(y)` not `assertEquals(y, x)`
 - Naming: `methodName_should_expectedBehavior_when_condition()`
 - Example: `getVulnerability_should_return_data_when_valid_id()`
+- **Anonymous builders**: Use `AnonymousXxxBuilder` pattern for complex mocks (see `AnonymousApplicationBuilder.java`)
+  - Provides valid defaults for all fields with lenient stubbing
+  - Tests only specify fields they care about: `AnonymousApplicationBuilder.validApp().withName("MyApp").build()`
+  - Avoids over-mocking anti-pattern and UnnecessaryStubbingException
 
 ### Security Considerations
 
