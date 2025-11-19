@@ -284,7 +284,7 @@ public class SCAServiceIntegrationTest
 
   @Test
   void testListApplicationsVulnerableToCVE_Success() throws IOException {
-    log.info("\n=== Integration Test: list_applications_vulnerable_to_cve ===");
+    log.info("\n=== Integration Test: list_applications_by_cve ===");
 
     if (testData.vulnerableCveId == null) {
       log.info("⚠️  SKIPPED: No vulnerable libraries with CVEs found in test data");

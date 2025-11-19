@@ -219,7 +219,7 @@ class SCAServiceTest {
         .isEqualTo(0);
   }
 
-  // ========== Tests for list_applications_vulnerable_to_cve ==========
+  // ========== Tests for list_applications_by_cve ==========
 
   @Test
   void testListCVESForApplication_Success() throws IOException {
@@ -316,6 +316,117 @@ class SCAServiceTest {
     assertThat(firstApp.getClassCount())
         .as("Class count should be populated")
         .isGreaterThanOrEqualTo(0);
+  }
+
+  @Test
+  void testListCVESForApplication_NullLibrariesList_WithAppLibraries() throws IOException {
+    // Given - CVE data with null libraries list AND app has libraries (triggers NPE bug)
+    var cveData = new CveData();
+    var app = mock(com.contrast.labs.ai.mcp.contrast.sdkextension.data.App.class);
+    when(app.getApp_id()).thenReturn(TEST_APP_ID);
+    when(app.getName()).thenReturn("Test Application");
+
+    var apps = new ArrayList<com.contrast.labs.ai.mcp.contrast.sdkextension.data.App>();
+    apps.add(app);
+    cveData.setApps(apps);
+    cveData.setLibraries(null); // NULL libraries list
+
+    if (mockedSDKExtension != null) {
+      mockedSDKExtension.close();
+    }
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(cveData);
+            });
+
+    // Mock getLibsForID to return libraries (triggers inner loop that NPEs on null vulnerable libs)
+    var mockLibraries = createMockLibraries(1);
+    mockedSDKHelper
+        .when(() -> SDKHelper.getLibsForID(anyString(), eq(TEST_ORG_ID), any(SDKExtension.class)))
+        .thenReturn(mockLibraries);
+
+    // When/Then - NPE is wrapped in IOException due to catch block
+    assertThatThrownBy(
+            () -> {
+              scaService.listCVESForApplication(TEST_CVE_ID);
+            })
+        .as("Should throw IOException wrapping NPE when libraries list is null")
+        .isInstanceOf(IOException.class)
+        .hasMessageContaining("Failed to retrieve CVE data")
+        .hasCauseInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void testListCVESForApplication_NullAppsList() throws IOException {
+    // Given - CVE data with null apps list (NPE bug)
+    var cveData = new CveData();
+    cveData.setApps(null); // NULL apps list
+    cveData.setLibraries(new ArrayList<>());
+
+    if (mockedSDKExtension != null) {
+      mockedSDKExtension.close();
+    }
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(cveData);
+            });
+
+    // When/Then - NPE is wrapped in IOException due to catch block
+    assertThatThrownBy(
+            () -> {
+              scaService.listCVESForApplication(TEST_CVE_ID);
+            })
+        .as("Should throw IOException wrapping NPE when apps list is null")
+        .isInstanceOf(IOException.class)
+        .hasMessageContaining("Failed to retrieve CVE data")
+        .hasCauseInstanceOf(NullPointerException.class);
+  }
+
+  @Test
+  void testListCVESForApplication_ZeroClassUsage_NotPopulated() throws IOException {
+    // Given - Library with classUsage=0 should NOT populate app fields
+    var mockCveData = createMockCveDataWithApps();
+
+    // Library with ZERO class usage
+    var mockLibraries = new ArrayList<LibraryExtended>();
+    LibraryExtended lib = mock();
+    when(lib.getFilename()).thenReturn("unused-lib.jar");
+    when(lib.getHash()).thenReturn("matching-hash-789"); // Matches CVE data
+    when(lib.getVersion()).thenReturn("1.0.0");
+    when(lib.getClassCount()).thenReturn(100);
+    when(lib.getClassedUsed()).thenReturn(0); // ZERO usage - should NOT populate!
+    mockLibraries.add(lib);
+
+    if (mockedSDKExtension != null) {
+      mockedSDKExtension.close();
+    }
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(mockCveData);
+            });
+
+    mockedSDKHelper
+        .when(() -> SDKHelper.getLibsForID(anyString(), eq(TEST_ORG_ID), any(SDKExtension.class)))
+        .thenReturn(mockLibraries);
+
+    // When
+    var result = scaService.listCVESForApplication(TEST_CVE_ID);
+
+    // Then
+    assertThat(result).as("Result should not be null").isNotNull();
+    assertThat(result.getApps()).as("Should have apps").isNotEmpty();
+
+    // Verify class usage was NOT populated (classUsage=0 means not exploitable)
+    var firstApp = result.getApps().get(0);
+    assertThat(firstApp.getClassCount())
+        .as("Class count should NOT be populated when classUsage=0")
+        .isEqualTo(0); // Should remain at initial value (0 from mock setup)
   }
 
   // ========== Helper Methods ==========

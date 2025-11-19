@@ -56,6 +56,28 @@ Tool names (in `@Tool` annotation) use `action_entity` snake_case format.
 
 ---
 
+## Exceptions and Special Cases
+
+### Analytical and Aggregate Data
+
+Tools returning analytical data (reports, coverage, metadata) may use `get_*` even when returning collections, if the data represents a singular conceptual entity.
+
+**Criteria for exception:**
+- Data represents a report/analysis/coverage for a single entity (e.g., one app)
+- Primary semantic is "getting THE [singular concept]" not "listing items"
+- Filter parameters refine the analysis scope, not search for matching items
+
+**Approved exceptions:**
+- ✅ `get_route_coverage(appId, ...)` - Gets THE route coverage report for an app
+- ✅ `get_session_metadata(appId)` - Gets THE metadata for a session
+- ✅ `get_scan_results(projectName)` - Gets THE scan results for a project
+
+**Counter-examples (should use list_* or search_*):**
+- ❌ `get_applications_by_tag(tag)` - Should be `search_applications(tag=...)`
+- ❌ `get_protect_rules(appId)` - Should be `list_application_rules(appId)`
+
+---
+
 ## Parameters
 
 ### Naming: camelCase

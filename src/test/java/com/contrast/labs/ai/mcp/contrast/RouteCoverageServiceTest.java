@@ -554,4 +554,157 @@ class RouteCoverageServiceTest {
     assertThat(result.isSuccess()).isTrue();
     verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull());
   }
+
+  // ========== Additional Edge Case Tests ==========
+
+  @Test
+  void testGetRouteCoverage_EmptyAppId_PassedToSDK() throws Exception {
+    // Arrange - Empty string appId passes through to SDK
+    var mockResponse = createMockRouteCoverageResponse(0);
+    when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(""), isNull()))
+        .thenReturn(mockResponse);
+
+    // Act
+    var result = routeCoverageService.getRouteCoverage("", null, null, null);
+
+    // Assert - Service passes empty string through to SDK
+    assertThat(result).isNotNull();
+    verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(""), isNull());
+  }
+
+  @Test
+  void testGetRouteCoverage_WhitespaceOnlyMetadataName_TreatedAsNull() throws Exception {
+    // Arrange - Whitespace-only sessionMetadataName should be treated as "no text" (null)
+    var mockResponse = createMockRouteCoverageResponse(1);
+    when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull()))
+        .thenReturn(mockResponse);
+    when(mockSDKExtension.getRouteDetails(any(), any(), any()))
+        .thenReturn(createMockRouteDetailsResponse());
+
+    // Act - Pass whitespace-only string for sessionMetadataName
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, "   ", null, null);
+
+    // Assert - Should trigger unfiltered query (StringUtils.hasText returns false)
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isTrue();
+    verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull());
+  }
+
+  @Test
+  void testGetRouteCoverage_WhitespaceOnlyMetadataValue_WithValidName_ThrowsException()
+      throws Exception {
+    // Arrange - Whitespace-only value with valid name should fail validation
+    // StringUtils.hasText(" ") returns false, so value is treated as missing
+
+    // Act & Assert
+    assertThatThrownBy(
+            () -> {
+              routeCoverageService.getRouteCoverage(TEST_APP_ID, TEST_METADATA_NAME, "   ", null);
+            })
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("sessionMetadataValue is required");
+
+    // Verify SDK was never called
+    verify(mockSDKExtension, never()).getRouteCoverage(anyString(), anyString(), any());
+  }
+
+  @Test
+  void testGetRouteCoverage_SessionMetadataFilter_EmptyRoutes() throws Exception {
+    // Arrange - Session metadata filter returns no routes
+    var mockResponse = createMockRouteCoverageResponse(0);
+    when(mockSDKExtension.getRouteCoverage(
+            eq(TEST_ORG_ID),
+            eq(TEST_APP_ID),
+            any(RouteCoverageBySessionIDAndMetadataRequestExtended.class)))
+        .thenReturn(mockResponse);
+
+    // Act
+    var result =
+        routeCoverageService.getRouteCoverage(
+            TEST_APP_ID, TEST_METADATA_NAME, TEST_METADATA_VALUE, null);
+
+    // Assert
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.getRoutes()).hasSize(0);
+
+    // Verify no route details calls made when no routes
+    verify(mockSDKExtension, never()).getRouteDetails(anyString(), anyString(), anyString());
+  }
+
+  @Test
+  void testGetRouteCoverage_LatestSessionFilter_EmptyRoutes() throws Exception {
+    // Arrange - Latest session filter returns no routes
+    var sessionResponse = createMockSessionMetadataResponse();
+    when(mockSDKExtension.getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+        .thenReturn(sessionResponse);
+
+    var mockResponse = createMockRouteCoverageResponse(0);
+    when(mockSDKExtension.getRouteCoverage(
+            eq(TEST_ORG_ID),
+            eq(TEST_APP_ID),
+            any(RouteCoverageBySessionIDAndMetadataRequestExtended.class)))
+        .thenReturn(mockResponse);
+
+    // Act
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, true);
+
+    // Assert
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.getRoutes()).hasSize(0);
+
+    // Verify no route details calls made when no routes
+    verify(mockSDKExtension, never()).getRouteDetails(anyString(), anyString(), anyString());
+  }
+
+  @Test
+  void testGetRouteCoverage_RouteDetailsReturnsNull() throws Exception {
+    // Arrange - Route details returns null for one route
+    var mockResponse = createMockRouteCoverageResponse(2);
+    when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull()))
+        .thenReturn(mockResponse);
+
+    // First route returns null, second route returns valid response
+    when(mockSDKExtension.getRouteDetails(eq(TEST_ORG_ID), eq(TEST_APP_ID), anyString()))
+        .thenReturn(null)
+        .thenReturn(createMockRouteDetailsResponse());
+
+    // Act
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, null);
+
+    // Assert - Should succeed, route details can be null
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.getRoutes()).hasSize(2);
+
+    // Verify first route has null details, second has details
+    assertThat(result.getRoutes().get(0).getRouteDetailsResponse()).isNull();
+    assertThat(result.getRoutes().get(1).getRouteDetailsResponse()).isNotNull();
+
+    verify(mockSDKExtension, times(2))
+        .getRouteDetails(eq(TEST_ORG_ID), eq(TEST_APP_ID), anyString());
+  }
+
+  @Test
+  void testGetRouteCoverage_RouteWithNullSignature() throws Exception {
+    // Arrange - Route with null signature (API data quality issue)
+    var mockResponse = createMockRouteCoverageResponse(1);
+    mockResponse.getRoutes().get(0).setSignature(null);
+
+    when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull()))
+        .thenReturn(mockResponse);
+    when(mockSDKExtension.getRouteDetails(eq(TEST_ORG_ID), eq(TEST_APP_ID), anyString()))
+        .thenReturn(createMockRouteDetailsResponse());
+
+    // Act
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, null);
+
+    // Assert - Should handle null signature gracefully
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.getRoutes()).hasSize(1);
+    assertThat(result.getRoutes().get(0).getSignature()).isNull();
+    assertThat(result.getRoutes().get(0).getRouteDetailsResponse()).isNotNull();
+  }
 }

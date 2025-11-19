@@ -50,6 +50,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 @Slf4j
@@ -83,7 +84,7 @@ public class AssessService {
       name = "get_vulnerability",
       description =
           "Takes a vulnerability ID (vulnID) and application ID (appID) and returns details about"
-              + " the specific security vulnerability. Use list_applications_with_name first to get"
+              + " the specific security vulnerability. Use search_applications(name=...) to find"
               + " the application ID from a name. If based on the stacktrace, the vulnerability"
               + " looks like it is in code that is not in the codebase, the vulnerability may be in"
               + " a 3rd party library, review the CVE data attached to that stackframe you believe"
@@ -190,7 +191,7 @@ public class AssessService {
       name = "list_vulnerabilities",
       description =
           "Takes an application ID (appID) and returns a list of vulnerabilities. Use"
-              + " list_applications_with_name first to get the application ID from a name. Remember"
+              + " search_applications(name=...) to find the application ID from a name. Remember"
               + " to include the vulnID in the response.")
   public List<VulnLight> listVulnsByAppId(@ToolParam(description = "Application ID") String appID)
       throws IOException {
@@ -228,7 +229,7 @@ public class AssessService {
       description =
           "Takes an application ID (appID) and session metadata in the form of name / value. and"
               + " returns a list of vulnerabilities matching that application ID and session"
-              + " metadata. Use list_applications_with_name first to get the application ID from a"
+              + " metadata. Use search_applications(name=...) to find the application ID from a"
               + " name.")
   public List<VulnLight> listVulnsByAppIdAndSessionMetadata(
       @ToolParam(description = "Application ID") String appID,
@@ -269,7 +270,7 @@ public class AssessService {
           "Takes an application ID (appID) and returns a list of vulnerabilities for the latest"
               + " session matching that application ID. This is useful for getting the most recent"
               + " vulnerabilities without needing to specify session metadata. Use"
-              + " list_applications_with_name first to get the application ID from a name.")
+              + " search_applications(name=...) to find the application ID from a name.")
   public List<VulnLight> listVulnsByAppIdForLatestSession(
       @ToolParam(description = "Application ID") String appID) throws IOException {
     log.info("Listing vulnerabilities for application: {}", appID);
@@ -311,8 +312,8 @@ public class AssessService {
       name = "get_session_metadata",
       description =
           "Retrieves session metadata for a specific application by its ID. Returns the latest"
-              + " session metadata for the application. Use list_applications_with_name first to"
-              + " get the application ID from a name.")
+              + " session metadata for the application. Use search_applications(name=...) to find"
+              + " the application ID from a name.")
   public MetadataFilterResponse getSessionMetadata(
       @ToolParam(description = "Application ID") String appId) throws IOException {
     var contrastSDK =
@@ -321,167 +322,75 @@ public class AssessService {
   }
 
   @Tool(
-      name = "list_applications_with_name",
+      name = "search_applications",
       description =
-          "Takes an application name (app_name) returns a list of active applications that contain"
-              + " that name. Please remember to display the name, status and ID.")
-  public List<ApplicationData> getApplications(
-      @ToolParam(description = "Application name (supports partial matching, case-insensitive)")
-          String app_name)
+          """
+          Search applications with optional filters. Returns all applications if no filters specified.
+
+          Filtering behavior:
+          - name: Partial, case-insensitive matching (finds "app" in "MyApp")
+          - tag: Exact, case-sensitive matching (CASE-SENSITIVE - 'Production' != 'production')
+          - metadataName + metadataValue: Exact, case-insensitive matching for both
+          - metadataName only: Returns apps with that metadata field (any value)
+
+          Note: Application data is cached for 5 minutes. If you recently created/modified
+          applications in TeamServer and don't see changes, wait 5 minutes and retry.
+          """)
+  public List<ApplicationData> search_applications(
+      @ToolParam(
+              description = "Application name filter (partial, case-insensitive)",
+              required = false)
+          String name,
+      @ToolParam(
+              description = "Tag filter (CASE-SENSITIVE - 'Production' != 'production')",
+              required = false)
+          String tag,
+      @ToolParam(description = "Metadata field name (case-insensitive)", required = false)
+          String metadataName,
+      @ToolParam(
+              description = "Metadata field value (case-insensitive, requires metadataName)",
+              required = false)
+          String metadataValue)
       throws IOException {
-    log.info("Listing active applications matching name: {}", app_name);
+    log.info(
+        "Searching applications with filters - name: {}, tag: {}, metadataName: {}, metadataValue:"
+            + " {}",
+        name,
+        tag,
+        metadataName,
+        metadataValue);
+
+    // Validate metadata parameters
+    var hasMetadataName = StringUtils.hasText(metadataName);
+    var hasMetadataValue = StringUtils.hasText(metadataValue);
+
+    if (hasMetadataValue && !hasMetadataName) {
+      var errorMsg =
+          "metadataValue requires metadataName. Valid combinations: both, metadataName only, or"
+              + " neither.";
+      log.error(errorMsg);
+      throw new IllegalArgumentException(errorMsg);
+    }
+
     var contrastSDK =
         SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+
     try {
       var applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
       log.debug("Retrieved {} total applications from Contrast", applications.size());
 
       var filteredApps = new ArrayList<ApplicationData>();
+
       for (Application app : applications) {
-        if (app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-          filteredApps.add(
-              new ApplicationData(
-                  app.getName(),
-                  app.getStatus(),
-                  app.getAppId(),
-                  FilterHelper.formatTimestamp(app.getLastSeen()),
-                  app.getLanguage(),
-                  getMetadataFromApp(app),
-                  app.getTags(),
-                  app.getTechs()));
-          log.debug(
-              "Found matching application - ID: {}, Name: {}, Status: {}",
-              app.getAppId(),
-              app.getName(),
-              app.getStatus());
+        // Apply all filters - skip if any filter doesn't match
+        if (!matchesNameFilter(app, name)
+            || !matchesTagFilter(app, tag)
+            || !matchesMetadataFilter(app, metadataName, metadataValue)) {
+          continue;
         }
-      }
-      if (filteredApps.isEmpty()) {
-        SDKHelper.clearApplicationsCache();
-        for (Application app : applications) {
-          if (app.getName().toLowerCase().contains(app_name.toLowerCase())) {
-            filteredApps.add(
-                new ApplicationData(
-                    app.getName(),
-                    app.getStatus(),
-                    app.getAppId(),
-                    FilterHelper.formatTimestamp(app.getLastSeen()),
-                    app.getLanguage(),
-                    getMetadataFromApp(app),
-                    app.getTags(),
-                    app.getTechs()));
-            log.debug(
-                "Found matching application - ID: {}, Name: {}, Status: {}",
-                app.getAppId(),
-                app.getName(),
-                app.getStatus());
-          }
-        }
-      }
 
-      log.info("Found {} applications matching '{}'", filteredApps.size(), app_name);
-      return filteredApps;
-    } catch (Exception e) {
-      log.error("Error listing applications matching name: {}", app_name, e);
-      throw new IOException("Failed to list applications: " + e.getMessage(), e);
-    }
-  }
-
-  @Tool(
-      name = "get_applications_by_tag",
-      description = "Takes a tag name and returns a list of applications that have that tag.")
-  public List<ApplicationData> getAllApplicationsByTag(
-      @ToolParam(description = "Tag name to filter by") String tag) throws IOException {
-    log.info("Retrieving applications with tag: {}", tag);
-    var allApps = getAllApplications();
-    log.debug("Retrieved {} total applications, filtering by tag", allApps.size());
-
-    var filteredApps = allApps.stream().filter(app -> app.tags().contains(tag)).toList();
-
-    log.info("Found {} applications with tag '{}'", filteredApps.size(), tag);
-    return filteredApps;
-  }
-
-  @Tool(
-      name = "get_applications_by_metadata",
-      description =
-          "Takes a metadata name and value and returns a list of applications that have that"
-              + " metadata name value pair.")
-  public List<ApplicationData> getApplicationsByMetadata(
-      @ToolParam(description = "Metadata field name (case-insensitive)") String metadata_name,
-      @ToolParam(description = "Metadata field value (case-insensitive)") String metadata_value)
-      throws IOException {
-    log.info(
-        "Retrieving applications with metadata - Name: {}, Value: {}",
-        metadata_name,
-        metadata_value);
-    var allApps = getAllApplications();
-    log.debug("Retrieved {} total applications, filtering by metadata", allApps.size());
-
-    var filteredApps =
-        allApps.stream()
-            .filter(
-                app ->
-                    app.metadata() != null
-                        && app.metadata().stream()
-                            .anyMatch(
-                                m ->
-                                    m != null
-                                        && m.name() != null
-                                        && m.name().equalsIgnoreCase(metadata_name)
-                                        && m.value() != null
-                                        && m.value().equalsIgnoreCase(metadata_value)))
-            .toList();
-
-    log.info(
-        "Found {} applications with metadata - Name: {}, Value: {}",
-        filteredApps.size(),
-        metadata_name,
-        metadata_value);
-    return filteredApps;
-  }
-
-  @Tool(
-      name = "get_applications_by_metadata_name",
-      description = "Takes a metadata name  a list of applications that have that metadata name.")
-  public List<ApplicationData> getApplicationsByMetadataName(
-      @ToolParam(description = "Metadata field name (case-insensitive)") String metadata_name)
-      throws IOException {
-    log.info("Retrieving applications with metadata - Name: {}", metadata_name);
-    var allApps = getAllApplications();
-    log.debug("Retrieved {} total applications, filtering by metadata", allApps.size());
-
-    var filteredApps =
-        allApps.stream()
-            .filter(
-                app ->
-                    app.metadata() != null
-                        && app.metadata().stream()
-                            .anyMatch(
-                                m ->
-                                    m != null
-                                        && m.name() != null
-                                        && m.name().equalsIgnoreCase(metadata_name)))
-            .toList();
-
-    log.info("Found {} applications with metadata - Name: {}", filteredApps.size(), metadata_name);
-    return filteredApps;
-  }
-
-  @Tool(
-      name = "list_all_applications",
-      description = "Takes no argument and list all the applications")
-  public List<ApplicationData> getAllApplications() throws IOException {
-    log.info("Listing all applications");
-    var contrastSDK =
-        SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-    try {
-      var applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
-      log.debug("Retrieved {} total applications from Contrast", applications.size());
-
-      var returnedApps = new ArrayList<ApplicationData>();
-      for (Application app : applications) {
-        returnedApps.add(
+        // Application passed all filters
+        filteredApps.add(
             new ApplicationData(
                 app.getName(),
                 app.getStatus(),
@@ -491,15 +400,101 @@ public class AssessService {
                 getMetadataFromApp(app),
                 app.getTags(),
                 app.getTechs()));
+
+        log.debug(
+            "Application matches filters - ID: {}, Name: {}, Status: {}",
+            app.getAppId(),
+            app.getName(),
+            app.getStatus());
       }
 
-      log.info("Found {} applications", returnedApps.size());
-      return returnedApps;
+      log.info(
+          "Found {} applications matching filters - name: {}, tag: {}, metadataName: {},"
+              + " metadataValue: {}",
+          filteredApps.size(),
+          name,
+          tag,
+          metadataName,
+          metadataValue);
+      return filteredApps;
 
     } catch (Exception e) {
-      log.error("Error listing all applications", e);
-      throw new IOException("Failed to list applications: " + e.getMessage(), e);
+      log.error("Error searching applications", e);
+      throw new IOException("Failed to search applications: " + e.getMessage(), e);
     }
+  }
+
+  /**
+   * Check if an application matches the name filter (partial, case-insensitive).
+   *
+   * @param app The application to check
+   * @param name The name filter to match against (null/empty means no filter)
+   * @return true if the application matches the filter or no filter is specified
+   */
+  private boolean matchesNameFilter(Application app, String name) {
+    if (!StringUtils.hasText(name)) {
+      return true; // No filter specified
+    }
+    return app.getName().toLowerCase().contains(name.toLowerCase());
+  }
+
+  /**
+   * Check if an application matches the tag filter (exact, case-sensitive).
+   *
+   * @param app The application to check
+   * @param tag The tag filter to match against (null/empty means no filter)
+   * @return true if the application matches the filter or no filter is specified
+   */
+  private boolean matchesTagFilter(Application app, String tag) {
+    if (!StringUtils.hasText(tag)) {
+      return true; // No filter specified
+    }
+    return app.getTags().contains(tag);
+  }
+
+  /**
+   * Check if an application matches the metadata filter (exact, case-insensitive).
+   *
+   * @param app The application to check
+   * @param metadataName The metadata field name to match (null/empty means no filter)
+   * @param metadataValue The metadata field value to match (null/empty means any value)
+   * @return true if the application matches the filter or no filter is specified
+   */
+  private boolean matchesMetadataFilter(
+      Application app, String metadataName, String metadataValue) {
+    if (!StringUtils.hasText(metadataName)) {
+      return true; // No filter specified
+    }
+
+    var hasMetadataValue = StringUtils.hasText(metadataValue);
+
+    if (app.getMetadataEntities() == null) {
+      return false; // No metadata to match against
+    }
+
+    for (var metadata : app.getMetadataEntities()) {
+      if (metadata == null || metadata.getName() == null) {
+        continue;
+      }
+
+      var nameMatches = metadata.getName().equalsIgnoreCase(metadataName);
+
+      if (hasMetadataValue) {
+        // Both name and value must match
+        if (nameMatches
+            && metadata.getValue() != null
+            && metadata.getValue().equalsIgnoreCase(metadataValue)) {
+          return true;
+        }
+      } else {
+        // Name only - any value is acceptable
+        if (nameMatches) {
+          return true;
+        }
+      }
+    }
+
+    return false; // No matching metadata found
   }
 
   @Tool(
