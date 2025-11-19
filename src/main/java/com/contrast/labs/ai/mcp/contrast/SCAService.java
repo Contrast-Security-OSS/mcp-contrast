@@ -58,7 +58,7 @@ public class SCAService {
       name = "list_application_libraries",
       description =
           "Takes an application ID and returns the libraries used in the application. Use"
-              + " list_applications_with_name first to get the application ID from a name. Note: if"
+              + " search_applications(name=...) to find the application ID from a name. Note: if"
               + " class usage count is 0 the library is unlikely to be used")
   public List<LibraryExtended> getApplicationLibrariesByID(String appID) throws IOException {
     if (!StringUtils.hasText(appID)) {
