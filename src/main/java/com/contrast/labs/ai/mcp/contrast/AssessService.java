@@ -188,127 +188,6 @@ public class AssessService {
   }
 
   @Tool(
-      name = "list_vulnerabilities",
-      description =
-          "Takes an application ID (appID) and returns a list of vulnerabilities. Use"
-              + " search_applications(name=...) to find the application ID from a name. Remember"
-              + " to include the vulnID in the response.")
-  public List<VulnLight> listVulnsByAppId(@ToolParam(description = "Application ID") String appID)
-      throws IOException {
-    log.info("Listing vulnerabilities for application ID: {}", appID);
-    var contrastSDK =
-        SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-    try {
-      // Use SDK native API with SESSION_METADATA, SERVER_ENVIRONMENTS, and APPLICATION expand
-      var form = new TraceFilterForm();
-      form.setExpand(
-          EnumSet.of(
-              TraceFilterForm.TraceExpandValue.SESSION_METADATA,
-              TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
-              TraceFilterForm.TraceExpandValue.APPLICATION));
-
-      var traces = contrastSDK.getTraces(orgID, appID, form);
-      log.debug(
-          "Found {} vulnerability traces for application ID: {}",
-          traces.getTraces() != null ? traces.getTraces().size() : 0,
-          appID);
-
-      var vulns = traces.getTraces().stream().map(vulnerabilityMapper::toVulnLight).toList();
-
-      log.info(
-          "Successfully retrieved {} vulnerabilities for application ID: {}", vulns.size(), appID);
-      return vulns;
-    } catch (Exception e) {
-      log.error("Error listing vulnerabilities for application ID: {}", appID, e);
-      throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
-    }
-  }
-
-  @Tool(
-      name = "list_vulns_by_app_and_metadata",
-      description =
-          "Takes an application ID (appID) and session metadata in the form of name / value. and"
-              + " returns a list of vulnerabilities matching that application ID and session"
-              + " metadata. Use search_applications(name=...) to find the application ID from a"
-              + " name.")
-  public List<VulnLight> listVulnsByAppIdAndSessionMetadata(
-      @ToolParam(description = "Application ID") String appID,
-      @ToolParam(description = "Session metadata field name") String session_Metadata_Name,
-      @ToolParam(description = "Session metadata field value") String session_Metadata_Value)
-      throws IOException {
-    log.info("Listing vulnerabilities for application: {}", appID);
-
-    log.info("metadata : " + session_Metadata_Name + session_Metadata_Value);
-
-    try {
-      var vulns = listVulnsByAppId(appID);
-      var returnVulns = new ArrayList<VulnLight>();
-      for (VulnLight vuln : vulns) {
-        if (vuln.sessionMetadata() != null) {
-          for (SessionMetadata sm : vuln.sessionMetadata()) {
-            for (MetadataItem metadataItem : sm.getMetadata()) {
-              if (metadataItem.getDisplayLabel().equalsIgnoreCase(session_Metadata_Name)
-                  && metadataItem.getValue().equalsIgnoreCase(session_Metadata_Value)) {
-                returnVulns.add(vuln);
-                log.debug("Found matching vulnerability with ID: {}", vuln.vulnID());
-                break;
-              }
-            }
-          }
-        }
-      }
-      return returnVulns;
-    } catch (Exception e) {
-      log.error("Error listing vulnerabilities for application: {}", appID, e);
-      throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
-    }
-  }
-
-  @Tool(
-      name = "list_vulns_by_app_latest_session",
-      description =
-          "Takes an application ID (appID) and returns a list of vulnerabilities for the latest"
-              + " session matching that application ID. This is useful for getting the most recent"
-              + " vulnerabilities without needing to specify session metadata. Use"
-              + " search_applications(name=...) to find the application ID from a name.")
-  public List<VulnLight> listVulnsByAppIdForLatestSession(
-      @ToolParam(description = "Application ID") String appID) throws IOException {
-    log.info("Listing vulnerabilities for application: {}", appID);
-    var contrastSDK =
-        SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-
-    try {
-      var extension = new SDKExtension(contrastSDK);
-      var latest = extension.getLatestSessionMetadata(orgID, appID);
-
-      // Use SDK's native TraceFilterBody with agentSessionId field
-      var filterBody = new com.contrastsecurity.models.TraceFilterBody();
-      if (latest != null
-          && latest.getAgentSession() != null
-          && latest.getAgentSession().getAgentSessionId() != null) {
-        filterBody.setAgentSessionId(latest.getAgentSession().getAgentSessionId());
-      }
-
-      // Use SDK's native getTraces() with expand parameter
-      var tracesResponse =
-          contrastSDK.getTraces(
-              orgID,
-              appID,
-              filterBody,
-              EnumSet.of(
-                  TraceFilterForm.TraceExpandValue.SESSION_METADATA,
-                  TraceFilterForm.TraceExpandValue.APPLICATION));
-
-      var vulns =
-          tracesResponse.getTraces().stream().map(vulnerabilityMapper::toVulnLight).toList();
-      return vulns;
-    } catch (Exception e) {
-      log.error("Error listing vulnerabilities for application: {}", appID, e);
-      throw new IOException("Failed to list vulnerabilities: " + e.getMessage(), e);
-    }
-  }
-
-  @Tool(
       name = "get_session_metadata",
       description =
           "Retrieves session metadata for a specific application by its ID. Returns the latest"
@@ -498,11 +377,14 @@ public class AssessService {
   }
 
   @Tool(
-      name = "list_all_vulnerabilities",
+      name = "search_vulnerabilities",
       description =
           """
-          Gets vulnerabilities across all applications with optional filtering by severity, status,
-          environment, vulnerability type, date range, application, and tags.
+          Search vulnerabilities across all applications in your organization with optional filtering by
+          severity, status, environment, vulnerability type, date range, and tags.
+
+          This is an organization-level search tool. For application-scoped searches with session filtering
+          capabilities, use the search_app_vulnerabilities tool instead.
 
           Common usage examples:
           - Critical vulnerabilities only: severities="CRITICAL"
@@ -510,9 +392,11 @@ public class AssessService {
           - Production vulnerabilities: environments="PRODUCTION"
           - Recent activity: lastSeenAfter="2025-01-01"
           - Production critical issues with recent activity: environments="PRODUCTION", severities="CRITICAL", lastSeenAfter="2025-01-01"
-          - Specific app's SQL injection issues: appId="abc123", vulnTypes="sql-injection"
           - SmartFix remediated vulnerabilities: vulnTags="SmartFix Remediated", statuses="Remediated"
           - Reviewed critical vulnerabilities: vulnTags="reviewed", severities="CRITICAL"
+
+          Note: This tool requires Contrast Platform Admin or Org Admin permissions to access organization-level
+          vulnerability data.
 
           Returns paginated results with metadata including totalItems (when available) and hasMorePages.
           Check 'message' field for validation warnings or empty result info.
@@ -520,8 +404,13 @@ public class AssessService {
           Response fields:
           - environments: List of all environments (DEVELOPMENT, QA, PRODUCTION) where this vulnerability
                          has been seen over time. Shows historical presence across environments.
+          - application: Application name and ID where the vulnerability was found.
+
+          Related tools:
+          - search_app_vulnerabilities: For app-scoped searches with session filtering
+          - search_applications: To find application IDs by name, tag, or metadata
           """)
-  public PaginatedResponse<VulnLight> getAllVulnerabilities(
+  public PaginatedResponse<VulnLight> searchVulnerabilities(
       @ToolParam(description = "Page number (1-based), default: 1", required = false) Integer page,
       @ToolParam(description = "Items per page (max 100), default: 50", required = false)
           Integer pageSize,
@@ -538,7 +427,6 @@ public class AssessService {
                       + " focus on actionable items)",
               required = false)
           String statuses,
-      @ToolParam(description = "Application ID to filter by", required = false) String appId,
       @ToolParam(
               description =
                   "Comma-separated vulnerability types (e.g., sql-injection,xss-reflected). Use"
@@ -574,14 +462,13 @@ public class AssessService {
           String vulnTags)
       throws IOException {
     log.info(
-        "Listing all vulnerabilities - page: {}, pageSize: {}, filters: severities={}, statuses={},"
-            + " appId={}, vulnTypes={}, environments={}, lastSeenAfter={}, lastSeenBefore={},"
+        "Searching org vulnerabilities - page: {}, pageSize: {}, filters: severities={},"
+            + " statuses={}, vulnTypes={}, environments={}, lastSeenAfter={}, lastSeenBefore={},"
             + " vulnTags={}",
         page,
         pageSize,
         severities,
         statuses,
-        appId,
         vulnTypes,
         environments,
         lastSeenAfter,
@@ -595,7 +482,7 @@ public class AssessService {
         VulnerabilityFilterParams.of(
             severities,
             statuses,
-            appId,
+            null, // No appId for org-level search
             vulnTypes,
             environments,
             lastSeenAfter,
@@ -623,16 +510,8 @@ public class AssessService {
               TraceFilterForm.TraceExpandValue.SESSION_METADATA,
               TraceFilterForm.TraceExpandValue.APPLICATION));
 
-      // Try organization-level API (or app-specific if appId provided)
-      Traces traces;
-      if (appId != null && !appId.trim().isEmpty()) {
-        // Use app-specific API for better performance
-        log.debug("Using app-specific API for appId: {}", appId);
-        traces = contrastSDK.getTraces(orgID, appId, filterForm);
-      } else {
-        // Use org-level API
-        traces = contrastSDK.getTracesInOrg(orgID, filterForm);
-      }
+      // Use organization-level API
+      Traces traces = contrastSDK.getTracesInOrg(orgID, filterForm);
 
       if (traces != null && traces.getTraces() != null) {
         // Organization API worked (empty list with count=0 is valid - means no vulnerabilities or
