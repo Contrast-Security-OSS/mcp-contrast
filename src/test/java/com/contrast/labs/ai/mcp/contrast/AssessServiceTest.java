@@ -1034,4 +1034,39 @@ class AssessServiceTest {
     assertThat(vuln.firstSeenAt()).as("firstSeenAt should be null when not set").isNull();
     assertThat(vuln.closedAt()).as("closedAt should be null when not set").isNull();
   }
+
+  // ==================== search_applications Tests ====================
+
+  @Test
+  void search_applications_should_validate_metadataValue_requires_metadataName() {
+    // Act & Assert - verify parameter validation
+    assertThatThrownBy(() -> assessService.search_applications(null, null, null, "orphan-value"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("metadataValue requires metadataName");
+  }
+
+  @Test
+  void search_applications_should_accept_all_null_parameters() throws IOException {
+    // Arrange - mock applications cache
+    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application app = mock();
+    when(app.getName()).thenReturn("TestApp");
+    when(app.getStatus()).thenReturn("ACTIVE");
+    when(app.getAppId()).thenReturn("test-123");
+    when(app.getLastSeen()).thenReturn(1000L);
+    when(app.getLanguage()).thenReturn("Java");
+    when(app.getTags()).thenReturn(List.of());
+    when(app.getTechs()).thenReturn(List.of());
+    when(app.getMetadataEntities()).thenReturn(List.of());
+
+    mockedSDKHelper
+        .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
+        .thenReturn(List.of(app));
+
+    // Act - call with all null parameters
+    var result = assessService.search_applications(null, null, null, null);
+
+    // Assert - should return all applications when no filters specified
+    assertThat(result).isNotNull().hasSize(1);
+    assertThat(result.get(0).name()).isEqualTo("TestApp");
+  }
 }
