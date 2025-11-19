@@ -74,7 +74,7 @@ public class SCAService {
   }
 
   @Tool(
-      name = "list_applications_vulnerable_to_cve",
+      name = "list_applications_by_cve",
       description =
           "takes a cve id and returns the applications and servers vulnerable to the cve. Please"
               + " note if the application class usage is 0, its unlikely to be vulnerable")
