@@ -1083,21 +1083,9 @@ class AssessServiceTest {
 
   @Test
   void search_applications_should_filter_by_name_partial_case_insensitive() throws IOException {
-    // Arrange
-    // app1 matches name filter, so ALL fields needed for result object
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application app1 = mock();
-    when(app1.getName()).thenReturn("MyProductionApp");
-    when(app1.getStatus()).thenReturn("ACTIVE");
-    when(app1.getAppId()).thenReturn("app-1");
-    when(app1.getLastSeen()).thenReturn(1000L);
-    when(app1.getLanguage()).thenReturn("Java");
-    when(app1.getTags()).thenReturn(List.of());
-    when(app1.getTechs()).thenReturn(List.of());
-    when(app1.getMetadataEntities()).thenReturn(List.of());
-
-    // app2 doesn't match name filter, only getName() is checked
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application app2 = mock();
-    when(app2.getName()).thenReturn("TestingApp");
+    // Arrange - only specify names, everything else is valid defaults
+    var app1 = AnonymousApplicationBuilder.validApp().withName("MyProductionApp").build();
+    var app2 = AnonymousApplicationBuilder.validApp().withName("TestingApp").build();
 
     mockedSDKHelper
         .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
@@ -1113,9 +1101,8 @@ class AssessServiceTest {
 
   @Test
   void search_applications_should_filter_by_name_no_matches() throws IOException {
-    // Arrange
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application app = mock();
-    when(app.getName()).thenReturn("MyApp");
+    // Arrange - name doesn't match search term
+    var app = AnonymousApplicationBuilder.validApp().withName("MyApp").build();
 
     mockedSDKHelper
         .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
@@ -1130,21 +1117,13 @@ class AssessServiceTest {
 
   @Test
   void search_applications_should_filter_by_tag_exact_case_sensitive() throws IOException {
-    // Arrange
-    // app1 matches tag filter, so ALL fields needed for result object
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application app1 = mock();
-    when(app1.getName()).thenReturn("App1");
-    when(app1.getStatus()).thenReturn("ACTIVE");
-    when(app1.getAppId()).thenReturn("app-1");
-    when(app1.getLastSeen()).thenReturn(1000L);
-    when(app1.getLanguage()).thenReturn("Java");
-    when(app1.getTags()).thenReturn(List.of("Production"));
-    when(app1.getTechs()).thenReturn(List.of());
-    when(app1.getMetadataEntities()).thenReturn(List.of());
-
-    // app2 doesn't match tag filter (case-sensitive), only getTags() is checked
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application app2 = mock();
-    when(app2.getTags()).thenReturn(List.of("production")); // lowercase
+    // Arrange - demonstrate case-sensitive tag matching
+    var app1 =
+        AnonymousApplicationBuilder.validApp().withName("App1").withTag("Production").build();
+    var app2 =
+        AnonymousApplicationBuilder.validApp()
+            .withTag("production")
+            .build(); // lowercase doesn't match
 
     mockedSDKHelper
         .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
@@ -1160,29 +1139,14 @@ class AssessServiceTest {
 
   @Test
   void search_applications_should_filter_by_metadata_name_and_value() throws IOException {
-    // Arrange
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Metadata metadata1 = mock();
-    when(metadata1.getName()).thenReturn("Environment");
-    when(metadata1.getValue()).thenReturn("Production");
-
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Metadata metadata2 = mock();
-    when(metadata2.getName()).thenReturn("Environment");
-    when(metadata2.getValue()).thenReturn("Development");
-
-    // app1 matches metadata filter, so ALL fields needed for result object
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application app1 = mock();
-    when(app1.getName()).thenReturn("ProdApp");
-    when(app1.getStatus()).thenReturn("ACTIVE");
-    when(app1.getAppId()).thenReturn("app-1");
-    when(app1.getLastSeen()).thenReturn(1000L);
-    when(app1.getLanguage()).thenReturn("Java");
-    when(app1.getTags()).thenReturn(List.of());
-    when(app1.getTechs()).thenReturn(List.of());
-    when(app1.getMetadataEntities()).thenReturn(List.of(metadata1));
-
-    // app2 doesn't match metadata filter, only getMetadataEntities() is checked
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application app2 = mock();
-    when(app2.getMetadataEntities()).thenReturn(List.of(metadata2));
+    // Arrange - demonstrate case-insensitive metadata matching
+    var app1 =
+        AnonymousApplicationBuilder.validApp()
+            .withName("ProdApp")
+            .withMetadata("Environment", "Production")
+            .build();
+    var app2 =
+        AnonymousApplicationBuilder.validApp().withMetadata("Environment", "Development").build();
 
     mockedSDKHelper
         .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
@@ -1198,29 +1162,13 @@ class AssessServiceTest {
 
   @Test
   void search_applications_should_filter_by_metadata_name_only() throws IOException {
-    // Arrange
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Metadata metadata1 = mock();
-    when(metadata1.getName()).thenReturn("Team");
-    when(metadata1.getValue()).thenReturn("Backend");
-
-    // metadata2 doesn't match name "team", so getValue() never called
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Metadata metadata2 = mock();
-    when(metadata2.getName()).thenReturn("Owner");
-
-    // app1 matches metadata name filter, so ALL fields needed for result object
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application app1 = mock();
-    when(app1.getName()).thenReturn("App1");
-    when(app1.getStatus()).thenReturn("ACTIVE");
-    when(app1.getAppId()).thenReturn("app-1");
-    when(app1.getLastSeen()).thenReturn(1000L);
-    when(app1.getLanguage()).thenReturn("Java");
-    when(app1.getTags()).thenReturn(List.of());
-    when(app1.getTechs()).thenReturn(List.of());
-    when(app1.getMetadataEntities()).thenReturn(List.of(metadata1));
-
-    // app2 doesn't match metadata name filter, only getMetadataEntities() is checked
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application app2 = mock();
-    when(app2.getMetadataEntities()).thenReturn(List.of(metadata2));
+    // Arrange - match by metadata name regardless of value
+    var app1 =
+        AnonymousApplicationBuilder.validApp()
+            .withName("App1")
+            .withMetadata("Team", "Backend")
+            .build();
+    var app2 = AnonymousApplicationBuilder.validApp().withMetadata("Owner", "Alice").build();
 
     mockedSDKHelper
         .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
@@ -1236,30 +1184,27 @@ class AssessServiceTest {
 
   @Test
   void search_applications_should_combine_multiple_filters_with_and_logic() throws IOException {
-    // Arrange
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Metadata metadata = mock();
-    when(metadata.getName()).thenReturn("Environment");
-    when(metadata.getValue()).thenReturn("Production");
+    // Arrange - only app1 matches ALL filters (name, tag, metadata)
+    var app1 =
+        AnonymousApplicationBuilder.validApp()
+            .withName("ProdApp1")
+            .withTag("Production")
+            .withMetadata("Environment", "Production")
+            .build();
 
-    // app1 matches all filters, so ALL fields needed for result object
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application app1 = mock();
-    when(app1.getName()).thenReturn("ProdApp1");
-    when(app1.getStatus()).thenReturn("ACTIVE");
-    when(app1.getAppId()).thenReturn("app-1");
-    when(app1.getLastSeen()).thenReturn(1000L);
-    when(app1.getLanguage()).thenReturn("Java");
-    when(app1.getTags()).thenReturn(List.of("Production"));
-    when(app1.getTechs()).thenReturn(List.of());
-    when(app1.getMetadataEntities()).thenReturn(List.of(metadata));
+    var app2 =
+        AnonymousApplicationBuilder.validApp()
+            .withName("ProdApp2")
+            .withTag("Development") // Wrong tag
+            .withMetadata("Environment", "Production")
+            .build();
 
-    // app2 passes name but fails tag check, only getName() and getTags() checked
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application app2 = mock();
-    when(app2.getName()).thenReturn("ProdApp2");
-    when(app2.getTags()).thenReturn(List.of("Development")); // Wrong tag
-
-    // app3 fails name check immediately, only getName() checked
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application app3 = mock();
-    when(app3.getName()).thenReturn("TestApp");
+    var app3 =
+        AnonymousApplicationBuilder.validApp()
+            .withName("TestApp") // Wrong name
+            .withTag("Production")
+            .withMetadata("Environment", "Production")
+            .build();
 
     mockedSDKHelper
         .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
@@ -1276,9 +1221,8 @@ class AssessServiceTest {
 
   @Test
   void search_applications_should_handle_empty_metadata_list() throws IOException {
-    // Arrange - app with empty metadata list
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application app = mock();
-    when(app.getMetadataEntities()).thenReturn(List.of()); // Empty list - key test scenario
+    // Arrange - app with empty metadata list (default from builder)
+    var app = AnonymousApplicationBuilder.validApp().build();
 
     mockedSDKHelper
         .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
@@ -1294,8 +1238,7 @@ class AssessServiceTest {
   @Test
   void search_applications_should_handle_null_metadata_entities() throws IOException {
     // Arrange - app with null metadata entities
-    com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application app = mock();
-    when(app.getMetadataEntities()).thenReturn(null); // Null - key test scenario
+    var app = AnonymousApplicationBuilder.validApp().withMetadataEntities(null).build();
 
     mockedSDKHelper
         .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
