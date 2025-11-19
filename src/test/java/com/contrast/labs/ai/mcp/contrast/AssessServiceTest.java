@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -26,11 +27,14 @@ import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
+import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.http.TraceFilterForm;
+import com.contrastsecurity.models.MetadataFilterResponse;
 import com.contrastsecurity.models.Rules;
 import com.contrastsecurity.models.Trace;
 import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.sdk.ContrastSDK;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -67,6 +71,7 @@ class AssessServiceTest {
   private static final String TEST_API_KEY = "test-api-key";
   private static final String TEST_SERVICE_KEY = "test-service-key";
   private static final String TEST_USERNAME = "test-user";
+  private static final String TEST_APP_ID = "test-app-id-123";
 
   // Named constants for test timestamps
   private static final long JAN_15_2025_10_30_UTC =
@@ -273,6 +278,58 @@ class AssessServiceTest {
     assertThat(result.message())
         .as("Message should explain empty results to AI")
         .isEqualTo("No items found.");
+  }
+
+  // ========== get_session_metadata Tests ==========
+
+  @Test
+  void getSessionMetadata_should_return_metadata_when_valid_appId() throws Exception {
+    var mockResponse = mock(MetadataFilterResponse.class);
+    when(mockContrastSDK.getSessionMetadataForApplication(TEST_ORG_ID, TEST_APP_ID, null))
+        .thenReturn(mockResponse);
+
+    var result = assessService.getSessionMetadata(TEST_APP_ID);
+
+    assertThat(result).isEqualTo(mockResponse);
+    verify(mockContrastSDK).getSessionMetadataForApplication(TEST_ORG_ID, TEST_APP_ID, null);
+  }
+
+  @Test
+  void getSessionMetadata_should_handle_null_appId() throws Exception {
+    assessService.getSessionMetadata(null);
+
+    verify(mockContrastSDK).getSessionMetadataForApplication(TEST_ORG_ID, null, null);
+  }
+
+  @Test
+  void getSessionMetadata_should_handle_empty_appId() throws Exception {
+    assessService.getSessionMetadata("");
+
+    verify(mockContrastSDK).getSessionMetadataForApplication(TEST_ORG_ID, "", null);
+  }
+
+  @Test
+  void getSessionMetadata_should_propagate_IOException_from_sdk() throws Exception {
+    when(mockContrastSDK.getSessionMetadataForApplication(anyString(), anyString(), any()))
+        .thenThrow(new IOException("SDK error"));
+
+    assertThatThrownBy(() -> assessService.getSessionMetadata(TEST_APP_ID))
+        .isInstanceOf(IOException.class)
+        .hasMessageContaining("SDK error");
+  }
+
+  @Test
+  void getSessionMetadata_should_propagate_UnauthorizedException_from_sdk() throws Exception {
+    // UnauthorizedException requires constructor params, so mock it
+    var mockException = mock(UnauthorizedException.class);
+    when(mockException.getMessage()).thenReturn("Unauthorized access");
+
+    when(mockContrastSDK.getSessionMetadataForApplication(anyString(), anyString(), any()))
+        .thenThrow(mockException);
+
+    assertThatThrownBy(() -> assessService.getSessionMetadata(TEST_APP_ID))
+        .isInstanceOf(UnauthorizedException.class)
+        .hasMessage("Unauthorized access");
   }
 
   // ========== Helper Methods ==========
