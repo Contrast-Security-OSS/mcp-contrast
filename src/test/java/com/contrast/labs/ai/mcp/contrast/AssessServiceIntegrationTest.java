@@ -445,4 +445,68 @@ public class AssessServiceIntegrationTest
         "✓ Integration test passed: listVulnsByAppIdForLatestSession() returns vulnerabilities with"
             + " session metadata");
   }
+
+  @Test
+  void testGetSessionMetadata_WithRealApplication() throws IOException {
+    log.info("\n=== Integration Test: get_session_metadata with real application ===");
+
+    // Validate test data was discovered
+    assertThat(testData).as("Test data must be discovered").isNotNull();
+    assertThat(testData.appId).as("Test app ID must exist").isNotBlank();
+
+    log.info("Testing get_session_metadata with appId: {}", testData.appId);
+
+    // Call real method
+    var response = assessService.getSessionMetadata(testData.appId);
+
+    // Verify response structure
+    assertThat(response).as("Response should not be null").isNotNull();
+
+    // Log metadata info if present
+    if (response.getFilters() != null && !response.getFilters().isEmpty()) {
+      log.info("✓ Retrieved {} metadata filter groups", response.getFilters().size());
+      // Log details of filter groups
+      for (var filterGroup : response.getFilters()) {
+        log.info("  - Filter: {} (ID: {})", filterGroup.getLabel(), filterGroup.getId());
+        if (filterGroup.getValues() != null) {
+          log.info("    Values: {}", filterGroup.getValues().size());
+        }
+      }
+    } else {
+      log.info("✓ Response received (no metadata filter groups for this app)");
+    }
+
+    log.info("✓ Integration test passed");
+  }
+
+  @Test
+  void testGetSessionMetadata_WithInvalidAppId() {
+    log.info("\n=== Integration Test: get_session_metadata with invalid app ID ===");
+
+    var invalidAppId = "invalid-app-id-that-does-not-exist";
+
+    log.info("Testing get_session_metadata with invalid appId: {}", invalidAppId);
+
+    // SDK throws UnauthorizedException (403 Forbidden) for invalid app IDs
+    // This is the expected behavior - document it
+    try {
+      var response = assessService.getSessionMetadata(invalidAppId);
+      log.info("SDK returned response for invalid app ID: {}", response);
+      // If we get here, the test should fail - we expect an exception
+      assertThat(false)
+          .as("Expected UnauthorizedException for invalid app ID, but got a response")
+          .isTrue();
+    } catch (Exception e) {
+      log.info(
+          "✓ SDK threw exception as expected: {} - {}",
+          e.getClass().getSimpleName(),
+          e.getMessage());
+      // Verify it's the expected exception type (UnauthorizedException)
+      assertThat(e.getClass().getSimpleName())
+          .as("Should throw UnauthorizedException for invalid app ID")
+          .isEqualTo("UnauthorizedException");
+    }
+
+    log.info("✓ Integration test passed");
+  }
 }
