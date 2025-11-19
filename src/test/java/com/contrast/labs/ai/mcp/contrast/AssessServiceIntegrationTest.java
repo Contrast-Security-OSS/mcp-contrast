@@ -131,11 +131,10 @@ public class AssessServiceIntegrationTest
 
     // Get vulnerabilities from real TeamServer
     var response =
-        assessService.getAllVulnerabilities(
+        assessService.searchVulnerabilities(
             1, // page
             10, // pageSize
             null, // severities
-            null, // statuses
             null, // appId
             null, // vulnTypes
             null, // environments
@@ -196,11 +195,10 @@ public class AssessServiceIntegrationTest
 
     // Get vulnerabilities from real TeamServer with session metadata expanded
     var response =
-        assessService.getAllVulnerabilities(
+        assessService.searchVulnerabilities(
             1, // page
             10, // pageSize
             null, // severities
-            null, // statuses
             null, // appId
             null, // vulnTypes
             null, // environments
@@ -265,7 +263,7 @@ public class AssessServiceIntegrationTest
     log.info("\n=== Integration Test: Basic Fields ===");
 
     var response =
-        assessService.getAllVulnerabilities(1, 5, null, null, null, null, null, null, null, null);
+        assessService.searchVulnerabilities(1, 5, null, null, null, null, null, null, null);
 
     assertThat(response).isNotNull();
     assertThat(response.items()).as("Should have vulnerabilities").isNotEmpty();
@@ -311,11 +309,10 @@ public class AssessServiceIntegrationTest
     // Query with a tag that contains spaces - this should work now that AIML-193 is complete
     // The SDK should handle URL encoding internally
     var response =
-        assessService.getAllVulnerabilities(
+        assessService.searchVulnerabilities(
             1, // page
             50, // pageSize (larger to increase chance of finding tagged vulns)
             null, // severities
-            null, // statuses
             null, // appId
             null, // vulnTypes
             null, // environments
@@ -342,8 +339,8 @@ public class AssessServiceIntegrationTest
     // Try with multiple tags including spaces and special characters
     log.info("\nTesting multiple tags with spaces:");
     response =
-        assessService.getAllVulnerabilities(
-            1, 10, null, null, null, null, null, null, null, "Tag With Spaces,another-tag");
+        assessService.searchVulnerabilities(
+            1, 10, null, null, null, null, null, null, "Tag With Spaces,another-tag");
 
     assertThat(response).as("Response should not be null").isNotNull();
     log.info("✓ Query with multiple tags completed successfully");
@@ -353,15 +350,34 @@ public class AssessServiceIntegrationTest
   }
 
   @Test
-  void testListVulnsByAppIdWithSessionMetadata() throws IOException {
-    log.info("\n=== Integration Test: listVulnsByAppId() with Session Metadata ===");
+  void testSearchAppVulnerabilitiesWithSessionMetadata() throws IOException {
+    log.info("\n=== Integration Test: search_app_vulnerabilities() with Session Metadata ===");
 
     assertThat(testData).as("Test data must be discovered before running tests").isNotNull();
 
-    // Call listVulnsByAppId() with the discovered appId from @BeforeAll
-    log.info("Calling listVulnsByAppId() for app: {} (ID: {})", testData.appName, testData.appId);
-    var vulnerabilities = assessService.listVulnsByAppId(testData.appId);
+    // Call search_app_vulnerabilities() with the discovered appId from @BeforeAll
+    log.info(
+        "Calling search_app_vulnerabilities() for app: {} (ID: {})",
+        testData.appName,
+        testData.appId);
+    var response =
+        assessService.searchAppVulnerabilities(
+            testData.appId, // appId
+            1, // page
+            50, // pageSize
+            null, // severities
+            null, // statuses
+            null, // vulnTypes
+            null, // environments
+            null, // lastSeenAfter
+            null, // lastSeenBefore
+            null, // vulnTags
+            null, // sessionMetadataName
+            null, // sessionMetadataValue
+            null); // useLatestSession
 
+    assertThat(response).as("Response should not be null").isNotNull();
+    var vulnerabilities = response.items();
     assertThat(vulnerabilities).as("Vulnerabilities list should not be null").isNotNull();
     log.info("  ✓ Retrieved {} vulnerability(ies)", vulnerabilities.size());
 
@@ -391,26 +407,42 @@ public class AssessServiceIntegrationTest
             + "/"
             + vulnerabilities.size());
     log.info(
-        "✓ Integration test passed: listVulnsByAppId() returns vulnerabilities with session"
-            + " metadata");
+        "✓ Integration test passed: search_app_vulnerabilities() returns vulnerabilities with"
+            + " session metadata");
   }
 
   @Test
-  void testListVulnsInAppByNameForLatestSessionWithDynamicSessionId() throws IOException {
+  void testSearchAppVulnerabilitiesForLatestSessionWithDynamicSessionId() throws IOException {
     log.info(
         "\n"
-            + "=== Integration Test: listVulnsByAppIdForLatestSession() with Dynamic Session"
-            + " Discovery ===");
+            + "=== Integration Test: search_app_vulnerabilities() with useLatestSession and Dynamic"
+            + " Session Discovery ===");
 
     assertThat(testData).as("Test data must be discovered before running tests").isNotNull();
 
-    // Call listVulnsByAppIdForLatestSession() with the discovered app ID from @BeforeAll
+    // Call search_app_vulnerabilities() with useLatestSession=true
     log.info(
-        "Calling listVulnsByAppIdForLatestSession() for app: {} (ID: {})",
+        "Calling search_app_vulnerabilities(useLatestSession=true) for app: {} (ID: {})",
         testData.appName,
         testData.appId);
-    var latestSessionVulns = assessService.listVulnsByAppIdForLatestSession(testData.appId);
+    var response =
+        assessService.searchAppVulnerabilities(
+            testData.appId, // appId
+            1, // page
+            50, // pageSize
+            null, // severities
+            null, // statuses
+            null, // vulnTypes
+            null, // environments
+            null, // lastSeenAfter
+            null, // lastSeenBefore
+            null, // vulnTags
+            null, // sessionMetadataName
+            null, // sessionMetadataValue
+            true); // useLatestSession
 
+    assertThat(response).as("Response should not be null").isNotNull();
+    var latestSessionVulns = response.items();
     assertThat(latestSessionVulns).as("Vulnerabilities list should not be null").isNotNull();
     log.info("  ✓ Retrieved {} vulnerability(ies) for latest session", latestSessionVulns.size());
 
@@ -442,8 +474,8 @@ public class AssessServiceIntegrationTest
         withSessionMetadata,
         latestSessionVulns.size());
     log.info(
-        "✓ Integration test passed: listVulnsByAppIdForLatestSession() returns vulnerabilities with"
-            + " session metadata");
+        "✓ Integration test passed: search_app_vulnerabilities(useLatestSession=true) returns"
+            + " vulnerabilities with session metadata");
   }
 
   @Test
