@@ -677,6 +677,306 @@ public class AssessService {
     }
   }
 
+  @Tool(
+      name = "search_app_vulnerabilities",
+      description =
+          """
+          Application-scoped vulnerability search with all filters plus session-based filtering.
+
+          Required: appId parameter. Use search_applications tool to find application IDs by name.
+
+          Supports all standard filters (severity, status, environment, dates, tags) PLUS:
+          - Session metadata filtering: sessionMetadataName, sessionMetadataValue
+          - Latest session filtering: useLatestSession=true
+
+          Note: If useLatestSession=true and no sessions exist, returns all vulnerabilities
+          for the application with a warning message.
+
+          Common usage examples:
+          - All vulns in app: appId="abc123"
+          - Latest session vulns: appId="abc123", useLatestSession=true
+          - Session metadata: appId="abc123", sessionMetadataName="branch", sessionMetadataValue="main"
+          - Production critical: appId="abc123", severities="CRITICAL", environments="PRODUCTION"
+          """)
+  public PaginatedResponse<VulnLight> searchAppVulnerabilities(
+      @ToolParam(
+              description =
+                  "Application ID (required). Use search_applications to find app IDs by name.")
+          String appId,
+      @ToolParam(description = "Page number (1-based), default: 1", required = false) Integer page,
+      @ToolParam(description = "Items per page (max 100), default: 50", required = false)
+          Integer pageSize,
+      @ToolParam(
+              description = "Comma-separated severities: CRITICAL,HIGH,MEDIUM,LOW,NOTE",
+              required = false)
+          String severities,
+      @ToolParam(
+              description =
+                  "Comma-separated statuses: Reported,Suspicious,Confirmed,Remediated,Fixed."
+                      + " Default: Reported,Suspicious,Confirmed",
+              required = false)
+          String statuses,
+      @ToolParam(
+              description =
+                  "Comma-separated vulnerability types. Use list_vulnerability_types for complete"
+                      + " list",
+              required = false)
+          String vulnTypes,
+      @ToolParam(
+              description = "Comma-separated environments: DEVELOPMENT,QA,PRODUCTION",
+              required = false)
+          String environments,
+      @ToolParam(
+              description =
+                  "Only include vulnerabilities with LAST ACTIVITY after this date (ISO: YYYY-MM-DD"
+                      + " or epoch)",
+              required = false)
+          String lastSeenAfter,
+      @ToolParam(
+              description =
+                  "Only include vulnerabilities with LAST ACTIVITY before this date (ISO:"
+                      + " YYYY-MM-DD or epoch)",
+              required = false)
+          String lastSeenBefore,
+      @ToolParam(description = "Comma-separated vulnerability tags", required = false)
+          String vulnTags,
+      @ToolParam(description = "Session metadata field name for filtering", required = false)
+          String sessionMetadataName,
+      @ToolParam(description = "Session metadata field value for filtering", required = false)
+          String sessionMetadataValue,
+      @ToolParam(description = "Filter to latest session only", required = false)
+          Boolean useLatestSession)
+      throws IOException {
+    log.info(
+        "Searching app vulnerabilities - appId: {}, page: {}, pageSize: {}, filters:"
+            + " severities={}, statuses={}, vulnTypes={}, environments={}, lastSeenAfter={},"
+            + " lastSeenBefore={}, vulnTags={}, sessionMetadataName={}, sessionMetadataValue={},"
+            + " useLatestSession={}",
+        appId,
+        page,
+        pageSize,
+        severities,
+        statuses,
+        vulnTypes,
+        environments,
+        lastSeenAfter,
+        lastSeenBefore,
+        vulnTags,
+        sessionMetadataName,
+        sessionMetadataValue,
+        useLatestSession);
+    long startTime = System.currentTimeMillis();
+
+    // Validate appId is required
+    if (!StringUtils.hasText(appId)) {
+      var errorMessage = "appId parameter is required";
+      log.error("Validation error: {}", errorMessage);
+      return PaginatedResponse.error(1, 50, errorMessage);
+    }
+
+    // Validate conflicting parameters: useLatestSession + sessionMetadataName
+    if (Boolean.TRUE.equals(useLatestSession) && StringUtils.hasText(sessionMetadataName)) {
+      var errorMessage =
+          "Cannot use both useLatestSession=true and sessionMetadataName. Choose one session"
+              + " filtering strategy.";
+      log.error("Validation error: {}", errorMessage);
+      return PaginatedResponse.error(1, 50, errorMessage);
+    }
+
+    // Validate incomplete parameters: sessionMetadataValue without sessionMetadataName
+    if (StringUtils.hasText(sessionMetadataValue) && !StringUtils.hasText(sessionMetadataName)) {
+      var errorMessage =
+          "sessionMetadataValue requires sessionMetadataName. Both must be provided together.";
+      log.error("Validation error: {}", errorMessage);
+      return PaginatedResponse.error(1, 50, errorMessage);
+    }
+
+    // Parse and validate inputs
+    var pagination = PaginationParams.of(page, pageSize);
+    var filters =
+        VulnerabilityFilterParams.of(
+            severities,
+            statuses,
+            appId, // Pass appId to filters for consistency
+            vulnTypes,
+            environments,
+            lastSeenAfter,
+            lastSeenBefore,
+            vulnTags);
+
+    // Check for hard failures - return error immediately if invalid
+    if (!filters.isValid()) {
+      var errorMessage = String.join(" ", filters.errors());
+      log.error("Validation errors: {}", errorMessage);
+      return PaginatedResponse.error(pagination.page(), pagination.pageSize(), errorMessage);
+    }
+
+    var contrastSDK =
+        SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+    var allWarnings = new ArrayList<String>();
+    allWarnings.addAll(filters.warnings());
+
+    try {
+      // Build TraceFilterBody from TraceFilterForm
+      var filterForm = filters.toTraceFilterForm();
+      var filterBody = new TraceFilterBody();
+
+      // Copy filters from TraceFilterForm to TraceFilterBody
+      if (filterForm.getSeverities() != null && !filterForm.getSeverities().isEmpty()) {
+        filterBody.setSeverities(new ArrayList<>(filterForm.getSeverities()));
+      }
+      if (filterForm.getEnvironments() != null && !filterForm.getEnvironments().isEmpty()) {
+        filterBody.setEnvironments(new ArrayList<>(filterForm.getEnvironments()));
+      }
+      if (filterForm.getVulnTypes() != null && !filterForm.getVulnTypes().isEmpty()) {
+        filterBody.setVulnTypes(filterForm.getVulnTypes());
+      }
+      if (filterForm.getStartDate() != null) {
+        filterBody.setStartDate(filterForm.getStartDate());
+      }
+      if (filterForm.getEndDate() != null) {
+        filterBody.setEndDate(filterForm.getEndDate());
+      }
+      if (filterForm.getFilterTags() != null && !filterForm.getFilterTags().isEmpty()) {
+        filterBody.setFilterTags(filterForm.getFilterTags());
+      }
+
+      // Handle useLatestSession logic
+      if (Boolean.TRUE.equals(useLatestSession)) {
+        var extension = new SDKExtension(contrastSDK);
+        var latestSession = extension.getLatestSessionMetadata(orgID, appId);
+
+        if (latestSession != null
+            && latestSession.getAgentSession() != null
+            && latestSession.getAgentSession().getAgentSessionId() != null) {
+          filterBody.setAgentSessionId(latestSession.getAgentSession().getAgentSessionId());
+          log.debug(
+              "Using latest session ID: {}", latestSession.getAgentSession().getAgentSessionId());
+        } else {
+          // No session found - add warning and continue with all vulnerabilities
+          allWarnings.add(
+              "No sessions found for this application. Returning all vulnerabilities across all"
+                  + " sessions for this application.");
+          log.warn("No sessions found for application: {}", appId);
+        }
+      }
+
+      // Make API call - always use app-specific endpoint
+      // Note: When using session metadata filtering, we get all results (no SDK pagination)
+      // because we need to filter in-memory before paginating
+      Traces traces;
+      if (StringUtils.hasText(sessionMetadataName)) {
+        // Get all results for in-memory filtering (no SDK pagination)
+        traces =
+            contrastSDK.getTraces(
+                orgID,
+                appId,
+                filterBody,
+                EnumSet.of(
+                    TraceFilterForm.TraceExpandValue.SESSION_METADATA,
+                    TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
+                    TraceFilterForm.TraceExpandValue.APPLICATION));
+      } else {
+        // Use SDK pagination when no in-memory filtering needed
+        filterForm.setLimit(pagination.limit());
+        filterForm.setOffset(pagination.offset());
+        filterForm.setExpand(
+            EnumSet.of(
+                TraceFilterForm.TraceExpandValue.SESSION_METADATA,
+                TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
+                TraceFilterForm.TraceExpandValue.APPLICATION));
+        traces = contrastSDK.getTraces(orgID, appId, filterForm);
+      }
+
+      if (traces == null || traces.getTraces() == null) {
+        var errorMsg =
+            String.format(
+                "App-level vulnerability API returned null for app %s. Please check API"
+                    + " connectivity and permissions.",
+                appId);
+        log.error(errorMsg);
+        return PaginatedResponse.error(pagination.page(), pagination.pageSize(), errorMsg);
+      }
+
+      // Convert to VulnLight
+      var vulnerabilities =
+          traces.getTraces().stream().map(vulnerabilityMapper::toVulnLight).toList();
+
+      // Apply in-memory session metadata filtering if requested
+      List<VulnLight> finalVulns = vulnerabilities;
+      if (StringUtils.hasText(sessionMetadataName)) {
+        var filteredVulns = new ArrayList<VulnLight>();
+        for (VulnLight vuln : vulnerabilities) {
+          if (vuln.sessionMetadata() != null) {
+            for (SessionMetadata sm : vuln.sessionMetadata()) {
+              for (MetadataItem metadataItem : sm.getMetadata()) {
+                if (metadataItem.getDisplayLabel().equalsIgnoreCase(sessionMetadataName)
+                    && metadataItem.getValue().equalsIgnoreCase(sessionMetadataValue)) {
+                  filteredVulns.add(vuln);
+                  log.debug(
+                      "Found matching vulnerability with ID: {} for session metadata {}={}",
+                      vuln.vulnID(),
+                      sessionMetadataName,
+                      sessionMetadataValue);
+                  break;
+                }
+              }
+            }
+          }
+        }
+
+        // Apply pagination to filtered results
+        var startIndex = pagination.offset();
+        var endIndex = Math.min(startIndex + pagination.pageSize(), filteredVulns.size());
+        finalVulns =
+            (startIndex < filteredVulns.size())
+                ? filteredVulns.subList(startIndex, endIndex)
+                : List.<VulnLight>of();
+
+        // Use filtered count as totalItems for paginated response
+        var response =
+            paginationHandler.createPaginatedResponse(
+                finalVulns, pagination, filteredVulns.size(), allWarnings);
+
+        long duration = System.currentTimeMillis() - startTime;
+        log.info(
+            "Retrieved {} vulnerabilities for app {} page {} after filtering (pageSize: {},"
+                + " totalFiltered: {}, took {} ms)",
+            response.items().size(),
+            appId,
+            response.page(),
+            response.pageSize(),
+            filteredVulns.size(),
+            duration);
+
+        return response;
+      }
+
+      // No session metadata filtering - use SDK results directly with SDK pagination
+      var totalItems = traces.getCount();
+      var response =
+          paginationHandler.createPaginatedResponse(
+              finalVulns, pagination, totalItems, allWarnings);
+
+      long duration = System.currentTimeMillis() - startTime;
+      log.info(
+          "Retrieved {} vulnerabilities for app {} page {} (pageSize: {}, totalItems: {}, took {}"
+              + " ms)",
+          response.items().size(),
+          appId,
+          response.page(),
+          response.pageSize(),
+          response.totalItems(),
+          duration);
+
+      return response;
+
+    } catch (Exception e) {
+      log.error("Error searching app vulnerabilities for appId: {}", appId, e);
+      throw new IOException("Failed to search app vulnerabilities: " + e.getMessage(), e);
+    }
+  }
+
   private List<Metadata> getMetadataFromApp(Application app) {
     var metadata = new ArrayList<Metadata>();
     app.getMetadataEntities().stream()
