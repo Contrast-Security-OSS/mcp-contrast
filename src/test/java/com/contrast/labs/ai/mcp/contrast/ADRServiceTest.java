@@ -106,7 +106,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.searchAttacks(null, null, null, null, null, null, null, null);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, null, null, null);
 
     // Then
     assertThat(result.items()).hasSize(3);
@@ -135,14 +135,14 @@ class ADRServiceTest {
             });
 
     // When
-    adrService.searchAttacks("PROBED", null, null, null, null, null, null, null);
+    adrService.searchAttacks("ACTIVE", null, null, null, null, null, null, null, null);
 
     // Then
     var extension = mockedSDKExtension.constructed().get(0);
     var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
     verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
 
-    assertThat(captor.getValue().getQuickFilter()).isEqualTo("PROBED");
+    assertThat(captor.getValue().getQuickFilter()).isEqualTo("ACTIVE");
   }
 
   // ========== Test: Keyword Filter ==========
@@ -162,7 +162,7 @@ class ADRServiceTest {
             });
 
     // When
-    adrService.searchAttacks(null, "sql injection", null, null, null, null, null, null);
+    adrService.searchAttacks(null, null, "sql injection", null, null, null, null, null, null);
 
     // Then
     var extension = mockedSDKExtension.constructed().get(0);
@@ -189,7 +189,7 @@ class ADRServiceTest {
             });
 
     // When
-    adrService.searchAttacks(null, null, true, false, true, null, null, null);
+    adrService.searchAttacks(null, null, null, true, false, true, null, null, null);
 
     // Then
     var extension = mockedSDKExtension.constructed().get(0);
@@ -222,7 +222,7 @@ class ADRServiceTest {
             });
 
     // When
-    adrService.searchAttacks(null, null, null, null, null, "firstEventTime", 3, 50);
+    adrService.searchAttacks(null, null, null, null, null, null, "firstEventTime", 3, 50);
 
     // Then
     var extension = mockedSDKExtension.constructed().get(0);
@@ -252,7 +252,7 @@ class ADRServiceTest {
             });
 
     // When
-    adrService.searchAttacks("EXPLOITED", "xss", true, true, false, "severity", 3, 25);
+    adrService.searchAttacks("EFFECTIVE", null, "xss", true, true, false, "severity", 3, 25);
 
     // Then
     var extension = mockedSDKExtension.constructed().get(0);
@@ -260,7 +260,7 @@ class ADRServiceTest {
     verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(25), eq(50), eq("severity"));
 
     var filter = captor.getValue();
-    assertThat(filter.getQuickFilter()).isEqualTo("EXPLOITED");
+    assertThat(filter.getQuickFilter()).isEqualTo("EFFECTIVE");
     assertThat(filter.getKeyword()).isEqualTo("xss");
     assertThat(filter.isIncludeSuppressed()).isTrue();
     assertThat(filter.isIncludeBotBlockers()).isTrue();
@@ -284,7 +284,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.searchAttacks(null, null, null, null, null, null, null, null);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, null, null, null);
 
     // Then
     assertThat(result).isNotNull();
@@ -314,7 +314,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.searchAttacks(null, null, null, null, null, null, null, null);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, null, null, null);
 
     // Then
     assertThat(result).isNotNull();
@@ -338,7 +338,7 @@ class ADRServiceTest {
     // When/Then
     assertThatThrownBy(
             () -> {
-              adrService.searchAttacks(null, null, null, null, null, null, null, null);
+              adrService.searchAttacks(null, null, null, null, null, null, null, null, null);
             })
         .isInstanceOf(Exception.class)
         .satisfies(
@@ -367,7 +367,7 @@ class ADRServiceTest {
             });
 
     // When
-    adrService.searchAttacks(null, null, null, null, null, null, null, null);
+    adrService.searchAttacks(null, null, null, null, null, null, null, null, null);
 
     // Then
     var extension = mockedSDKExtension.constructed().get(0);
@@ -396,7 +396,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.searchAttacks(null, null, null, null, null, null, 1, 50);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, null, 1, 50);
 
     // Then
     assertThat(result.items()).hasSize(50);
@@ -421,7 +421,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.searchAttacks(null, null, null, null, null, null, 3, 50);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, null, 3, 50);
 
     // Then
     assertThat(result.items()).hasSize(50);
@@ -447,7 +447,7 @@ class ADRServiceTest {
             });
 
     // When: Request pageSize=500 (exceeds max of 100)
-    var result = adrService.searchAttacks(null, null, null, null, null, null, 1, 500);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, null, 1, 500);
 
     // Then
     assertThat(result.pageSize()).as("PageSize should be clamped to 100").isEqualTo(100);
@@ -472,7 +472,7 @@ class ADRServiceTest {
             });
 
     // When: Request page=0 or negative (invalid)
-    var result = adrService.searchAttacks(null, null, null, null, null, null, 0, 50);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, null, 0, 50);
 
     // Then
     assertThat(result.page()).as("Page should be clamped to 1").isEqualTo(1);
@@ -497,7 +497,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.searchAttacks(null, null, null, null, null, null, 1, 50);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, null, 1, 50);
 
     // Then
     assertThat(result.totalItems()).as("TotalItems should be null when not provided").isNull();
@@ -519,7 +519,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.searchAttacks(null, null, null, null, null, null, 1, 50);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, null, 1, 50);
 
     // Then
     assertThat(result.items().size()).isEqualTo(25);
@@ -546,7 +546,7 @@ class ADRServiceTest {
             });
 
     // When: No filters provided
-    var result = adrService.searchAttacks(null, null, null, null, null, null, 1, 50);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, null, 1, 50);
 
     // Then: Should have messages about smart defaults
     assertThat(result.message()).as("Should have messages about smart defaults").isNotNull();
@@ -573,7 +573,7 @@ class ADRServiceTest {
             });
 
     // When: Explicit filters provided
-    var result = adrService.searchAttacks("EXPLOITED", null, true, null, null, null, 1, 50);
+    var result = adrService.searchAttacks("EFFECTIVE", null, null, true, null, null, null, 1, 50);
 
     // Then: Should NOT have smart default messages
     if (result.message() != null) {
@@ -589,7 +589,8 @@ class ADRServiceTest {
   @Test
   void testSearchAttacks_InvalidQuickFilter_ReturnsError() throws Exception {
     // When: Invalid quickFilter provided
-    var result = adrService.searchAttacks("INVALID_FILTER", null, null, null, null, null, 1, 50);
+    var result =
+        adrService.searchAttacks("INVALID_FILTER", null, null, null, null, null, null, 1, 50);
 
     // Then: Should return error response with descriptive message
     assertThat(result.message()).as("Should have error message").isNotNull();
@@ -598,7 +599,7 @@ class ADRServiceTest {
         .contains("Invalid quickFilter 'INVALID_FILTER'");
     assertThat(result.message())
         .as("Should list valid options")
-        .contains("Valid: EXPLOITED, PROBED, BLOCKED, INEFFECTIVE, ALL");
+        .contains("Valid: ALL, ACTIVE, MANUAL, AUTOMATED, PRODUCTION, EFFECTIVE");
     assertThat(result.items().size()).as("Should return empty items on error").isEqualTo(0);
   }
 
@@ -606,7 +607,8 @@ class ADRServiceTest {
   void testSearchAttacks_InvalidSort_ReturnsError() throws Exception {
     // When: Invalid sort format provided
     var result =
-        adrService.searchAttacks("EXPLOITED", null, false, null, null, "invalid sort!", 1, 50);
+        adrService.searchAttacks(
+            "EFFECTIVE", null, null, false, null, null, "invalid sort!", 1, 50);
 
     // Then: Should return error response with descriptive message
     assertThat(result.message()).as("Should have error message").isNotNull();
@@ -623,7 +625,7 @@ class ADRServiceTest {
   void testSearchAttacks_MultipleValidationErrors_CombinesErrors() throws Exception {
     // When: Multiple invalid parameters provided
     var result =
-        adrService.searchAttacks("BAD_FILTER", null, null, null, null, "bad-format!", 1, 50);
+        adrService.searchAttacks("BAD_FILTER", null, null, null, null, null, "bad-format!", 1, 50);
 
     // Then: Should return combined error messages
     assertThat(result.message()).as("Should have error message").isNotNull();

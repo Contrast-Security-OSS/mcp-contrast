@@ -54,10 +54,10 @@ class AttacksFilterBodyTest {
   @Test
   void testBuilder_QuickFilter_SetsCorrectly() {
     // When
-    var filterBody = AttacksFilterBody.builder().quickFilter("PROBED").build();
+    var filterBody = AttacksFilterBody.builder().quickFilter("ACTIVE").build();
 
     // Then
-    assertThat(filterBody.getQuickFilter()).isEqualTo("PROBED");
+    assertThat(filterBody.getQuickFilter()).isEqualTo("ACTIVE");
   }
 
   @Test
@@ -256,7 +256,7 @@ class AttacksFilterBodyTest {
     // When
     var filterBody =
         AttacksFilterBody.builder()
-            .quickFilter("EXPLOITED")
+            .quickFilter("EFFECTIVE")
             .keyword("xss")
             .includeSuppressed(true)
             .includeBotBlockers(false)
@@ -266,7 +266,7 @@ class AttacksFilterBodyTest {
             .build();
 
     // Then
-    assertThat(filterBody.getQuickFilter()).isEqualTo("EXPLOITED");
+    assertThat(filterBody.getQuickFilter()).isEqualTo("EFFECTIVE");
     assertThat(filterBody.getKeyword()).isEqualTo("xss");
     assertThat(filterBody.isIncludeSuppressed()).isTrue();
     assertThat(filterBody.isIncludeBotBlockers()).isFalse();
@@ -282,7 +282,7 @@ class AttacksFilterBodyTest {
     // When
     var filterBody =
         AttacksFilterBody.builder()
-            .quickFilter("PROBED")
+            .quickFilter("MANUAL")
             .keyword("sql")
             .includeSuppressed(true)
             .includeBotBlockers(true)
@@ -299,7 +299,7 @@ class AttacksFilterBodyTest {
             .build();
 
     // Then
-    assertThat(filterBody.getQuickFilter()).isEqualTo("PROBED");
+    assertThat(filterBody.getQuickFilter()).isEqualTo("MANUAL");
     assertThat(filterBody.getKeyword()).isEqualTo("sql");
     assertThat(filterBody.isIncludeSuppressed()).isTrue();
     assertThat(filterBody.isIncludeBotBlockers()).isTrue();

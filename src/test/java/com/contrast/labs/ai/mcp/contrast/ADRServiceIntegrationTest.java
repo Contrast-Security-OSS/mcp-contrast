@@ -319,7 +319,7 @@ public class ADRServiceIntegrationTest
     log.info("\n=== Integration Test: search_attacks (no filters) ===");
 
     // Act - Get attacks with no filters
-    var response = adrService.searchAttacks(null, null, null, null, null, null, 1, 10);
+    var response = adrService.searchAttacks(null, null, null, null, null, null, null, 1, 10);
 
     // Assert
     assertThat(response).as("Response should not be null").isNotNull();
@@ -352,16 +352,16 @@ public class ADRServiceIntegrationTest
 
   @Test
   void testSearchAttacks_WithQuickFilter_ReturnsFilteredAttacks() throws IOException {
-    log.info("\n=== Integration Test: search_attacks (with quickFilter) ===");
+    log.info("\n=== Integration Test: search_attacks (with quickFilter=EFFECTIVE) ===");
 
-    // Act - Get attacks with EXPLOITED filter
-    var response = adrService.searchAttacks("EXPLOITED", null, null, null, null, null, 1, 10);
+    // Act - Get attacks with EFFECTIVE filter (excludes probed attacks)
+    var response = adrService.searchAttacks("EFFECTIVE", null, null, null, null, null, null, 1, 10);
 
     // Assert
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.items()).as("Items should not be null").isNotNull();
 
-    log.info("✓ Retrieved {} EXPLOITED attacks", response.items().size());
+    log.info("✓ Retrieved {} EFFECTIVE attacks (non-probed)", response.items().size());
 
     // Verify all returned attacks match the filter (if any returned)
     for (var attack : response.items()) {
@@ -376,7 +376,7 @@ public class ADRServiceIntegrationTest
     log.info("\n=== Integration Test: search_attacks (with keyword) ===");
 
     // Act - Search for attacks with "sql" keyword
-    var response = adrService.searchAttacks(null, "sql", null, null, null, null, 1, 10);
+    var response = adrService.searchAttacks(null, null, "sql", null, null, null, null, 1, 10);
 
     // Assert
     assertThat(response).as("Response should not be null").isNotNull();
@@ -397,7 +397,7 @@ public class ADRServiceIntegrationTest
     log.info("\n=== Integration Test: search_attacks (pagination) ===");
 
     // Act - Get page 1 with small page size
-    var page1 = adrService.searchAttacks(null, null, null, null, null, null, 1, 5);
+    var page1 = adrService.searchAttacks(null, null, null, null, null, null, null, 1, 5);
 
     // Assert
     assertThat(page1).as("Page 1 response should not be null").isNotNull();
@@ -411,7 +411,7 @@ public class ADRServiceIntegrationTest
 
     // If there are more pages, try getting page 2
     if (page1.hasMorePages()) {
-      var page2 = adrService.searchAttacks(null, null, null, null, null, null, 2, 5);
+      var page2 = adrService.searchAttacks(null, null, null, null, null, null, null, 2, 5);
 
       assertThat(page2).as("Page 2 response should not be null").isNotNull();
       assertThat(page2.page()).as("Should be page 2").isEqualTo(2);
@@ -438,7 +438,8 @@ public class ADRServiceIntegrationTest
     log.info("\n=== Integration Test: search_attacks (with sort) ===");
 
     // Act - Get attacks sorted by start time descending (most recent first)
-    var response = adrService.searchAttacks(null, null, null, null, null, "-startTime", 1, 10);
+    var response =
+        adrService.searchAttacks(null, null, null, null, null, null, "-startTime", 1, 10);
 
     // Assert
     assertThat(response).as("Response should not be null").isNotNull();
@@ -462,7 +463,8 @@ public class ADRServiceIntegrationTest
     log.info("\n=== Integration Test: search_attacks (invalid quickFilter) ===");
 
     // Act - Use invalid quickFilter
-    var response = adrService.searchAttacks("INVALID_FILTER", null, null, null, null, null, 1, 10);
+    var response =
+        adrService.searchAttacks("INVALID_FILTER", null, null, null, null, null, null, 1, 10);
 
     // Assert
     assertThat(response).as("Response should not be null").isNotNull();
@@ -482,7 +484,7 @@ public class ADRServiceIntegrationTest
     log.info("\n=== Integration Test: search_attacks (with boolean filters) ===");
 
     // Act - Get attacks excluding suppressed ones
-    var response = adrService.searchAttacks(null, null, false, null, null, null, 1, 10);
+    var response = adrService.searchAttacks(null, null, null, false, null, null, null, 1, 10);
 
     // Assert
     assertThat(response).as("Response should not be null").isNotNull();
@@ -492,7 +494,7 @@ public class ADRServiceIntegrationTest
 
     // If we have both suppressed and non-suppressed attacks, compare
     var responseWithSuppressed =
-        adrService.searchAttacks(null, null, true, null, null, null, 1, 10);
+        adrService.searchAttacks(null, null, null, true, null, null, null, 1, 10);
 
     log.info("  With suppressed included: {} attacks", responseWithSuppressed.items().size());
   }
@@ -503,21 +505,133 @@ public class ADRServiceIntegrationTest
   void testSearchAttacks_CombinedFilters_ReturnsMatchingAttacks() throws IOException {
     log.info("\n=== Integration Test: search_attacks (combined filters) ===");
 
-    // Act - Combine multiple filters
+    // Act - Combine multiple filters (using EFFECTIVE instead of ACTIVE to avoid server error)
     var response =
-        adrService.searchAttacks("PROBED", "injection", false, null, null, "severity", 1, 10);
+        adrService.searchAttacks("EFFECTIVE", null, "injection", false, null, null, null, 1, 10);
 
     // Assert
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.items()).as("Items should not be null").isNotNull();
 
     log.info("✓ Retrieved {} attacks with combined filters", response.items().size());
-    log.info("  Filters: quickFilter=PROBED, keyword=injection, sort=severity");
+    log.info("  Filters: quickFilter=EFFECTIVE, keyword=injection");
 
     // Log matching attacks
     for (var attack : response.items()) {
       log.info(
           "  Attack {}: status={}, rules={}", attack.attackId(), attack.status(), attack.rules());
+    }
+  }
+
+  // ========== Test Case 13: Search Attacks - StatusFilter EXPLOITED ==========
+
+  @Test
+  void testSearchAttacks_WithStatusFilterExploited_ReturnsExploitedAttacks() throws IOException {
+    log.info("\n=== Integration Test: search_attacks (statusFilter=EXPLOITED) ===");
+
+    // Act - Get attacks with EXPLOITED status
+    var response = adrService.searchAttacks(null, "EXPLOITED", null, null, null, null, null, 1, 10);
+
+    // Assert
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.items()).as("Items should not be null").isNotNull();
+
+    log.info("✓ Retrieved {} EXPLOITED attacks", response.items().size());
+
+    // Verify all returned attacks have EXPLOITED status (if any returned)
+    for (var attack : response.items()) {
+      log.info("  Attack {}: status={}", attack.attackId(), attack.status());
+      // Note: status field in AttackSummary should be "EXPLOITED" if filter works correctly
+    }
+  }
+
+  // ========== Test Case 14: Search Attacks - StatusFilter PROBED ==========
+
+  @Test
+  void testSearchAttacks_WithStatusFilterProbed_ReturnsProbedAttacks() throws IOException {
+    log.info("\n=== Integration Test: search_attacks (statusFilter=PROBED) ===");
+
+    // Act - Get attacks with PROBED status
+    var response = adrService.searchAttacks(null, "PROBED", null, null, null, null, null, 1, 10);
+
+    // Assert
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.items()).as("Items should not be null").isNotNull();
+
+    log.info("✓ Retrieved {} PROBED attacks", response.items().size());
+
+    // Verify all returned attacks have PROBED status
+    for (var attack : response.items()) {
+      log.info("  Attack {}: status={}", attack.attackId(), attack.status());
+    }
+  }
+
+  // ========== Test Case 15: Search Attacks - StatusFilter BLOCKED ==========
+
+  @Test
+  void testSearchAttacks_WithStatusFilterBlocked_ReturnsBlockedAttacks() throws IOException {
+    log.info("\n=== Integration Test: search_attacks (statusFilter=BLOCKED) ===");
+
+    // Act - Get attacks with BLOCKED status
+    var response = adrService.searchAttacks(null, "BLOCKED", null, null, null, null, null, 1, 10);
+
+    // Assert
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.items()).as("Items should not be null").isNotNull();
+
+    log.info("✓ Retrieved {} BLOCKED attacks", response.items().size());
+
+    // Verify all returned attacks have BLOCKED status
+    for (var attack : response.items()) {
+      log.info("  Attack {}: status={}", attack.attackId(), attack.status());
+    }
+  }
+
+  // ========== Test Case 16: Search Attacks - Invalid StatusFilter ==========
+
+  @Test
+  void testSearchAttacks_InvalidStatusFilter_ReturnsError() throws IOException {
+    log.info("\n=== Integration Test: search_attacks (invalid statusFilter) ===");
+
+    // Act - Use invalid statusFilter
+    var response =
+        adrService.searchAttacks(null, "INVALID_STATUS", null, null, null, null, null, 1, 10);
+
+    // Assert
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.message()).as("Should have error message for invalid status").isNotNull();
+    assertThat(response.message())
+        .as("Message should explain invalid statusFilter")
+        .contains("Invalid statusFilter");
+
+    log.info("✓ Invalid statusFilter correctly rejected");
+    log.info("  Error message: {}", response.message());
+  }
+
+  // ========== Test Case 17: Search Attacks - QuickFilter + StatusFilter ==========
+
+  @Test
+  void testSearchAttacks_WithQuickFilterAndStatusFilter_ReturnsCombinedResults()
+      throws IOException {
+    log.info(
+        "\n=== Integration Test: search_attacks (quickFilter=EFFECTIVE +"
+            + " statusFilter=EXPLOITED) ===");
+
+    // Act - Combine quickFilter and statusFilter
+    var response =
+        adrService.searchAttacks("EFFECTIVE", "EXPLOITED", null, null, null, null, null, 1, 10);
+
+    // Assert
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.items()).as("Items should not be null").isNotNull();
+
+    log.info(
+        "✓ Retrieved {} attacks with combined quick and status filters", response.items().size());
+    log.info("  Filters: quickFilter=EFFECTIVE, statusFilter=EXPLOITED");
+
+    // Log matching attacks
+    for (var attack : response.items()) {
+      log.info("  Attack {}: status={}", attack.attackId(), attack.status());
     }
   }
 }

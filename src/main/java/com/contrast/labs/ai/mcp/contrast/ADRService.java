@@ -119,7 +119,8 @@ public class ADRService {
       description =
           """
           Retrieves attacks from Contrast ADR (Attack Detection and Response) with optional filtering
-          and sorting. Supports filtering by status/severity presets, keywords, and attack types.
+          and sorting. Supports filtering by attack categorization (quickFilter), outcome status
+          (statusFilter), keywords, and other criteria.
 
           Returns a paginated list of attack summaries with key information including rule names,
           status, severity, affected applications, source IP, and probe counts.
@@ -127,9 +128,19 @@ public class ADRService {
   public PaginatedResponse<AttackSummary> searchAttacks(
       @ToolParam(
               description =
-                  "Quick filter preset (e.g., EXPLOITED, PROBED) for status/severity filtering",
+                  "Quick filter for attack categorization. Valid: ALL (no filter), ACTIVE (ongoing"
+                      + " attacks), MANUAL (human-initiated), AUTOMATED (bot attacks), PRODUCTION"
+                      + " (prod environment), EFFECTIVE (excludes probed attacks)",
               required = false)
           String quickFilter,
+      @ToolParam(
+              description =
+                  "Status filter for attack outcome. Valid: EXPLOITED (successfully exploited),"
+                      + " PROBED (detected but not exploited), BLOCKED (blocked by Protect),"
+                      + " BLOCKED_PERIMETER (blocked at perimeter), PROBED_PERIMETER (probed at"
+                      + " perimeter), SUSPICIOUS (suspicious attack)",
+              required = false)
+          String statusFilter,
       @ToolParam(
               description = "Keyword to match against rule names, sources, or notes",
               required = false)
@@ -151,9 +162,10 @@ public class ADRService {
     var pagination = PaginationParams.of(page, pageSize);
 
     log.info(
-        "Retrieving attacks from Contrast ADR (quickFilter: {}, keyword: {}, sort: {}, page: {},"
-            + " pageSize: {})",
+        "Retrieving attacks from Contrast ADR (quickFilter: {}, statusFilter: {}, keyword: {},"
+            + " sort: {}, page: {}, pageSize: {})",
         quickFilter,
+        statusFilter,
         keyword,
         sort,
         pagination.page(),
@@ -163,7 +175,13 @@ public class ADRService {
     // Parse and validate filter parameters
     var filters =
         AttackFilterParams.of(
-            quickFilter, keyword, includeSuppressed, includeBotBlockers, includeIpBlacklist, sort);
+            quickFilter,
+            statusFilter,
+            keyword,
+            includeSuppressed,
+            includeBotBlockers,
+            includeIpBlacklist,
+            sort);
 
     if (!filters.isValid()) {
       log.warn("Invalid attack filter parameters: {}", String.join("; ", filters.errors()));
