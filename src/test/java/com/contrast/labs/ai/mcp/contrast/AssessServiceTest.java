@@ -1263,4 +1263,235 @@ class AssessServiceTest {
         .isInstanceOf(IOException.class)
         .hasMessageContaining("Failed to search applications");
   }
+
+  // ========== search_app_vulnerabilities Tests ==========
+
+  @Test
+  void searchAppVulnerabilities_should_return_error_when_appId_is_null() throws Exception {
+    // Act
+    var result =
+        assessService.searchAppVulnerabilities(
+            null, // null appId
+            null, null, null, null, null, null, null, null, null, null, null, null);
+
+    // Assert
+    assertThat(result.message()).contains("appId parameter is required");
+    assertThat(result.items()).isEmpty();
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_return_error_when_appId_is_blank() throws Exception {
+    // Act
+    var result =
+        assessService.searchAppVulnerabilities(
+            "   ", // blank appId
+            null, null, null, null, null, null, null, null, null, null, null, null);
+
+    // Assert
+    assertThat(result.message()).contains("appId parameter is required");
+    assertThat(result.items()).isEmpty();
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_return_error_when_useLatestSession_and_sessionMetadataName()
+      throws Exception {
+    // Act - conflicting parameters
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "branch", // sessionMetadataName
+            null,
+            true); // useLatestSession=true
+
+    // Assert
+    assertThat(result.message())
+        .contains("Cannot use both useLatestSession=true and sessionMetadataName");
+    assertThat(result.items()).isEmpty();
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_return_error_when_sessionMetadataValue_without_name()
+      throws Exception {
+    // Act - incomplete parameters
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null, // no sessionMetadataName
+            "main", // but has sessionMetadataValue
+            null);
+
+    // Assert
+    assertThat(result.message()).contains("sessionMetadataValue requires sessionMetadataName");
+    assertThat(result.items()).isEmpty();
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_use_app_specific_endpoint() throws Exception {
+    // Given
+    var mockTraces = createMockTraces(10, 10);
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(mockTraces);
+
+    // When
+    assessService.searchAppVulnerabilities(
+        TEST_APP_ID, null, null, null, null, null, null, null, null, null, null, null, null);
+
+    // Then - verify app-specific API was called
+    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class));
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_expand_session_metadata_and_environments() throws Exception {
+    // Given
+    var mockTraces = createMockTraces(10, 10);
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(mockTraces);
+
+    // When
+    assessService.searchAppVulnerabilities(
+        TEST_APP_ID, null, null, null, null, null, null, null, null, null, null, null, null);
+
+    // Then - verify expand parameters
+    var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), captor.capture());
+
+    var form = captor.getValue();
+    assertThat(form.getExpand()).isNotNull();
+    assertThat(form.getExpand()).contains(TraceFilterForm.TraceExpandValue.SESSION_METADATA);
+    assertThat(form.getExpand()).contains(TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS);
+    assertThat(form.getExpand()).contains(TraceFilterForm.TraceExpandValue.APPLICATION);
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_pass_pagination_params_to_SDK() throws Exception {
+    // Given
+    var mockTraces = createMockTraces(25, 100);
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(mockTraces);
+
+    // When - request page 2 with 25 items per page
+    assessService.searchAppVulnerabilities(
+        TEST_APP_ID, 2, 25, null, null, null, null, null, null, null, null, null, null);
+
+    // Then - verify SDK received correct pagination
+    var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), captor.capture());
+
+    var form = captor.getValue();
+    assertThat(form.getOffset()).isEqualTo(25); // (page 2 - 1) * 25
+    assertThat(form.getLimit()).isEqualTo(25);
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_call_paginationHandler_correctly() throws Exception {
+    // Given
+    var mockTraces = createMockTraces(50, 150);
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(mockTraces);
+
+    // When
+    assessService.searchAppVulnerabilities(
+        TEST_APP_ID, 1, 50, null, null, null, null, null, null, null, null, null, null);
+
+    // Then - verify PaginationHandler was called
+    verify(mockPaginationHandler)
+        .createPaginatedResponse(
+            argThat(list -> list.size() == 50), // items
+            argThat(p -> p.page() == 1 && p.pageSize() == 50), // params
+            eq(150), // totalItems
+            anyList()); // warnings
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_return_error_on_invalid_severity() throws Exception {
+    // Act - invalid severity
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID,
+            null,
+            null,
+            "INVALID_SEVERITY", // invalid
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
+
+    // Assert
+    assertThat(result.message()).contains("Invalid severity");
+    assertThat(result.items()).isEmpty();
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_return_error_on_invalid_environment() throws Exception {
+    // Act - invalid environment
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "INVALID_ENV", // invalid
+            null,
+            null,
+            null,
+            null,
+            null,
+            null);
+
+    // Assert
+    assertThat(result.message()).contains("Invalid environment");
+    assertThat(result.items()).isEmpty();
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_throw_IOException_on_SDK_error() throws Exception {
+    // Given - SDK throws exception
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenThrow(new RuntimeException("SDK error"));
+
+    // Act & Assert
+    assertThatThrownBy(
+            () ->
+                assessService.searchAppVulnerabilities(
+                    TEST_APP_ID,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null))
+        .isInstanceOf(IOException.class)
+        .hasMessageContaining("Failed to search app vulnerabilities");
+  }
 }
