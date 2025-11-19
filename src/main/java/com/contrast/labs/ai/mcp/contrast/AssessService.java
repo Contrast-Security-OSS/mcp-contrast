@@ -50,6 +50,7 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 @Service
 @Slf4j
@@ -499,6 +500,146 @@ public class AssessService {
     } catch (Exception e) {
       log.error("Error listing all applications", e);
       throw new IOException("Failed to list applications: " + e.getMessage(), e);
+    }
+  }
+
+  @Tool(
+      name = "search_applications",
+      description =
+          """
+          Search applications with optional filters. Returns all applications if no filters specified.
+
+          Filtering behavior:
+          - name: Partial, case-insensitive matching (finds "app" in "MyApp")
+          - tag: Exact, case-sensitive matching (CASE-SENSITIVE - 'Production' != 'production')
+          - metadataName + metadataValue: Exact, case-insensitive matching for both
+          - metadataName only: Returns apps with that metadata field (any value)
+
+          Note: Application data is cached for 5 minutes. If you recently created/modified
+          applications in TeamServer and don't see changes, wait 5 minutes and retry.
+          """)
+  public List<ApplicationData> search_applications(
+      @ToolParam(
+              description = "Application name filter (partial, case-insensitive)",
+              required = false)
+          String name,
+      @ToolParam(
+              description = "Tag filter (CASE-SENSITIVE - 'Production' != 'production')",
+              required = false)
+          String tag,
+      @ToolParam(description = "Metadata field name (case-insensitive)", required = false)
+          String metadataName,
+      @ToolParam(
+              description = "Metadata field value (case-insensitive, requires metadataName)",
+              required = false)
+          String metadataValue)
+      throws IOException {
+    log.info(
+        "Searching applications with filters - name: {}, tag: {}, metadataName: {}, metadataValue:"
+            + " {}",
+        name,
+        tag,
+        metadataName,
+        metadataValue);
+
+    // Validate metadata parameters
+    var hasMetadataName = StringUtils.hasText(metadataName);
+    var hasMetadataValue = StringUtils.hasText(metadataValue);
+
+    if (hasMetadataValue && !hasMetadataName) {
+      var errorMsg =
+          "metadataValue requires metadataName. Valid combinations: both, metadataName only, or"
+              + " neither.";
+      log.error(errorMsg);
+      throw new IllegalArgumentException(errorMsg);
+    }
+
+    var contrastSDK =
+        SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+
+    try {
+      var applications = SDKHelper.getApplicationsWithCache(orgID, contrastSDK);
+      log.debug("Retrieved {} total applications from Contrast", applications.size());
+
+      var filteredApps = new ArrayList<ApplicationData>();
+
+      for (Application app : applications) {
+        // Apply name filter if provided
+        if (StringUtils.hasText(name)
+            && !app.getName().toLowerCase().contains(name.toLowerCase())) {
+          continue;
+        }
+
+        // Apply tag filter if provided (case-sensitive)
+        if (StringUtils.hasText(tag) && !app.getTags().contains(tag)) {
+          continue;
+        }
+
+        // Apply metadata filter if provided
+        if (hasMetadataName) {
+          var hasMatchingMetadata = false;
+
+          if (app.getMetadataEntities() != null) {
+            for (var metadata : app.getMetadataEntities()) {
+              if (metadata != null && metadata.getName() != null) {
+                var nameMatches = metadata.getName().equalsIgnoreCase(metadataName);
+
+                if (hasMetadataValue) {
+                  // Both name and value must match
+                  if (nameMatches
+                      && metadata.getValue() != null
+                      && metadata.getValue().equalsIgnoreCase(metadataValue)) {
+                    hasMatchingMetadata = true;
+                    break;
+                  }
+                } else {
+                  // Name only - any value is acceptable
+                  if (nameMatches) {
+                    hasMatchingMetadata = true;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+
+          if (!hasMatchingMetadata) {
+            continue;
+          }
+        }
+
+        // Application passed all filters
+        filteredApps.add(
+            new ApplicationData(
+                app.getName(),
+                app.getStatus(),
+                app.getAppId(),
+                FilterHelper.formatTimestamp(app.getLastSeen()),
+                app.getLanguage(),
+                getMetadataFromApp(app),
+                app.getTags(),
+                app.getTechs()));
+
+        log.debug(
+            "Application matches filters - ID: {}, Name: {}, Status: {}",
+            app.getAppId(),
+            app.getName(),
+            app.getStatus());
+      }
+
+      log.info(
+          "Found {} applications matching filters - name: {}, tag: {}, metadataName: {},"
+              + " metadataValue: {}",
+          filteredApps.size(),
+          name,
+          tag,
+          metadataName,
+          metadataValue);
+      return filteredApps;
+
+    } catch (Exception e) {
+      log.error("Error searching applications", e);
+      throw new IOException("Failed to search applications: " + e.getMessage(), e);
     }
   }
 
