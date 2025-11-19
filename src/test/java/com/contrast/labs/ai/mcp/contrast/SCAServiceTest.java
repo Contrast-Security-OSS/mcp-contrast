@@ -219,7 +219,7 @@ class SCAServiceTest {
         .isEqualTo(0);
   }
 
-  // ========== Tests for list_applications_vulnerable_to_cve ==========
+  // ========== Tests for list_applications_by_cve ==========
 
   @Test
   void testListCVESForApplication_Success() throws IOException {
