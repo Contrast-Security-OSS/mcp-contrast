@@ -139,14 +139,14 @@ class AssessServiceTest {
   // ========== SDK Integration Tests ==========
 
   @Test
-  void testGetAllVulnerabilities_PassesCorrectParametersToSDK() throws Exception {
+  void testSearchVulnerabilities_PassesCorrectParametersToSDK() throws Exception {
     // Given
     var mockTraces = createMockTraces(50, 150);
     when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
         .thenReturn(mockTraces);
 
     // When
-    assessService.getAllVulnerabilities(2, 75, null, null, null, null, null, null, null, null);
+    assessService.searchVulnerabilities(2, 75, null, null, null, null, null, null, null);
 
     // Then - Verify SDK received correct parameters
     var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
@@ -158,14 +158,14 @@ class AssessServiceTest {
   }
 
   @Test
-  void testGetAllVulnerabilities_SetsExpandParametersCorrectly() throws Exception {
+  void testSearchVulnerabilities_SetsExpandParametersCorrectly() throws Exception {
     // Given - Test that SESSION_METADATA and SERVER_ENVIRONMENTS expand are set
     var mockTraces = createMockTraces(10, 10);
     when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
         .thenReturn(mockTraces);
 
     // When
-    assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
+    assessService.searchVulnerabilities(1, 50, null, null, null, null, null, null, null);
 
     // Then - Verify expand parameters include SESSION_METADATA and SERVER_ENVIRONMENTS
     var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
@@ -182,14 +182,14 @@ class AssessServiceTest {
   }
 
   @Test
-  void testGetAllVulnerabilities_CallsPaginationHandlerCorrectly() throws Exception {
+  void testSearchVulnerabilities_CallsPaginationHandlerCorrectly() throws Exception {
     // Given
     var mockTraces = createMockTraces(50, 150);
     when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
         .thenReturn(mockTraces);
 
     // When
-    assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
+    assessService.searchVulnerabilities(1, 50, null, null, null, null, null, null, null);
 
     // Then - Verify PaginationHandler received correct arguments
     verify(mockPaginationHandler)
@@ -204,32 +204,16 @@ class AssessServiceTest {
   // ========== Routing Tests ==========
 
   @Test
-  void testGetAllVulnerabilities_RoutesToAppSpecificAPI_WhenAppIdProvided() throws Exception {
-    // Given
-    var appId = "test-app-123";
-    var mockTraces = createMockTraces(10, 10);
-    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(appId), any(TraceFilterForm.class)))
-        .thenReturn(mockTraces);
-
-    // When
-    assessService.getAllVulnerabilities(1, 50, null, null, appId, null, null, null, null, null);
-
-    // Then - Verify app-specific API was used
-    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(appId), any(TraceFilterForm.class));
-    verify(mockContrastSDK, never()).getTracesInOrg(any(), any());
-  }
-
-  @Test
-  void testGetAllVulnerabilities_RoutesToOrgAPI_WhenNoAppId() throws Exception {
+  void testSearchVulnerabilities_AlwaysUsesOrgAPI() throws Exception {
     // Given
     var mockTraces = createMockTraces(10, 10);
     when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
         .thenReturn(mockTraces);
 
     // When
-    assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
+    assessService.searchVulnerabilities(1, 50, null, null, null, null, null, null, null);
 
-    // Then - Verify org-level API was used
+    // Then - Verify org-level API was used (no app-specific routing)
     verify(mockContrastSDK).getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class));
     verify(mockContrastSDK, never()).getTraces(any(), any(), any(TraceFilterForm.class));
   }
@@ -237,7 +221,7 @@ class AssessServiceTest {
   // ========== Empty Results Tests ==========
 
   @Test
-  void testGetAllVulnerabilities_EmptyResults_PassesEmptyListToPaginationHandler()
+  void testSearchVulnerabilities_EmptyResults_PassesEmptyListToPaginationHandler()
       throws Exception {
     // Given: SDK returns empty Traces (0 vulnerabilities)
     var emptyTraces = createMockTraces(0, 0);
@@ -260,7 +244,7 @@ class AssessServiceTest {
 
     // When
     var result =
-        assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
+        assessService.searchVulnerabilities(1, 50, null, null, null, null, null, null, null);
 
     // Then: Verify empty list was passed to PaginationHandler
     verify(mockPaginationHandler)
@@ -566,7 +550,7 @@ class AssessServiceTest {
   // ========== Filter Tests ==========
 
   @Test
-  void testGetAllVulnerabilities_SeverityFilter() throws Exception {
+  void testSearchVulnerabilities_SeverityFilter() throws Exception {
     // Arrange
     var mockTraces = createMockTraces(10, 10);
     when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
@@ -574,8 +558,8 @@ class AssessServiceTest {
 
     // Act
     var response =
-        assessService.getAllVulnerabilities(
-            1, 50, "CRITICAL,HIGH", null, null, null, null, null, null, null);
+        assessService.searchVulnerabilities(
+            1, 50, "CRITICAL, HIGH", null, null, null, null, null, null);
 
     // Assert
     assertThat(response).isNotNull();
@@ -588,11 +572,11 @@ class AssessServiceTest {
   }
 
   @Test
-  void testGetAllVulnerabilities_InvalidSeverity_HardFailure() throws Exception {
+  void testSearchVulnerabilities_InvalidSeverity_HardFailure() throws Exception {
     // Act - Invalid severity causes hard failure, SDK should not be called
     var response =
-        assessService.getAllVulnerabilities(
-            1, 50, "CRITICAL,SUPER_HIGH", null, null, null, null, null, null, null);
+        assessService.searchVulnerabilities(
+            1, 50, "CRITICAL, SUPER_HIGH", null, null, null, null, null, null);
 
     // Assert - Hard failure returns error response with empty items
     assertThat(response).isNotNull();
@@ -610,7 +594,7 @@ class AssessServiceTest {
   }
 
   @Test
-  void testGetAllVulnerabilities_StatusSmartDefaults() throws Exception {
+  void testSearchVulnerabilities_StatusSmartDefaults() throws Exception {
     // Arrange
     var mockTraces = createMockTraces(10, 10);
     when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
@@ -618,7 +602,7 @@ class AssessServiceTest {
 
     // Act - no status provided, should use smart defaults
     var response =
-        assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
+        assessService.searchVulnerabilities(1, 50, null, null, null, null, null, null, null);
 
     // Assert
     assertThat(response).isNotNull();
@@ -636,7 +620,7 @@ class AssessServiceTest {
   }
 
   @Test
-  void testGetAllVulnerabilities_StatusExplicitOverride() throws Exception {
+  void testSearchVulnerabilities_StatusExplicitOverride() throws Exception {
     // Arrange
     var mockTraces = createMockTraces(10, 10);
     when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
@@ -644,8 +628,8 @@ class AssessServiceTest {
 
     // Act - explicitly provide statuses (including Fixed and Remediated)
     var response =
-        assessService.getAllVulnerabilities(
-            1, 50, null, "Reported,Fixed,Remediated", null, null, null, null, null, null);
+        assessService.searchVulnerabilities(
+            1, 50, null, "Reported,Fixed,Remediated", null, null, null, null, null);
 
     // Assert
     assertThat(response).isNotNull();
@@ -661,7 +645,7 @@ class AssessServiceTest {
   }
 
   @Test
-  void testGetAllVulnerabilities_VulnTypesFilter() throws Exception {
+  void testSearchVulnerabilities_VulnTypesFilter() throws Exception {
     // Arrange
     var mockTraces = createMockTraces(10, 10);
     when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
@@ -669,8 +653,8 @@ class AssessServiceTest {
 
     // Act
     var response =
-        assessService.getAllVulnerabilities(
-            1, 50, null, null, null, "sql-injection,xss-reflected", null, null, null, null);
+        assessService.searchVulnerabilities(
+            1, 50, null, null, "sql-injection, xss-reflected", null, null, null, null);
 
     // Assert
     assertThat(response).isNotNull();
@@ -685,7 +669,7 @@ class AssessServiceTest {
   }
 
   @Test
-  void testGetAllVulnerabilities_EnvironmentFilter() throws Exception {
+  void testSearchVulnerabilities_EnvironmentFilter() throws Exception {
     // Arrange
     var mockTraces = createMockTraces(10, 10);
     when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
@@ -693,8 +677,8 @@ class AssessServiceTest {
 
     // Act
     var response =
-        assessService.getAllVulnerabilities(
-            1, 50, null, null, null, null, "PRODUCTION,QA", null, null, null);
+        assessService.searchVulnerabilities(
+            1, 50, null, null, null, "PRODUCTION, QA", null, null, null);
 
     // Assert
     assertThat(response).isNotNull();
@@ -707,7 +691,7 @@ class AssessServiceTest {
   }
 
   @Test
-  void testGetAllVulnerabilities_DateFilterValid() throws Exception {
+  void testSearchVulnerabilities_DateFilterValid() throws Exception {
     // Arrange
     var mockTraces = createMockTraces(10, 10);
     when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
@@ -715,8 +699,8 @@ class AssessServiceTest {
 
     // Act
     var response =
-        assessService.getAllVulnerabilities(
-            1, 50, null, null, null, null, null, "2025-01-01", "2025-12-31", null);
+        assessService.searchVulnerabilities(
+            1, 50, null, null, null, null, "2025-01-01", "2025-12-31", null);
 
     // Assert
     assertThat(response).isNotNull();
@@ -731,7 +715,7 @@ class AssessServiceTest {
   }
 
   @Test
-  void testGetAllVulnerabilities_VulnTagsFilter() throws Exception {
+  void testSearchVulnerabilities_VulnTagsFilter() throws Exception {
     // Arrange
     var mockTraces = createMockTraces(10, 10);
     when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
@@ -739,8 +723,8 @@ class AssessServiceTest {
 
     // Act
     var response =
-        assessService.getAllVulnerabilities(
-            1, 50, null, null, null, null, null, null, null, "SmartFix Remediated,reviewed");
+        assessService.searchVulnerabilities(
+            1, 50, null, null, null, null, null, null, "SmartFix Remediated,reviewed");
 
     // Assert
     assertThat(response).isNotNull();
@@ -756,7 +740,7 @@ class AssessServiceTest {
   }
 
   @Test
-  void testGetAllVulnerabilities_MultipleFilters() throws Exception {
+  void testSearchVulnerabilities_MultipleFilters() throws Exception {
     // Arrange
     var mockTraces = createMockTraces(10, 10);
     when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
@@ -764,13 +748,12 @@ class AssessServiceTest {
 
     // Act - combine severity, status, vulnTypes, and environment
     var response =
-        assessService.getAllVulnerabilities(
+        assessService.searchVulnerabilities(
             1,
             50,
-            "CRITICAL,HIGH",
-            "Reported,Confirmed",
-            null,
-            "sql-injection,cmd-injection",
+            "CRITICAL, HIGH",
+            "Confirmed",
+            "sql-injection, cmd-injection",
             "PRODUCTION",
             "2025-01-01",
             null,
@@ -790,27 +773,7 @@ class AssessServiceTest {
   }
 
   @Test
-  void testGetAllVulnerabilities_AppIdRouting() throws Exception {
-    // Arrange
-    var mockTraces = createMockTraces(10, 10);
-    var testAppId = "test-app-123";
-    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(testAppId), any(TraceFilterForm.class)))
-        .thenReturn(mockTraces);
-
-    // Act
-    var response =
-        assessService.getAllVulnerabilities(
-            1, 50, null, null, testAppId, null, null, null, null, null);
-
-    // Assert
-    assertThat(response).isNotNull();
-    // Verify it used app-specific API, not org-level
-    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(testAppId), any(TraceFilterForm.class));
-    verify(mockContrastSDK, never()).getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class));
-  }
-
-  @Test
-  void testGetAllVulnerabilities_WhitespaceInFilters() throws Exception {
+  void testSearchVulnerabilities_WhitespaceInFilters() throws Exception {
     // Arrange
     var mockTraces = createMockTraces(10, 10);
     when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
@@ -818,8 +781,8 @@ class AssessServiceTest {
 
     // Act - test whitespace handling: "CRITICAL , HIGH" instead of "CRITICAL,HIGH"
     var response =
-        assessService.getAllVulnerabilities(
-            1, 50, "CRITICAL , HIGH , ", null, null, null, null, null, null, null);
+        assessService.searchVulnerabilities(
+            1, 50, "CRITICAL , HIGH", null, null, null, null, null, null);
 
     // Assert
     assertThat(response).isNotNull();
@@ -832,7 +795,7 @@ class AssessServiceTest {
   }
 
   @Test
-  void testGetAllVulnerabilities_EnvironmentsInResponse() throws Exception {
+  void testSearchVulnerabilities_EnvironmentsInResponse() throws Exception {
     // Arrange - Create traces with servers that have different environments
     var mockTraces = new Traces();
     var traces = new ArrayList<Trace>();
@@ -901,7 +864,7 @@ class AssessServiceTest {
 
     // Act
     var response =
-        assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
+        assessService.searchVulnerabilities(1, 50, null, null, null, null, null, null, null);
 
     // Assert
     assertThat(response).isNotNull();
@@ -960,7 +923,7 @@ class AssessServiceTest {
 
     // Act
     var response =
-        assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
+        assessService.searchVulnerabilities(1, 50, null, null, null, null, null, null, null);
 
     // Assert
     assertThat(response).isNotNull();
@@ -1021,7 +984,7 @@ class AssessServiceTest {
 
     // Act
     var response =
-        assessService.getAllVulnerabilities(1, 50, null, null, null, null, null, null, null, null);
+        assessService.searchVulnerabilities(1, 50, null, null, null, null, null, null, null);
 
     // Assert
     assertThat(response).isNotNull();
@@ -1493,5 +1456,214 @@ class AssessServiceTest {
                     null))
         .isInstanceOf(IOException.class)
         .hasMessageContaining("Failed to search app vulnerabilities");
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_return_warning_when_useLatestSession_finds_no_session()
+      throws Exception {
+    // Given - SDK returns vulnerabilities, but SDKExtension returns null for latest session
+    var mockTraces = createMockTraces(10, 10);
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(mockTraces);
+
+    try (var mockedSDKExtension =
+        mockConstruction(
+            com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension.class,
+            (mock, context) -> {
+              // Mock getLatestSessionMetadata to return null (no session found)
+              when(mock.getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                  .thenReturn(null);
+            })) {
+
+      // When - request with useLatestSession=true
+      var result =
+          assessService.searchAppVulnerabilities(
+              TEST_APP_ID,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              null,
+              true); // useLatestSession = true
+
+      // Then - verify warning was passed to PaginationHandler
+      @SuppressWarnings("unchecked")
+      ArgumentCaptor<List<String>> warningsCaptor = ArgumentCaptor.forClass(List.class);
+      verify(mockPaginationHandler)
+          .createPaginatedResponse(
+              anyList(), any(PaginationParams.class), any(), warningsCaptor.capture());
+
+      var warnings = warningsCaptor.getValue();
+      assertThat(warnings)
+          .anyMatch(
+              w ->
+                  w.contains("No sessions found for this application")
+                      && w.contains("Returning all vulnerabilities"));
+      assertThat(result.items()).hasSize(10); // Should still return vulnerabilities
+
+      // Verify SDK was called WITHOUT agentSessionId filter
+      var formCaptor = ArgumentCaptor.forClass(TraceFilterForm.class);
+      verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), formCaptor.capture());
+      var form = formCaptor.getValue();
+      assertThat(form).isNotNull();
+    }
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_return_null_response_error_when_SDK_returns_null()
+      throws Exception {
+    // Given - SDK returns null Traces
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(null);
+
+    // When
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID, null, null, null, null, null, null, null, null, null, null, null, null);
+
+    // Then - verify error message about null response
+    assertThat(result.message())
+        .contains("App-level vulnerability API returned null for app " + TEST_APP_ID);
+    assertThat(result.message()).contains("Please check API connectivity and permissions");
+    assertThat(result.items()).isEmpty();
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_filter_by_session_metadata_case_insensitive()
+      throws Exception {
+    // Given - Create traces with session metadata
+    var mockTraces = mock(Traces.class);
+    var traces = new ArrayList<Trace>();
+
+    // Create trace with matching metadata (case varies)
+    Trace trace1 = mock();
+    when(trace1.getTitle()).thenReturn("SQL Injection");
+    when(trace1.getRule()).thenReturn("sql-injection");
+    when(trace1.getUuid()).thenReturn("uuid-1");
+    when(trace1.getSeverity()).thenReturn("HIGH");
+    when(trace1.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+
+    var sessionMetadata1 = mock(com.contrastsecurity.models.SessionMetadata.class);
+    var metadataItem1 = mock(com.contrastsecurity.models.MetadataItem.class);
+    when(metadataItem1.getDisplayLabel()).thenReturn("ENVIRONMENT"); // uppercase
+    when(metadataItem1.getValue()).thenReturn("PRODUCTION"); // uppercase
+    when(sessionMetadata1.getMetadata()).thenReturn(List.of(metadataItem1));
+    when(trace1.getSessionMetadata()).thenReturn(List.of(sessionMetadata1));
+    traces.add(trace1);
+
+    // Create trace with non-matching metadata
+    Trace trace2 = mock();
+    when(trace2.getTitle()).thenReturn("XSS");
+    when(trace2.getRule()).thenReturn("xss");
+    when(trace2.getUuid()).thenReturn("uuid-2");
+    when(trace2.getSeverity()).thenReturn("HIGH");
+    when(trace2.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+
+    var sessionMetadata2 = mock(com.contrastsecurity.models.SessionMetadata.class);
+    var metadataItem2 = mock(com.contrastsecurity.models.MetadataItem.class);
+    when(metadataItem2.getDisplayLabel()).thenReturn("environment");
+    when(metadataItem2.getValue()).thenReturn("qa"); // different value
+    when(sessionMetadata2.getMetadata()).thenReturn(List.of(metadataItem2));
+    when(trace2.getSessionMetadata()).thenReturn(List.of(sessionMetadata2));
+    traces.add(trace2);
+
+    // Create trace with matching metadata (different case)
+    Trace trace3 = mock();
+    when(trace3.getTitle()).thenReturn("Command Injection");
+    when(trace3.getRule()).thenReturn("cmd-injection");
+    when(trace3.getUuid()).thenReturn("uuid-3");
+    when(trace3.getSeverity()).thenReturn("CRITICAL");
+    when(trace3.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+
+    var sessionMetadata3 = mock(com.contrastsecurity.models.SessionMetadata.class);
+    var metadataItem3 = mock(com.contrastsecurity.models.MetadataItem.class);
+    when(metadataItem3.getDisplayLabel()).thenReturn("Environment"); // mixed case
+    when(metadataItem3.getValue()).thenReturn("production"); // lowercase
+    when(sessionMetadata3.getMetadata()).thenReturn(List.of(metadataItem3));
+    when(trace3.getSessionMetadata()).thenReturn(List.of(sessionMetadata3));
+    traces.add(trace3);
+
+    when(mockTraces.getTraces()).thenReturn(traces);
+    // Note: getCount() not needed here - session metadata filtering uses filtered list size
+
+    // Mock SDK to return all 3 traces (when session metadata filtering, SDK returns all)
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(), any()))
+        .thenReturn(mockTraces);
+
+    // When - search with session metadata filter (lowercase)
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID,
+            1, // page
+            50, // pageSize
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "environment", // sessionMetadataName (lowercase)
+            "production", // sessionMetadataValue (lowercase)
+            null);
+
+    // Then - should return only traces 1 and 3 (case-insensitive match)
+    assertThat(result.items()).hasSize(2);
+    assertThat(result.items().get(0).type()).isEqualTo("sql-injection");
+    assertThat(result.items().get(1).type()).isEqualTo("cmd-injection");
+
+    // Verify total items reflects filtered count, not SDK count
+    assertThat(result.totalItems()).isEqualTo(2);
+
+    // Verify SDK was called (session metadata filtering uses different overload)
+    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(), any());
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_pass_all_standard_filters_to_SDK() throws Exception {
+    // Given
+    var mockTraces = createMockTraces(10, 10);
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(mockTraces);
+
+    // When - provide all standard filter parameters
+    assessService.searchAppVulnerabilities(
+        TEST_APP_ID,
+        1, // page
+        50, // pageSize
+        "CRITICAL,HIGH", // severities
+        "Reported,Confirmed", // statuses
+        "sql-injection,xss-reflected", // vulnTypes
+        "PRODUCTION,QA", // environments
+        "2025-01-01", // lastSeenAfter
+        "2025-12-31", // lastSeenBefore
+        "reviewed,SmartFix Remediated", // vulnTags
+        null, // sessionMetadataName
+        null, // sessionMetadataValue
+        null); // useLatestSession
+
+    // Then - verify SDK received all filters correctly
+    var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), captor.capture());
+
+    var form = captor.getValue();
+    assertThat(form.getSeverities()).isNotNull();
+    assertThat(form.getSeverities().size()).isEqualTo(2);
+    assertThat(form.getStatus()).isNotNull();
+    assertThat(form.getStatus().size()).isEqualTo(2);
+    assertThat(form.getVulnTypes()).isNotNull();
+    assertThat(form.getVulnTypes().size()).isEqualTo(2);
+    assertThat(form.getEnvironments()).isNotNull();
+    assertThat(form.getEnvironments().size()).isEqualTo(2);
+    assertThat(form.getStartDate()).isNotNull();
+    assertThat(form.getEndDate()).isNotNull();
+    assertThat(form.getFilterTags()).isNotNull();
+    assertThat(form.getFilterTags().size()).isEqualTo(2);
   }
 }
