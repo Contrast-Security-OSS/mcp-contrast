@@ -60,11 +60,11 @@ public class ADRService {
   private String httpProxyPort;
 
   @Tool(
-      name = "get_ADR_Protect_Rules",
+      name = "get_protect_rules",
       description =
-          "Takes an application ID and returns the Protect/ADR rules for the application. Use"
-              + " list_applications_with_name first to get the application ID from a name")
-  public ProtectData getProtectDataByAppID(@ToolParam(description = "Application ID") String appID)
+          "Takes an application ID and returns the Protect rules for the application. Use"
+              + " search_applications first to get the application ID from a name")
+  public ProtectData getProtectRules(@ToolParam(description = "Application ID") String appID)
       throws IOException {
     if (!StringUtils.hasText(appID)) {
       log.error("Cannot retrieve protection rules - application ID is null or empty");
@@ -115,7 +115,7 @@ public class ADRService {
   }
 
   @Tool(
-      name = "get_attacks",
+      name = "search_attacks",
       description =
           """
           Retrieves attacks from Contrast ADR (Attack Detection and Response) with optional filtering
@@ -124,7 +124,7 @@ public class ADRService {
           Returns a paginated list of attack summaries with key information including rule names,
           status, severity, affected applications, source IP, and probe counts.
           """)
-  public PaginatedResponse<AttackSummary> getAttacks(
+  public PaginatedResponse<AttackSummary> searchAttacks(
       @ToolParam(
               description =
                   "Quick filter preset (e.g., EXPLOITED, PROBED) for status/severity filtering",

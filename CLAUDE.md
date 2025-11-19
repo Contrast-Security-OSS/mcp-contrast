@@ -69,6 +69,8 @@ Required environment variables/arguments:
 - **Build Tool**: Maven with wrapper
 - **Packaging**: Executable JAR and Docker container
 
+**SDK Source Access:** The Contrast SDK Java source code is available in the parent directory at `/Users/chrisedwards/projects/contrast/contrast-sdk-java`. Reference this when you need to understand SDK types, method signatures, or behavior.
+
 ### Development Patterns
 
 1. **MCP Tools**: Services expose methods via `@Tool` annotation for AI agent consumption

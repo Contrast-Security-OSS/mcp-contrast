@@ -52,7 +52,7 @@ public class SastService {
   private String httpProxyPort;
 
   @Tool(
-      name = "list_Scan_Project",
+      name = "get_scan_project",
       description = "takes a scan project name and returns the project details")
   public Project getScanProject(String projectName) throws IOException {
     log.info("Retrieving scan project details for project: {}", projectName);
@@ -76,7 +76,7 @@ public class SastService {
   }
 
   @Tool(
-      name = "list_Scan_Results",
+      name = "get_scan_results",
       description = "takes a scan project name and returns the latest results in Sarif format")
   public String getLatestScanResult(String projectName) throws IOException {
     log.info("Retrieving latest scan results in SARIF format for project: {}", projectName);

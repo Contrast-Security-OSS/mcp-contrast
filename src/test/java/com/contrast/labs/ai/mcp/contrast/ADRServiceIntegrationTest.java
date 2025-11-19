@@ -184,13 +184,13 @@ public class ADRServiceIntegrationTest
   // ========== Test Case 2: Get Protect Rules ==========
 
   @Test
-  void testGetADRProtectRules_Success() throws IOException {
-    log.info("\n=== Integration Test: get_ADR_Protect_Rules_by_app_id ===");
+  void testGetProtectRules_Success() throws IOException {
+    log.info("\n=== Integration Test: get_protect_rules ===");
 
     assertThat(testData).as("Test data must be discovered before running tests").isNotNull();
 
     // Act
-    var response = adrService.getProtectDataByAppID(testData.appId);
+    var response = adrService.getProtectRules(testData.appId);
 
     // Assert
     assertThat(response).as("Response should not be null").isNotNull();
@@ -220,13 +220,13 @@ public class ADRServiceIntegrationTest
   // ========== Test Case 3: Error Handling ==========
 
   @Test
-  void testGetADRProtectRules_InvalidAppId() {
+  void testGetProtectRules_InvalidAppId() {
     log.info("\n=== Integration Test: Invalid app ID handling ===");
 
     // Act - Use an invalid app ID that definitely doesn't exist
     boolean caughtException = false;
     try {
-      var response = adrService.getProtectDataByAppID("invalid-app-id-12345");
+      var response = adrService.getProtectRules("invalid-app-id-12345");
 
       // If we get here, the API returned a response (possibly null or empty)
       log.info("✓ API handled invalid app ID gracefully");
@@ -248,13 +248,13 @@ public class ADRServiceIntegrationTest
   }
 
   @Test
-  void testGetADRProtectRules_NullAppId() {
+  void testGetProtectRules_NullAppId() {
     log.info("\n=== Integration Test: Null app ID handling ===");
 
     // Act/Assert - Should throw IllegalArgumentException
     assertThatThrownBy(
             () -> {
-              adrService.getProtectDataByAppID(null);
+              adrService.getProtectRules(null);
             })
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Application ID cannot be null or empty");
@@ -263,13 +263,13 @@ public class ADRServiceIntegrationTest
   }
 
   @Test
-  void testGetADRProtectRules_EmptyAppId() {
+  void testGetProtectRules_EmptyAppId() {
     log.info("\n=== Integration Test: Empty app ID handling ===");
 
     // Act/Assert - Should throw IllegalArgumentException
     assertThatThrownBy(
             () -> {
-              adrService.getProtectDataByAppID("");
+              adrService.getProtectRules("");
             })
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Application ID cannot be null or empty");
@@ -280,13 +280,13 @@ public class ADRServiceIntegrationTest
   // ========== Test Case 4: Rule Details Verification ==========
 
   @Test
-  void testGetADRProtectRules_VerifyRuleDetails() throws IOException {
+  void testGetProtectRules_VerifyRuleDetails() throws IOException {
     log.info("\n=== Integration Test: Verify rule details structure ===");
 
     assertThat(testData).as("Test data must be discovered before running tests").isNotNull();
 
     // Act
-    var response = adrService.getProtectDataByAppID(testData.appId);
+    var response = adrService.getProtectRules(testData.appId);
 
     // Assert
     assertThat(response).isNotNull();

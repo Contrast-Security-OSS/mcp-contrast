@@ -39,7 +39,7 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-/** Test suite for ADRService, focusing on consolidated getAttacks method. */
+/** Test suite for ADRService, focusing on consolidated searchAttacks method. */
 @ExtendWith(MockitoExtension.class)
 class ADRServiceTest {
 
@@ -92,7 +92,7 @@ class ADRServiceTest {
   // ========== Test: No Filters (All Attacks) ==========
 
   @Test
-  void testGetAttacks_NoFilters_ReturnsAllAttacks() throws Exception {
+  void testSearchAttacks_NoFilters_ReturnsAllAttacks() throws Exception {
     // Given
     var mockResponse = createMockAttacksResponse(3, null);
 
@@ -106,7 +106,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.getAttacks(null, null, null, null, null, null, null, null);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, null, null);
 
     // Then
     assertThat(result.items()).hasSize(3);
@@ -121,7 +121,7 @@ class ADRServiceTest {
   // ========== Test: QuickFilter ==========
 
   @Test
-  void testGetAttacks_WithQuickFilter_PassesFilterToSDK() throws Exception {
+  void testSearchAttacks_WithQuickFilter_PassesFilterToSDK() throws Exception {
     // Given
     var mockResponse = createMockAttacksResponse(2, null);
 
@@ -135,7 +135,7 @@ class ADRServiceTest {
             });
 
     // When
-    adrService.getAttacks("PROBED", null, null, null, null, null, null, null);
+    adrService.searchAttacks("PROBED", null, null, null, null, null, null, null);
 
     // Then
     var extension = mockedSDKExtension.constructed().get(0);
@@ -148,7 +148,7 @@ class ADRServiceTest {
   // ========== Test: Keyword Filter ==========
 
   @Test
-  void testGetAttacks_WithKeyword_PassesKeywordToSDK() throws Exception {
+  void testSearchAttacks_WithKeyword_PassesKeywordToSDK() throws Exception {
     // Given
     var mockResponse = createMockAttacksResponse(1, null);
 
@@ -162,7 +162,7 @@ class ADRServiceTest {
             });
 
     // When
-    adrService.getAttacks(null, "sql injection", null, null, null, null, null, null);
+    adrService.searchAttacks(null, "sql injection", null, null, null, null, null, null);
 
     // Then
     var extension = mockedSDKExtension.constructed().get(0);
@@ -175,7 +175,7 @@ class ADRServiceTest {
   // ========== Test: Boolean Filters ==========
 
   @Test
-  void testGetAttacks_WithBooleanFilters_PassesCorrectly() throws Exception {
+  void testSearchAttacks_WithBooleanFilters_PassesCorrectly() throws Exception {
     // Given
     var mockResponse = createMockAttacksResponse(1, null);
 
@@ -189,7 +189,7 @@ class ADRServiceTest {
             });
 
     // When
-    adrService.getAttacks(null, null, true, false, true, null, null, null);
+    adrService.searchAttacks(null, null, true, false, true, null, null, null);
 
     // Then
     var extension = mockedSDKExtension.constructed().get(0);
@@ -204,7 +204,7 @@ class ADRServiceTest {
   // ========== Test: Pagination Parameters ==========
 
   @Test
-  void testGetAttacks_WithPaginationParams_PassesToSDK() throws Exception {
+  void testSearchAttacks_WithPaginationParams_PassesToSDK() throws Exception {
     // Given
     var mockResponse = createMockAttacksResponse(2, null);
 
@@ -222,7 +222,7 @@ class ADRServiceTest {
             });
 
     // When
-    adrService.getAttacks(null, null, null, null, null, "firstEventTime", 3, 50);
+    adrService.searchAttacks(null, null, null, null, null, "firstEventTime", 3, 50);
 
     // Then
     var extension = mockedSDKExtension.constructed().get(0);
@@ -234,7 +234,7 @@ class ADRServiceTest {
   // ========== Test: Combined Filters ==========
 
   @Test
-  void testGetAttacks_WithMultipleFilters_AllPassedCorrectly() throws Exception {
+  void testSearchAttacks_WithMultipleFilters_AllPassedCorrectly() throws Exception {
     // Given
     var mockResponse = createMockAttacksResponse(1, null);
 
@@ -252,7 +252,7 @@ class ADRServiceTest {
             });
 
     // When
-    adrService.getAttacks("EXPLOITED", "xss", true, true, false, "severity", 3, 25);
+    adrService.searchAttacks("EXPLOITED", "xss", true, true, false, "severity", 3, 25);
 
     // Then
     var extension = mockedSDKExtension.constructed().get(0);
@@ -270,7 +270,7 @@ class ADRServiceTest {
   // ========== Test: Empty Results ==========
 
   @Test
-  void testGetAttacks_EmptyResults_ReturnsEmptyList() throws Exception {
+  void testSearchAttacks_EmptyResults_ReturnsEmptyList() throws Exception {
     // Given
     var emptyResponse = createMockAttacksResponse(0, 0);
 
@@ -284,7 +284,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.getAttacks(null, null, null, null, null, null, null, null);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, null, null);
 
     // Then
     assertThat(result).isNotNull();
@@ -299,7 +299,7 @@ class ADRServiceTest {
   // ========== Test: Null Results ==========
 
   @Test
-  void testGetAttacks_NullResults_ReturnsEmptyList() throws Exception {
+  void testSearchAttacks_NullResults_ReturnsEmptyList() throws Exception {
     // Given
     var nullResponse = new AttacksResponse();
     nullResponse.setAttacks(null); // Simulate null attacks list
@@ -314,7 +314,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.getAttacks(null, null, null, null, null, null, null, null);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, null, null);
 
     // Then
     assertThat(result).isNotNull();
@@ -324,7 +324,7 @@ class ADRServiceTest {
   // ========== Test: SDK Exception ==========
 
   @Test
-  void testGetAttacks_SDKThrowsException_PropagatesException() throws Exception {
+  void testSearchAttacks_SDKThrowsException_PropagatesException() throws Exception {
     // Given
     mockedSDKExtension =
         mockConstruction(
@@ -338,7 +338,7 @@ class ADRServiceTest {
     // When/Then
     assertThatThrownBy(
             () -> {
-              adrService.getAttacks(null, null, null, null, null, null, null, null);
+              adrService.searchAttacks(null, null, null, null, null, null, null, null);
             })
         .isInstanceOf(Exception.class)
         .satisfies(
@@ -353,7 +353,7 @@ class ADRServiceTest {
   // ========== Test: Null Filters Don't Override Defaults ==========
 
   @Test
-  void testGetAttacks_NullFilters_DoesNotSetFilterBodyFields() throws Exception {
+  void testSearchAttacks_NullFilters_DoesNotSetFilterBodyFields() throws Exception {
     // Given
     var mockResponse = createMockAttacksResponse(1, null);
 
@@ -367,7 +367,7 @@ class ADRServiceTest {
             });
 
     // When
-    adrService.getAttacks(null, null, null, null, null, null, null, null);
+    adrService.searchAttacks(null, null, null, null, null, null, null, null);
 
     // Then
     var extension = mockedSDKExtension.constructed().get(0);
@@ -382,7 +382,7 @@ class ADRServiceTest {
   // ========== Pagination Tests ==========
 
   @Test
-  void testGetAttacks_WithTotalCount_ProvidesAccurateHasMorePages() throws Exception {
+  void testSearchAttacks_WithTotalCount_ProvidesAccurateHasMorePages() throws Exception {
     // Given: API returns 50 items with totalCount=150 (3 pages total)
     var mockResponse = createMockAttacksResponse(50, 150);
 
@@ -396,7 +396,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, 1, 50);
 
     // Then
     assertThat(result.items()).hasSize(50);
@@ -407,7 +407,7 @@ class ADRServiceTest {
   }
 
   @Test
-  void testGetAttacks_LastPage_WithTotalCount_HasMorePagesFalse() throws Exception {
+  void testSearchAttacks_LastPage_WithTotalCount_HasMorePagesFalse() throws Exception {
     // Given: Page 3 of 3 (offset=100, returns 50 items, total=150)
     var mockResponse = createMockAttacksResponse(50, 150);
 
@@ -421,7 +421,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.getAttacks(null, null, null, null, null, null, 3, 50);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, 3, 50);
 
     // Then
     assertThat(result.items()).hasSize(50);
@@ -432,7 +432,7 @@ class ADRServiceTest {
   }
 
   @Test
-  void testGetAttacks_InvalidPageSize_ClampsAndWarns() throws Exception {
+  void testSearchAttacks_InvalidPageSize_ClampsAndWarns() throws Exception {
     // Given
     var mockResponse = createMockAttacksResponse(100, 200);
 
@@ -447,7 +447,7 @@ class ADRServiceTest {
             });
 
     // When: Request pageSize=500 (exceeds max of 100)
-    var result = adrService.getAttacks(null, null, null, null, null, null, 1, 500);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, 1, 500);
 
     // Then
     assertThat(result.pageSize()).as("PageSize should be clamped to 100").isEqualTo(100);
@@ -457,7 +457,7 @@ class ADRServiceTest {
   }
 
   @Test
-  void testGetAttacks_InvalidPage_ClampsAndWarns() throws Exception {
+  void testSearchAttacks_InvalidPage_ClampsAndWarns() throws Exception {
     // Given
     var mockResponse = createMockAttacksResponse(50, null);
 
@@ -472,7 +472,7 @@ class ADRServiceTest {
             });
 
     // When: Request page=0 or negative (invalid)
-    var result = adrService.getAttacks(null, null, null, null, null, null, 0, 50);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, 0, 50);
 
     // Then
     assertThat(result.page()).as("Page should be clamped to 1").isEqualTo(1);
@@ -483,7 +483,7 @@ class ADRServiceTest {
   }
 
   @Test
-  void testGetAttacks_WithoutTotalCount_UsesHeuristic() throws Exception {
+  void testSearchAttacks_WithoutTotalCount_UsesHeuristic() throws Exception {
     // Given: Full page of results (50 items), no totalCount
     var mockResponse = createMockAttacksResponse(50, null);
 
@@ -497,7 +497,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, 1, 50);
 
     // Then
     assertThat(result.totalItems()).as("TotalItems should be null when not provided").isNull();
@@ -505,7 +505,7 @@ class ADRServiceTest {
   }
 
   @Test
-  void testGetAttacks_PartialPageWithoutCount_NoMorePages() throws Exception {
+  void testSearchAttacks_PartialPageWithoutCount_NoMorePages() throws Exception {
     // Given: Partial page (25 items when pageSize=50), no totalCount
     var mockResponse = createMockAttacksResponse(25, null);
 
@@ -519,7 +519,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, 1, 50);
 
     // Then
     assertThat(result.items().size()).isEqualTo(25);
@@ -532,7 +532,7 @@ class ADRServiceTest {
   // ========== Test: Smart Defaults and Messages ==========
 
   @Test
-  void testGetAttacks_SmartDefaults_ReturnsMessages() throws Exception {
+  void testSearchAttacks_SmartDefaults_ReturnsMessages() throws Exception {
     // Given: No filters provided, should use smart defaults
     var mockResponse = createMockAttacksResponse(10, null);
 
@@ -546,7 +546,7 @@ class ADRServiceTest {
             });
 
     // When: No filters provided
-    var result = adrService.getAttacks(null, null, null, null, null, null, 1, 50);
+    var result = adrService.searchAttacks(null, null, null, null, null, null, 1, 50);
 
     // Then: Should have messages about smart defaults
     assertThat(result.message()).as("Should have messages about smart defaults").isNotNull();
@@ -559,7 +559,7 @@ class ADRServiceTest {
   }
 
   @Test
-  void testGetAttacks_ExplicitFilters_NoSmartDefaultMessages() throws Exception {
+  void testSearchAttacks_ExplicitFilters_NoSmartDefaultMessages() throws Exception {
     // Given: Explicit filters provided
     var mockResponse = createMockAttacksResponse(5, null);
 
@@ -573,7 +573,7 @@ class ADRServiceTest {
             });
 
     // When: Explicit filters provided
-    var result = adrService.getAttacks("EXPLOITED", null, true, null, null, null, 1, 50);
+    var result = adrService.searchAttacks("EXPLOITED", null, true, null, null, null, 1, 50);
 
     // Then: Should NOT have smart default messages
     if (result.message() != null) {
@@ -587,9 +587,9 @@ class ADRServiceTest {
   }
 
   @Test
-  void testGetAttacks_InvalidQuickFilter_ReturnsError() throws Exception {
+  void testSearchAttacks_InvalidQuickFilter_ReturnsError() throws Exception {
     // When: Invalid quickFilter provided
-    var result = adrService.getAttacks("INVALID_FILTER", null, null, null, null, null, 1, 50);
+    var result = adrService.searchAttacks("INVALID_FILTER", null, null, null, null, null, 1, 50);
 
     // Then: Should return error response with descriptive message
     assertThat(result.message()).as("Should have error message").isNotNull();
@@ -603,10 +603,10 @@ class ADRServiceTest {
   }
 
   @Test
-  void testGetAttacks_InvalidSort_ReturnsError() throws Exception {
+  void testSearchAttacks_InvalidSort_ReturnsError() throws Exception {
     // When: Invalid sort format provided
     var result =
-        adrService.getAttacks("EXPLOITED", null, false, null, null, "invalid sort!", 1, 50);
+        adrService.searchAttacks("EXPLOITED", null, false, null, null, "invalid sort!", 1, 50);
 
     // Then: Should return error response with descriptive message
     assertThat(result.message()).as("Should have error message").isNotNull();
@@ -620,9 +620,10 @@ class ADRServiceTest {
   }
 
   @Test
-  void testGetAttacks_MultipleValidationErrors_CombinesErrors() throws Exception {
+  void testSearchAttacks_MultipleValidationErrors_CombinesErrors() throws Exception {
     // When: Multiple invalid parameters provided
-    var result = adrService.getAttacks("BAD_FILTER", null, null, null, null, "bad-format!", 1, 50);
+    var result =
+        adrService.searchAttacks("BAD_FILTER", null, null, null, null, "bad-format!", 1, 50);
 
     // Then: Should return combined error messages
     assertThat(result.message()).as("Should have error message").isNotNull();
@@ -633,10 +634,10 @@ class ADRServiceTest {
     assertThat(result.items().size()).as("Should return empty items on error").isEqualTo(0);
   }
 
-  // ========== Tests for get_ADR_Protect_Rules_by_app_id ==========
+  // ========== Tests for get_protect_rules ==========
 
   @Test
-  void testGetProtectDataByAppID_Success() throws Exception {
+  void testGetProtectRules_Success() throws Exception {
     // Given
     var mockProtectData = createMockProtectData(3);
 
@@ -649,7 +650,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.getProtectDataByAppID(TEST_APP_ID);
+    var result = adrService.getProtectRules(TEST_APP_ID);
 
     // Then
     assertThat(result).as("Result should not be null").isNotNull();
@@ -658,7 +659,7 @@ class ADRServiceTest {
   }
 
   @Test
-  void testGetProtectDataByAppID_WithRules() throws Exception {
+  void testGetProtectRules_WithRules() throws Exception {
     // Given
     var mockProtectData = createMockProtectDataWithRules();
 
@@ -671,7 +672,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.getProtectDataByAppID(TEST_APP_ID);
+    var result = adrService.getProtectRules(TEST_APP_ID);
 
     // Then
     assertThat(result).isNotNull();
@@ -685,29 +686,29 @@ class ADRServiceTest {
   }
 
   @Test
-  void testGetProtectDataByAppID_EmptyAppID() {
+  void testGetProtectRules_EmptyAppID() {
     // When/Then
     assertThatThrownBy(
             () -> {
-              adrService.getProtectDataByAppID("");
+              adrService.getProtectRules("");
             })
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Application ID cannot be null or empty");
   }
 
   @Test
-  void testGetProtectDataByAppID_NullAppID() {
+  void testGetProtectRules_NullAppID() {
     // When/Then
     assertThatThrownBy(
             () -> {
-              adrService.getProtectDataByAppID(null);
+              adrService.getProtectRules(null);
             })
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Application ID cannot be null or empty");
   }
 
   @Test
-  void testGetProtectDataByAppID_SDKFailure() throws Exception {
+  void testGetProtectRules_SDKFailure() throws Exception {
     // Given - SDK throws exception
     mockedSDKExtension =
         mockConstruction(
@@ -720,7 +721,7 @@ class ADRServiceTest {
     // When/Then
     assertThatThrownBy(
             () -> {
-              adrService.getProtectDataByAppID(TEST_APP_ID);
+              adrService.getProtectRules(TEST_APP_ID);
             })
         .isInstanceOf(Exception.class)
         .satisfies(
@@ -736,7 +737,7 @@ class ADRServiceTest {
   }
 
   @Test
-  void testGetProtectDataByAppID_NoProtectDataReturned() throws Exception {
+  void testGetProtectRules_NoProtectDataReturned() throws Exception {
     // Given - SDK returns null (app exists but no protect config)
     mockedSDKExtension =
         mockConstruction(
@@ -746,14 +747,14 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.getProtectDataByAppID(TEST_APP_ID);
+    var result = adrService.getProtectRules(TEST_APP_ID);
 
     // Then
     assertThat(result).as("Should return null when no protect data available").isNull();
   }
 
   @Test
-  void testGetProtectDataByAppID_EmptyRulesList() throws Exception {
+  void testGetProtectRules_EmptyRulesList() throws Exception {
     // Given - Protect enabled but no rules configured
     var mockProtectData = new com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData();
     mockProtectData.setRules(new ArrayList<>());
@@ -767,7 +768,7 @@ class ADRServiceTest {
             });
 
     // When
-    var result = adrService.getProtectDataByAppID(TEST_APP_ID);
+    var result = adrService.getProtectRules(TEST_APP_ID);
 
     // Then
     assertThat(result).isNotNull();
