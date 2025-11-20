@@ -1990,4 +1990,350 @@ class AssessServiceTest {
     assertThat(form.getFilterTags()).isNotNull();
     assertThat(form.getFilterTags().size()).isEqualTo(2);
   }
+
+  // ========== Status Filter Verification Tests (mcp-3sy) ==========
+  // These tests verify that status filters work correctly after mcp-b9y's unified refactoring
+  // eliminated the filterBody object, fixing the bug where status filters were ignored
+  // when sessionMetadataName was provided.
+
+  @Test
+  void searchAppVulnerabilities_should_apply_status_filters_with_sessionMetadataName()
+      throws Exception {
+    // Given - Simulate SDK returning only traces matching status filter
+    // In reality, SDK filters server-side. We mock that behavior here.
+    var mockTraces = new Traces();
+    var traces = new ArrayList<Trace>();
+
+    // Trace 0: Reported status, branch=main
+    Trace trace0 = mock();
+    when(trace0.getTitle()).thenReturn("SQL Injection");
+    when(trace0.getRule()).thenReturn("sql-injection");
+    when(trace0.getUuid()).thenReturn("uuid-reported");
+    when(trace0.getSeverity()).thenReturn("HIGH");
+    when(trace0.getStatus()).thenReturn("REPORTED");
+    when(trace0.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+    when(trace0.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
+
+    var sessionMetadata0 = mock(SessionMetadata.class);
+    var metadataItem0 = mock(MetadataItem.class);
+    lenient().when(metadataItem0.getDisplayLabel()).thenReturn("branch");
+    lenient().when(metadataItem0.getValue()).thenReturn("main");
+    lenient().when(sessionMetadata0.getMetadata()).thenReturn(List.of(metadataItem0));
+    lenient().when(trace0.getSessionMetadata()).thenReturn(List.of(sessionMetadata0));
+    traces.add(trace0);
+
+    // Trace 1: Suspicious status, branch=main
+    Trace trace1 = mock();
+    when(trace1.getTitle()).thenReturn("Path Traversal");
+    when(trace1.getRule()).thenReturn("path-traversal");
+    when(trace1.getUuid()).thenReturn("uuid-suspicious");
+    when(trace1.getSeverity()).thenReturn("HIGH");
+    when(trace1.getStatus()).thenReturn("SUSPICIOUS");
+    when(trace1.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+    when(trace1.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
+
+    var sessionMetadata1 = mock(SessionMetadata.class);
+    var metadataItem1 = mock(MetadataItem.class);
+    lenient().when(metadataItem1.getDisplayLabel()).thenReturn("branch");
+    lenient().when(metadataItem1.getValue()).thenReturn("main");
+    lenient().when(sessionMetadata1.getMetadata()).thenReturn(List.of(metadataItem1));
+    lenient().when(trace1.getSessionMetadata()).thenReturn(List.of(sessionMetadata1));
+    traces.add(trace1);
+
+    // Trace 2: Reported status, branch=develop (excluded by session metadata filter)
+    Trace trace2 = mock();
+    when(trace2.getTitle()).thenReturn("XSS Reflected");
+    when(trace2.getRule()).thenReturn("xss-reflected");
+    when(trace2.getUuid()).thenReturn("uuid-develop");
+    when(trace2.getSeverity()).thenReturn("MEDIUM");
+    when(trace2.getStatus()).thenReturn("REPORTED");
+    when(trace2.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+    when(trace2.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
+
+    var sessionMetadata2 = mock(SessionMetadata.class);
+    var metadataItem2 = mock(MetadataItem.class);
+    lenient().when(metadataItem2.getDisplayLabel()).thenReturn("branch");
+    lenient().when(metadataItem2.getValue()).thenReturn("develop");
+    lenient().when(sessionMetadata2.getMetadata()).thenReturn(List.of(metadataItem2));
+    lenient().when(trace2.getSessionMetadata()).thenReturn(List.of(sessionMetadata2));
+    traces.add(trace2);
+
+    // Setup mock traces using reflection
+    // Note: SDK filters by status server-side, so Fixed/Remediated wouldn't be returned
+    try {
+      var tracesField = Traces.class.getDeclaredField("traces");
+      tracesField.setAccessible(true);
+      tracesField.set(mockTraces, traces);
+
+      var countField = Traces.class.getDeclaredField("count");
+      countField.setAccessible(true);
+      countField.set(mockTraces, 3);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to create mock Traces", e);
+    }
+
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(mockTraces);
+
+    // When - call with statuses="Reported,Suspicious" AND sessionMetadataName="branch"
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID,
+            null, // page
+            null, // pageSize
+            null, // severities
+            "Reported,Suspicious", // statuses (explicit filter)
+            null, // vulnTypes
+            null, // environments
+            null, // lastSeenAfter
+            null, // lastSeenBefore
+            null, // vulnTags
+            "branch", // sessionMetadataName
+            "main", // sessionMetadataValue
+            null); // useLatestSession
+
+    // Then - verify SDK received status filters (CRITICAL verification for mcp-3sy)
+    var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), captor.capture());
+
+    var form = captor.getValue();
+    assertThat(form.getStatus())
+        .as("Status filters should be passed to SDK when session filtering is active")
+        .isNotNull()
+        .containsExactlyInAnyOrder("Reported", "Suspicious");
+
+    // Verify results: trace0 and trace1 match (Reported + Suspicious with branch=main)
+    // trace2 is excluded by session metadata filter (branch=develop)
+    assertThat(result.items())
+        .as("Should return traces matching both status and session metadata filters")
+        .hasSize(2);
+    assertThat(result.items().get(0).title()).isEqualTo("SQL Injection");
+    assertThat(result.items().get(1).title()).isEqualTo("Path Traversal");
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_apply_status_filters_with_useLatestSession()
+      throws Exception {
+    // Given - Simulate SDK returning only Confirmed status traces (SDK filters server-side)
+    var mockTraces = new Traces();
+    var traces = new ArrayList<Trace>();
+
+    // Trace 0: Confirmed status, latest session
+    Trace trace0 = mock();
+    when(trace0.getTitle()).thenReturn("Command Injection");
+    when(trace0.getRule()).thenReturn("cmd-injection");
+    when(trace0.getUuid()).thenReturn("uuid-confirmed-latest");
+    when(trace0.getSeverity()).thenReturn("CRITICAL");
+    when(trace0.getStatus()).thenReturn("CONFIRMED");
+    when(trace0.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+    when(trace0.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
+
+    var sessionMetadata0 = mock(SessionMetadata.class);
+    lenient().when(sessionMetadata0.getSessionId()).thenReturn("latest-session-id");
+    lenient().when(trace0.getSessionMetadata()).thenReturn(List.of(sessionMetadata0));
+    traces.add(trace0);
+
+    // Trace 1: Confirmed status, old session (excluded by useLatestSession filter)
+    Trace trace1 = mock();
+    when(trace1.getTitle()).thenReturn("LDAP Injection");
+    when(trace1.getRule()).thenReturn("ldap-injection");
+    when(trace1.getUuid()).thenReturn("uuid-confirmed-old");
+    when(trace1.getSeverity()).thenReturn("HIGH");
+    when(trace1.getStatus()).thenReturn("CONFIRMED");
+    when(trace1.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+    when(trace1.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
+
+    var sessionMetadata1 = mock(SessionMetadata.class);
+    lenient().when(sessionMetadata1.getSessionId()).thenReturn("old-session-id");
+    lenient().when(trace1.getSessionMetadata()).thenReturn(List.of(sessionMetadata1));
+    traces.add(trace1);
+
+    // Setup mock traces using reflection
+    try {
+      var tracesField = Traces.class.getDeclaredField("traces");
+      tracesField.setAccessible(true);
+      tracesField.set(mockTraces, traces);
+
+      var countField = Traces.class.getDeclaredField("count");
+      countField.setAccessible(true);
+      countField.set(mockTraces, 2);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to create mock Traces", e);
+    }
+
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(mockTraces);
+
+    // Mock SDKExtension to return latest session
+    var mockAgentSession =
+        new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.AgentSession();
+    mockAgentSession.setAgentSessionId("latest-session-id");
+    var mockSessionResponse =
+        new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata
+            .SessionMetadataResponse();
+    mockSessionResponse.setAgentSession(mockAgentSession);
+
+    try (var mockedSDKExtension =
+        mockConstruction(
+            com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                  .thenReturn(mockSessionResponse);
+            })) {
+
+      // When - call with statuses="Confirmed" AND useLatestSession=true
+      var result =
+          assessService.searchAppVulnerabilities(
+              TEST_APP_ID,
+              null, // page
+              null, // pageSize
+              null, // severities
+              "Confirmed", // statuses (explicit filter)
+              null, // vulnTypes
+              null, // environments
+              null, // lastSeenAfter
+              null, // lastSeenBefore
+              null, // vulnTags
+              null, // sessionMetadataName
+              null, // sessionMetadataValue
+              true); // useLatestSession=true
+
+      // Then - verify SDK received status filters (CRITICAL verification for mcp-3sy)
+      var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+      verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), captor.capture());
+
+      var form = captor.getValue();
+      assertThat(form.getStatus())
+          .as("Status filters should be passed to SDK even with useLatestSession")
+          .isNotNull()
+          .containsExactly("Confirmed");
+
+      // Verify results: only trace0 matches (Confirmed + latest session)
+      // trace1 excluded by in-memory session ID filtering
+      assertThat(result.items())
+          .as("Should return only Confirmed vulnerabilities from latest session")
+          .hasSize(1);
+      assertThat(result.items().get(0).title()).isEqualTo("Command Injection");
+      assertThat(result.items().get(0).status()).isEqualTo("CONFIRMED");
+    }
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_use_smart_defaults_with_sessionMetadataName()
+      throws Exception {
+    // Given - Simulate SDK returning only smart default statuses (SDK filters server-side)
+    // Smart defaults = Reported, Suspicious, Confirmed (exclude Fixed and Remediated)
+    var mockTraces = new Traces();
+    var traces = new ArrayList<Trace>();
+
+    // Trace 0: Reported (included in smart defaults), Environment=Production
+    Trace trace0 = mock();
+    when(trace0.getTitle()).thenReturn("Reported Vuln");
+    when(trace0.getRule()).thenReturn("rule-0");
+    when(trace0.getUuid()).thenReturn("uuid-0");
+    when(trace0.getSeverity()).thenReturn("HIGH");
+    when(trace0.getStatus()).thenReturn("REPORTED");
+    when(trace0.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+    when(trace0.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
+
+    var sessionMetadata0 = mock(SessionMetadata.class);
+    var metadataItem0 = mock(MetadataItem.class);
+    lenient().when(metadataItem0.getDisplayLabel()).thenReturn("Environment");
+    lenient().when(metadataItem0.getValue()).thenReturn("Production");
+    lenient().when(sessionMetadata0.getMetadata()).thenReturn(List.of(metadataItem0));
+    lenient().when(trace0.getSessionMetadata()).thenReturn(List.of(sessionMetadata0));
+    traces.add(trace0);
+
+    // Trace 1: Confirmed (included in smart defaults), Environment=Production
+    Trace trace1 = mock();
+    when(trace1.getTitle()).thenReturn("Confirmed Vuln");
+    when(trace1.getRule()).thenReturn("rule-1");
+    when(trace1.getUuid()).thenReturn("uuid-1");
+    when(trace1.getSeverity()).thenReturn("CRITICAL");
+    when(trace1.getStatus()).thenReturn("CONFIRMED");
+    when(trace1.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+    when(trace1.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
+
+    var sessionMetadata1 = mock(SessionMetadata.class);
+    var metadataItem1 = mock(MetadataItem.class);
+    lenient().when(metadataItem1.getDisplayLabel()).thenReturn("Environment");
+    lenient().when(metadataItem1.getValue()).thenReturn("Production");
+    lenient().when(sessionMetadata1.getMetadata()).thenReturn(List.of(metadataItem1));
+    lenient().when(trace1.getSessionMetadata()).thenReturn(List.of(sessionMetadata1));
+    traces.add(trace1);
+
+    // Trace 2: Reported (included in smart defaults), Environment=QA (excluded by metadata)
+    Trace trace2 = mock();
+    when(trace2.getTitle()).thenReturn("QA Vuln");
+    when(trace2.getRule()).thenReturn("rule-2");
+    when(trace2.getUuid()).thenReturn("uuid-2");
+    when(trace2.getSeverity()).thenReturn("MEDIUM");
+    when(trace2.getStatus()).thenReturn("REPORTED");
+    when(trace2.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+    when(trace2.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
+
+    var sessionMetadata2 = mock(SessionMetadata.class);
+    var metadataItem2 = mock(MetadataItem.class);
+    lenient().when(metadataItem2.getDisplayLabel()).thenReturn("Environment");
+    lenient().when(metadataItem2.getValue()).thenReturn("QA");
+    lenient().when(sessionMetadata2.getMetadata()).thenReturn(List.of(metadataItem2));
+    lenient().when(trace2.getSessionMetadata()).thenReturn(List.of(sessionMetadata2));
+    traces.add(trace2);
+
+    // Setup mock traces using reflection
+    // Note: Fixed/Remediated traces filtered out by SDK (smart defaults)
+    try {
+      var tracesField = Traces.class.getDeclaredField("traces");
+      tracesField.setAccessible(true);
+      tracesField.set(mockTraces, traces);
+
+      var countField = Traces.class.getDeclaredField("count");
+      countField.setAccessible(true);
+      countField.set(mockTraces, 3);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to create mock Traces", e);
+    }
+
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(mockTraces);
+
+    // When - call with sessionMetadataName but NO explicit statuses (triggers smart defaults)
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID,
+            null, // page
+            null, // pageSize
+            null, // severities
+            null, // statuses (NOT provided - should use smart defaults)
+            null, // vulnTypes
+            null, // environments
+            null, // lastSeenAfter
+            null, // lastSeenBefore
+            null, // vulnTags
+            "Environment", // sessionMetadataName
+            "Production", // sessionMetadataValue
+            null); // useLatestSession
+
+    // Then - verify SDK received smart default statuses (CRITICAL verification for mcp-3sy)
+    var captor = ArgumentCaptor.forClass(TraceFilterForm.class);
+    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), captor.capture());
+
+    var form = captor.getValue();
+    assertThat(form.getStatus())
+        .as(
+            "Smart default statuses should be passed to SDK (Reported, Suspicious, Confirmed -"
+                + " excluding Fixed and Remediated)")
+        .isNotNull()
+        .containsExactlyInAnyOrder("Reported", "Suspicious", "Confirmed")
+        .doesNotContain("Fixed", "Remediated");
+
+    // Verify results: trace0 and trace1 match (Reported + Confirmed with Environment=Production)
+    // trace2 excluded by session metadata filter (Environment=QA)
+    // Note: Smart default warning message is tested separately in VulnerabilityFilterParamsTest
+    assertThat(result.items())
+        .as("Should return only actionable statuses (excluding Fixed and Remediated)")
+        .hasSize(2);
+    assertThat(result.items().get(0).title()).isEqualTo("Reported Vuln");
+    assertThat(result.items().get(1).title()).isEqualTo("Confirmed Vuln");
+  }
 }
