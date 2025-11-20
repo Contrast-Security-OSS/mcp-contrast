@@ -619,9 +619,22 @@ public class AssessService {
           String lastSeenBefore,
       @ToolParam(description = "Comma-separated vulnerability tags", required = false)
           String vulnTags,
-      @ToolParam(description = "Session metadata field name for filtering", required = false)
+      @ToolParam(
+              description =
+                  "Filter by session metadata field name. Matching is case-insensitive: 'branch',"
+                      + " 'Branch', and 'BRANCH' all match. Use get_session_metadata(appId) to"
+                      + " discover available field names for this application. When specified"
+                      + " without sessionMetadataValue, returns vulnerabilities that have this"
+                      + " metadata field with any value.",
+              required = false)
           String sessionMetadataName,
-      @ToolParam(description = "Session metadata field value for filtering", required = false)
+      @ToolParam(
+              description =
+                  "Filter by session metadata field value. Matching is case-insensitive: 'Main',"
+                      + " 'main', and 'MAIN' all match. Use get_session_metadata(appId) to discover"
+                      + " available values for the specified field name. Requires"
+                      + " sessionMetadataName to be specified.",
+              required = false)
           String sessionMetadataValue,
       @ToolParam(description = "Filter to latest session only", required = false)
           Boolean useLatestSession)
