@@ -10,12 +10,16 @@ This is an MCP (Model Context Protocol) server for Contrast Security that enable
 
 ### Building the Project
 - **Build**: `mvn clean install` or `./mvnw clean install`
-- **Test**: `mvn test` or `./mvnw test`
+- **Test (unit)**: `mvn test` - Unit tests only
+- **Test (all)**: `source .env.integration-test && mvn verify` - Unit + integration tests
+- **Test (skip integration)**: `mvn verify -DskipITs` - Unit tests only
 - **Format code**: `mvn spotless:apply` - Auto-format all Java files (run before committing)
 - **Check formatting**: `mvn spotless:check` - Verify code formatting (runs automatically during build)
 - **Run locally**: `java -jar target/mcp-contrast-0.0.11.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
 
 **Note:** Spotless enforces Google Java Format style automatically. The `spotless:check` goal runs during the `validate` phase, so any `mvn compile`, `mvn test`, or `mvn install` will fail if code is not properly formatted. Run `mvn spotless:apply` before committing to ensure formatting is correct.
+
+**Integration Tests:** Integration tests require Contrast credentials in `.env.integration-test` (copy from `.env.integration-test.template`). Tests only run when `CONTRAST_HOST_NAME` env var is set. See INTEGRATION_TESTS.md for details.
 
 ### Docker Commands
 - **Build Docker image**: `docker build -t mcp-contrast .`
@@ -68,6 +72,8 @@ Required environment variables/arguments:
 - **Testing**: JUnit 5
 - **Build Tool**: Maven with wrapper
 - **Packaging**: Executable JAR and Docker container
+
+**SDK Source Access:** The Contrast SDK Java source code is available in the parent directory at `/Users/chrisedwards/projects/contrast/contrast-sdk-java`. Reference this when you need to understand SDK types, method signatures, or behavior.
 
 ### Development Patterns
 
