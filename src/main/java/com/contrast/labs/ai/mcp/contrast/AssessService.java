@@ -789,8 +789,18 @@ public class AssessService {
           if (vuln.sessionMetadata() != null) {
             for (SessionMetadata sm : vuln.sessionMetadata()) {
               for (MetadataItem metadataItem : sm.getMetadata()) {
-                if (metadataItem.getDisplayLabel().equalsIgnoreCase(sessionMetadataName)
-                    && metadataItem.getValue().equalsIgnoreCase(sessionMetadataValue)) {
+                // Match on display label (required)
+                var nameMatches =
+                    metadataItem.getDisplayLabel().equalsIgnoreCase(sessionMetadataName);
+
+                // If sessionMetadataValue is null, treat as wildcard (match name only)
+                // Otherwise, both name and value must match
+                var valueMatches =
+                    sessionMetadataValue == null
+                        || (metadataItem.getValue() != null
+                            && metadataItem.getValue().equalsIgnoreCase(sessionMetadataValue));
+
+                if (nameMatches && valueMatches) {
                   filteredVulns.add(vuln);
                   log.debug(
                       "Found matching vulnerability with ID: {} for session metadata {}={}",

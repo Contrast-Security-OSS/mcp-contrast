@@ -93,10 +93,29 @@ public class SastService {
               .orElseThrow(() -> new IOException("Project not found"));
       log.debug("Found project with id: {}", project.id());
 
+      // Check if project has any completed scans
+      if (project.lastScanId() == null) {
+        var errorMsg =
+            String.format(
+                "No scan results available for project: %s. Project exists but has no completed"
+                    + " scans.",
+                projectName);
+        log.warn(errorMsg);
+        throw new IOException(errorMsg);
+      }
+
       var scans = contrastSDK.scan(orgID).scans(project.id());
       log.debug("Retrieved scans for project, last scan id: {}", project.lastScanId());
 
       var scan = scans.get(project.lastScanId());
+      if (scan == null) {
+        var errorMsg =
+            String.format(
+                "No scan results available for project: %s. Scan ID %s not found.",
+                projectName, project.lastScanId());
+        log.warn(errorMsg);
+        throw new IOException(errorMsg);
+      }
       log.debug("Retrieved scan with id: {}", project.lastScanId());
 
       try (InputStream sarifStream = scan.sarif();
