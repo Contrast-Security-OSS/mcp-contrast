@@ -185,7 +185,7 @@ class SastServiceTest {
   }
 
   @Test
-  void getLatestScanResult_should_throw_exception_when_lastScanId_is_null() throws IOException {
+  void getLatestScanResult_should_throw_IOException_when_lastScanId_is_null() throws IOException {
     // Arrange
     var projectName = "project-without-scans";
     var mockProject = mock(Project.class);
@@ -205,7 +205,38 @@ class SastServiceTest {
 
       // Act & Assert
       assertThatThrownBy(() -> sastService.getLatestScanResult(projectName))
-          .isInstanceOf(NullPointerException.class);
+          .isInstanceOf(IOException.class)
+          .hasMessageContaining("No scan results available")
+          .hasMessageContaining("has no completed scans");
+    }
+  }
+
+  @Test
+  void getLatestScanResult_should_throw_IOException_when_scan_is_null() throws IOException {
+    // Arrange
+    var projectName = "test-project";
+    var mockProject = mock(Project.class);
+    var scanId = "scan-123";
+
+    when(mockProject.name()).thenReturn(projectName);
+    when(mockProject.id()).thenReturn("project-123");
+    when(mockProject.lastScanId()).thenReturn(scanId);
+
+    try (MockedStatic<SDKHelper> sdkHelper = mockStatic(SDKHelper.class)) {
+      sdkHelper
+          .when(() -> SDKHelper.getSDK(any(), any(), any(), any(), any(), any()))
+          .thenReturn(contrastSDK);
+      when(contrastSDK.scan(any())).thenReturn(scanManager);
+      when(scanManager.projects()).thenReturn(projects);
+      when(scanManager.scans(any())).thenReturn(scans);
+      when(projects.findByName(projectName)).thenReturn(Optional.of(mockProject));
+      when(scans.get(scanId)).thenReturn(null);
+
+      // Act & Assert
+      assertThatThrownBy(() -> sastService.getLatestScanResult(projectName))
+          .isInstanceOf(IOException.class)
+          .hasMessageContaining("No scan results available")
+          .hasMessageContaining("Scan ID " + scanId + " not found");
     }
   }
 

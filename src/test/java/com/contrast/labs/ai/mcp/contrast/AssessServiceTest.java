@@ -1626,6 +1626,164 @@ class AssessServiceTest {
   }
 
   @Test
+  void searchAppVulnerabilities_should_treat_null_sessionMetadataValue_as_wildcard_match_any_value()
+      throws Exception {
+    // Given - 3 traces with different values for same metadata name
+    var mockTraces = mock(Traces.class);
+    var traces = new ArrayList<com.contrastsecurity.models.Trace>();
+
+    // Trace 1: has "branch" metadata with value "main"
+    Trace trace1 = mock();
+    when(trace1.getTitle()).thenReturn("SQL Injection vulnerability");
+    when(trace1.getRule()).thenReturn("sql-injection");
+    when(trace1.getUuid()).thenReturn("uuid-1");
+    when(trace1.getSeverity()).thenReturn("HIGH");
+    when(trace1.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+
+    var sessionMetadata1 = mock(com.contrastsecurity.models.SessionMetadata.class);
+    var metadataItem1 = mock(com.contrastsecurity.models.MetadataItem.class);
+    when(metadataItem1.getDisplayLabel()).thenReturn("branch");
+    // No getValue() stub needed - wildcard test doesn't check values
+    when(sessionMetadata1.getMetadata()).thenReturn(List.of(metadataItem1));
+    when(trace1.getSessionMetadata()).thenReturn(List.of(sessionMetadata1));
+    traces.add(trace1);
+
+    // Trace 2: has "branch" metadata with value "develop"
+    Trace trace2 = mock();
+    when(trace2.getTitle()).thenReturn("XSS vulnerability");
+    when(trace2.getRule()).thenReturn("xss");
+    when(trace2.getUuid()).thenReturn("uuid-2");
+    when(trace2.getSeverity()).thenReturn("MEDIUM");
+    when(trace2.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+
+    var sessionMetadata2 = mock(com.contrastsecurity.models.SessionMetadata.class);
+    var metadataItem2 = mock(com.contrastsecurity.models.MetadataItem.class);
+    when(metadataItem2.getDisplayLabel()).thenReturn("branch");
+    // No getValue() stub needed - wildcard test doesn't check values
+    when(sessionMetadata2.getMetadata()).thenReturn(List.of(metadataItem2));
+    when(trace2.getSessionMetadata()).thenReturn(List.of(sessionMetadata2));
+    traces.add(trace2);
+
+    // Trace 3: has "environment" metadata (different name, should not match)
+    Trace trace3 = mock();
+    when(trace3.getTitle()).thenReturn("Command Injection vulnerability");
+    when(trace3.getRule()).thenReturn("cmd-injection");
+    when(trace3.getUuid()).thenReturn("uuid-3");
+    when(trace3.getSeverity()).thenReturn("CRITICAL");
+    when(trace3.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+
+    var sessionMetadata3 = mock(com.contrastsecurity.models.SessionMetadata.class);
+    var metadataItem3 = mock(com.contrastsecurity.models.MetadataItem.class);
+    when(metadataItem3.getDisplayLabel()).thenReturn("environment");
+    // No getValue() stub needed - name doesn't match so value never checked
+    when(sessionMetadata3.getMetadata()).thenReturn(List.of(metadataItem3));
+    when(trace3.getSessionMetadata()).thenReturn(List.of(sessionMetadata3));
+    traces.add(trace3);
+
+    when(mockTraces.getTraces()).thenReturn(traces);
+
+    // Mock SDK to return all 3 traces
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(), any()))
+        .thenReturn(mockTraces);
+
+    // When - search with sessionMetadataName but NULL sessionMetadataValue (wildcard)
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID,
+            1, // page
+            50, // pageSize
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "branch", // sessionMetadataName
+            null, // sessionMetadataValue = null (wildcard, match any value)
+            null);
+
+    // Then - should return traces 1 and 2 (both have "branch" metadata, regardless of value)
+    assertThat(result.items()).hasSize(2);
+    assertThat(result.items().get(0).vulnID()).isEqualTo("uuid-1");
+    assertThat(result.items().get(1).vulnID()).isEqualTo("uuid-2");
+    assertThat(result.totalItems()).isEqualTo(2);
+
+    // Verify SDK was called
+    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(), any());
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_handle_metadata_item_with_null_value() throws Exception {
+    // Given - traces with metadata items that have null values
+    var mockTraces = mock(Traces.class);
+    var traces = new ArrayList<com.contrastsecurity.models.Trace>();
+
+    // Trace 1: has "branch" metadata with NULL value
+    Trace trace1 = mock();
+    when(trace1.getTitle()).thenReturn("SQL Injection vulnerability");
+    when(trace1.getRule()).thenReturn("sql-injection");
+    when(trace1.getUuid()).thenReturn("uuid-1");
+    when(trace1.getSeverity()).thenReturn("HIGH");
+    when(trace1.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+
+    var sessionMetadata1 = mock(com.contrastsecurity.models.SessionMetadata.class);
+    var metadataItem1 = mock(com.contrastsecurity.models.MetadataItem.class);
+    when(metadataItem1.getDisplayLabel()).thenReturn("branch");
+    when(metadataItem1.getValue()).thenReturn(null); // NULL value
+    when(sessionMetadata1.getMetadata()).thenReturn(List.of(metadataItem1));
+    when(trace1.getSessionMetadata()).thenReturn(List.of(sessionMetadata1));
+    traces.add(trace1);
+
+    // Trace 2: has "branch" metadata with actual value "main"
+    Trace trace2 = mock();
+    when(trace2.getTitle()).thenReturn("XSS vulnerability");
+    when(trace2.getRule()).thenReturn("xss");
+    when(trace2.getUuid()).thenReturn("uuid-2");
+    when(trace2.getSeverity()).thenReturn("MEDIUM");
+    when(trace2.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+
+    var sessionMetadata2 = mock(com.contrastsecurity.models.SessionMetadata.class);
+    var metadataItem2 = mock(com.contrastsecurity.models.MetadataItem.class);
+    when(metadataItem2.getDisplayLabel()).thenReturn("branch");
+    when(metadataItem2.getValue()).thenReturn("main");
+    when(sessionMetadata2.getMetadata()).thenReturn(List.of(metadataItem2));
+    when(trace2.getSessionMetadata()).thenReturn(List.of(sessionMetadata2));
+    traces.add(trace2);
+
+    when(mockTraces.getTraces()).thenReturn(traces);
+
+    // Mock SDK to return both traces
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(), any()))
+        .thenReturn(mockTraces);
+
+    // When - search with specific value "main"
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID,
+            1, // page
+            50, // pageSize
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "branch", // sessionMetadataName
+            "main", // sessionMetadataValue = "main"
+            null);
+
+    // Then - should return only trace 2 (trace 1 has null value, doesn't match "main")
+    assertThat(result.items()).hasSize(1);
+    assertThat(result.items().get(0).vulnID()).isEqualTo("uuid-2");
+    assertThat(result.totalItems()).isEqualTo(1);
+
+    // Verify SDK was called and no NullPointerException occurred
+    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(), any());
+  }
+
+  @Test
   void searchAppVulnerabilities_should_pass_all_standard_filters_to_SDK() throws Exception {
     // Given
     var mockTraces = createMockTraces(10, 10);
