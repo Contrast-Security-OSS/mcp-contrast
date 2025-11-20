@@ -653,15 +653,6 @@ public class AssessService {
       return PaginatedResponse.error(1, 50, errorMessage);
     }
 
-    // Validate conflicting parameters: useLatestSession + sessionMetadataName
-    if (Boolean.TRUE.equals(useLatestSession) && StringUtils.hasText(sessionMetadataName)) {
-      var errorMessage =
-          "Cannot use both useLatestSession=true and sessionMetadataName. Choose one session"
-              + " filtering strategy.";
-      log.error("Validation error: {}", errorMessage);
-      return PaginatedResponse.error(1, 50, errorMessage);
-    }
-
     // Validate incomplete parameters: sessionMetadataValue without sessionMetadataName
     if (StringUtils.hasText(sessionMetadataValue) && !StringUtils.hasText(sessionMetadataName)) {
       var errorMessage =
@@ -696,31 +687,15 @@ public class AssessService {
     allWarnings.addAll(filters.warnings());
 
     try {
-      // Build TraceFilterBody from TraceFilterForm
+      // Build TraceFilterForm
       var filterForm = filters.toTraceFilterForm();
-      var filterBody = new TraceFilterBody();
 
-      // Copy filters from TraceFilterForm to TraceFilterBody
-      if (filterForm.getSeverities() != null && !filterForm.getSeverities().isEmpty()) {
-        filterBody.setSeverities(new ArrayList<>(filterForm.getSeverities()));
-      }
-      if (filterForm.getEnvironments() != null && !filterForm.getEnvironments().isEmpty()) {
-        filterBody.setEnvironments(new ArrayList<>(filterForm.getEnvironments()));
-      }
-      if (filterForm.getVulnTypes() != null && !filterForm.getVulnTypes().isEmpty()) {
-        filterBody.setVulnTypes(filterForm.getVulnTypes());
-      }
-      if (filterForm.getStartDate() != null) {
-        filterBody.setStartDate(filterForm.getStartDate());
-      }
-      if (filterForm.getEndDate() != null) {
-        filterBody.setEndDate(filterForm.getEndDate());
-      }
-      if (filterForm.getFilterTags() != null && !filterForm.getFilterTags().isEmpty()) {
-        filterBody.setFilterTags(filterForm.getFilterTags());
-      }
+      // Determine if we need in-memory session filtering
+      boolean needsInMemorySessionFiltering =
+          Boolean.TRUE.equals(useLatestSession) || StringUtils.hasText(sessionMetadataName);
 
-      // Handle useLatestSession logic
+      // Fetch agent session ID if useLatestSession requested
+      String agentSessionId = null;
       if (Boolean.TRUE.equals(useLatestSession)) {
         var extension = new SDKExtension(contrastSDK);
         var latestSession = extension.getLatestSessionMetadata(orgID, appId);
@@ -728,9 +703,8 @@ public class AssessService {
         if (latestSession != null
             && latestSession.getAgentSession() != null
             && latestSession.getAgentSession().getAgentSessionId() != null) {
-          filterBody.setAgentSessionId(latestSession.getAgentSession().getAgentSessionId());
-          log.debug(
-              "Using latest session ID: {}", latestSession.getAgentSession().getAgentSessionId());
+          agentSessionId = latestSession.getAgentSession().getAgentSessionId();
+          log.debug("Using latest session ID: {}", agentSessionId);
         } else {
           // No session found - add warning and continue with all vulnerabilities
           allWarnings.add(
@@ -741,20 +715,17 @@ public class AssessService {
       }
 
       // Make API call - always use app-specific endpoint
-      // Note: When using session metadata filtering, we get all results (no SDK pagination)
+      // Note: When using session filtering, we get all results (no SDK pagination)
       // because we need to filter in-memory before paginating
       Traces traces;
-      if (StringUtils.hasText(sessionMetadataName)) {
-        // Get all results for in-memory filtering (no SDK pagination)
-        traces =
-            contrastSDK.getTraces(
-                orgID,
-                appId,
-                filterBody,
-                EnumSet.of(
-                    TraceFilterForm.TraceExpandValue.SESSION_METADATA,
-                    TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
-                    TraceFilterForm.TraceExpandValue.APPLICATION));
+      if (needsInMemorySessionFiltering) {
+        // Get all results for in-memory filtering (no SDK pagination, no limit/offset)
+        filterForm.setExpand(
+            EnumSet.of(
+                TraceFilterForm.TraceExpandValue.SESSION_METADATA,
+                TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
+                TraceFilterForm.TraceExpandValue.APPLICATION));
+        traces = contrastSDK.getTraces(orgID, appId, filterForm);
       } else {
         // Use SDK pagination when no in-memory filtering needed
         filterForm.setLimit(pagination.limit());
@@ -780,6 +751,23 @@ public class AssessService {
       // Convert to VulnLight
       var vulnerabilities =
           traces.getTraces().stream().map(vulnerabilityMapper::toVulnLight).toList();
+
+      // Apply in-memory agent session ID filtering if requested
+      if (agentSessionId != null) {
+        final String sessionIdToMatch = agentSessionId;
+        vulnerabilities =
+            vulnerabilities.stream()
+                .filter(
+                    vuln ->
+                        vuln.sessionMetadata() != null
+                            && vuln.sessionMetadata().stream()
+                                .anyMatch(sm -> sessionIdToMatch.equals(sm.getSessionId())))
+                .toList();
+        log.debug(
+            "Filtered to {} vulnerabilities for agent session ID: {}",
+            vulnerabilities.size(),
+            agentSessionId);
+      }
 
       // Apply in-memory session metadata filtering if requested
       List<VulnLight> finalVulns = vulnerabilities;
@@ -813,35 +801,38 @@ public class AssessService {
             }
           }
         }
+        finalVulns = filteredVulns;
+      }
 
-        // Apply pagination to filtered results
+      // Apply pagination to in-memory filtered results
+      if (agentSessionId != null || StringUtils.hasText(sessionMetadataName)) {
         var startIndex = pagination.offset();
-        var endIndex = Math.min(startIndex + pagination.pageSize(), filteredVulns.size());
-        finalVulns =
-            (startIndex < filteredVulns.size())
-                ? filteredVulns.subList(startIndex, endIndex)
+        var endIndex = Math.min(startIndex + pagination.pageSize(), finalVulns.size());
+        var pagedVulns =
+            (startIndex < finalVulns.size())
+                ? finalVulns.subList(startIndex, endIndex)
                 : List.<VulnLight>of();
 
         // Use filtered count as totalItems for paginated response
         var response =
             paginationHandler.createPaginatedResponse(
-                finalVulns, pagination, filteredVulns.size(), allWarnings);
+                pagedVulns, pagination, finalVulns.size(), allWarnings);
 
         long duration = System.currentTimeMillis() - startTime;
         log.info(
-            "Retrieved {} vulnerabilities for app {} page {} after filtering (pageSize: {},"
+            "Retrieved {} vulnerabilities for app {} page {} after session filtering (pageSize: {},"
                 + " totalFiltered: {}, took {} ms)",
             response.items().size(),
             appId,
             response.page(),
             response.pageSize(),
-            filteredVulns.size(),
+            finalVulns.size(),
             duration);
 
         return response;
       }
 
-      // No session metadata filtering - use SDK results directly with SDK pagination
+      // No session filtering - use SDK results directly with SDK pagination
       var totalItems = traces.getCount();
       var response =
           paginationHandler.createPaginatedResponse(
