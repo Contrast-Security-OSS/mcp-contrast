@@ -626,7 +626,7 @@ public class AssessService {
       @ToolParam(description = "Filter to latest session only", required = false)
           Boolean useLatestSession)
       throws IOException {
-    log.info(
+    log.debug(
         "Searching app vulnerabilities - appId: {}, page: {}, pageSize: {}, filters:"
             + " severities={}, statuses={}, vulnTypes={}, environments={}, lastSeenAfter={},"
             + " lastSeenBefore={}, vulnTags={}, sessionMetadataName={}, sessionMetadataValue={},"
