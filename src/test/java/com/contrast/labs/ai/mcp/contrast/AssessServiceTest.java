@@ -1880,6 +1880,73 @@ class AssessServiceTest {
   }
 
   @Test
+  void searchAppVulnerabilities_should_not_duplicate_vulns_in_multiple_matching_sessions()
+      throws Exception {
+    // Given - Create a vulnerability that appears in 2 sessions that BOTH match the filter
+    var mockTraces = mock(Traces.class);
+    var traces = new ArrayList<com.contrastsecurity.models.Trace>();
+
+    // Create trace with 2 SessionMetadata objects that both match "branch=main"
+    Trace trace = mock();
+    when(trace.getTitle()).thenReturn("SQL Injection");
+    when(trace.getRule()).thenReturn("sql-injection");
+    when(trace.getUuid()).thenReturn("uuid-1");
+    when(trace.getSeverity()).thenReturn("HIGH");
+    when(trace.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+
+    // First SessionMetadata - matches filter
+    var sessionMetadata1 = mock(com.contrastsecurity.models.SessionMetadata.class);
+    var metadataItem1 = mock(com.contrastsecurity.models.MetadataItem.class);
+    when(metadataItem1.getDisplayLabel()).thenReturn("branch");
+    when(metadataItem1.getValue()).thenReturn("main");
+    when(sessionMetadata1.getMetadata()).thenReturn(List.of(metadataItem1));
+
+    // Second SessionMetadata - also matches filter (e.g., found in "main" branch twice)
+    // Use lenient() because the fix ensures we break after first match, so this won't be accessed
+    var sessionMetadata2 = mock(com.contrastsecurity.models.SessionMetadata.class);
+    var metadataItem2 = mock(com.contrastsecurity.models.MetadataItem.class);
+    lenient().when(metadataItem2.getDisplayLabel()).thenReturn("branch");
+    lenient().when(metadataItem2.getValue()).thenReturn("main");
+    lenient().when(sessionMetadata2.getMetadata()).thenReturn(List.of(metadataItem2));
+
+    // Trace has BOTH SessionMetadata objects
+    when(trace.getSessionMetadata()).thenReturn(List.of(sessionMetadata1, sessionMetadata2));
+    traces.add(trace);
+
+    when(mockTraces.getTraces()).thenReturn(traces);
+
+    // Mock SDK to return the trace
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(mockTraces);
+
+    // When - search with session metadata filter
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID,
+            1, // page
+            50, // pageSize
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "branch", // sessionMetadataName
+            "main", // sessionMetadataValue
+            null);
+
+    // Then - vulnerability should appear ONCE, not twice (despite 2 matching sessions)
+    assertThat(result.items()).hasSize(1);
+    assertThat(result.items().get(0).vulnID()).isEqualTo("uuid-1");
+    assertThat(result.items().get(0).type()).isEqualTo("sql-injection");
+    assertThat(result.totalItems()).isEqualTo(1);
+
+    // Verify SDK was called
+    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class));
+  }
+
+  @Test
   void searchAppVulnerabilities_should_handle_metadata_item_with_null_value() throws Exception {
     // Given - traces with metadata items that have null values
     var mockTraces = mock(Traces.class);
