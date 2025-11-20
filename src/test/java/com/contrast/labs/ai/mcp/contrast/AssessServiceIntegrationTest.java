@@ -135,7 +135,7 @@ public class AssessServiceIntegrationTest
             1, // page
             10, // pageSize
             null, // severities
-            null, // appId
+            null, // statuses
             null, // vulnTypes
             null, // environments
             null, // lastSeenAfter
@@ -199,7 +199,7 @@ public class AssessServiceIntegrationTest
             1, // page
             10, // pageSize
             null, // severities
-            null, // appId
+            null, // statuses
             null, // vulnTypes
             null, // environments
             null, // lastSeenAfter
@@ -313,7 +313,7 @@ public class AssessServiceIntegrationTest
             1, // page
             50, // pageSize (larger to increase chance of finding tagged vulns)
             null, // severities
-            null, // appId
+            null, // statuses
             null, // vulnTypes
             null, // environments
             null, // lastSeenAfter
