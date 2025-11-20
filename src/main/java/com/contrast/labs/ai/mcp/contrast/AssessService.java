@@ -788,6 +788,7 @@ public class AssessService {
         var filteredVulns = new ArrayList<VulnLight>();
         for (VulnLight vuln : vulnerabilities) {
           if (vuln.sessionMetadata() != null) {
+            sessionLoop:
             for (SessionMetadata sm : vuln.sessionMetadata()) {
               for (MetadataItem metadataItem : sm.getMetadata()) {
                 // Match on display label (required)
@@ -808,7 +809,7 @@ public class AssessService {
                       vuln.vulnID(),
                       sessionMetadataName,
                       sessionMetadataValue);
-                  break;
+                  break sessionLoop;
                 }
               }
             }
