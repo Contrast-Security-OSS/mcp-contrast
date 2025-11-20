@@ -30,7 +30,9 @@ import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
 import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.models.MetadataFilterResponse;
+import com.contrastsecurity.models.MetadataItem;
 import com.contrastsecurity.models.Rules;
+import com.contrastsecurity.models.SessionMetadata;
 import com.contrastsecurity.models.Trace;
 import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.sdk.ContrastSDK;
@@ -1256,29 +1258,106 @@ class AssessServiceTest {
   }
 
   @Test
-  void searchAppVulnerabilities_should_return_error_when_useLatestSession_and_sessionMetadataName()
-      throws Exception {
-    // Act - conflicting parameters
-    var result =
-        assessService.searchAppVulnerabilities(
-            TEST_APP_ID,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            "branch", // sessionMetadataName
-            null,
-            true); // useLatestSession=true
+  void
+      searchAppVulnerabilities_should_support_both_useLatestSession_and_sessionMetadataName_together()
+          throws Exception {
+    // Given - Create traces with different sessions and metadata
+    var mockTraces = new Traces();
+    var traces = new ArrayList<Trace>();
 
-    // Assert
-    assertThat(result.message())
-        .contains("Cannot use both useLatestSession=true and sessionMetadataName");
-    assertThat(result.items()).isEmpty();
+    // Create 3 traces: 2 in latest session, 1 in old session
+    // Of the 2 in latest session: 1 has branch=main, 1 has branch=develop
+    for (int i = 0; i < 3; i++) {
+      Trace trace = mock();
+      when(trace.getTitle()).thenReturn("Vuln " + i);
+      when(trace.getRule()).thenReturn("rule-" + i);
+      when(trace.getUuid()).thenReturn("uuid-" + i);
+      when(trace.getSeverity()).thenReturn("HIGH");
+      when(trace.getStatus()).thenReturn("REPORTED");
+
+      // Create session metadata with lenient stubbing for fields that may not be accessed
+      var sessionMetadata = mock(SessionMetadata.class);
+      if (i == 0) {
+        // Trace 0: latest session, branch=main (should match both filters)
+        lenient().when(sessionMetadata.getSessionId()).thenReturn("latest-session-id");
+        var metadataItem = mock(MetadataItem.class);
+        lenient().when(metadataItem.getDisplayLabel()).thenReturn("branch");
+        lenient().when(metadataItem.getValue()).thenReturn("main");
+        lenient().when(sessionMetadata.getMetadata()).thenReturn(List.of(metadataItem));
+      } else if (i == 1) {
+        // Trace 1: latest session, branch=develop (matches session but not metadata name/value)
+        lenient().when(sessionMetadata.getSessionId()).thenReturn("latest-session-id");
+        var metadataItem = mock(MetadataItem.class);
+        lenient().when(metadataItem.getDisplayLabel()).thenReturn("branch");
+        lenient().when(metadataItem.getValue()).thenReturn("develop");
+        lenient().when(sessionMetadata.getMetadata()).thenReturn(List.of(metadataItem));
+      } else {
+        // Trace 2: old session, branch=main (matches metadata but not session)
+        lenient().when(sessionMetadata.getSessionId()).thenReturn("old-session-id");
+        var metadataItem = mock(MetadataItem.class);
+        lenient().when(metadataItem.getDisplayLabel()).thenReturn("branch");
+        lenient().when(metadataItem.getValue()).thenReturn("main");
+        lenient().when(sessionMetadata.getMetadata()).thenReturn(List.of(metadataItem));
+      }
+      lenient().when(trace.getSessionMetadata()).thenReturn(List.of(sessionMetadata));
+      traces.add(trace);
+    }
+
+    // Set up mock traces
+    try {
+      var tracesField = Traces.class.getDeclaredField("traces");
+      tracesField.setAccessible(true);
+      tracesField.set(mockTraces, traces);
+
+      var countField = Traces.class.getDeclaredField("count");
+      countField.setAccessible(true);
+      countField.set(mockTraces, 3);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to create mock Traces", e);
+    }
+
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(mockTraces);
+
+    // Mock SDKExtension to return latest session
+    var mockAgentSession =
+        new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.AgentSession();
+    mockAgentSession.setAgentSessionId("latest-session-id");
+    var mockSessionResponse =
+        new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata
+            .SessionMetadataResponse();
+    mockSessionResponse.setAgentSession(mockAgentSession);
+
+    try (var mockedSDKExtension =
+        mockConstruction(
+            com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                  .thenReturn(mockSessionResponse);
+            })) {
+
+      // When - both useLatestSession=true AND sessionMetadataName/Value
+      var result =
+          assessService.searchAppVulnerabilities(
+              TEST_APP_ID,
+              null, // page
+              null, // pageSize
+              null, // severities
+              null, // statuses
+              null, // vulnTypes
+              null, // environments
+              null, // lastSeenAfter
+              null, // lastSeenBefore
+              null, // vulnTags
+              "branch", // sessionMetadataName
+              "main", // sessionMetadataValue
+              true); // useLatestSession=true
+
+      // Then - only trace 0 should be returned (latest session + branch=main)
+      assertThat(result.items()).hasSize(1);
+      assertThat(result.items().get(0).title()).isEqualTo("Vuln 0");
+      assertThat(result.totalItems()).isEqualTo(1);
+    }
   }
 
   @Test
@@ -1516,6 +1595,93 @@ class AssessServiceTest {
   }
 
   @Test
+  void searchAppVulnerabilities_should_filter_by_useLatestSession_alone() throws Exception {
+    // Given - Create traces with different session IDs
+    var mockTraces = new Traces();
+    var traces = new ArrayList<Trace>();
+
+    // Create 5 traces: 3 in latest session, 2 in older sessions
+    for (int i = 0; i < 5; i++) {
+      Trace trace = mock();
+      when(trace.getTitle()).thenReturn("Vuln " + i);
+      when(trace.getRule()).thenReturn("rule-" + i);
+      when(trace.getUuid()).thenReturn("uuid-" + i);
+      when(trace.getSeverity()).thenReturn("HIGH");
+      when(trace.getStatus()).thenReturn("REPORTED");
+
+      // Create session metadata with different session IDs (lenient for fields that may not be
+      // accessed)
+      var sessionMetadata = mock(SessionMetadata.class);
+      if (i < 3) {
+        // First 3 traces are in the latest session
+        lenient().when(sessionMetadata.getSessionId()).thenReturn("latest-session-id");
+      } else {
+        // Last 2 traces are in older sessions
+        lenient().when(sessionMetadata.getSessionId()).thenReturn("old-session-id-" + i);
+      }
+      lenient().when(sessionMetadata.getMetadata()).thenReturn(List.of());
+      lenient().when(trace.getSessionMetadata()).thenReturn(List.of(sessionMetadata));
+      traces.add(trace);
+    }
+
+    // Set up mock traces
+    try {
+      var tracesField = Traces.class.getDeclaredField("traces");
+      tracesField.setAccessible(true);
+      tracesField.set(mockTraces, traces);
+
+      var countField = Traces.class.getDeclaredField("count");
+      countField.setAccessible(true);
+      countField.set(mockTraces, 5);
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to create mock Traces", e);
+    }
+
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(mockTraces);
+
+    // Mock SDKExtension to return latest session
+    var mockAgentSession =
+        new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.AgentSession();
+    mockAgentSession.setAgentSessionId("latest-session-id");
+    var mockSessionResponse =
+        new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata
+            .SessionMetadataResponse();
+    mockSessionResponse.setAgentSession(mockAgentSession);
+
+    try (var mockedSDKExtension =
+        mockConstruction(
+            com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                  .thenReturn(mockSessionResponse);
+            })) {
+
+      // When - useLatestSession=true WITHOUT sessionMetadataName
+      var result =
+          assessService.searchAppVulnerabilities(
+              TEST_APP_ID,
+              null, // page
+              null, // pageSize
+              null, // severities
+              null, // statuses
+              null, // vulnTypes
+              null, // environments
+              null, // lastSeenAfter
+              null, // lastSeenBefore
+              null, // vulnTags
+              null, // sessionMetadataName - NOT PROVIDED
+              null, // sessionMetadataValue
+              true); // useLatestSession=true
+
+      // Then - only the 3 traces from latest session should be returned
+      assertThat(result.items()).hasSize(3);
+      assertThat(result.totalItems()).isEqualTo(3);
+      assertThat(result.items()).extracting("title").containsExactly("Vuln 0", "Vuln 1", "Vuln 2");
+    }
+  }
+
+  @Test
   void searchAppVulnerabilities_should_return_null_response_error_when_SDK_returns_null()
       throws Exception {
     // Given - SDK returns null Traces
@@ -1593,7 +1759,7 @@ class AssessServiceTest {
     // Note: getCount() not needed here - session metadata filtering uses filtered list size
 
     // Mock SDK to return all 3 traces (when session metadata filtering, SDK returns all)
-    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(), any()))
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
         .thenReturn(mockTraces);
 
     // When - search with session metadata filter (lowercase)
@@ -1621,8 +1787,8 @@ class AssessServiceTest {
     // Verify total items reflects filtered count, not SDK count
     assertThat(result.totalItems()).isEqualTo(2);
 
-    // Verify SDK was called (session metadata filtering uses different overload)
-    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(), any());
+    // Verify SDK was called with TraceFilterForm
+    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class));
   }
 
   @Test
@@ -1683,7 +1849,7 @@ class AssessServiceTest {
     when(mockTraces.getTraces()).thenReturn(traces);
 
     // Mock SDK to return all 3 traces
-    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(), any()))
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
         .thenReturn(mockTraces);
 
     // When - search with sessionMetadataName but NULL sessionMetadataValue (wildcard)
@@ -1710,7 +1876,7 @@ class AssessServiceTest {
     assertThat(result.totalItems()).isEqualTo(2);
 
     // Verify SDK was called
-    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(), any());
+    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class));
   }
 
   @Test
@@ -1754,7 +1920,7 @@ class AssessServiceTest {
     when(mockTraces.getTraces()).thenReturn(traces);
 
     // Mock SDK to return both traces
-    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(), any()))
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
         .thenReturn(mockTraces);
 
     // When - search with specific value "main"
@@ -1780,7 +1946,7 @@ class AssessServiceTest {
     assertThat(result.totalItems()).isEqualTo(1);
 
     // Verify SDK was called and no NullPointerException occurred
-    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(), any());
+    verify(mockContrastSDK).getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class));
   }
 
   @Test
