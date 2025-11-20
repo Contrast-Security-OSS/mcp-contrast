@@ -331,15 +331,17 @@ class AssessServiceTest {
     var traces = new ArrayList<Trace>();
 
     for (int i = 0; i < traceCount; i++) {
-      Trace trace = mock();
-      when(trace.getTitle()).thenReturn("Test Vulnerability " + i);
-      when(trace.getRule()).thenReturn("test-rule-" + i);
-      when(trace.getUuid()).thenReturn("uuid-" + i);
-      when(trace.getSeverity()).thenReturn("HIGH");
-      when(trace.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-      when(trace.getStatus()).thenReturn("REPORTED");
-      when(trace.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
-      when(trace.getClosedTime()).thenReturn(null);
+      Trace trace =
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("Test Vulnerability " + i)
+              .withRule("test-rule-" + i)
+              .withUuid("uuid-" + i)
+              .withSeverity("HIGH")
+              .withLastTimeSeen(System.currentTimeMillis())
+              .withStatus("REPORTED")
+              .withFirstTimeSeen(System.currentTimeMillis() - 86400000L)
+              .withClosedTime(null)
+              .build();
       traces.add(trace);
     }
 
@@ -803,49 +805,52 @@ class AssessServiceTest {
     var traces = new ArrayList<Trace>();
 
     // Trace 1: Multiple servers with different environments
-    Trace trace1 = mock();
-    when(trace1.getTitle()).thenReturn("SQL Injection");
-    when(trace1.getRule()).thenReturn("sql-injection");
-    when(trace1.getUuid()).thenReturn("uuid-1");
-    when(trace1.getSeverity()).thenReturn("HIGH");
-    when(trace1.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-    when(trace1.getStatus()).thenReturn("REPORTED");
-    when(trace1.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
-    when(trace1.getClosedTime()).thenReturn(null);
-
-    // Set server_environments with different environments
-    when(trace1.getServerEnvironments())
-        .thenReturn(
-            List.of("PRODUCTION", "QA", "PRODUCTION")); // Duplicate - should be deduplicated
-    when(trace1.getTags()).thenReturn(new ArrayList<>());
+    Trace trace1 =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("SQL Injection")
+            .withRule("sql-injection")
+            .withUuid("uuid-1")
+            .withSeverity("HIGH")
+            .withLastTimeSeen(System.currentTimeMillis())
+            .withStatus("REPORTED")
+            .withFirstTimeSeen(System.currentTimeMillis() - 86400000L)
+            .withClosedTime(null)
+            .withServerEnvironments(
+                List.of("PRODUCTION", "QA", "PRODUCTION")) // Duplicate - should be deduplicated
+            .withTags(new ArrayList<>())
+            .build();
     traces.add(trace1);
 
     // Trace 2: No servers
-    Trace trace2 = mock();
-    when(trace2.getTitle()).thenReturn("XSS");
-    when(trace2.getRule()).thenReturn("xss-reflected");
-    when(trace2.getUuid()).thenReturn("uuid-2");
-    when(trace2.getSeverity()).thenReturn("MEDIUM");
-    when(trace2.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-    when(trace2.getStatus()).thenReturn("REPORTED");
-    when(trace2.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
-    when(trace2.getClosedTime()).thenReturn(null);
-    when(trace2.getServerEnvironments()).thenReturn(new ArrayList<>());
-    when(trace2.getTags()).thenReturn(new ArrayList<>());
+    Trace trace2 =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("XSS")
+            .withRule("xss-reflected")
+            .withUuid("uuid-2")
+            .withSeverity("MEDIUM")
+            .withLastTimeSeen(System.currentTimeMillis())
+            .withStatus("REPORTED")
+            .withFirstTimeSeen(System.currentTimeMillis() - 86400000L)
+            .withClosedTime(null)
+            .withServerEnvironments(new ArrayList<>())
+            .withTags(new ArrayList<>())
+            .build();
     traces.add(trace2);
 
     // Trace 3: Single server with one environment
-    Trace trace3 = mock();
-    when(trace3.getTitle()).thenReturn("Path Traversal");
-    when(trace3.getRule()).thenReturn("path-traversal");
-    when(trace3.getUuid()).thenReturn("uuid-3");
-    when(trace3.getSeverity()).thenReturn("CRITICAL");
-    when(trace3.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-    when(trace3.getStatus()).thenReturn("CONFIRMED");
-    when(trace3.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 172800000L);
-    when(trace3.getClosedTime()).thenReturn(null);
-    when(trace3.getServerEnvironments()).thenReturn(List.of("DEVELOPMENT"));
-    when(trace3.getTags()).thenReturn(new ArrayList<>());
+    Trace trace3 =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("Path Traversal")
+            .withRule("path-traversal")
+            .withUuid("uuid-3")
+            .withSeverity("CRITICAL")
+            .withLastTimeSeen(System.currentTimeMillis())
+            .withStatus("CONFIRMED")
+            .withFirstTimeSeen(System.currentTimeMillis() - 172800000L)
+            .withClosedTime(null)
+            .withServerEnvironments(List.of("DEVELOPMENT"))
+            .withTags(new ArrayList<>())
+            .build();
     traces.add(trace3);
 
     // Set up mockTraces
@@ -904,17 +909,19 @@ class AssessServiceTest {
     var firstSeen = JAN_1_2024_00_00_UTC;
     var closed = FEB_19_2025_13_20_UTC;
 
-    Trace trace = mock();
-    when(trace.getTitle()).thenReturn("Test Vulnerability");
-    when(trace.getRule()).thenReturn("test-rule");
-    when(trace.getUuid()).thenReturn("test-uuid-123");
-    when(trace.getSeverity()).thenReturn("HIGH");
-    when(trace.getStatus()).thenReturn("Reported");
-    when(trace.getLastTimeSeen()).thenReturn(lastSeen);
-    when(trace.getFirstTimeSeen()).thenReturn(firstSeen);
-    when(trace.getClosedTime()).thenReturn(closed);
-    when(trace.getServerEnvironments()).thenReturn(new ArrayList<>());
-    when(trace.getTags()).thenReturn(new ArrayList<>());
+    Trace trace =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("Test Vulnerability")
+            .withRule("test-rule")
+            .withUuid("test-uuid-123")
+            .withSeverity("HIGH")
+            .withStatus("Reported")
+            .withLastTimeSeen(lastSeen)
+            .withFirstTimeSeen(firstSeen)
+            .withClosedTime(closed)
+            .withServerEnvironments(new ArrayList<>())
+            .withTags(new ArrayList<>())
+            .build();
 
     Traces mockTraces = mock();
     when(mockTraces.getTraces()).thenReturn(List.of(trace));
@@ -965,17 +972,19 @@ class AssessServiceTest {
   @Test
   void testVulnLight_TimestampFields_NullHandling() throws Exception {
     // Arrange - Create trace with null timestamps
-    Trace trace = mock();
-    when(trace.getTitle()).thenReturn("Test Vulnerability");
-    when(trace.getRule()).thenReturn("test-rule");
-    when(trace.getUuid()).thenReturn("test-uuid-123");
-    when(trace.getSeverity()).thenReturn("HIGH");
-    when(trace.getStatus()).thenReturn("Reported");
-    when(trace.getLastTimeSeen()).thenReturn(JAN_15_2025_10_30_UTC); // lastSeen is required
-    when(trace.getFirstTimeSeen()).thenReturn(null); // optional
-    when(trace.getClosedTime()).thenReturn(null); // optional
-    when(trace.getServerEnvironments()).thenReturn(new ArrayList<>());
-    when(trace.getTags()).thenReturn(new ArrayList<>());
+    Trace trace =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("Test Vulnerability")
+            .withRule("test-rule")
+            .withUuid("test-uuid-123")
+            .withSeverity("HIGH")
+            .withStatus("Reported")
+            .withLastTimeSeen(JAN_15_2025_10_30_UTC) // lastSeen is required
+            .withFirstTimeSeen(null) // optional
+            .withClosedTime(null) // optional
+            .withServerEnvironments(new ArrayList<>())
+            .withTags(new ArrayList<>())
+            .build();
 
     Traces mockTraces = mock();
     when(mockTraces.getTraces()).thenReturn(List.of(trace));
@@ -1267,41 +1276,38 @@ class AssessServiceTest {
 
     // Create 3 traces: 2 in latest session, 1 in old session
     // Of the 2 in latest session: 1 has branch=main, 1 has branch=develop
-    for (int i = 0; i < 3; i++) {
-      Trace trace = mock();
-      when(trace.getTitle()).thenReturn("Vuln " + i);
-      when(trace.getRule()).thenReturn("rule-" + i);
-      when(trace.getUuid()).thenReturn("uuid-" + i);
-      when(trace.getSeverity()).thenReturn("HIGH");
-      when(trace.getStatus()).thenReturn("REPORTED");
+    // Trace 0: latest session, branch=main (should match both filters)
+    traces.add(
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("Vuln 0")
+            .withRule("rule-0")
+            .withUuid("uuid-0")
+            .withSeverity("HIGH")
+            .withStatus("REPORTED")
+            .withSessionMetadata("latest-session-id", "branch", "main")
+            .build());
 
-      // Create session metadata with lenient stubbing for fields that may not be accessed
-      var sessionMetadata = mock(SessionMetadata.class);
-      if (i == 0) {
-        // Trace 0: latest session, branch=main (should match both filters)
-        lenient().when(sessionMetadata.getSessionId()).thenReturn("latest-session-id");
-        var metadataItem = mock(MetadataItem.class);
-        lenient().when(metadataItem.getDisplayLabel()).thenReturn("branch");
-        lenient().when(metadataItem.getValue()).thenReturn("main");
-        lenient().when(sessionMetadata.getMetadata()).thenReturn(List.of(metadataItem));
-      } else if (i == 1) {
-        // Trace 1: latest session, branch=develop (matches session but not metadata name/value)
-        lenient().when(sessionMetadata.getSessionId()).thenReturn("latest-session-id");
-        var metadataItem = mock(MetadataItem.class);
-        lenient().when(metadataItem.getDisplayLabel()).thenReturn("branch");
-        lenient().when(metadataItem.getValue()).thenReturn("develop");
-        lenient().when(sessionMetadata.getMetadata()).thenReturn(List.of(metadataItem));
-      } else {
-        // Trace 2: old session, branch=main (matches metadata but not session)
-        lenient().when(sessionMetadata.getSessionId()).thenReturn("old-session-id");
-        var metadataItem = mock(MetadataItem.class);
-        lenient().when(metadataItem.getDisplayLabel()).thenReturn("branch");
-        lenient().when(metadataItem.getValue()).thenReturn("main");
-        lenient().when(sessionMetadata.getMetadata()).thenReturn(List.of(metadataItem));
-      }
-      lenient().when(trace.getSessionMetadata()).thenReturn(List.of(sessionMetadata));
-      traces.add(trace);
-    }
+    // Trace 1: latest session, branch=develop (matches session but not metadata name/value)
+    traces.add(
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("Vuln 1")
+            .withRule("rule-1")
+            .withUuid("uuid-1")
+            .withSeverity("HIGH")
+            .withStatus("REPORTED")
+            .withSessionMetadata("latest-session-id", "branch", "develop")
+            .build());
+
+    // Trace 2: old session, branch=main (matches metadata but not session)
+    traces.add(
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("Vuln 2")
+            .withRule("rule-2")
+            .withUuid("uuid-2")
+            .withSeverity("HIGH")
+            .withStatus("REPORTED")
+            .withSessionMetadata("old-session-id", "branch", "main")
+            .build());
 
     // Set up mock traces
     try {
@@ -1602,25 +1608,16 @@ class AssessServiceTest {
 
     // Create 5 traces: 3 in latest session, 2 in older sessions
     for (int i = 0; i < 5; i++) {
-      Trace trace = mock();
-      when(trace.getTitle()).thenReturn("Vuln " + i);
-      when(trace.getRule()).thenReturn("rule-" + i);
-      when(trace.getUuid()).thenReturn("uuid-" + i);
-      when(trace.getSeverity()).thenReturn("HIGH");
-      when(trace.getStatus()).thenReturn("REPORTED");
-
-      // Create session metadata with different session IDs (lenient for fields that may not be
-      // accessed)
-      var sessionMetadata = mock(SessionMetadata.class);
-      if (i < 3) {
-        // First 3 traces are in the latest session
-        lenient().when(sessionMetadata.getSessionId()).thenReturn("latest-session-id");
-      } else {
-        // Last 2 traces are in older sessions
-        lenient().when(sessionMetadata.getSessionId()).thenReturn("old-session-id-" + i);
-      }
-      lenient().when(sessionMetadata.getMetadata()).thenReturn(List.of());
-      lenient().when(trace.getSessionMetadata()).thenReturn(List.of(sessionMetadata));
+      String sessionId = i < 3 ? "latest-session-id" : "old-session-id-" + i;
+      Trace trace =
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("Vuln " + i)
+              .withRule("rule-" + i)
+              .withUuid("uuid-" + i)
+              .withSeverity("HIGH")
+              .withStatus("REPORTED")
+              .withSessionMetadata(sessionId) // Simplified with builder helper method
+              .build();
       traces.add(trace);
     }
 
@@ -1708,51 +1705,41 @@ class AssessServiceTest {
     var traces = new ArrayList<Trace>();
 
     // Create trace with matching metadata (case varies)
-    Trace trace1 = mock();
-    when(trace1.getTitle()).thenReturn("SQL Injection");
-    when(trace1.getRule()).thenReturn("sql-injection");
-    when(trace1.getUuid()).thenReturn("uuid-1");
-    when(trace1.getSeverity()).thenReturn("HIGH");
-    when(trace1.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-
-    var sessionMetadata1 = mock(com.contrastsecurity.models.SessionMetadata.class);
-    var metadataItem1 = mock(com.contrastsecurity.models.MetadataItem.class);
-    when(metadataItem1.getDisplayLabel()).thenReturn("ENVIRONMENT"); // uppercase
-    when(metadataItem1.getValue()).thenReturn("PRODUCTION"); // uppercase
-    when(sessionMetadata1.getMetadata()).thenReturn(List.of(metadataItem1));
-    when(trace1.getSessionMetadata()).thenReturn(List.of(sessionMetadata1));
+    Trace trace1 =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("SQL Injection")
+            .withRule("sql-injection")
+            .withUuid("uuid-1")
+            .withSeverity("HIGH")
+            .withLastTimeSeen(System.currentTimeMillis())
+            .withSessionMetadata(
+                "session-1", "ENVIRONMENT", "PRODUCTION") // uppercase - simplified!
+            .build();
     traces.add(trace1);
 
     // Create trace with non-matching metadata
-    Trace trace2 = mock();
-    when(trace2.getTitle()).thenReturn("XSS");
-    when(trace2.getRule()).thenReturn("xss");
-    when(trace2.getUuid()).thenReturn("uuid-2");
-    when(trace2.getSeverity()).thenReturn("HIGH");
-    when(trace2.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-
-    var sessionMetadata2 = mock(com.contrastsecurity.models.SessionMetadata.class);
-    var metadataItem2 = mock(com.contrastsecurity.models.MetadataItem.class);
-    when(metadataItem2.getDisplayLabel()).thenReturn("environment");
-    when(metadataItem2.getValue()).thenReturn("qa"); // different value
-    when(sessionMetadata2.getMetadata()).thenReturn(List.of(metadataItem2));
-    when(trace2.getSessionMetadata()).thenReturn(List.of(sessionMetadata2));
+    Trace trace2 =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("XSS")
+            .withRule("xss")
+            .withUuid("uuid-2")
+            .withSeverity("HIGH")
+            .withLastTimeSeen(System.currentTimeMillis())
+            .withSessionMetadata("session-2", "environment", "qa") // different value
+            .build();
     traces.add(trace2);
 
     // Create trace with matching metadata (different case)
-    Trace trace3 = mock();
-    when(trace3.getTitle()).thenReturn("Command Injection");
-    when(trace3.getRule()).thenReturn("cmd-injection");
-    when(trace3.getUuid()).thenReturn("uuid-3");
-    when(trace3.getSeverity()).thenReturn("CRITICAL");
-    when(trace3.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-
-    var sessionMetadata3 = mock(com.contrastsecurity.models.SessionMetadata.class);
-    var metadataItem3 = mock(com.contrastsecurity.models.MetadataItem.class);
-    when(metadataItem3.getDisplayLabel()).thenReturn("Environment"); // mixed case
-    when(metadataItem3.getValue()).thenReturn("production"); // lowercase
-    when(sessionMetadata3.getMetadata()).thenReturn(List.of(metadataItem3));
-    when(trace3.getSessionMetadata()).thenReturn(List.of(sessionMetadata3));
+    Trace trace3 =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("Command Injection")
+            .withRule("cmd-injection")
+            .withUuid("uuid-3")
+            .withSeverity("CRITICAL")
+            .withLastTimeSeen(System.currentTimeMillis())
+            .withSessionMetadata(
+                "session-3", "Environment", "production") // mixed case - simplified!
+            .build();
     traces.add(trace3);
 
     when(mockTraces.getTraces()).thenReturn(traces);
@@ -1799,51 +1786,39 @@ class AssessServiceTest {
     var traces = new ArrayList<com.contrastsecurity.models.Trace>();
 
     // Trace 1: has "branch" metadata with value "main"
-    Trace trace1 = mock();
-    when(trace1.getTitle()).thenReturn("SQL Injection vulnerability");
-    when(trace1.getRule()).thenReturn("sql-injection");
-    when(trace1.getUuid()).thenReturn("uuid-1");
-    when(trace1.getSeverity()).thenReturn("HIGH");
-    when(trace1.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-
-    var sessionMetadata1 = mock(com.contrastsecurity.models.SessionMetadata.class);
-    var metadataItem1 = mock(com.contrastsecurity.models.MetadataItem.class);
-    when(metadataItem1.getDisplayLabel()).thenReturn("branch");
-    // No getValue() stub needed - wildcard test doesn't check values
-    when(sessionMetadata1.getMetadata()).thenReturn(List.of(metadataItem1));
-    when(trace1.getSessionMetadata()).thenReturn(List.of(sessionMetadata1));
+    Trace trace1 =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("SQL Injection vulnerability")
+            .withRule("sql-injection")
+            .withUuid("uuid-1")
+            .withSeverity("HIGH")
+            .withLastTimeSeen(System.currentTimeMillis())
+            .withSessionMetadata("session-1", "branch", "main") // Value not checked in this test
+            .build();
     traces.add(trace1);
 
     // Trace 2: has "branch" metadata with value "develop"
-    Trace trace2 = mock();
-    when(trace2.getTitle()).thenReturn("XSS vulnerability");
-    when(trace2.getRule()).thenReturn("xss");
-    when(trace2.getUuid()).thenReturn("uuid-2");
-    when(trace2.getSeverity()).thenReturn("MEDIUM");
-    when(trace2.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-
-    var sessionMetadata2 = mock(com.contrastsecurity.models.SessionMetadata.class);
-    var metadataItem2 = mock(com.contrastsecurity.models.MetadataItem.class);
-    when(metadataItem2.getDisplayLabel()).thenReturn("branch");
-    // No getValue() stub needed - wildcard test doesn't check values
-    when(sessionMetadata2.getMetadata()).thenReturn(List.of(metadataItem2));
-    when(trace2.getSessionMetadata()).thenReturn(List.of(sessionMetadata2));
+    Trace trace2 =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("XSS vulnerability")
+            .withRule("xss")
+            .withUuid("uuid-2")
+            .withSeverity("MEDIUM")
+            .withLastTimeSeen(System.currentTimeMillis())
+            .withSessionMetadata("session-2", "branch", "develop") // Value not checked in this test
+            .build();
     traces.add(trace2);
 
     // Trace 3: has "environment" metadata (different name, should not match)
-    Trace trace3 = mock();
-    when(trace3.getTitle()).thenReturn("Command Injection vulnerability");
-    when(trace3.getRule()).thenReturn("cmd-injection");
-    when(trace3.getUuid()).thenReturn("uuid-3");
-    when(trace3.getSeverity()).thenReturn("CRITICAL");
-    when(trace3.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-
-    var sessionMetadata3 = mock(com.contrastsecurity.models.SessionMetadata.class);
-    var metadataItem3 = mock(com.contrastsecurity.models.MetadataItem.class);
-    when(metadataItem3.getDisplayLabel()).thenReturn("environment");
-    // No getValue() stub needed - name doesn't match so value never checked
-    when(sessionMetadata3.getMetadata()).thenReturn(List.of(metadataItem3));
-    when(trace3.getSessionMetadata()).thenReturn(List.of(sessionMetadata3));
+    Trace trace3 =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("Command Injection vulnerability")
+            .withRule("cmd-injection")
+            .withUuid("uuid-3")
+            .withSeverity("CRITICAL")
+            .withLastTimeSeen(System.currentTimeMillis())
+            .withSessionMetadata("session-3", "environment", "prod") // Different name
+            .build();
     traces.add(trace3);
 
     when(mockTraces.getTraces()).thenReturn(traces);
@@ -1887,30 +1862,16 @@ class AssessServiceTest {
     var traces = new ArrayList<com.contrastsecurity.models.Trace>();
 
     // Create trace with 2 SessionMetadata objects that both match "branch=main"
-    Trace trace = mock();
-    when(trace.getTitle()).thenReturn("SQL Injection");
-    when(trace.getRule()).thenReturn("sql-injection");
-    when(trace.getUuid()).thenReturn("uuid-1");
-    when(trace.getSeverity()).thenReturn("HIGH");
-    when(trace.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-
-    // First SessionMetadata - matches filter
-    var sessionMetadata1 = mock(com.contrastsecurity.models.SessionMetadata.class);
-    var metadataItem1 = mock(com.contrastsecurity.models.MetadataItem.class);
-    when(metadataItem1.getDisplayLabel()).thenReturn("branch");
-    when(metadataItem1.getValue()).thenReturn("main");
-    when(sessionMetadata1.getMetadata()).thenReturn(List.of(metadataItem1));
-
-    // Second SessionMetadata - also matches filter (e.g., found in "main" branch twice)
-    // Use lenient() because the fix ensures we break after first match, so this won't be accessed
-    var sessionMetadata2 = mock(com.contrastsecurity.models.SessionMetadata.class);
-    var metadataItem2 = mock(com.contrastsecurity.models.MetadataItem.class);
-    lenient().when(metadataItem2.getDisplayLabel()).thenReturn("branch");
-    lenient().when(metadataItem2.getValue()).thenReturn("main");
-    lenient().when(sessionMetadata2.getMetadata()).thenReturn(List.of(metadataItem2));
-
-    // Trace has BOTH SessionMetadata objects
-    when(trace.getSessionMetadata()).thenReturn(List.of(sessionMetadata1, sessionMetadata2));
+    Trace trace =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("SQL Injection")
+            .withRule("sql-injection")
+            .withUuid("uuid-1")
+            .withSeverity("HIGH")
+            .withLastTimeSeen(System.currentTimeMillis())
+            .withSessionMetadata("session-1", "branch", "main") // First SessionMetadata
+            .withSessionMetadata("session-2", "branch", "main") // Second SessionMetadata
+            .build();
     traces.add(trace);
 
     when(mockTraces.getTraces()).thenReturn(traces);
@@ -1953,35 +1914,27 @@ class AssessServiceTest {
     var traces = new ArrayList<com.contrastsecurity.models.Trace>();
 
     // Trace 1: has "branch" metadata with NULL value
-    Trace trace1 = mock();
-    when(trace1.getTitle()).thenReturn("SQL Injection vulnerability");
-    when(trace1.getRule()).thenReturn("sql-injection");
-    when(trace1.getUuid()).thenReturn("uuid-1");
-    when(trace1.getSeverity()).thenReturn("HIGH");
-    when(trace1.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-
-    var sessionMetadata1 = mock(com.contrastsecurity.models.SessionMetadata.class);
-    var metadataItem1 = mock(com.contrastsecurity.models.MetadataItem.class);
-    when(metadataItem1.getDisplayLabel()).thenReturn("branch");
-    when(metadataItem1.getValue()).thenReturn(null); // NULL value
-    when(sessionMetadata1.getMetadata()).thenReturn(List.of(metadataItem1));
-    when(trace1.getSessionMetadata()).thenReturn(List.of(sessionMetadata1));
+    Trace trace1 =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("SQL Injection vulnerability")
+            .withRule("sql-injection")
+            .withUuid("uuid-1")
+            .withSeverity("HIGH")
+            .withLastTimeSeen(System.currentTimeMillis())
+            .withSessionMetadata("session-1", "branch", null) // NULL value
+            .build();
     traces.add(trace1);
 
     // Trace 2: has "branch" metadata with actual value "main"
-    Trace trace2 = mock();
-    when(trace2.getTitle()).thenReturn("XSS vulnerability");
-    when(trace2.getRule()).thenReturn("xss");
-    when(trace2.getUuid()).thenReturn("uuid-2");
-    when(trace2.getSeverity()).thenReturn("MEDIUM");
-    when(trace2.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-
-    var sessionMetadata2 = mock(com.contrastsecurity.models.SessionMetadata.class);
-    var metadataItem2 = mock(com.contrastsecurity.models.MetadataItem.class);
-    when(metadataItem2.getDisplayLabel()).thenReturn("branch");
-    when(metadataItem2.getValue()).thenReturn("main");
-    when(sessionMetadata2.getMetadata()).thenReturn(List.of(metadataItem2));
-    when(trace2.getSessionMetadata()).thenReturn(List.of(sessionMetadata2));
+    Trace trace2 =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("XSS vulnerability")
+            .withRule("xss")
+            .withUuid("uuid-2")
+            .withSeverity("MEDIUM")
+            .withLastTimeSeen(System.currentTimeMillis())
+            .withSessionMetadata("session-2", "branch", "main")
+            .build();
     traces.add(trace2);
 
     when(mockTraces.getTraces()).thenReturn(traces);
@@ -2072,57 +2025,45 @@ class AssessServiceTest {
     var traces = new ArrayList<Trace>();
 
     // Trace 0: Reported status, branch=main
-    Trace trace0 = mock();
-    when(trace0.getTitle()).thenReturn("SQL Injection");
-    when(trace0.getRule()).thenReturn("sql-injection");
-    when(trace0.getUuid()).thenReturn("uuid-reported");
-    when(trace0.getSeverity()).thenReturn("HIGH");
-    when(trace0.getStatus()).thenReturn("REPORTED");
-    when(trace0.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-    when(trace0.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
-
-    var sessionMetadata0 = mock(SessionMetadata.class);
-    var metadataItem0 = mock(MetadataItem.class);
-    lenient().when(metadataItem0.getDisplayLabel()).thenReturn("branch");
-    lenient().when(metadataItem0.getValue()).thenReturn("main");
-    lenient().when(sessionMetadata0.getMetadata()).thenReturn(List.of(metadataItem0));
-    lenient().when(trace0.getSessionMetadata()).thenReturn(List.of(sessionMetadata0));
+    Trace trace0 =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("SQL Injection")
+            .withRule("sql-injection")
+            .withUuid("uuid-reported")
+            .withSeverity("HIGH")
+            .withStatus("REPORTED")
+            .withLastTimeSeen(System.currentTimeMillis())
+            .withFirstTimeSeen(System.currentTimeMillis() - 86400000L)
+            .withSessionMetadata("session-0", "branch", "main")
+            .build();
     traces.add(trace0);
 
     // Trace 1: Suspicious status, branch=main
-    Trace trace1 = mock();
-    when(trace1.getTitle()).thenReturn("Path Traversal");
-    when(trace1.getRule()).thenReturn("path-traversal");
-    when(trace1.getUuid()).thenReturn("uuid-suspicious");
-    when(trace1.getSeverity()).thenReturn("HIGH");
-    when(trace1.getStatus()).thenReturn("SUSPICIOUS");
-    when(trace1.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-    when(trace1.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
-
-    var sessionMetadata1 = mock(SessionMetadata.class);
-    var metadataItem1 = mock(MetadataItem.class);
-    lenient().when(metadataItem1.getDisplayLabel()).thenReturn("branch");
-    lenient().when(metadataItem1.getValue()).thenReturn("main");
-    lenient().when(sessionMetadata1.getMetadata()).thenReturn(List.of(metadataItem1));
-    lenient().when(trace1.getSessionMetadata()).thenReturn(List.of(sessionMetadata1));
+    Trace trace1 =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("Path Traversal")
+            .withRule("path-traversal")
+            .withUuid("uuid-suspicious")
+            .withSeverity("HIGH")
+            .withStatus("SUSPICIOUS")
+            .withLastTimeSeen(System.currentTimeMillis())
+            .withFirstTimeSeen(System.currentTimeMillis() - 86400000L)
+            .withSessionMetadata("session-1", "branch", "main")
+            .build();
     traces.add(trace1);
 
     // Trace 2: Reported status, branch=develop (excluded by session metadata filter)
-    Trace trace2 = mock();
-    when(trace2.getTitle()).thenReturn("XSS Reflected");
-    when(trace2.getRule()).thenReturn("xss-reflected");
-    when(trace2.getUuid()).thenReturn("uuid-develop");
-    when(trace2.getSeverity()).thenReturn("MEDIUM");
-    when(trace2.getStatus()).thenReturn("REPORTED");
-    when(trace2.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-    when(trace2.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
-
-    var sessionMetadata2 = mock(SessionMetadata.class);
-    var metadataItem2 = mock(MetadataItem.class);
-    lenient().when(metadataItem2.getDisplayLabel()).thenReturn("branch");
-    lenient().when(metadataItem2.getValue()).thenReturn("develop");
-    lenient().when(sessionMetadata2.getMetadata()).thenReturn(List.of(metadataItem2));
-    lenient().when(trace2.getSessionMetadata()).thenReturn(List.of(sessionMetadata2));
+    Trace trace2 =
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("XSS Reflected")
+            .withRule("xss-reflected")
+            .withUuid("uuid-develop")
+            .withSeverity("MEDIUM")
+            .withStatus("REPORTED")
+            .withLastTimeSeen(System.currentTimeMillis())
+            .withFirstTimeSeen(System.currentTimeMillis() - 86400000L)
+            .withSessionMetadata("session-2", "branch", "develop")
+            .build();
     traces.add(trace2);
 
     // Setup mock traces using reflection

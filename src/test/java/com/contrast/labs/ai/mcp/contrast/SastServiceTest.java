@@ -24,14 +24,10 @@ import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrastsecurity.sdk.ContrastSDK;
-import com.contrastsecurity.sdk.scan.Project;
 import com.contrastsecurity.sdk.scan.Projects;
-import com.contrastsecurity.sdk.scan.Scan;
 import com.contrastsecurity.sdk.scan.ScanManager;
 import com.contrastsecurity.sdk.scan.Scans;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,9 +62,8 @@ class SastServiceTest {
   void getScanProject_should_return_project_when_project_exists() throws IOException {
     // Arrange
     var projectName = "test-project";
-    var mockProject = mock(Project.class);
-    when(mockProject.name()).thenReturn(projectName);
-    when(mockProject.id()).thenReturn("project-123");
+    var mockProject =
+        AnonymousProjectBuilder.validProject().withName(projectName).withId("project-123").build();
 
     try (MockedStatic<SDKHelper> sdkHelper = mockStatic(SDKHelper.class)) {
       sdkHelper
@@ -133,16 +128,17 @@ class SastServiceTest {
   void getLatestScanResult_should_return_sarif_json_when_scan_exists() throws IOException {
     // Arrange
     var projectName = "test-project";
-    var mockProject = mock(Project.class);
-    var mockScan = mock(Scan.class);
     var scanId = "scan-123";
     var sarifJson = "{\"version\":\"2.1.0\",\"runs\":[]}";
-    InputStream sarifStream = new ByteArrayInputStream(sarifJson.getBytes());
 
-    when(mockProject.name()).thenReturn(projectName);
-    when(mockProject.id()).thenReturn("project-123");
-    when(mockProject.lastScanId()).thenReturn(scanId);
-    when(mockScan.sarif()).thenReturn(sarifStream);
+    var mockProject =
+        AnonymousProjectBuilder.validProject()
+            .withName(projectName)
+            .withId("project-123")
+            .withLastScanId(scanId)
+            .build();
+
+    var mockScan = AnonymousScanBuilder.validScan().withSarif(sarifJson).build();
 
     try (MockedStatic<SDKHelper> sdkHelper = mockStatic(SDKHelper.class)) {
       sdkHelper
@@ -188,11 +184,12 @@ class SastServiceTest {
   void getLatestScanResult_should_throw_IOException_when_lastScanId_is_null() throws IOException {
     // Arrange
     var projectName = "project-without-scans";
-    var mockProject = mock(Project.class);
-
-    when(mockProject.name()).thenReturn(projectName);
-    when(mockProject.id()).thenReturn("project-123");
-    when(mockProject.lastScanId()).thenReturn(null);
+    var mockProject =
+        AnonymousProjectBuilder.validProject()
+            .withName(projectName)
+            .withId("project-123")
+            .withLastScanId(null)
+            .build();
 
     try (MockedStatic<SDKHelper> sdkHelper = mockStatic(SDKHelper.class)) {
       sdkHelper
@@ -215,12 +212,13 @@ class SastServiceTest {
   void getLatestScanResult_should_throw_IOException_when_scan_is_null() throws IOException {
     // Arrange
     var projectName = "test-project";
-    var mockProject = mock(Project.class);
     var scanId = "scan-123";
-
-    when(mockProject.name()).thenReturn(projectName);
-    when(mockProject.id()).thenReturn("project-123");
-    when(mockProject.lastScanId()).thenReturn(scanId);
+    var mockProject =
+        AnonymousProjectBuilder.validProject()
+            .withName(projectName)
+            .withId("project-123")
+            .withLastScanId(scanId)
+            .build();
 
     try (MockedStatic<SDKHelper> sdkHelper = mockStatic(SDKHelper.class)) {
       sdkHelper
@@ -244,12 +242,13 @@ class SastServiceTest {
   void getLatestScanResult_should_throw_IOException_when_scan_retrieval_fails() throws IOException {
     // Arrange
     var projectName = "test-project";
-    var mockProject = mock(Project.class);
     var scanId = "scan-123";
-
-    when(mockProject.name()).thenReturn(projectName);
-    when(mockProject.id()).thenReturn("project-123");
-    when(mockProject.lastScanId()).thenReturn(scanId);
+    var mockProject =
+        AnonymousProjectBuilder.validProject()
+            .withName(projectName)
+            .withId("project-123")
+            .withLastScanId(scanId)
+            .build();
 
     try (MockedStatic<SDKHelper> sdkHelper = mockStatic(SDKHelper.class)) {
       sdkHelper
