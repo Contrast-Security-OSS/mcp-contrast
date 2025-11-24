@@ -33,16 +33,28 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public record AttackFilterParams(
     AttacksFilterBody filterBody, List<String> messages, List<String> errors) {
-  // Valid quickFilter values for validation
+  // Valid quickFilter values for validation (from AttackQuickFilterType)
+  // ALL: no filtering, ACTIVE: ongoing attacks, MANUAL: human-initiated,
+  // AUTOMATED: bot attacks, PRODUCTION: prod environment, EFFECTIVE: non-probed attacks
   private static final Set<String> VALID_QUICK_FILTERS =
-      Set.of("ALL", "EXPLOITED", "PROBED", "BLOCKED", "INEFFECTIVE");
+      Set.of("ALL", "ACTIVE", "MANUAL", "AUTOMATED", "PRODUCTION", "EFFECTIVE");
+
+  // Valid statusFilter values (from AttackStatus enum)
+  // EXPLOITED: successfully exploited, PROBED: detected but not exploited,
+  // BLOCKED: blocked by Protect, BLOCKED_PERIMETER: blocked at perimeter,
+  // PROBED_PERIMETER: probed at perimeter, SUSPICIOUS: suspicious attack
+  private static final Set<String> VALID_STATUS_FILTERS =
+      Set.of(
+          "EXPLOITED", "PROBED", "BLOCKED", "BLOCKED_PERIMETER", "PROBED_PERIMETER", "SUSPICIOUS");
 
   /**
    * Parse and validate attack filter parameters. Returns object with validation status
    * (messages/errors) and configured AttacksFilterBody.
    *
-   * @param quickFilter Filter by attack effectiveness (e.g., "EXPLOITED", "PROBED", "BLOCKED",
-   *     "INEFFECTIVE", "ALL")
+   * @param quickFilter Filter by attack categorization (e.g., "ACTIVE", "MANUAL", "AUTOMATED",
+   *     "PRODUCTION", "EFFECTIVE", "ALL")
+   * @param statusFilter Filter by attack outcome status (e.g., "EXPLOITED", "PROBED", "BLOCKED",
+   *     "SUSPICIOUS")
    * @param keyword Search keyword for filtering attacks
    * @param includeSuppressed Include suppressed attacks (null = use smart default of false)
    * @param includeBotBlockers Include bot blocker attacks
@@ -52,6 +64,7 @@ public record AttackFilterParams(
    */
   public static AttackFilterParams of(
       String quickFilter,
+      String statusFilter,
       String keyword,
       Boolean includeSuppressed,
       Boolean includeBotBlockers,
@@ -71,8 +84,8 @@ public record AttackFilterParams(
         log.warn("Invalid quickFilter value: {}", quickFilter);
         errors.add(
             String.format(
-                "Invalid quickFilter '%s'. Valid: EXPLOITED, PROBED, BLOCKED, INEFFECTIVE, ALL."
-                    + " Example: 'EXPLOITED'",
+                "Invalid quickFilter '%s'. Valid: ALL, ACTIVE, MANUAL, AUTOMATED, PRODUCTION,"
+                    + " EFFECTIVE. Example: 'ACTIVE'",
                 quickFilter));
       }
     } else {
@@ -80,6 +93,23 @@ public record AttackFilterParams(
       filterBuilder.quickFilter("ALL");
       messages.add("No quickFilter applied - showing all attack types");
       log.debug("Using default quickFilter: ALL");
+    }
+
+    // Parse statusFilter (HARD FAILURE - invalid values are errors)
+    if (statusFilter != null && !statusFilter.trim().isEmpty()) {
+      String normalizedStatus = statusFilter.trim().toUpperCase();
+      if (VALID_STATUS_FILTERS.contains(normalizedStatus)) {
+        // Add to statusFilter list in filter body
+        filterBuilder.statusFilter(List.of(normalizedStatus));
+        log.debug("StatusFilter set to: {}", normalizedStatus);
+      } else {
+        log.warn("Invalid statusFilter value: {}", statusFilter);
+        errors.add(
+            String.format(
+                "Invalid statusFilter '%s'. Valid: EXPLOITED, PROBED, BLOCKED,"
+                    + " BLOCKED_PERIMETER, PROBED_PERIMETER, SUSPICIOUS. Example: 'EXPLOITED'",
+                statusFilter));
+      }
     }
 
     // Parse keyword (no validation - pass through)

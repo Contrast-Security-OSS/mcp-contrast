@@ -308,26 +308,16 @@ public class AssessService {
   }
 
   @Tool(
-      name = "list_session_metadata_for_application",
+      name = "get_session_metadata",
       description =
-          "Takes an application name ( app_name ) and returns a list of session metadata for the"
-              + " latest session matching that application name. This is useful for getting the"
-              + " most recent session metadata without needing to specify session metadata.")
-  public MetadataFilterResponse listSessionMetadataForApplication(
-      @ToolParam(description = "Application name") String app_name) throws IOException {
+          "Retrieves session metadata for a specific application by its ID. Returns the latest"
+              + " session metadata for the application. Use list_applications_with_name first to"
+              + " get the application ID from a name.")
+  public MetadataFilterResponse getSessionMetadata(
+      @ToolParam(description = "Application ID") String appId) throws IOException {
     var contrastSDK =
         SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
-    var application = SDKHelper.getApplicationByName(app_name, orgID, contrastSDK);
-    if (application.isPresent()) {
-      return contrastSDK.getSessionMetadataForApplication(
-          orgID, application.get().getAppId(), null);
-    } else {
-      log.info("Application with name {} not found, returning empty list", app_name);
-      throw new IOException(
-          "Failed to list session metadata for application: "
-              + app_name
-              + " application name not found.");
-    }
+    return contrastSDK.getSessionMetadataForApplication(orgID, appId, null);
   }
 
   @Tool(
