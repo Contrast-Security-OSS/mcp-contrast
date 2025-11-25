@@ -477,14 +477,7 @@ public class AssessService {
     var pagination = PaginationParams.of(page, pageSize);
     var filters =
         VulnerabilityFilterParams.of(
-            severities,
-            statuses,
-            null, // No appId for org-level search
-            vulnTypes,
-            environments,
-            lastSeenAfter,
-            lastSeenBefore,
-            vulnTags);
+            severities, statuses, vulnTypes, environments, lastSeenAfter, lastSeenBefore, vulnTags);
 
     // Check for hard failures - return error immediately if invalid
     if (!filters.isValid()) {
@@ -675,14 +668,7 @@ public class AssessService {
     var pagination = PaginationParams.of(page, pageSize);
     var filters =
         VulnerabilityFilterParams.of(
-            severities,
-            statuses,
-            appId, // Pass appId to filters for consistency
-            vulnTypes,
-            environments,
-            lastSeenAfter,
-            lastSeenBefore,
-            vulnTags);
+            severities, statuses, vulnTypes, environments, lastSeenAfter, lastSeenBefore, vulnTags);
 
     // Check for hard failures - return error immediately if invalid
     if (!filters.isValid()) {
