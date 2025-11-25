@@ -347,10 +347,7 @@ public class AssessService {
 
     var hasMetadataValue = StringUtils.hasText(metadataValue);
 
-    if (app.getMetadataEntities() == null) {
-      return false; // No metadata to match against
-    }
-
+    // getMetadataEntities() returns empty list if null (never null collections pattern)
     for (var metadata : app.getMetadataEntities()) {
       if (metadata == null || metadata.getName() == null) {
         continue;

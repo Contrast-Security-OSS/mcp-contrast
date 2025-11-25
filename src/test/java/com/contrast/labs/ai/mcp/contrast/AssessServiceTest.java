@@ -1112,6 +1112,29 @@ class AssessServiceTest {
   }
 
   @Test
+  void search_applications_should_handle_untagged_apps_when_filtering_by_tag() throws IOException {
+    // Arrange - mix of tagged and untagged apps (never null collections pattern)
+    var taggedApp =
+        AnonymousApplicationBuilder.validApp().withName("TaggedApp").withTag("Production").build();
+    var untaggedApp =
+        AnonymousApplicationBuilder.validApp()
+            .withName("UntaggedApp")
+            .withTags(null)
+            .build(); // null converted to empty list
+
+    mockedSDKHelper
+        .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
+        .thenReturn(List.of(taggedApp, untaggedApp));
+
+    // Act - filter by tag
+    var result = assessService.search_applications(null, "Production", null, null);
+
+    // Assert - only tagged app matches, no NPE on untagged app
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).name()).isEqualTo("TaggedApp");
+  }
+
+  @Test
   void search_applications_should_filter_by_metadata_name_and_value() throws IOException {
     // Arrange - demonstrate case-insensitive metadata matching
     var app1 =
@@ -1210,8 +1233,8 @@ class AssessServiceTest {
   }
 
   @Test
-  void search_applications_should_handle_null_metadata_entities() throws IOException {
-    // Arrange - app with null metadata entities
+  void search_applications_should_handle_empty_metadata_entities() throws IOException {
+    // Arrange - app with no metadata (empty list via "never null collections" pattern)
     var app = AnonymousApplicationBuilder.validApp().withMetadataEntities(null).build();
 
     mockedSDKHelper
@@ -1221,7 +1244,7 @@ class AssessServiceTest {
     // Act - search with metadata filter
     var result = assessService.search_applications(null, null, "Environment", null);
 
-    // Assert - no match and no NPE (defensive coding)
+    // Assert - no match (empty metadata doesn't match filter)
     assertThat(result).isEmpty();
   }
 
