@@ -1,6 +1,7 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.application;
 
 import com.google.gson.annotations.SerializedName;
+import java.util.Collections;
 import java.util.List;
 import lombok.Data;
 
@@ -112,4 +113,35 @@ public class Application {
 
   @SerializedName("onboarded_time")
   private Long onboardedTime;
+
+  // Defensive getters - return empty collections instead of null (Effective Java Item 54)
+  // These override Lombok's generated getters to ensure null-safety
+
+  public List<String> getRoles() {
+    return roles != null ? roles : Collections.emptyList();
+  }
+
+  public List<String> getTags() {
+    return tags != null ? tags : Collections.emptyList();
+  }
+
+  public List<String> getTechs() {
+    return techs != null ? techs : Collections.emptyList();
+  }
+
+  public List<String> getPolicies() {
+    return policies != null ? policies : Collections.emptyList();
+  }
+
+  public List<Metadata> getMetadataEntities() {
+    return metadataEntities != null ? metadataEntities : Collections.emptyList();
+  }
+
+  public List<Field> getValidationErrorFields() {
+    return validationErrorFields != null ? validationErrorFields : Collections.emptyList();
+  }
+
+  public List<Field> getMissingRequiredFields() {
+    return missingRequiredFields != null ? missingRequiredFields : Collections.emptyList();
+  }
 }

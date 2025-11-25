@@ -157,9 +157,9 @@ public class ApplicationJsonParsingTest {
 
     assertThat(application).as("Application should not be null").isNotNull();
     assertThat(application.getAppId()).as("App ID should match").isEqualTo("test-app-789");
-    // Field should be null when not present in JSON
+    // Field returns empty list when not present in JSON (never null collections pattern)
     assertThat(application.getMissingRequiredFields())
-        .as("Missing required fields should be null when not in JSON")
-        .isNull();
+        .as("Missing required fields should be empty when not in JSON")
+        .isEmpty();
   }
 }

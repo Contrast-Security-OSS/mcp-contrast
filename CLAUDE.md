@@ -177,6 +177,41 @@ This project uses Beads (bd) for issue tracking. See the MCP resource `beads://q
 - `in_progress` → Actively working on task (SET THIS WHEN YOU START!)
 - `closed` → Task complete, tested, and merged
 
+### Human Review Required Label
+
+**IMPORTANT: Beads labeled `needs-human-review` require human approval before AI work begins.**
+
+**AI Behavior:**
+- Before starting work on any bead, check for the `needs-human-review` label
+- If present, **DO NOT start work** on the bead
+- Instead, ask the human to review the bead description and approach
+- Once human reviews and approves, they will remove the `needs-human-review` label
+- Only after label is removed may AI proceed with implementation
+
+**Example workflow:**
+```
+AI: "I see bead mcp-xyz is ready to work on, but it has the 'needs-human-review' label.
+     Please review the bead description and let me know if the approach looks good.
+     Once approved, remove the label and I'll proceed with implementation."
+```
+
+### Human Review Label Workflow
+
+**When a human reviews a bead with the `needs-human-review` label:**
+
+1. **Review the bead description** - Evaluate the proposed approach, implementation details, and any concerns
+2. **Update the bead** - If changes are needed based on review, update the bead description with the approved approach
+3. **Update labels:**
+   ```bash
+   bd label remove <bead-id> needs-human-review
+   bd label add <bead-id> human-reviewed
+   ```
+4. **Proceed to next bead** - Continue reviewing remaining beads with `needs-human-review` label
+
+**Label meanings:**
+- `needs-human-review` - Bead requires human approval before AI can start work
+- `human-reviewed` - Bead has been reviewed and approved by human, AI may proceed when ready
+
 ### AI Model Labeling
 
 **When a bead is worked on by an AI system, label it to track which model performed the work:**

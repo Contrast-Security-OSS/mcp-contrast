@@ -393,12 +393,14 @@ class SCAServiceTest {
 
     // Library with ZERO class usage
     var mockLibraries = new ArrayList<LibraryExtended>();
-    LibraryExtended lib = mock();
-    when(lib.getFilename()).thenReturn("unused-lib.jar");
-    when(lib.getHash()).thenReturn("matching-hash-789"); // Matches CVE data
-    when(lib.getVersion()).thenReturn("1.0.0");
-    when(lib.getClassCount()).thenReturn(100);
-    when(lib.getClassedUsed()).thenReturn(0); // ZERO usage - should NOT populate!
+    LibraryExtended lib =
+        AnonymousLibraryExtendedBuilder.validLibrary()
+            .withFilename("unused-lib.jar")
+            .withHash("matching-hash-789") // Matches CVE data
+            .withVersion("1.0.0")
+            .withClassCount(100)
+            .withClassedUsed(0) // ZERO usage - should NOT populate!
+            .build();
     mockLibraries.add(lib);
 
     if (mockedSDKExtension != null) {
@@ -434,12 +436,14 @@ class SCAServiceTest {
   private List<LibraryExtended> createMockLibraries(int count) {
     var libraries = new ArrayList<LibraryExtended>();
     for (int i = 0; i < count; i++) {
-      LibraryExtended lib = mock();
-      when(lib.getFilename()).thenReturn("library-" + i + ".jar");
-      when(lib.getHash()).thenReturn("hash-" + i);
-      when(lib.getVersion()).thenReturn("1.0." + i);
-      when(lib.getClassCount()).thenReturn(100);
-      when(lib.getClassedUsed()).thenReturn(50);
+      LibraryExtended lib =
+          AnonymousLibraryExtendedBuilder.validLibrary()
+              .withFilename("library-" + i + ".jar")
+              .withHash("hash-" + i)
+              .withVersion("1.0." + i)
+              .withClassCount(100)
+              .withClassedUsed(50)
+              .build();
       libraries.add(lib);
     }
     return libraries;
@@ -449,21 +453,25 @@ class SCAServiceTest {
     var libraries = new ArrayList<LibraryExtended>();
 
     // Library 1: Actively used (classesUsed > 0)
-    LibraryExtended lib1 = mock();
-    when(lib1.getFilename()).thenReturn("actively-used-lib.jar");
-    when(lib1.getHash()).thenReturn("hash-active-123");
-    when(lib1.getVersion()).thenReturn("2.1.0");
-    when(lib1.getClassCount()).thenReturn(150);
-    when(lib1.getClassedUsed()).thenReturn(75); // 50% usage
+    LibraryExtended lib1 =
+        AnonymousLibraryExtendedBuilder.validLibrary()
+            .withFilename("actively-used-lib.jar")
+            .withHash("hash-active-123")
+            .withVersion("2.1.0")
+            .withClassCount(150)
+            .withClassedUsed(75) // 50% usage
+            .build();
     libraries.add(lib1);
 
     // Library 2: Likely unused (classesUsed = 0)
-    LibraryExtended lib2 = mock();
-    when(lib2.getFilename()).thenReturn("unused-lib.jar");
-    when(lib2.getHash()).thenReturn("hash-unused-456");
-    when(lib2.getVersion()).thenReturn("1.5.2");
-    when(lib2.getClassCount()).thenReturn(200);
-    when(lib2.getClassedUsed()).thenReturn(0); // Not used!
+    LibraryExtended lib2 =
+        AnonymousLibraryExtendedBuilder.validLibrary()
+            .withFilename("unused-lib.jar")
+            .withHash("hash-unused-456")
+            .withVersion("1.5.2")
+            .withClassCount(200)
+            .withClassedUsed(0) // Not used!
+            .build();
     libraries.add(lib2);
 
     return libraries;
@@ -472,12 +480,14 @@ class SCAServiceTest {
   private List<LibraryExtended> createMockLibrariesWithMatchingHash() {
     var libraries = new ArrayList<LibraryExtended>();
 
-    LibraryExtended lib = mock();
-    when(lib.getFilename()).thenReturn("vulnerable-lib.jar");
-    when(lib.getHash()).thenReturn("matching-hash-789");
-    when(lib.getVersion()).thenReturn("1.0.0");
-    when(lib.getClassCount()).thenReturn(100);
-    when(lib.getClassedUsed()).thenReturn(50);
+    LibraryExtended lib =
+        AnonymousLibraryExtendedBuilder.validLibrary()
+            .withFilename("vulnerable-lib.jar")
+            .withHash("matching-hash-789")
+            .withVersion("1.0.0")
+            .withClassCount(100)
+            .withClassedUsed(50)
+            .build();
     libraries.add(lib);
 
     return libraries;

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Metadata;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -73,7 +74,8 @@ public class AnonymousApplicationBuilder {
   }
 
   public AnonymousApplicationBuilder withTags(List<String> tags) {
-    this.tags = tags;
+    // Never null collections pattern - use empty list if null
+    this.tags = tags != null ? tags : Collections.emptyList();
     return this;
   }
 
@@ -83,7 +85,8 @@ public class AnonymousApplicationBuilder {
   }
 
   public AnonymousApplicationBuilder withTechs(List<String> techs) {
-    this.techs = techs;
+    // Never null collections pattern - use empty list if null
+    this.techs = techs != null ? techs : Collections.emptyList();
     return this;
   }
 
@@ -96,7 +99,8 @@ public class AnonymousApplicationBuilder {
   }
 
   public AnonymousApplicationBuilder withMetadataEntities(List<Metadata> metadataEntities) {
-    this.metadataEntities = metadataEntities;
+    // Never null collections pattern - use empty list if null
+    this.metadataEntities = metadataEntities != null ? metadataEntities : Collections.emptyList();
     return this;
   }
 
