@@ -2367,4 +2367,233 @@ class AssessServiceTest {
     assertThat(result.items().get(0).title()).isEqualTo("Reported Vuln");
     assertThat(result.items().get(1).title()).isEqualTo("Confirmed Vuln");
   }
+
+  // ========== Multi-Page Fetch Tests for Session Filtering (mcp-4it) ==========
+
+  @Test
+  void searchAppVulnerabilities_should_fetch_all_pages_when_useLatestSession_enabled()
+      throws Exception {
+    // Given - SDK returns 2 pages: 500 traces on first page, 200 on second page
+    var page1Traces = mock(Traces.class);
+    var page1List = new ArrayList<Trace>();
+    for (int i = 0; i < 500; i++) {
+      page1List.add(
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("Page1-Vuln-" + i)
+              .withSessionMetadata("latest-session-id", "branch", "main")
+              .build());
+    }
+    when(page1Traces.getTraces()).thenReturn(page1List);
+
+    var page2Traces = mock(Traces.class);
+    var page2List = new ArrayList<Trace>();
+    for (int i = 0; i < 200; i++) {
+      page2List.add(
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("Page2-Vuln-" + i)
+              .withSessionMetadata("latest-session-id", "branch", "main")
+              .build());
+    }
+    when(page2Traces.getTraces()).thenReturn(page2List);
+
+    // Mock SDK to return different pages based on offset
+    // Note: Page 2 has < 500 items so pagination loop stops after 2 calls
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenAnswer(
+            invocation -> {
+              TraceFilterForm form = invocation.getArgument(2);
+              if (form.getOffset() == 0) {
+                return page1Traces;
+              } else {
+                return page2Traces;
+              }
+            });
+
+    // Create SessionMetadataResponse with AgentSession
+    var mockAgentSession =
+        new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.AgentSession();
+    mockAgentSession.setAgentSessionId("latest-session-id");
+    var mockSessionResponse =
+        new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata
+            .SessionMetadataResponse();
+    mockSessionResponse.setAgentSession(mockAgentSession);
+
+    // Mock SDKExtension to return a latest session
+    try (var mockedSDKExtension =
+        mockConstruction(
+            com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                  .thenReturn(mockSessionResponse);
+            })) {
+
+      // When - call with useLatestSession=true
+      // Parameter order: appId, page, pageSize, severities, statuses, vulnTypes, environments,
+      //   lastSeenAfter, lastSeenBefore, vulnTags, sessionMetadataName, sessionMetadataValue,
+      //   useLatestSession
+      var result =
+          assessService.searchAppVulnerabilities(
+              TEST_APP_ID,
+              1, // page
+              50, // pageSize
+              null, // severities
+              null, // statuses
+              null, // vulnTypes
+              null, // environments
+              null, // lastSeenAfter
+              null, // lastSeenBefore
+              null, // vulnTags
+              null, // sessionMetadataName
+              null, // sessionMetadataValue
+              true); // useLatestSession
+
+      // Then - verify SDK was called at least twice to fetch multiple pages
+      verify(mockContrastSDK, atLeast(2))
+          .getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class));
+
+      // Verify all 700 traces were fetched and available (totalItems reflects filtered count)
+      // All traces match the session filter, so all 700 should be available
+      assertThat(result.totalItems()).isEqualTo(700);
+
+      // Verify first page of 50 items returned
+      assertThat(result.items()).hasSize(50);
+      assertThat(result.page()).isEqualTo(1);
+    }
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_find_matching_trace_on_page2_with_session_metadata_filter()
+      throws Exception {
+    // Given - Page 1 has no matches, Page 2 has the matching trace
+    var page1Traces = mock(Traces.class);
+    var page1List = new ArrayList<Trace>();
+    for (int i = 0; i < 500; i++) {
+      page1List.add(
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("Page1-Vuln-" + i)
+              .withSessionMetadata("session-" + i, "branch", "develop") // No match
+              .build());
+    }
+    when(page1Traces.getTraces()).thenReturn(page1List);
+
+    var page2Traces = mock(Traces.class);
+    var page2List = new ArrayList<Trace>();
+    // Add one matching trace on page 2
+    page2List.add(
+        AnonymousTraceBuilder.validTrace()
+            .withTitle("Matching-Vuln-On-Page2")
+            .withSessionMetadata("session-match", "branch", "main") // Match!
+            .build());
+    // Add more non-matching traces
+    for (int i = 1; i < 50; i++) {
+      page2List.add(
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("Page2-Vuln-" + i)
+              .withSessionMetadata("session-other-" + i, "branch", "develop")
+              .build());
+    }
+    when(page2Traces.getTraces()).thenReturn(page2List);
+
+    // Mock SDK to return different pages based on offset
+    // Note: Page 2 has < 500 items so pagination loop stops after 2 calls
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenAnswer(
+            invocation -> {
+              TraceFilterForm form = invocation.getArgument(2);
+              if (form.getOffset() == 0) {
+                return page1Traces;
+              } else {
+                return page2Traces;
+              }
+            });
+
+    // When - search with session metadata filter that matches trace on page 2
+    // Parameter order: appId, page, pageSize, severities, statuses, vulnTypes, environments,
+    //   lastSeenAfter, lastSeenBefore, vulnTags, sessionMetadataName, sessionMetadataValue,
+    //   useLatestSession
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID,
+            1, // page
+            50, // pageSize
+            null, // severities
+            null, // statuses
+            null, // vulnTypes
+            null, // environments
+            null, // lastSeenAfter
+            null, // lastSeenBefore
+            null, // vulnTags
+            "branch", // sessionMetadataName
+            "main", // sessionMetadataValue - only matches one trace on page 2
+            null); // useLatestSession
+
+    // Then - should find the matching trace from page 2
+    assertThat(result.items()).hasSize(1);
+    assertThat(result.items().get(0).title()).isEqualTo("Matching-Vuln-On-Page2");
+    assertThat(result.totalItems()).isEqualTo(1);
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_paginate_correctly_with_useLatestSession_and_no_sessions()
+      throws Exception {
+    // Given - Multiple pages of traces but no sessions exist (Codex Finding 2 scenario)
+    var page1Traces = mock(Traces.class);
+    var page1List = new ArrayList<Trace>();
+    for (int i = 0; i < 100; i++) {
+      page1List.add(
+          AnonymousTraceBuilder.validTrace().withTitle("Vuln-" + i).withUuid("uuid-" + i).build());
+    }
+    when(page1Traces.getTraces()).thenReturn(page1List);
+
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(page1Traces);
+
+    // Mock SDKExtension to return null (no sessions found)
+    try (var mockedSDKExtension =
+        mockConstruction(
+            com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                  .thenReturn(null);
+            })) {
+
+      // When - request page 3 with useLatestSession=true but no sessions
+      // Parameter order: appId, page, pageSize, severities, statuses, vulnTypes, environments,
+      //   lastSeenAfter, lastSeenBefore, vulnTags, sessionMetadataName, sessionMetadataValue,
+      //   useLatestSession
+      var result =
+          assessService.searchAppVulnerabilities(
+              TEST_APP_ID,
+              3, // page 3
+              25, // pageSize
+              null, // severities
+              null, // statuses
+              null, // vulnTypes
+              null, // environments
+              null, // lastSeenAfter
+              null, // lastSeenBefore
+              null, // vulnTags
+              null, // sessionMetadataName
+              null, // sessionMetadataValue
+              true); // useLatestSession
+
+      // Then - should return correct page 3 data (items 50-74)
+      // With 100 total items, page 3 at size 25 should return items at indices 50-74
+      assertThat(result.page()).isEqualTo(3);
+      assertThat(result.pageSize()).isEqualTo(25);
+
+      // Since no session filtering is applied (agentSessionId is null), all 100 traces
+      // are available for in-memory pagination
+      assertThat(result.totalItems()).isEqualTo(100);
+      assertThat(result.items()).hasSize(25);
+
+      // Verify PaginationHandler was called with warnings list containing the no-sessions warning
+      var warningsCaptor = ArgumentCaptor.forClass(List.class);
+      verify(mockPaginationHandler)
+          .createPaginatedResponse(
+              anyList(), any(PaginationParams.class), any(), warningsCaptor.capture());
+      var warnings = (List<String>) warningsCaptor.getValue();
+      assertThat(warnings).anyMatch(w -> w.contains("No sessions found"));
+    }
+  }
 }
