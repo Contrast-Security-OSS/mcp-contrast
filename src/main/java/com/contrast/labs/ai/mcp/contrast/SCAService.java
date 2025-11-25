@@ -58,7 +58,7 @@ public class SCAService {
       name = "list_application_libraries",
       description =
           "Takes an application ID and returns the libraries used in the application. Use"
-              + " list_applications_with_name first to get the application ID from a name. Note: if"
+              + " search_applications(name=...) to find the application ID from a name. Note: if"
               + " class usage count is 0 the library is unlikely to be used")
   public List<LibraryExtended> getApplicationLibrariesByID(String appID) throws IOException {
     if (!StringUtils.hasText(appID)) {
@@ -74,7 +74,7 @@ public class SCAService {
   }
 
   @Tool(
-      name = "list_applications_vulnerable_to_cve",
+      name = "list_applications_by_cve",
       description =
           "takes a cve id and returns the applications and servers vulnerable to the cve. Please"
               + " note if the application class usage is 0, its unlikely to be vulnerable")

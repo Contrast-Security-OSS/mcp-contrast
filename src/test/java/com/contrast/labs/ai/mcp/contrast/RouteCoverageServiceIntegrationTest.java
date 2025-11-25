@@ -488,4 +488,125 @@ public class RouteCoverageServiceIntegrationTest
       log.info("✓ All routes have valid route details");
     }
   }
+
+  // ========== Additional Edge Case Tests ==========
+
+  @Test
+  void testGetRouteCoverage_NonExistentMetadata_GracefulHandling() throws Exception {
+    log.info("\n=== Integration Test: Non-existent session metadata ===");
+
+    assertThat(testData).as("Test data must be discovered before running tests").isNotNull();
+
+    // Act - Use metadata name/value that definitely doesn't exist
+    var response =
+        routeCoverageService.getRouteCoverage(
+            testData.appId, "nonexistent-metadata-name-12345", "nonexistent-value-67890", null);
+
+    // Assert - Should return successfully but with 0 routes (no sessions match)
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.isSuccess())
+        .as("Response should indicate success even with no matching sessions")
+        .isTrue();
+
+    log.info("✓ API handled non-existent metadata gracefully");
+    log.info(
+        "  Routes returned: {} (expected 0 for non-existent metadata)",
+        response.getRoutes().size());
+
+    // With non-existent metadata, we expect 0 routes
+    assertThat(response.getRoutes().size())
+        .as("Non-existent metadata should return 0 routes")
+        .isEqualTo(0);
+  }
+
+  @Test
+  void testGetRouteCoverage_LatestSession_NoSessionsScenario() throws Exception {
+    log.info("\n=== Integration Test: Latest session with no sessions (error case) ===");
+
+    // Note: This test uses a known invalid app ID to simulate the "no sessions" scenario
+    // In a real app with route coverage, there would always be sessions
+    // But we can verify the error handling works correctly
+
+    boolean caughtException = false;
+    boolean gotFailureResponse = false;
+
+    try {
+      var response =
+          routeCoverageService.getRouteCoverage("invalid-app-no-sessions-999", null, null, true);
+
+      // If we get a response (not an exception), check if success=false
+      if (response != null && !response.isSuccess()) {
+        gotFailureResponse = true;
+        log.info("✓ API returned success=false for app with no sessions");
+        log.info("  Response success: {}", response.isSuccess());
+      }
+
+    } catch (IOException e) {
+      // This is also acceptable - API rejected the request
+      caughtException = true;
+      log.info("✓ API threw exception for app with no sessions: {}", e.getMessage());
+    } catch (Exception e) {
+      // Catch other exceptions
+      caughtException = true;
+      log.info("✓ API threw exception: {}", e.getClass().getSimpleName());
+    }
+
+    // Either exception or failure response is acceptable
+    assertThat(caughtException || gotFailureResponse)
+        .as("Should either throw exception or return success=false for app with no sessions")
+        .isTrue();
+  }
+
+  @Test
+  void testGetRouteCoverage_RouteDetailsStructureValidation() throws Exception {
+    log.info("\n=== Integration Test: Route details structure validation ===");
+
+    assertThat(testData).as("Test data must be discovered before running tests").isNotNull();
+
+    // Act
+    var response = routeCoverageService.getRouteCoverage(testData.appId, null, null, null);
+
+    // Assert
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.isSuccess()).as("Response should indicate success").isTrue();
+    assertThat(response.getRoutes().size() > 0)
+        .as("Should have at least 1 route to validate")
+        .isTrue();
+
+    log.info("✓ Validating structure of {} routes", response.getRoutes().size());
+
+    // Validate structure of each route and its details
+    for (Route route : response.getRoutes()) {
+      // Route itself should have key fields
+      assertThat(route.getSignature())
+          .as("Route signature should be present")
+          .isNotNull()
+          .isNotEmpty();
+      assertThat(route.getRouteHash()).as("Route hash should be present").isNotNull().isNotEmpty();
+
+      // exercised field should be set (can be 0 for discovered routes)
+      assertThat(route.getExercised())
+          .as("Route exercised count should be set (can be 0)")
+          .isNotNull();
+
+      // Route details should be populated
+      assertThat(route.getRouteDetailsResponse())
+          .as("Route details response should be populated")
+          .isNotNull();
+      assertThat(route.getRouteDetailsResponse().isSuccess())
+          .as("Route details should be successfully fetched")
+          .isTrue();
+
+      // Log sample route for manual inspection
+      if (route.equals(response.getRoutes().get(0))) {
+        log.info("  Sample route validation:");
+        log.info("    Signature: {}", route.getSignature());
+        log.info("    Hash: {}", route.getRouteHash());
+        log.info("    Exercised: {}", route.getExercised());
+        log.info("    Details success: {}", route.getRouteDetailsResponse().isSuccess());
+      }
+    }
+
+    log.info("✓ All {} routes have valid structure and details", response.getRoutes().size());
+  }
 }

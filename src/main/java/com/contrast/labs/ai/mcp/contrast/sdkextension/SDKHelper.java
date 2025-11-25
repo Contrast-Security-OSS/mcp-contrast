@@ -57,7 +57,7 @@ public class SDKHelper {
       CacheBuilder.newBuilder().maximumSize(500000).expireAfterWrite(10, TimeUnit.MINUTES).build();
 
   private static final Cache<String, List<Application>> applicationsCache =
-      CacheBuilder.newBuilder().maximumSize(500000).expireAfterWrite(10, TimeUnit.MINUTES).build();
+      CacheBuilder.newBuilder().maximumSize(500000).expireAfterWrite(5, TimeUnit.MINUTES).build();
 
   public static List<LibraryExtended> getLibsForID(
       String appID, String orgID, SDKExtension extendedSDK) throws IOException {
