@@ -541,4 +541,85 @@ public class AssessServiceIntegrationTest
 
     log.info("✓ Integration test passed");
   }
+
+  /**
+   * Integration test for getVulnerabilityById - verifies the fix for mcp-3le. This test ensures
+   * that the get_vulnerability tool can retrieve any vulnerability by ID, regardless of its
+   * position in paginated results. The fix replaced the buggy pagination search with a direct API
+   * call using ContrastSDK.getTrace().
+   */
+  @Test
+  void testGetVulnerabilityById_RetrievesVulnerabilityDirectly() throws IOException {
+    log.info("\n=== Integration Test: get_vulnerability (mcp-3le fix) ===");
+    log.info("Testing that getVulnerabilityById retrieves vulnerabilities directly by ID");
+
+    // First, find a vulnerability to test with
+    var searchResponse =
+        assessService.searchVulnerabilities(1, 1, null, null, null, null, null, null, null);
+
+    assertThat(searchResponse).isNotNull();
+    assertThat(searchResponse.items())
+        .as("Need at least one vulnerability to test getVulnerabilityById")
+        .isNotEmpty();
+
+    var testVuln = searchResponse.items().get(0);
+    var vulnId = testVuln.vulnID();
+    var appId = testVuln.appID();
+
+    log.info("Testing with vulnerability: {} in app: {}", vulnId, appId);
+
+    // Now test getVulnerabilityById - this should use the direct getTrace() API
+    var vulnerability = assessService.getVulnerabilityById(vulnId, appId);
+
+    // Verify ALL fields are populated (matching VulnLight fields plus detail fields)
+    assertThat(vulnerability).as("Should retrieve vulnerability").isNotNull();
+
+    // Core identification fields
+    assertThat(vulnerability.vulnID()).as("VulnID should match").isEqualTo(vulnId);
+    assertThat(vulnerability.title()).as("Title should not be null").isNotNull();
+    assertThat(vulnerability.type()).as("Type should not be null").isNotNull();
+    assertThat(vulnerability.severity()).as("Severity should not be null").isNotNull();
+    assertThat(vulnerability.status()).as("Status should not be null").isNotNull();
+
+    // Application correlation fields (same as VulnLight)
+    assertThat(vulnerability.appID()).as("AppID should not be null").isNotNull();
+    assertThat(vulnerability.appName()).as("AppName should not be null").isNotNull();
+
+    // Timestamp fields (same as VulnLight - ISO-8601 formatted)
+    assertThat(vulnerability.firstSeenAt()).as("FirstSeenAt should not be null").isNotNull();
+    assertThat(vulnerability.lastSeenAt()).as("LastSeenAt should not be null").isNotNull();
+    // closedAt may be null if vulnerability is open
+
+    // Collection fields (same as VulnLight)
+    assertThat(vulnerability.environments()).as("Environments should not be null").isNotNull();
+    assertThat(vulnerability.tags()).as("Tags should not be null").isNotNull();
+    assertThat(vulnerability.sessionMetadata())
+        .as("SessionMetadata should not be null")
+        .isNotNull();
+
+    // Detail-specific fields (only in full Vulnerability)
+    assertThat(vulnerability.hint()).as("Hint should not be null").isNotNull();
+    assertThat(vulnerability.howToFix()).as("HowToFix should not be null").isNotNull();
+    assertThat(vulnerability.stackTrace()).as("StackTrace should not be null").isNotNull();
+    assertThat(vulnerability.vulnerableLibraries())
+        .as("VulnerableLibraries should not be null")
+        .isNotNull();
+    // httpRequest may be null for some vulnerability types
+
+    log.info(
+        "✓ Successfully retrieved vulnerability: {} - {} ({}, {})",
+        vulnerability.vulnID(),
+        vulnerability.title(),
+        vulnerability.severity(),
+        vulnerability.type());
+    log.info("  App: {} ({})", vulnerability.appName(), vulnerability.appID());
+    log.info(
+        "  First seen: {}, Last seen: {}", vulnerability.firstSeenAt(), vulnerability.lastSeenAt());
+    log.info("  Environments: {}", vulnerability.environments());
+    log.info("  Tags: {}", vulnerability.tags());
+    log.info("  Stack trace entries: {}", vulnerability.stackTrace().size());
+    log.info("  Vulnerable libraries: {}", vulnerability.vulnerableLibraries().size());
+
+    log.info("✓ Integration test passed - all Vulnerability fields populated correctly");
+  }
 }

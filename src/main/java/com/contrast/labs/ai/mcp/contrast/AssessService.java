@@ -37,7 +37,6 @@ import com.contrastsecurity.models.Rules;
 import com.contrastsecurity.models.SessionMetadata;
 import com.contrastsecurity.models.Stacktrace;
 import com.contrastsecurity.models.Trace;
-import com.contrastsecurity.models.TraceFilterBody;
 import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
@@ -103,11 +102,13 @@ public class AssessService {
     log.debug("ContrastSDK initialized with host: {}", hostName);
 
     try {
-      var trace =
-          contrastSDK.getTraces(orgID, appID, new TraceFilterBody()).getTraces().stream()
-              .filter(t -> t.getUuid().equalsIgnoreCase(vulnID))
-              .findFirst()
-              .orElseThrow();
+      // Use expand to include application, environments, and session metadata
+      var expand =
+          EnumSet.of(
+              TraceFilterForm.TraceExpandValue.APPLICATION,
+              TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
+              TraceFilterForm.TraceExpandValue.SESSION_METADATA);
+      var trace = contrastSDK.getTrace(orgID, appID, vulnID, expand);
       log.debug("Found trace with title: {} and rule: {}", trace.getTitle(), trace.getRule());
 
       var recommendationResponse = contrastSDK.getRecommendation(orgID, vulnID);

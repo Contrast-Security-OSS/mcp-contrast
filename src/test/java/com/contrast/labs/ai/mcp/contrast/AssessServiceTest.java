@@ -34,6 +34,7 @@ import com.contrastsecurity.models.MetadataItem;
 import com.contrastsecurity.models.Rules;
 import com.contrastsecurity.models.SessionMetadata;
 import com.contrastsecurity.models.Trace;
+import com.contrastsecurity.models.TraceFilterBody;
 import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
@@ -2595,5 +2596,60 @@ class AssessServiceTest {
       var warnings = (List<String>) warningsCaptor.getValue();
       assertThat(warnings).anyMatch(w -> w.contains("No sessions found"));
     }
+  }
+
+  // ========== getVulnerabilityById Tests (mcp-3le fix) ==========
+
+  @Test
+  void getVulnerabilityById_should_call_getTrace_directly() throws Exception {
+    // Given - This test verifies the fix for mcp-3le:
+    // The method should call getTrace() directly instead of searching through
+    // paginated results with getTraces() + stream filter.
+    var vulnId = "test-vuln-uuid-123";
+    var appId = "test-app-456";
+
+    // Mock the new direct getTrace call (with expand parameter)
+    var mockTrace = mock(Trace.class);
+    when(mockTrace.getUuid()).thenReturn(vulnId);
+    when(mockTrace.getTitle()).thenReturn("Test Vulnerability");
+    when(mockTrace.getRule()).thenReturn("sql-injection");
+    when(mockContrastSDK.getTrace(eq(TEST_ORG_ID), eq(appId), eq(vulnId), any()))
+        .thenReturn(mockTrace);
+
+    // Mock other required SDK calls (method has multiple dependencies)
+    var mockRecommendation = mock(com.contrastsecurity.models.RecommendationResponse.class);
+    var recommendation = mock(com.contrastsecurity.models.Recommendation.class);
+    when(recommendation.getText()).thenReturn("Test recommendation");
+    when(mockRecommendation.getRecommendation()).thenReturn(recommendation);
+    when(mockContrastSDK.getRecommendation(eq(TEST_ORG_ID), eq(vulnId)))
+        .thenReturn(mockRecommendation);
+
+    var mockHttpRequest = mock(com.contrastsecurity.models.HttpRequestResponse.class);
+    when(mockContrastSDK.getHttpRequest(eq(TEST_ORG_ID), eq(vulnId))).thenReturn(mockHttpRequest);
+
+    var mockEventSummary = mock(com.contrastsecurity.models.EventSummaryResponse.class);
+    when(mockEventSummary.getEvents()).thenReturn(List.of());
+    when(mockContrastSDK.getEventSummary(eq(TEST_ORG_ID), eq(vulnId))).thenReturn(mockEventSummary);
+
+    // Mock SDKHelper static methods for library data
+    mockedSDKHelper
+        .when(() -> SDKHelper.getLibsForID(eq(appId), eq(TEST_ORG_ID), any()))
+        .thenReturn(List.of());
+
+    // When - Call the method
+    try {
+      assessService.getVulnerabilityById(vulnId, appId);
+    } catch (Exception e) {
+      // Method may throw due to incomplete mocking of VulnerabilityMapper,
+      // but we only need to verify getTrace was called correctly
+    }
+
+    // Then - Verify getTrace() was called directly with correct params and expand
+    // This is the key verification for mcp-3le fix
+    verify(mockContrastSDK).getTrace(eq(TEST_ORG_ID), eq(appId), eq(vulnId), any());
+
+    // Verify the old buggy method (getTraces with filtering) was NOT called
+    verify(mockContrastSDK, never())
+        .getTraces(eq(TEST_ORG_ID), eq(appId), any(TraceFilterBody.class));
   }
 }
