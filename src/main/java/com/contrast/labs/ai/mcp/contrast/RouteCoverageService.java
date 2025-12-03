@@ -45,14 +45,14 @@ public class RouteCoverageService {
    *
    * @param appId Required - The application ID to retrieve route coverage for
    * @param sessionMetadataName Optional - Filter by session metadata field name (e.g., "branch").
-   *     Empty strings are treated as null (no filter).
+   *     Must be provided with sessionMetadataValue. Empty strings are treated as null (no filter).
    * @param sessionMetadataValue Optional - Filter by session metadata field value (e.g., "main").
-   *     Required if sessionMetadataName is provided. Empty strings are treated as null.
+   *     Must be provided with sessionMetadataName. Empty strings are treated as null.
    * @param useLatestSession Optional - If true, only return routes from the latest session
    * @return RouteCoverageResponse containing route coverage data with details for each route
    * @throws IOException If an error occurs while retrieving data from Contrast
    * @throws IllegalArgumentException If sessionMetadataName is provided without
-   *     sessionMetadataValue
+   *     sessionMetadataValue, or if sessionMetadataValue is provided without sessionMetadataName
    */
   @Tool(
       name = "get_route_coverage",
@@ -61,8 +61,9 @@ public class RouteCoverageService {
               + " not exercised) or EXERCISED (received HTTP traffic). All filter parameters are"
               + " truly optional - if none provided (null or empty strings), returns all routes"
               + " across all sessions. Parameters: appId (required), sessionMetadataName"
-              + " (optional), sessionMetadataValue (optional - required if sessionMetadataName"
-              + " provided), useLatestSession (optional).")
+              + " (optional), sessionMetadataValue (optional). NOTE: sessionMetadataName and"
+              + " sessionMetadataValue must be provided together or both omitted - providing"
+              + " only one will result in an error. useLatestSession (optional).")
   public RouteCoverageResponse getRouteCoverage(
       String appId,
       String sessionMetadataName,
@@ -75,6 +76,13 @@ public class RouteCoverageService {
     // Validate parameters - treat empty strings as null
     if (StringUtils.hasText(sessionMetadataName) && !StringUtils.hasText(sessionMetadataValue)) {
       var errorMsg = "sessionMetadataValue is required when sessionMetadataName is provided";
+      log.error(errorMsg);
+      throw new IllegalArgumentException(errorMsg);
+    }
+
+    // Validate sessionMetadataValue requires sessionMetadataName
+    if (StringUtils.hasText(sessionMetadataValue) && !StringUtils.hasText(sessionMetadataName)) {
+      var errorMsg = "sessionMetadataName is required when sessionMetadataValue is provided";
       log.error(errorMsg);
       throw new IllegalArgumentException(errorMsg);
     }

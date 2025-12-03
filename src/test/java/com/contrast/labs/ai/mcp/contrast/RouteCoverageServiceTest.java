@@ -311,6 +311,39 @@ class RouteCoverageServiceTest {
     verify(mockSDKExtension, never()).getRouteCoverage(anyString(), anyString(), any());
   }
 
+  @Test
+  void testGetRouteCoverage_SessionMetadataValue_WithoutName() throws Exception {
+    // Test validation with sessionMetadataValue provided but sessionMetadataName null (MCP-RLC)
+    // Act & Assert
+    assertThatThrownBy(
+            () -> {
+              routeCoverageService.getRouteCoverage(TEST_APP_ID, null, TEST_METADATA_VALUE, null);
+            })
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(
+            "sessionMetadataName is required when sessionMetadataValue is provided");
+
+    // Verify SDK was never called
+    verify(mockSDKExtension, never()).getRouteCoverage(anyString(), anyString(), any());
+  }
+
+  @Test
+  void testGetRouteCoverage_SessionMetadataValue_WithEmptyName() throws Exception {
+    // Test validation with empty string sessionMetadataName and sessionMetadataValue provided
+    // (MCP-RLC)
+    // Act & Assert
+    assertThatThrownBy(
+            () -> {
+              routeCoverageService.getRouteCoverage(TEST_APP_ID, "", TEST_METADATA_VALUE, null);
+            })
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining(
+            "sessionMetadataName is required when sessionMetadataValue is provided");
+
+    // Verify SDK was never called
+    verify(mockSDKExtension, never()).getRouteCoverage(anyString(), anyString(), any());
+  }
+
   // ========== Test Case 3: Latest Session Filter ==========
 
   @Test
