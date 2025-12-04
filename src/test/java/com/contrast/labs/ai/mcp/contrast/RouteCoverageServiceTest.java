@@ -420,6 +420,96 @@ class RouteCoverageServiceTest {
     verify(mockSDKExtension, never()).getRouteCoverage(anyString(), anyString(), any());
   }
 
+  // ========== Null Response Handling Tests (MCP-N35) ==========
+
+  @Test
+  void testGetRouteCoverage_should_returnErrorResponse_when_sdkReturnsNull() throws Exception {
+    // Arrange - SDK returns null (API error or permission issue)
+    when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull()))
+        .thenReturn(null);
+
+    // Act
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, null);
+
+    // Assert - Should return error response, not throw NPE
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.getRoutes()).isNull(); // Error response has no routes set
+
+    // Verify route details was never called
+    verify(mockSDKExtension, never()).getRouteDetails(anyString(), anyString(), anyString());
+  }
+
+  @Test
+  void testGetRouteCoverage_should_returnEmptyRoutes_when_routesListIsNull() throws Exception {
+    // Arrange - SDK returns response with null routes list
+    var mockResponse = new RouteCoverageResponse();
+    mockResponse.setSuccess(true);
+    mockResponse.setRoutes(null); // Explicitly null routes
+
+    when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), isNull()))
+        .thenReturn(mockResponse);
+
+    // Act
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, null);
+
+    // Assert - Should return success with empty routes, not throw NPE
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.getRoutes()).isNotNull().isEmpty();
+
+    // Verify route details was never called (no routes to iterate)
+    verify(mockSDKExtension, never()).getRouteDetails(anyString(), anyString(), anyString());
+  }
+
+  @Test
+  void testGetRouteCoverage_should_returnErrorResponse_when_sessionMetadataFilterReturnsNull()
+      throws Exception {
+    // Arrange - SDK returns null when using session metadata filter
+    when(mockSDKExtension.getRouteCoverage(
+            eq(TEST_ORG_ID),
+            eq(TEST_APP_ID),
+            any(RouteCoverageBySessionIDAndMetadataRequestExtended.class)))
+        .thenReturn(null);
+
+    // Act
+    var result =
+        routeCoverageService.getRouteCoverage(
+            TEST_APP_ID, TEST_METADATA_NAME, TEST_METADATA_VALUE, null);
+
+    // Assert - Should return error response, not throw NPE
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isFalse();
+
+    // Verify route details was never called
+    verify(mockSDKExtension, never()).getRouteDetails(anyString(), anyString(), anyString());
+  }
+
+  @Test
+  void testGetRouteCoverage_should_returnErrorResponse_when_latestSessionFilterReturnsNull()
+      throws Exception {
+    // Arrange - Latest session metadata found, but route coverage returns null
+    var sessionResponse = createMockSessionMetadataResponse();
+    when(mockSDKExtension.getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+        .thenReturn(sessionResponse);
+
+    when(mockSDKExtension.getRouteCoverage(
+            eq(TEST_ORG_ID),
+            eq(TEST_APP_ID),
+            any(RouteCoverageBySessionIDAndMetadataRequestExtended.class)))
+        .thenReturn(null);
+
+    // Act
+    var result = routeCoverageService.getRouteCoverage(TEST_APP_ID, null, null, true);
+
+    // Assert - Should return error response, not throw NPE
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isFalse();
+
+    // Verify route details was never called
+    verify(mockSDKExtension, never()).getRouteDetails(anyString(), anyString(), anyString());
+  }
+
   // ========== Error Handling Tests ==========
 
   @Test
@@ -739,5 +829,50 @@ class RouteCoverageServiceTest {
     assertThat(result.getRoutes()).hasSize(1);
     assertThat(result.getRoutes().get(0).getSignature()).isNull();
     assertThat(result.getRoutes().get(0).getRouteDetailsResponse()).isNotNull();
+  }
+
+  // ========== Mutual Exclusivity Tests (MCP-A0S) ==========
+
+  @Test
+  void
+      testGetRouteCoverage_BothUseLatestSessionAndSessionMetadataName_UseLatestSessionTakesPrecedence()
+          throws Exception {
+    // Arrange - Both useLatestSession=true AND sessionMetadataName provided
+    // useLatestSession should take precedence, sessionMetadataName should be ignored (with warning)
+    var sessionResponse = createMockSessionMetadataResponse();
+    when(mockSDKExtension.getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+        .thenReturn(sessionResponse);
+
+    var mockResponse = createMockRouteCoverageResponse(2);
+    when(mockSDKExtension.getRouteCoverage(
+            eq(TEST_ORG_ID),
+            eq(TEST_APP_ID),
+            any(RouteCoverageBySessionIDAndMetadataRequestExtended.class)))
+        .thenReturn(mockResponse);
+
+    when(mockSDKExtension.getRouteDetails(eq(TEST_ORG_ID), eq(TEST_APP_ID), anyString()))
+        .thenReturn(createMockRouteDetailsResponse());
+
+    // Act - Pass BOTH useLatestSession=true AND sessionMetadataName/Value
+    var result =
+        routeCoverageService.getRouteCoverage(
+            TEST_APP_ID, TEST_METADATA_NAME, TEST_METADATA_VALUE, true);
+
+    // Assert - Should succeed using useLatestSession
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.getRoutes()).hasSize(2);
+
+    // Verify latest session was fetched (useLatestSession took precedence)
+    verify(mockSDKExtension).getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID));
+
+    // Verify request uses session ID, NOT metadata filter
+    var captor = ArgumentCaptor.forClass(RouteCoverageBySessionIDAndMetadataRequestExtended.class);
+    verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(TEST_APP_ID), captor.capture());
+
+    var request = captor.getValue();
+    assertThat(request).isNotNull();
+    // Session ID should be set, metadata values should be empty (proving useLatestSession path)
+    assertThat(request.getValues()).isEmpty();
   }
 }
