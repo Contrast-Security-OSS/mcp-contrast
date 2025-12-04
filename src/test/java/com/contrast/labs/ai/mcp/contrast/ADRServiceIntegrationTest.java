@@ -23,6 +23,7 @@ import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper.ApplicationWithProtectRules;
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -205,7 +206,7 @@ public class ADRServiceIntegrationTest
     // Print rule details
     log.info("  Rules configured:");
     for (var rule : response.getRules()) {
-      String mode = rule.getProduction() != null ? rule.getProduction() : "not set";
+      String mode = Optional.ofNullable(rule.getProduction()).orElse("not set");
       log.info("    - {} (production mode: {})", rule.getName(), mode);
     }
 
@@ -234,7 +235,8 @@ public class ADRServiceIntegrationTest
         log.info("  Response: null (no Protect data for invalid app)");
       } else {
         log.info(
-            "  Response: {} rules", (response.getRules() != null ? response.getRules().size() : 0));
+            "  Response: {} rules",
+            Optional.ofNullable(response.getRules()).map(List::size).orElse(0));
       }
 
     } catch (Exception e) {

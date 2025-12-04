@@ -24,6 +24,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.Attack;
 import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -95,7 +96,7 @@ public class ADRService {
         return null;
       }
 
-      int ruleCount = protectData.getRules() != null ? protectData.getRules().size() : 0;
+      int ruleCount = Optional.ofNullable(protectData.getRules()).map(List::size).orElse(0);
       log.info(
           "Successfully retrieved {} protection rules for application ID: {} (took {} ms)",
           ruleCount,

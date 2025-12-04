@@ -25,6 +25,7 @@ import com.contrastsecurity.http.LibraryFilterForm;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.beans.factory.annotation.Value;
@@ -92,7 +93,7 @@ public class SCAService {
       log.info(
           "Successfully retrieved data for CVE: {}, found {} vulnerable applications",
           cveid,
-          result != null && result.getApps() != null ? result.getApps().size() : 0);
+          Optional.ofNullable(result).map(CveData::getApps).map(List::size).orElse(0));
       log.info(result.toString());
       var vulnerableLibs = result.getLibraries();
       if (vulnerableLibs == null) {

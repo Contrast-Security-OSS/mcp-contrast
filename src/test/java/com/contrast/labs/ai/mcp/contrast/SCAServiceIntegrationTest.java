@@ -24,6 +24,7 @@ import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -379,7 +380,8 @@ public class SCAServiceIntegrationTest
 
       // If we get here, API handled it gracefully
       log.info("✓ API handled invalid app ID gracefully");
-      log.info("  Libraries returned: {}", (libraries != null ? libraries.size() : "null"));
+      log.info(
+          "  Libraries returned: {}", Optional.ofNullable(libraries).map(List::size).orElse(null));
 
     } catch (Exception e) {
       caughtException = true;
