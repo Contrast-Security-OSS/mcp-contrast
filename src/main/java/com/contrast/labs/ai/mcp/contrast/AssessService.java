@@ -31,6 +31,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Applicati
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;
 import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
 import com.contrastsecurity.http.TraceFilterForm;
+import com.contrastsecurity.models.EventResource;
 import com.contrastsecurity.models.MetadataFilterResponse;
 import com.contrastsecurity.models.MetadataItem;
 import com.contrastsecurity.models.Rules;
@@ -109,6 +110,13 @@ public class AssessService {
               TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
               TraceFilterForm.TraceExpandValue.SESSION_METADATA);
       var trace = contrastSDK.getTrace(orgID, appID, vulnID, expand);
+      if (trace == null) {
+        throw new IOException(
+            String.format(
+                "Vulnerability API returned null for vulnID %s in app %s. Please check API"
+                    + " connectivity, permissions, and that the vulnerability exists.",
+                vulnID, appID));
+      }
       log.debug("Found trace with title: {} and rule: {}", trace.getTitle(), trace.getRule());
 
       var recommendationResponse = contrastSDK.getRecommendation(orgID, vulnID);
@@ -116,9 +124,11 @@ public class AssessService {
       var eventSummaryResponse = contrastSDK.getEventSummary(orgID, vulnID);
 
       var triggerEvent =
-          eventSummaryResponse.getEvents().stream()
-              .filter(e -> e.getType().equalsIgnoreCase("trigger"))
-              .findFirst();
+          (eventSummaryResponse != null && eventSummaryResponse.getEvents() != null)
+              ? eventSummaryResponse.getEvents().stream()
+                  .filter(e -> e.getType().equalsIgnoreCase("trigger"))
+                  .findFirst()
+              : Optional.<EventResource>empty();
 
       var stackTraces = new ArrayList<String>();
       if (triggerEvent.isPresent()) {
@@ -656,7 +666,7 @@ public class AssessService {
     if (!StringUtils.hasText(appId)) {
       var errorMessage = "appId parameter is required";
       log.error("Validation error: {}", errorMessage);
-      return PaginatedResponse.error(1, 50, errorMessage);
+      return PaginatedResponse.error(1, PaginationParams.DEFAULT_PAGE_SIZE, errorMessage);
     }
 
     // Validate incomplete parameters: sessionMetadataValue without sessionMetadataName
@@ -664,7 +674,7 @@ public class AssessService {
       var errorMessage =
           "sessionMetadataValue requires sessionMetadataName. Both must be provided together.";
       log.error("Validation error: {}", errorMessage);
-      return PaginatedResponse.error(1, 50, errorMessage);
+      return PaginatedResponse.error(1, PaginationParams.DEFAULT_PAGE_SIZE, errorMessage);
     }
 
     // Parse and validate inputs
