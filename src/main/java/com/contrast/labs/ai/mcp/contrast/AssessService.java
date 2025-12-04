@@ -167,13 +167,18 @@ public class AssessService {
       }
 
       String httpRequestText = null;
-      if (requestResponse.getHttpRequest() != null) {
+      if (requestResponse != null && requestResponse.getHttpRequest() != null) {
         httpRequestText = requestResponse.getHttpRequest().getText();
+      }
+
+      String recommendationText = null;
+      if (recommendationResponse != null && recommendationResponse.getRecommendation() != null) {
+        recommendationText = recommendationResponse.getRecommendation().getText();
       }
 
       var context =
           VulnerabilityContext.builder()
-              .recommendation(recommendationResponse.getRecommendation().getText())
+              .recommendation(recommendationText)
               .stackLibs(stackLibs)
               .libraries(new ArrayList<>(libsToReturn)) // Convert Set to List
               .httpRequest(httpRequestText)

@@ -2652,4 +2652,111 @@ class AssessServiceTest {
     verify(mockContrastSDK, never())
         .getTraces(eq(TEST_ORG_ID), eq(appId), any(TraceFilterBody.class));
   }
+
+  // ========== getVulnerabilityById null check tests (mcp-p5w fix) ==========
+
+  @Test
+  void getVulnerabilityById_should_throw_IOException_when_trace_is_null() throws Exception {
+    // Given - getTrace returns null (can happen with API errors/permission issues)
+    var vulnId = "test-vuln-uuid-null";
+    var appId = "test-app-null";
+
+    when(mockContrastSDK.getTrace(eq(TEST_ORG_ID), eq(appId), eq(vulnId), any())).thenReturn(null);
+
+    // When/Then - Should throw IOException with descriptive message
+    assertThatThrownBy(() -> assessService.getVulnerabilityById(vulnId, appId))
+        .isInstanceOf(IOException.class)
+        .hasMessageContaining("Vulnerability API returned null")
+        .hasMessageContaining(vulnId)
+        .hasMessageContaining(appId)
+        .hasMessageContaining("connectivity")
+        .hasMessageContaining("permissions");
+  }
+
+  @Test
+  void getVulnerabilityById_should_handle_null_eventSummaryResponse() throws Exception {
+    // Given - eventSummaryResponse is null
+    var vulnId = "test-vuln-uuid-123";
+    var appId = "test-app-456";
+
+    // Mock trace to be non-null
+    var mockTrace = mock(Trace.class);
+    when(mockTrace.getUuid()).thenReturn(vulnId);
+    when(mockTrace.getTitle()).thenReturn("Test Vulnerability");
+    when(mockTrace.getRule()).thenReturn("sql-injection");
+    when(mockContrastSDK.getTrace(eq(TEST_ORG_ID), eq(appId), eq(vulnId), any()))
+        .thenReturn(mockTrace);
+
+    // Mock recommendation (nullable)
+    var mockRecommendation = mock(com.contrastsecurity.models.RecommendationResponse.class);
+    var recommendation = mock(com.contrastsecurity.models.Recommendation.class);
+    when(recommendation.getText()).thenReturn("Test recommendation");
+    when(mockRecommendation.getRecommendation()).thenReturn(recommendation);
+    when(mockContrastSDK.getRecommendation(eq(TEST_ORG_ID), eq(vulnId)))
+        .thenReturn(mockRecommendation);
+
+    // Mock http request (nullable)
+    when(mockContrastSDK.getHttpRequest(eq(TEST_ORG_ID), eq(vulnId))).thenReturn(null);
+
+    // Event summary is null - this should not cause NPE
+    when(mockContrastSDK.getEventSummary(eq(TEST_ORG_ID), eq(vulnId))).thenReturn(null);
+
+    // Mock SDKHelper static methods
+    mockedSDKHelper
+        .when(() -> SDKHelper.getLibsForID(eq(appId), eq(TEST_ORG_ID), any()))
+        .thenReturn(List.of());
+
+    // When - Should not throw NPE
+    try {
+      assessService.getVulnerabilityById(vulnId, appId);
+    } catch (Exception e) {
+      // May throw due to incomplete mapper mocking, but NOT NullPointerException
+      assertThat(e).isNotInstanceOf(NullPointerException.class);
+    }
+
+    // Verify getTrace was called successfully
+    verify(mockContrastSDK).getTrace(eq(TEST_ORG_ID), eq(appId), eq(vulnId), any());
+  }
+
+  @Test
+  void getVulnerabilityById_should_handle_null_recommendation() throws Exception {
+    // Given - recommendationResponse is null
+    var vulnId = "test-vuln-uuid-123";
+    var appId = "test-app-456";
+
+    // Mock trace to be non-null
+    var mockTrace = mock(Trace.class);
+    when(mockTrace.getUuid()).thenReturn(vulnId);
+    when(mockTrace.getTitle()).thenReturn("Test Vulnerability");
+    when(mockTrace.getRule()).thenReturn("sql-injection");
+    when(mockContrastSDK.getTrace(eq(TEST_ORG_ID), eq(appId), eq(vulnId), any()))
+        .thenReturn(mockTrace);
+
+    // Recommendation is null - this should not cause NPE
+    when(mockContrastSDK.getRecommendation(eq(TEST_ORG_ID), eq(vulnId))).thenReturn(null);
+
+    // Mock http request (nullable)
+    when(mockContrastSDK.getHttpRequest(eq(TEST_ORG_ID), eq(vulnId))).thenReturn(null);
+
+    // Mock event summary with empty events
+    var mockEventSummary = mock(com.contrastsecurity.models.EventSummaryResponse.class);
+    when(mockEventSummary.getEvents()).thenReturn(List.of());
+    when(mockContrastSDK.getEventSummary(eq(TEST_ORG_ID), eq(vulnId))).thenReturn(mockEventSummary);
+
+    // Mock SDKHelper static methods
+    mockedSDKHelper
+        .when(() -> SDKHelper.getLibsForID(eq(appId), eq(TEST_ORG_ID), any()))
+        .thenReturn(List.of());
+
+    // When - Should not throw NPE
+    try {
+      assessService.getVulnerabilityById(vulnId, appId);
+    } catch (Exception e) {
+      // May throw due to incomplete mapper mocking, but NOT NullPointerException
+      assertThat(e).isNotInstanceOf(NullPointerException.class);
+    }
+
+    // Verify getTrace was called successfully
+    verify(mockContrastSDK).getTrace(eq(TEST_ORG_ID), eq(appId), eq(vulnId), any());
+  }
 }
