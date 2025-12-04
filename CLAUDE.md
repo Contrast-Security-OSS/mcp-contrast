@@ -127,6 +127,7 @@ When creating or modifying MCP tools:
 **Null Handling:**
 - `Optional<T>` for methods that may not return value
 - Never return null collections - use `Collections.emptyList()` or empty collection
+- `Optional.ofNullable(x).orElse(default)` over ternary `x != null ? x : default`
 
 **Testing:**
 - Simplified `mock()`: `ClassName mock = mock()` not `mock(ClassName.class)`

@@ -36,8 +36,9 @@ import com.contrastsecurity.models.MetadataItem;
 import com.contrastsecurity.models.Rules;
 import com.contrastsecurity.models.SessionMetadata;
 import com.contrastsecurity.models.Stacktrace;
-import com.contrastsecurity.models.TraceFilterBody;
+import com.contrastsecurity.models.Trace;
 import com.contrastsecurity.models.Traces;
+import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -101,11 +102,13 @@ public class AssessService {
     log.debug("ContrastSDK initialized with host: {}", hostName);
 
     try {
-      var trace =
-          contrastSDK.getTraces(orgID, appID, new TraceFilterBody()).getTraces().stream()
-              .filter(t -> t.getUuid().equalsIgnoreCase(vulnID))
-              .findFirst()
-              .orElseThrow();
+      // Use expand to include application, environments, and session metadata
+      var expand =
+          EnumSet.of(
+              TraceFilterForm.TraceExpandValue.APPLICATION,
+              TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
+              TraceFilterForm.TraceExpandValue.SESSION_METADATA);
+      var trace = contrastSDK.getTrace(orgID, appID, vulnID, expand);
       log.debug("Found trace with title: {} and rule: {}", trace.getTitle(), trace.getRule());
 
       var recommendationResponse = contrastSDK.getRecommendation(orgID, vulnID);
@@ -711,42 +714,48 @@ public class AssessService {
       }
 
       // Make API call - always use app-specific endpoint
-      // Note: When using session filtering, we get all results (no SDK pagination)
-      // because we need to filter in-memory before paginating
-      Traces traces;
+      // Note: When using session filtering, we fetch ALL pages because we need
+      // the complete dataset before filtering in-memory
+      Traces traces = null;
+      List<VulnLight> vulnerabilities;
+
+      // Always set expand values for session metadata
+      filterForm.setExpand(
+          EnumSet.of(
+              TraceFilterForm.TraceExpandValue.SESSION_METADATA,
+              TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
+              TraceFilterForm.TraceExpandValue.APPLICATION));
+
       if (needsInMemorySessionFiltering) {
-        // Get all results for in-memory filtering (no SDK pagination, no limit/offset)
-        filterForm.setExpand(
-            EnumSet.of(
-                TraceFilterForm.TraceExpandValue.SESSION_METADATA,
-                TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
-                TraceFilterForm.TraceExpandValue.APPLICATION));
-        traces = contrastSDK.getTraces(orgID, appId, filterForm);
+        // Fetch ALL pages for in-memory filtering (iterates through SDK pagination)
+        var allTraces = fetchAllTracesForSessionFiltering(contrastSDK, orgID, appId, filterForm);
+
+        if (allTraces.isEmpty()) {
+          log.debug("No traces found for app {} (all pages fetched)", appId);
+        }
+
+        // Convert to VulnLight directly from the list
+        vulnerabilities = allTraces.stream().map(vulnerabilityMapper::toVulnLight).toList();
       } else {
         // Use SDK pagination when no in-memory filtering needed
         filterForm.setLimit(pagination.limit());
         filterForm.setOffset(pagination.offset());
-        filterForm.setExpand(
-            EnumSet.of(
-                TraceFilterForm.TraceExpandValue.SESSION_METADATA,
-                TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
-                TraceFilterForm.TraceExpandValue.APPLICATION));
         traces = contrastSDK.getTraces(orgID, appId, filterForm);
-      }
 
-      if (traces == null || traces.getTraces() == null) {
-        var errorMsg =
-            String.format(
-                "App-level vulnerability API returned null for app %s. Please check API"
-                    + " connectivity and permissions.",
-                appId);
-        log.error(errorMsg);
-        return PaginatedResponse.error(pagination.page(), pagination.pageSize(), errorMsg);
-      }
+        if (traces == null || traces.getTraces() == null) {
+          var errorMsg =
+              String.format(
+                  "App-level vulnerability API returned null for app %s. Please check API"
+                      + " connectivity and permissions.",
+                  appId);
+          log.error(errorMsg);
+          return PaginatedResponse.error(pagination.page(), pagination.pageSize(), errorMsg);
+        }
 
-      // Convert to VulnLight
-      var vulnerabilities =
-          traces.getTraces().stream().map(vulnerabilityMapper::toVulnLight).toList();
+        // Convert to VulnLight
+        vulnerabilities =
+            traces.getTraces().stream().map(vulnerabilityMapper::toVulnLight).toList();
+      }
 
       // Apply in-memory agent session ID filtering if requested
       if (agentSessionId != null) {
@@ -802,7 +811,9 @@ public class AssessService {
       }
 
       // Apply pagination to in-memory filtered results
-      if (agentSessionId != null || StringUtils.hasText(sessionMetadataName)) {
+      // Use needsInMemorySessionFiltering to determine if we fetched all pages
+      // This handles the case where useLatestSession=true but no sessions were found
+      if (needsInMemorySessionFiltering) {
         var startIndex = pagination.offset();
         var endIndex = Math.min(startIndex + pagination.pageSize(), finalVulns.size());
         var pagedVulns =
@@ -860,6 +871,59 @@ public class AssessService {
         .map(m -> new Metadata(m.getName(), m.getValue()))
         .forEach(metadata::add);
     return metadata;
+  }
+
+  /**
+   * Fetches all traces from the SDK by iterating through all pages. This is needed when in-memory
+   * session filtering is required, because we must have the complete dataset before filtering.
+   *
+   * @param sdk The ContrastSDK instance
+   * @param orgId The organization ID
+   * @param appId The application ID
+   * @param filterForm The filter form (will be modified to set limit/offset for pagination)
+   * @return List of all traces across all pages
+   * @throws IOException If an API error occurs
+   */
+  private List<Trace> fetchAllTracesForSessionFiltering(
+      ContrastSDK sdk, String orgId, String appId, TraceFilterForm filterForm) throws IOException {
+    final int PAGE_SIZE = 500;
+    var allTraces = new ArrayList<Trace>();
+    int offset = 0;
+
+    while (true) {
+      filterForm.setLimit(PAGE_SIZE);
+      filterForm.setOffset(offset);
+
+      Traces pageResult;
+      try {
+        pageResult = sdk.getTraces(orgId, appId, filterForm);
+      } catch (Exception e) {
+        throw new IOException("Failed to fetch traces page at offset " + offset, e);
+      }
+
+      if (pageResult == null
+          || pageResult.getTraces() == null
+          || pageResult.getTraces().isEmpty()) {
+        break;
+      }
+
+      allTraces.addAll(pageResult.getTraces());
+      log.debug(
+          "Fetched {} traces at offset {} (total so far: {})",
+          pageResult.getTraces().size(),
+          offset,
+          allTraces.size());
+
+      // If we got fewer than PAGE_SIZE, we've reached the last page
+      if (pageResult.getTraces().size() < PAGE_SIZE) {
+        break;
+      }
+
+      offset += PAGE_SIZE;
+    }
+
+    log.debug("Fetched total of {} traces for session filtering", allTraces.size());
+    return allTraces;
   }
 
   @Tool(
