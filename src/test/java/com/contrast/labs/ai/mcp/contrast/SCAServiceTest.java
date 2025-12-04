@@ -320,7 +320,8 @@ class SCAServiceTest {
 
   @Test
   void testListCVESForApplication_NullLibrariesList_WithAppLibraries() throws IOException {
-    // Given - CVE data with null libraries list AND app has libraries (triggers NPE bug)
+    // Given - CVE data with null libraries list AND app has libraries
+    // Fix: null lists are now handled gracefully as empty lists
     var cveData = new CveData();
     var app = mock(com.contrast.labs.ai.mcp.contrast.sdkextension.data.App.class);
     when(app.getApp_id()).thenReturn(TEST_APP_ID);
@@ -329,7 +330,7 @@ class SCAServiceTest {
     var apps = new ArrayList<com.contrast.labs.ai.mcp.contrast.sdkextension.data.App>();
     apps.add(app);
     cveData.setApps(apps);
-    cveData.setLibraries(null); // NULL libraries list
+    cveData.setLibraries(null); // NULL libraries list - handled gracefully
 
     if (mockedSDKExtension != null) {
       mockedSDKExtension.close();
@@ -341,28 +342,27 @@ class SCAServiceTest {
               when(mock.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(cveData);
             });
 
-    // Mock getLibsForID to return libraries (triggers inner loop that NPEs on null vulnerable libs)
+    // Mock getLibsForID to return libraries
     var mockLibraries = createMockLibraries(1);
     mockedSDKHelper
         .when(() -> SDKHelper.getLibsForID(anyString(), eq(TEST_ORG_ID), any(SDKExtension.class)))
         .thenReturn(mockLibraries);
 
-    // When/Then - NPE is wrapped in IOException due to catch block
-    assertThatThrownBy(
-            () -> {
-              scaService.listCVESForApplication(TEST_CVE_ID);
-            })
-        .as("Should throw IOException wrapping NPE when libraries list is null")
-        .isInstanceOf(IOException.class)
-        .hasMessageContaining("Failed to retrieve CVE data")
-        .hasCauseInstanceOf(NullPointerException.class);
+    // When - no exception thrown, returns result with apps but null libs treated as empty
+    var result = scaService.listCVESForApplication(TEST_CVE_ID);
+
+    // Then - result contains apps, null libraries handled gracefully
+    assertThat(result).isNotNull();
+    assertThat(result.getApps()).hasSize(1);
+    assertThat(result.getLibraries()).isNull(); // Original null is preserved in result
   }
 
   @Test
   void testListCVESForApplication_NullAppsList() throws IOException {
-    // Given - CVE data with null apps list (NPE bug)
+    // Given - CVE data with null apps list
+    // Fix: null lists are now handled gracefully as empty lists
     var cveData = new CveData();
-    cveData.setApps(null); // NULL apps list
+    cveData.setApps(null); // NULL apps list - handled gracefully
     cveData.setLibraries(new ArrayList<>());
 
     if (mockedSDKExtension != null) {
@@ -375,15 +375,13 @@ class SCAServiceTest {
               when(mock.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(cveData);
             });
 
-    // When/Then - NPE is wrapped in IOException due to catch block
-    assertThatThrownBy(
-            () -> {
-              scaService.listCVESForApplication(TEST_CVE_ID);
-            })
-        .as("Should throw IOException wrapping NPE when apps list is null")
-        .isInstanceOf(IOException.class)
-        .hasMessageContaining("Failed to retrieve CVE data")
-        .hasCauseInstanceOf(NullPointerException.class);
+    // When - no exception thrown, returns result with null apps treated as empty
+    var result = scaService.listCVESForApplication(TEST_CVE_ID);
+
+    // Then - result returned, null apps handled gracefully (no NPE)
+    assertThat(result).isNotNull();
+    assertThat(result.getApps()).isNull(); // Original null is preserved in result
+    assertThat(result.getLibraries()).isEmpty();
   }
 
   @Test

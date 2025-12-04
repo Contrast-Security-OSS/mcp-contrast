@@ -23,6 +23,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrastsecurity.http.LibraryFilterForm;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -94,7 +95,14 @@ public class SCAService {
           result != null && result.getApps() != null ? result.getApps().size() : 0);
       log.info(result.toString());
       var vulnerableLibs = result.getLibraries();
-      for (App app : result.getApps()) {
+      if (vulnerableLibs == null) {
+        vulnerableLibs = Collections.emptyList();
+      }
+      var apps = result.getApps();
+      if (apps == null) {
+        apps = Collections.emptyList();
+      }
+      for (App app : apps) {
         var libData = SDKHelper.getLibsForID(app.getApp_id(), orgID, extendedSDK);
         for (LibraryExtended lib : libData) {
           for (Library vulnLib : vulnerableLibs) {
