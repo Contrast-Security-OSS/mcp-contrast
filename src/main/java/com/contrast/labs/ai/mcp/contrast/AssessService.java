@@ -461,7 +461,7 @@ public class AssessService {
               required = false)
           String vulnTags)
       throws IOException {
-    log.info(
+    log.debug(
         "Searching org vulnerabilities - page: {}, pageSize: {}, filters: severities={},"
             + " statuses={}, vulnTypes={}, environments={}, lastSeenAfter={}, lastSeenBefore={},"
             + " vulnTags={}",
