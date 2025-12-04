@@ -129,6 +129,20 @@ history/
 - ✅ Preserves planning history for archeological research
 - ✅ Reduces noise when browsing the project
 
+### Multi-Agent Collaboration
+
+Multiple AI agents may work in the same repository simultaneously. Follow these rules:
+
+- ⚠️ **NEVER revert unexpected changes without asking the user first**
+  - Other agents may have made those changes intentionally
+  - Ask: "I found unexpected changes in X. Should I keep or revert them?"
+- ⚠️ **NEVER assume uncommitted changes are errors or accidents**
+  - Another agent may be mid-task on a different branch
+  - Check `git status` and ask before discarding work
+- ✅ If you encounter merge conflicts, pause and ask for guidance
+- ✅ Use bd to check if other work is `in_progress` before touching shared files
+- ✅ Commit your work frequently to reduce conflict windows
+
 ### Important Rules
 
 - ✅ Use bd for ALL task tracking
@@ -140,5 +154,6 @@ history/
 - ❌ Do NOT use external issue trackers
 - ❌ Do NOT duplicate tracking systems
 - ❌ Do NOT clutter repo root with planning documents
+- ❌ Do NOT revert unexpected changes without asking
 
 For more details, see README.md and QUICKSTART.md.
