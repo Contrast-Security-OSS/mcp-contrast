@@ -576,8 +576,12 @@ public class AssessService {
           - Session metadata filtering: sessionMetadataName, sessionMetadataValue
           - Latest session filtering: useLatestSession=true
 
-          Note: If useLatestSession=true and no sessions exist, returns all vulnerabilities
-          for the application with a warning message.
+          Notes:
+          - If useLatestSession=true and no sessions exist, returns all vulnerabilities
+            for the application with a warning message.
+          - If an API error occurs during multi-page fetching (for session filtering),
+            partial results are returned with a warning instead of failing completely.
+            Check the warnings field in the response for data completeness.
 
           Common usage examples:
           - All vulns in app: appId="abc123"
