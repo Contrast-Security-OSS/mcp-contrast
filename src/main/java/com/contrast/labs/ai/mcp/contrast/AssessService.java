@@ -46,6 +46,7 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -748,14 +749,33 @@ public class AssessService {
               TraceFilterForm.TraceExpandValue.APPLICATION));
 
       if (needsInMemorySessionFiltering) {
-        // Fetch ALL pages for in-memory filtering (iterates through SDK pagination)
-        var fetchResult = fetchAllTracesForSessionFiltering(contrastSDK, orgID, appId, filterForm);
+        // Build filter predicate for early termination optimization
+        var filterPredicate =
+            buildSessionFilterPredicate(agentSessionId, sessionMetadataName, sessionMetadataValue);
+
+        // Determine if we have a selective filter (one that will actually filter results)
+        // Early termination only makes sense when filtering will reduce results significantly
+        boolean hasSelectiveFilter =
+            agentSessionId != null || StringUtils.hasText(sessionMetadataName);
+
+        // Calculate target count for early termination
+        // When we have a selective filter, we only need enough results for the requested page
+        // When no selective filter, fetch all traces for accurate totalItems count
+        int targetCount =
+            hasSelectiveFilter
+                ? pagination.offset() + pagination.pageSize()
+                : maxTracesForSessionFiltering;
+
+        // Fetch with early termination when enough filtered results are found
+        var fetchResult =
+            fetchTracesWithEarlyTermination(
+                contrastSDK, orgID, appId, filterForm, filterPredicate, targetCount);
 
         if (fetchResult.wasTruncated()) {
           allWarnings.add(
               String.format(
-                  "IMPORTANT: Results were truncated at %d vulnerabilities due to memory limits. "
-                      + "This application has more vulnerabilities than returned. "
+                  "IMPORTANT: Results were truncated due to limits (max %d traces or 100 pages). "
+                      + "This application may have more matching vulnerabilities than returned. "
                       + "To get complete results, narrow your search using filters: "
                       + "severity (e.g., 'CRITICAL,HIGH'), status (e.g., 'Confirmed'), "
                       + "or environment (e.g., 'PRODUCTION'). "
@@ -767,16 +787,16 @@ public class AssessService {
           allWarnings.add(
               String.format(
                   "WARNING: Partial data returned due to API error during multi-page fetch. "
-                      + "Retrieved %d vulnerabilities before error occurred. "
+                      + "Retrieved %d matching vulnerabilities before error occurred. "
                       + "Additional vulnerabilities may exist. Details: %s",
                   fetchResult.traces().size(), fetchResult.errorMessage()));
         }
 
         if (fetchResult.traces().isEmpty()) {
-          log.debug("No traces found for app {} (all pages fetched)", appId);
+          log.debug("No matching traces found for app {} with session filtering", appId);
         }
 
-        // Convert to VulnLight directly from the list
+        // Convert to VulnLight - filtering already done during fetch
         vulnerabilities =
             fetchResult.traces().stream().map(vulnerabilityMapper::toVulnLight).toList();
       } else {
@@ -800,58 +820,10 @@ public class AssessService {
             traces.getTraces().stream().map(vulnerabilityMapper::toVulnLight).toList();
       }
 
-      // Apply in-memory agent session ID filtering if requested
-      if (agentSessionId != null) {
-        final String sessionIdToMatch = agentSessionId;
-        vulnerabilities =
-            vulnerabilities.stream()
-                .filter(
-                    vuln ->
-                        vuln.sessionMetadata() != null
-                            && vuln.sessionMetadata().stream()
-                                .anyMatch(sm -> sessionIdToMatch.equals(sm.getSessionId())))
-                .toList();
-        log.debug(
-            "Filtered to {} vulnerabilities for agent session ID: {}",
-            vulnerabilities.size(),
-            agentSessionId);
-      }
-
-      // Apply in-memory session metadata filtering if requested
+      // Note: When needsInMemorySessionFiltering=true, filtering is done during fetch via
+      // fetchTracesWithEarlyTermination, so we don't need to apply filters again here.
+      // The finalVulns variable is used for pagination below.
       List<VulnLight> finalVulns = vulnerabilities;
-      if (StringUtils.hasText(sessionMetadataName)) {
-        var filteredVulns = new ArrayList<VulnLight>();
-        for (VulnLight vuln : vulnerabilities) {
-          if (vuln.sessionMetadata() != null) {
-            sessionLoop:
-            for (SessionMetadata sm : vuln.sessionMetadata()) {
-              for (MetadataItem metadataItem : sm.getMetadata()) {
-                // Match on display label (required)
-                var nameMatches =
-                    metadataItem.getDisplayLabel().equalsIgnoreCase(sessionMetadataName);
-
-                // If sessionMetadataValue is null, treat as wildcard (match name only)
-                // Otherwise, both name and value must match
-                var valueMatches =
-                    sessionMetadataValue == null
-                        || (metadataItem.getValue() != null
-                            && metadataItem.getValue().equalsIgnoreCase(sessionMetadataValue));
-
-                if (nameMatches && valueMatches) {
-                  filteredVulns.add(vuln);
-                  log.debug(
-                      "Found matching vulnerability with ID: {} for session metadata {}={}",
-                      vuln.vulnID(),
-                      sessionMetadataName,
-                      sessionMetadataValue);
-                  break sessionLoop;
-                }
-              }
-            }
-          }
-        }
-        finalVulns = filteredVulns;
-      }
 
       // Apply pagination to in-memory filtered results
       // Use needsInMemorySessionFiltering to determine if we fetched all pages
@@ -946,28 +918,48 @@ public class AssessService {
   }
 
   /**
-   * Fetches traces from the SDK by iterating through pages up to a maximum limit. This is needed
-   * when in-memory session filtering is required, because we must have the complete dataset before
-   * filtering.
+   * Fetches traces with early termination when enough filtered results are found. This optimizes
+   * performance by avoiding unnecessary API calls when only a subset of matching traces are needed.
    *
-   * <p>The method is bounded to prevent memory exhaustion for applications with very large
-   * vulnerability counts. When the limit is reached, the result indicates truncation occurred.
+   * <p>The method applies the filter predicate during fetching and stops as soon as the target
+   * count of matching traces is reached. This reduces API calls from O(total/pageSize) to
+   * O(targetCount/matchRate/pageSize) where matchRate is the percentage of traces matching the
+   * filter.
+   *
+   * <p>Safety limits are enforced: MAX_PAGES (100) prevents runaway pagination, and
+   * maxTracesForSessionFiltering prevents memory exhaustion if the filter matches everything.
    *
    * @param sdk The ContrastSDK instance
    * @param orgId The organization ID
    * @param appId The application ID
    * @param filterForm The filter form (will be modified to set limit/offset for pagination)
-   * @return SessionFilteringResult containing traces and truncation status
+   * @param filterPredicate Predicate to filter traces; only matching traces are collected
+   * @param targetCount Number of matching traces needed (typically offset + pageSize)
+   * @return SessionFilteringResult containing filtered traces and status information
    * @throws IOException If an API error occurs
    */
-  private SessionFilteringResult fetchAllTracesForSessionFiltering(
-      ContrastSDK sdk, String orgId, String appId, TraceFilterForm filterForm) throws IOException {
+  private SessionFilteringResult fetchTracesWithEarlyTermination(
+      ContrastSDK sdk,
+      String orgId,
+      String appId,
+      TraceFilterForm filterForm,
+      Predicate<Trace> filterPredicate,
+      int targetCount)
+      throws IOException {
     final int PAGE_SIZE = 500;
-    // Pre-size for typical case to reduce reallocations
-    var allTraces = new ArrayList<Trace>(Math.min(maxTracesForSessionFiltering, 5000));
+    final int MAX_PAGES = 100;
+    // Pre-size for expected result set
+    var matchingTraces = new ArrayList<Trace>(Math.min(targetCount, 1000));
     int offset = 0;
+    int pagesChecked = 0;
+    int totalTracesFetched = 0;
 
-    while (allTraces.size() < maxTracesForSessionFiltering) {
+    while (matchingTraces.size() < targetCount && pagesChecked < MAX_PAGES) {
+      // Also enforce memory limit on matching traces
+      if (matchingTraces.size() >= maxTracesForSessionFiltering) {
+        break;
+      }
+
       filterForm.setLimit(PAGE_SIZE);
       filterForm.setOffset(offset);
 
@@ -980,9 +972,9 @@ public class AssessService {
             String.format(
                 "API error during multi-page fetch at offset %d. Returning %d partial results."
                     + " Error: %s",
-                offset, allTraces.size(), e.getMessage());
+                offset, matchingTraces.size(), e.getMessage());
         log.warn(errorMsg, e);
-        return SessionFilteringResult.partial(allTraces, errorMsg);
+        return SessionFilteringResult.partial(matchingTraces, errorMsg);
       }
 
       if (pageResult == null
@@ -991,19 +983,35 @@ public class AssessService {
         break;
       }
 
-      // Add traces but respect the maximum limit
-      int remaining = maxTracesForSessionFiltering - allTraces.size();
-      var tracesToAdd = pageResult.getTraces();
-      if (tracesToAdd.size() > remaining) {
-        tracesToAdd = tracesToAdd.subList(0, remaining);
+      pagesChecked++;
+      totalTracesFetched += pageResult.getTraces().size();
+
+      // Apply filter and collect matching traces with early termination
+      for (Trace trace : pageResult.getTraces()) {
+        if (filterPredicate.test(trace)) {
+          matchingTraces.add(trace);
+          if (matchingTraces.size() >= targetCount) {
+            log.debug(
+                "Early termination: found {} matching traces after checking {} pages ({} total"
+                    + " traces)",
+                matchingTraces.size(),
+                pagesChecked,
+                totalTracesFetched);
+            return SessionFilteringResult.success(matchingTraces, false);
+          }
+          // Also check memory limit
+          if (matchingTraces.size() >= maxTracesForSessionFiltering) {
+            break;
+          }
+        }
       }
-      allTraces.addAll(tracesToAdd);
 
       log.debug(
-          "Fetched {} traces at offset {} (total so far: {})",
+          "Page {}: fetched {} traces, {} matching so far (target: {})",
+          pagesChecked,
           pageResult.getTraces().size(),
-          offset,
-          allTraces.size());
+          matchingTraces.size(),
+          targetCount);
 
       // If we got fewer than PAGE_SIZE, we've reached the last page
       if (pageResult.getTraces().size() < PAGE_SIZE) {
@@ -1013,17 +1021,110 @@ public class AssessService {
       offset += PAGE_SIZE;
     }
 
-    boolean wasTruncated = allTraces.size() >= maxTracesForSessionFiltering;
-    if (wasTruncated) {
+    // Check if we hit limits
+    boolean wasTruncated = false;
+    if (pagesChecked >= MAX_PAGES) {
+      log.atWarn()
+          .addKeyValue("appId", appId)
+          .addKeyValue("pagesChecked", pagesChecked)
+          .addKeyValue("matchingTraces", matchingTraces.size())
+          .setMessage(
+              "Reached MAX_PAGES limit during session filtering. Results may be incomplete.")
+          .log();
+      wasTruncated = true;
+    } else if (matchingTraces.size() >= maxTracesForSessionFiltering) {
       log.atWarn()
           .addKeyValue("appId", appId)
           .addKeyValue("maxTraces", maxTracesForSessionFiltering)
           .setMessage("Reached maximum trace limit for session filtering. Results are incomplete.")
           .log();
+      wasTruncated = true;
     }
 
-    log.debug("Fetched total of {} traces for session filtering", allTraces.size());
-    return SessionFilteringResult.success(allTraces, wasTruncated);
+    log.debug(
+        "Session filtering complete: {} matching traces from {} total fetched ({} pages)",
+        matchingTraces.size(),
+        totalTracesFetched,
+        pagesChecked);
+    return SessionFilteringResult.success(matchingTraces, wasTruncated);
+  }
+
+  /**
+   * Fetches all traces without filtering, up to the maximum limit. Used when no in-memory session
+   * filtering is possible (e.g., no filter predicate can be built).
+   *
+   * @param sdk The ContrastSDK instance
+   * @param orgId The organization ID
+   * @param appId The application ID
+   * @param filterForm The filter form (will be modified to set limit/offset for pagination)
+   * @return SessionFilteringResult containing traces and truncation status
+   * @throws IOException If an API error occurs
+   */
+  private SessionFilteringResult fetchAllTracesForSessionFiltering(
+      ContrastSDK sdk, String orgId, String appId, TraceFilterForm filterForm) throws IOException {
+    // Delegate to early termination method with an always-true predicate and max target
+    return fetchTracesWithEarlyTermination(
+        sdk, orgId, appId, filterForm, trace -> true, maxTracesForSessionFiltering);
+  }
+
+  /**
+   * Builds a predicate for filtering traces based on session criteria. The predicate combines agent
+   * session ID filtering and/or session metadata name/value filtering.
+   *
+   * @param agentSessionId If non-null, traces must have this agent session ID
+   * @param sessionMetadataName If non-null, traces must have metadata with this display label
+   * @param sessionMetadataValue If non-null (and sessionMetadataName is set), metadata must have
+   *     this value
+   * @return Predicate that returns true for traces matching ALL specified criteria
+   */
+  private Predicate<Trace> buildSessionFilterPredicate(
+      String agentSessionId, String sessionMetadataName, String sessionMetadataValue) {
+
+    Predicate<Trace> predicate = trace -> true;
+
+    // Add agent session ID filter if specified
+    if (agentSessionId != null) {
+      final String sessionIdToMatch = agentSessionId;
+      predicate =
+          predicate.and(
+              trace ->
+                  trace.getSessionMetadata() != null
+                      && trace.getSessionMetadata().stream()
+                          .anyMatch(sm -> sessionIdToMatch.equals(sm.getSessionId())));
+    }
+
+    // Add session metadata name/value filter if specified
+    if (StringUtils.hasText(sessionMetadataName)) {
+      final String nameToMatch = sessionMetadataName;
+      final String valueToMatch = sessionMetadataValue;
+      predicate =
+          predicate.and(
+              trace -> {
+                if (trace.getSessionMetadata() == null) {
+                  return false;
+                }
+                for (SessionMetadata sm : trace.getSessionMetadata()) {
+                  if (sm.getMetadata() == null) {
+                    continue;
+                  }
+                  for (MetadataItem item : sm.getMetadata()) {
+                    boolean nameMatches =
+                        item.getDisplayLabel() != null
+                            && item.getDisplayLabel().equalsIgnoreCase(nameToMatch);
+                    boolean valueMatches =
+                        valueToMatch == null
+                            || (item.getValue() != null
+                                && item.getValue().equalsIgnoreCase(valueToMatch));
+                    if (nameMatches && valueMatches) {
+                      return true;
+                    }
+                  }
+                }
+                return false;
+              });
+    }
+
+    return predicate;
   }
 
   @Tool(
