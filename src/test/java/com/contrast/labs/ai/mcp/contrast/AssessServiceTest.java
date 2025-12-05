@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
+import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
@@ -2596,6 +2597,153 @@ class AssessServiceTest {
       var warnings = (List<String>) warningsCaptor.getValue();
       assertThat(warnings).anyMatch(w -> w.contains("No sessions found"));
     }
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_handle_page3_exceeding_filtered_results() throws Exception {
+    // Given - 200 total vulnerabilities, but session filter reduces to 80 matching (mcp-6xd
+    // scenario)
+    // User requests page 3 (offset=100) which exceeds filtered count
+    var allTraces = mock(Traces.class);
+    var traceList = new ArrayList<Trace>();
+
+    // Create 200 traces: 80 matching session metadata, 120 non-matching
+    for (int i = 0; i < 80; i++) {
+      traceList.add(
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("Matching-Vuln-" + i)
+              .withUuid("matching-uuid-" + i)
+              .withSessionMetadata("session-" + i, "branch", "main") // Matches filter
+              .build());
+    }
+    for (int i = 80; i < 200; i++) {
+      traceList.add(
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("NonMatching-Vuln-" + i)
+              .withUuid("nonmatching-uuid-" + i)
+              .withSessionMetadata("session-" + i, "branch", "develop") // Does NOT match
+              .build());
+    }
+    when(allTraces.getTraces()).thenReturn(traceList);
+
+    // Return all 200 traces in a single page to simulate fetching all for session filtering
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(allTraces);
+
+    // When - request page 3 with session metadata filter (80 match, page 3 offset=100 > 80)
+    // Parameter order: appId, page, pageSize, severities, statuses, vulnTypes, environments,
+    //   lastSeenAfter, lastSeenBefore, vulnTags, sessionMetadataName, sessionMetadataValue,
+    //   useLatestSession
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID,
+            3, // page 3 (offset would be 100)
+            50, // pageSize
+            null, // severities
+            null, // statuses
+            null, // vulnTypes
+            null, // environments
+            null, // lastSeenAfter
+            null, // lastSeenBefore
+            null, // vulnTags
+            "branch", // sessionMetadataName
+            "main", // sessionMetadataValue - matches 80 traces
+            null); // useLatestSession
+
+    // Then - verify behavior via ArgumentCaptor (mock doesn't compute message)
+    // Key verifications for mcp-6xd: pagination is calculated on filtered results
+    var itemsCaptor = ArgumentCaptor.forClass(List.class);
+    var paramsCaptor = ArgumentCaptor.forClass(PaginationParams.class);
+    var totalCaptor = ArgumentCaptor.forClass(Integer.class);
+
+    verify(mockPaginationHandler)
+        .createPaginatedResponse(
+            itemsCaptor.capture(), paramsCaptor.capture(), totalCaptor.capture(), anyList());
+
+    // 1. Items passed to PaginationHandler should be empty (offset 100 > 80 filtered results)
+    assertThat(itemsCaptor.getValue()).isEmpty();
+    // 2. totalItems passed should be filtered count (80), not original count (200)
+    assertThat(totalCaptor.getValue()).isEqualTo(80);
+    // 3. Pagination params should reflect the original request
+    assertThat(paramsCaptor.getValue().page()).isEqualTo(3);
+    assertThat(paramsCaptor.getValue().pageSize()).isEqualTo(50);
+
+    // The mock returns these values - real PaginationHandler would compute the message
+    assertThat(result.items()).isEmpty();
+    assertThat(result.totalItems()).isEqualTo(80);
+    assertThat(result.page()).isEqualTo(3);
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_paginate_filtered_results_correctly_on_page2()
+      throws Exception {
+    // Given - 200 total vulnerabilities, session filter reduces to 80 matching
+    // User requests page 2 (offset=50) which should return items 51-80
+    var allTraces = mock(Traces.class);
+    var traceList = new ArrayList<Trace>();
+
+    // Create 200 traces: 80 matching session metadata, 120 non-matching
+    for (int i = 0; i < 80; i++) {
+      traceList.add(
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("Matching-Vuln-" + i)
+              .withUuid("matching-uuid-" + i)
+              .withSessionMetadata("session-" + i, "branch", "main") // Matches filter
+              .build());
+    }
+    for (int i = 80; i < 200; i++) {
+      traceList.add(
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("NonMatching-Vuln-" + i)
+              .withUuid("nonmatching-uuid-" + i)
+              .withSessionMetadata("session-" + i, "branch", "develop") // Does NOT match
+              .build());
+    }
+    when(allTraces.getTraces()).thenReturn(traceList);
+
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(allTraces);
+
+    // When - request page 2 with session metadata filter (80 match, page 2 should return 30 items)
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID,
+            2, // page 2 (offset would be 50)
+            50, // pageSize
+            null, // severities
+            null, // statuses
+            null, // vulnTypes
+            null, // environments
+            null, // lastSeenAfter
+            null, // lastSeenBefore
+            null, // vulnTags
+            "branch", // sessionMetadataName
+            "main", // sessionMetadataValue - matches 80 traces
+            null); // useLatestSession
+
+    // Then - verify correct items and pagination passed to PaginationHandler
+    var itemsCaptor = ArgumentCaptor.forClass(List.class);
+    var paramsCaptor = ArgumentCaptor.forClass(PaginationParams.class);
+    var totalCaptor = ArgumentCaptor.forClass(Integer.class);
+
+    verify(mockPaginationHandler)
+        .createPaginatedResponse(
+            itemsCaptor.capture(), paramsCaptor.capture(), totalCaptor.capture(), anyList());
+
+    // Items passed should be items 50-79 (30 items)
+    var items = (List<VulnLight>) itemsCaptor.getValue();
+    assertThat(items).hasSize(30);
+    // totalItems passed should be filtered count (80)
+    assertThat(totalCaptor.getValue()).isEqualTo(80);
+    // First item should be the 51st matching item (index 50)
+    assertThat(items.get(0).title()).isEqualTo("Matching-Vuln-50");
+    // Last item should be the 80th matching item (index 79)
+    assertThat(items.get(29).title()).isEqualTo("Matching-Vuln-79");
+
+    // Verify mock response reflects passed values
+    assertThat(result.items()).hasSize(30);
+    assertThat(result.totalItems()).isEqualTo(80);
+    assertThat(result.page()).isEqualTo(2);
   }
 
   // ========== getVulnerabilityById Tests (mcp-3le fix) ==========
