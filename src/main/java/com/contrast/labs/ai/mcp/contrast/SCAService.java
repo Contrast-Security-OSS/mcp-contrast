@@ -94,7 +94,6 @@ public class SCAService {
           "Successfully retrieved data for CVE: {}, found {} vulnerable applications",
           cveid,
           Optional.ofNullable(result).map(CveData::getApps).map(List::size).orElse(0));
-      log.info(result.toString());
       var vulnerableLibs = result.getLibraries();
       if (vulnerableLibs == null) {
         vulnerableLibs = Collections.emptyList();

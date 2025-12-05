@@ -743,14 +743,27 @@ public class AssessService {
 
       if (needsInMemorySessionFiltering) {
         // Fetch ALL pages for in-memory filtering (iterates through SDK pagination)
-        var allTraces = fetchAllTracesForSessionFiltering(contrastSDK, orgID, appId, filterForm);
+        var fetchResult = fetchAllTracesForSessionFiltering(contrastSDK, orgID, appId, filterForm);
 
-        if (allTraces.isEmpty()) {
+        if (fetchResult.wasTruncated()) {
+          allWarnings.add(
+              String.format(
+                  "IMPORTANT: Results were truncated at %d vulnerabilities due to memory limits. "
+                      + "This application has more vulnerabilities than returned. "
+                      + "To get complete results, narrow your search using filters: "
+                      + "severity (e.g., 'CRITICAL,HIGH'), status (e.g., 'Confirmed'), "
+                      + "or environment (e.g., 'PRODUCTION'). "
+                      + "Without narrower filters, you may be missing critical security findings.",
+                  maxTracesForSessionFiltering));
+        }
+
+        if (fetchResult.traces().isEmpty()) {
           log.debug("No traces found for app {} (all pages fetched)", appId);
         }
 
         // Convert to VulnLight directly from the list
-        vulnerabilities = allTraces.stream().map(vulnerabilityMapper::toVulnLight).toList();
+        vulnerabilities =
+            fetchResult.traces().stream().map(vulnerabilityMapper::toVulnLight).toList();
       } else {
         // Use SDK pagination when no in-memory filtering needed
         filterForm.setLimit(pagination.limit());
@@ -889,23 +902,38 @@ public class AssessService {
   }
 
   /**
-   * Fetches all traces from the SDK by iterating through all pages. This is needed when in-memory
-   * session filtering is required, because we must have the complete dataset before filtering.
+   * Maximum traces to fetch for session filtering to prevent memory exhaustion. Configurable via
+   * property for testing. Default: 50,000.
+   */
+  @Value("${contrast.max-traces-for-session-filtering:50000}")
+  private int maxTracesForSessionFiltering = 50_000;
+
+  /** Result of fetching traces for session filtering, includes truncation status. */
+  private record SessionFilteringResult(List<Trace> traces, boolean wasTruncated) {}
+
+  /**
+   * Fetches traces from the SDK by iterating through pages up to a maximum limit. This is needed
+   * when in-memory session filtering is required, because we must have the complete dataset before
+   * filtering.
+   *
+   * <p>The method is bounded to prevent memory exhaustion for applications with very large
+   * vulnerability counts. When the limit is reached, the result indicates truncation occurred.
    *
    * @param sdk The ContrastSDK instance
    * @param orgId The organization ID
    * @param appId The application ID
    * @param filterForm The filter form (will be modified to set limit/offset for pagination)
-   * @return List of all traces across all pages
+   * @return SessionFilteringResult containing traces and truncation status
    * @throws IOException If an API error occurs
    */
-  private List<Trace> fetchAllTracesForSessionFiltering(
+  private SessionFilteringResult fetchAllTracesForSessionFiltering(
       ContrastSDK sdk, String orgId, String appId, TraceFilterForm filterForm) throws IOException {
     final int PAGE_SIZE = 500;
-    var allTraces = new ArrayList<Trace>();
+    // Pre-size for typical case to reduce reallocations
+    var allTraces = new ArrayList<Trace>(Math.min(maxTracesForSessionFiltering, 5000));
     int offset = 0;
 
-    while (true) {
+    while (allTraces.size() < maxTracesForSessionFiltering) {
       filterForm.setLimit(PAGE_SIZE);
       filterForm.setOffset(offset);
 
@@ -922,7 +950,14 @@ public class AssessService {
         break;
       }
 
-      allTraces.addAll(pageResult.getTraces());
+      // Add traces but respect the maximum limit
+      int remaining = maxTracesForSessionFiltering - allTraces.size();
+      var tracesToAdd = pageResult.getTraces();
+      if (tracesToAdd.size() > remaining) {
+        tracesToAdd = tracesToAdd.subList(0, remaining);
+      }
+      allTraces.addAll(tracesToAdd);
+
       log.debug(
           "Fetched {} traces at offset {} (total so far: {})",
           pageResult.getTraces().size(),
@@ -937,8 +972,17 @@ public class AssessService {
       offset += PAGE_SIZE;
     }
 
+    boolean wasTruncated = allTraces.size() >= maxTracesForSessionFiltering;
+    if (wasTruncated) {
+      log.atWarn()
+          .addKeyValue("appId", appId)
+          .addKeyValue("maxTraces", maxTracesForSessionFiltering)
+          .setMessage("Reached maximum trace limit for session filtering. Results are incomplete.")
+          .log();
+    }
+
     log.debug("Fetched total of {} traces for session filtering", allTraces.size());
-    return allTraces;
+    return new SessionFilteringResult(allTraces, wasTruncated);
   }
 
   @Tool(

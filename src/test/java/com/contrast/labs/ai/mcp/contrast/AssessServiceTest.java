@@ -2759,4 +2759,101 @@ class AssessServiceTest {
     // Verify getTrace was called successfully
     verify(mockContrastSDK).getTrace(eq(TEST_ORG_ID), eq(appId), eq(vulnId), any());
   }
+
+  // ========== Truncation Warning Tests (mcp-6r5) ==========
+
+  @Test
+  void searchAppVulnerabilities_should_include_truncation_warning_when_results_exceed_limit()
+      throws Exception {
+    // Given - Set a low limit for testing
+    int testLimit = 100;
+    org.springframework.test.util.ReflectionTestUtils.setField(
+        assessService, "maxTracesForSessionFiltering", testLimit);
+
+    try {
+      // Create 150 traces (exceeds testLimit of 100)
+      var page1Traces = mock(Traces.class);
+      var page1List = new ArrayList<Trace>();
+      for (int i = 0; i < 150; i++) {
+        page1List.add(
+            AnonymousTraceBuilder.validTrace()
+                .withTitle("Vuln-" + i)
+                .withSessionMetadata("session-id", "branch", "main")
+                .build());
+      }
+      when(page1Traces.getTraces()).thenReturn(page1List);
+
+      when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+          .thenReturn(page1Traces);
+
+      // Create SessionMetadataResponse with AgentSession
+      var mockAgentSession =
+          new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.AgentSession();
+      mockAgentSession.setAgentSessionId("session-id");
+      var mockSessionResponse =
+          new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata
+              .SessionMetadataResponse();
+      mockSessionResponse.setAgentSession(mockAgentSession);
+
+      try (var mockedSDKExtension =
+          mockConstruction(
+              com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension.class,
+              (mock, context) -> {
+                when(mock.getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                    .thenReturn(mockSessionResponse);
+              })) {
+
+        // When - call with useLatestSession=true (triggers in-memory filtering)
+        var result =
+            assessService.searchAppVulnerabilities(
+                TEST_APP_ID,
+                1, // page
+                50, // pageSize
+                null, // severities
+                null, // statuses
+                null, // vulnTypes
+                null, // environments
+                null, // lastSeenAfter
+                null, // lastSeenBefore
+                null, // vulnTags
+                null, // sessionMetadataName
+                null, // sessionMetadataValue
+                true); // useLatestSession
+
+        // Then - verify truncation warning was passed to pagination handler
+        // Capture the warnings argument passed to createPaginatedResponse
+        @SuppressWarnings("unchecked")
+        var warningsCaptor = ArgumentCaptor.forClass(List.class);
+
+        verify(mockPaginationHandler)
+            .createPaginatedResponse(anyList(), any(), anyInt(), warningsCaptor.capture());
+
+        List<String> capturedWarnings = warningsCaptor.getValue();
+        assertThat(capturedWarnings)
+            .as("Should contain truncation warning when results exceed limit")
+            .isNotNull()
+            .isNotEmpty();
+
+        var truncationWarning =
+            capturedWarnings.stream().filter(w -> w.contains("IMPORTANT")).findFirst();
+        assertThat(truncationWarning).as("Warning should be marked as IMPORTANT").isPresent();
+
+        assertThat(truncationWarning.get())
+            .as("Warning should mention results were truncated")
+            .contains("truncated");
+
+        assertThat(truncationWarning.get())
+            .as("Warning should explain security implications")
+            .contains("missing critical security findings");
+
+        assertThat(truncationWarning.get())
+            .as("Warning should mention the limit")
+            .contains(String.valueOf(testLimit));
+      }
+    } finally {
+      // Restore default limit
+      org.springframework.test.util.ReflectionTestUtils.setField(
+          assessService, "maxTracesForSessionFiltering", 50_000);
+    }
+  }
 }
