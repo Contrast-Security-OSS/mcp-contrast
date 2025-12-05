@@ -98,9 +98,9 @@ public class RouteCoverageService {
       throw new IllegalArgumentException(errorMsg);
     }
 
-    // Warn if mutually exclusive parameters are both provided
+    // Log at DEBUG if mutually exclusive parameters are both provided (may contain sensitive data)
     if (Boolean.TRUE.equals(useLatestSession) && StringUtils.hasText(sessionMetadataName)) {
-      log.atWarn()
+      log.atDebug()
           .setMessage(
               "Both useLatestSession and sessionMetadataName provided - these are mutually"
                   + " exclusive. Using useLatestSession and ignoring sessionMetadataName/Value.")
