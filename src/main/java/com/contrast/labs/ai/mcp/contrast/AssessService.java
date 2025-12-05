@@ -713,6 +713,8 @@ public class AssessService {
           Boolean.TRUE.equals(useLatestSession) || StringUtils.hasText(sessionMetadataName);
 
       // Fetch agent session ID if useLatestSession requested
+      // Note: Theoretical race condition exists if a new session starts between this call and
+      // the vulnerability fetch below. In practice, the window is seconds and not a concern.
       String agentSessionId = null;
       if (Boolean.TRUE.equals(useLatestSession)) {
         var extension = new SDKExtension(contrastSDK);
