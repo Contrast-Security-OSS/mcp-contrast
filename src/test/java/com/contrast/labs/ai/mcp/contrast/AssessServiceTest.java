@@ -2856,4 +2856,108 @@ class AssessServiceTest {
           assessService, "maxTracesForSessionFiltering", 50_000);
     }
   }
+
+  @Test
+  void searchAppVulnerabilities_should_return_partial_results_when_api_fails_mid_fetch()
+      throws Exception {
+    // Given - Page 1 succeeds, Page 2 fails with IOException
+    var page1Traces = mock(Traces.class);
+    var page1List = new ArrayList<Trace>();
+    for (int i = 0; i < 500; i++) {
+      page1List.add(
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("Vuln-" + i)
+              .withUuid("uuid-" + i)
+              .withSessionMetadata("session-id", "branch", "main")
+              .build());
+    }
+    when(page1Traces.getTraces()).thenReturn(page1List);
+
+    // Mock SDK to return page 1 successfully, then throw on page 2
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenAnswer(
+            invocation -> {
+              TraceFilterForm form = invocation.getArgument(2);
+              if (form.getOffset() == 0) {
+                return page1Traces; // Page 1: success
+              } else {
+                throw new IOException("Network timeout on page 2"); // Page 2: failure
+              }
+            });
+
+    // Create SessionMetadataResponse with AgentSession
+    var mockAgentSession =
+        new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.AgentSession();
+    mockAgentSession.setAgentSessionId("session-id");
+    var mockSessionResponse =
+        new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata
+            .SessionMetadataResponse();
+    mockSessionResponse.setAgentSession(mockAgentSession);
+
+    try (var mockedSDKExtension =
+        mockConstruction(
+            com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                  .thenReturn(mockSessionResponse);
+            })) {
+
+      // When - call with useLatestSession=true (triggers multi-page fetch)
+      var result =
+          assessService.searchAppVulnerabilities(
+              TEST_APP_ID,
+              1, // page
+              50, // pageSize
+              null, // severities
+              null, // statuses
+              null, // vulnTypes
+              null, // environments
+              null, // lastSeenAfter
+              null, // lastSeenBefore
+              null, // vulnTags
+              null, // sessionMetadataName
+              null, // sessionMetadataValue
+              true); // useLatestSession
+
+      // Then - verify partial results were returned (not exception thrown)
+      // Should return first 50 items from the 500 successfully fetched
+      assertThat(result.items()).as("Should return first page of partial results").hasSize(50);
+
+      // Verify warning was passed to pagination handler about partial data
+      @SuppressWarnings("unchecked")
+      var warningsCaptor = ArgumentCaptor.forClass(List.class);
+
+      verify(mockPaginationHandler)
+          .createPaginatedResponse(anyList(), any(), anyInt(), warningsCaptor.capture());
+
+      List<String> capturedWarnings = warningsCaptor.getValue();
+      assertThat(capturedWarnings)
+          .as("Should contain warning about partial data")
+          .isNotNull()
+          .isNotEmpty();
+
+      var partialDataWarning =
+          capturedWarnings.stream().filter(w -> w.contains("Partial data")).findFirst();
+      assertThat(partialDataWarning)
+          .as("Warning should mention partial data was returned")
+          .isPresent();
+
+      assertThat(partialDataWarning.get())
+          .as("Warning should mention API error")
+          .contains("API error");
+
+      assertThat(partialDataWarning.get())
+          .as("Warning should indicate additional vulnerabilities may exist")
+          .contains("Additional vulnerabilities may exist");
+
+      // Verify totalItems reflects partial data (500 from page 1)
+      assertThat(result.totalItems())
+          .as("Total items should reflect partial fetch (500 from page 1)")
+          .isEqualTo(500);
+
+      // Verify SDK was called twice (page 1 success, page 2 failure)
+      verify(mockContrastSDK, times(2))
+          .getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class));
+    }
+  }
 }

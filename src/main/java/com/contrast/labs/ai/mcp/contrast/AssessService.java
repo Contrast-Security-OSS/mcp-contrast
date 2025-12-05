@@ -757,6 +757,15 @@ public class AssessService {
                   maxTracesForSessionFiltering));
         }
 
+        if (fetchResult.hadFetchError()) {
+          allWarnings.add(
+              String.format(
+                  "WARNING: Partial data returned due to API error during multi-page fetch. "
+                      + "Retrieved %d vulnerabilities before error occurred. "
+                      + "Additional vulnerabilities may exist. Details: %s",
+                  fetchResult.traces().size(), fetchResult.errorMessage()));
+        }
+
         if (fetchResult.traces().isEmpty()) {
           log.debug("No traces found for app {} (all pages fetched)", appId);
         }
@@ -908,8 +917,27 @@ public class AssessService {
   @Value("${contrast.max-traces-for-session-filtering:50000}")
   private int maxTracesForSessionFiltering = 50_000;
 
-  /** Result of fetching traces for session filtering, includes truncation status. */
-  private record SessionFilteringResult(List<Trace> traces, boolean wasTruncated) {}
+  /**
+   * Result of fetching traces for session filtering.
+   *
+   * @param traces The fetched traces (may be partial if error occurred)
+   * @param wasTruncated True if results hit the max limit
+   * @param hadFetchError True if an API error occurred during multi-page fetch
+   * @param errorMessage Description of the fetch error (null if no error)
+   */
+  private record SessionFilteringResult(
+      List<Trace> traces, boolean wasTruncated, boolean hadFetchError, String errorMessage) {
+
+    /** Creates a successful result (no errors). */
+    static SessionFilteringResult success(List<Trace> traces, boolean wasTruncated) {
+      return new SessionFilteringResult(traces, wasTruncated, false, null);
+    }
+
+    /** Creates a partial result due to fetch error. */
+    static SessionFilteringResult partial(List<Trace> traces, String errorMessage) {
+      return new SessionFilteringResult(traces, false, true, errorMessage);
+    }
+  }
 
   /**
    * Fetches traces from the SDK by iterating through pages up to a maximum limit. This is needed
@@ -941,7 +969,14 @@ public class AssessService {
       try {
         pageResult = sdk.getTraces(orgId, appId, filterForm);
       } catch (Exception e) {
-        throw new IOException("Failed to fetch traces page at offset " + offset, e);
+        // Return partial results instead of discarding all fetched data
+        String errorMsg =
+            String.format(
+                "API error during multi-page fetch at offset %d. Returning %d partial results."
+                    + " Error: %s",
+                offset, allTraces.size(), e.getMessage());
+        log.warn(errorMsg, e);
+        return SessionFilteringResult.partial(allTraces, errorMsg);
       }
 
       if (pageResult == null
@@ -982,7 +1017,7 @@ public class AssessService {
     }
 
     log.debug("Fetched total of {} traces for session filtering", allTraces.size());
-    return new SessionFilteringResult(allTraces, wasTruncated);
+    return SessionFilteringResult.success(allTraces, wasTruncated);
   }
 
   @Tool(
