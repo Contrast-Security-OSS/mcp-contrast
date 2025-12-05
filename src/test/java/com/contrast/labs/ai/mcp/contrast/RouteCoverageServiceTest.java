@@ -681,18 +681,42 @@ class RouteCoverageServiceTest {
   // ========== Additional Edge Case Tests ==========
 
   @Test
-  void testGetRouteCoverage_EmptyAppId_PassedToSDK() throws Exception {
-    // Arrange - Empty string appId passes through to SDK
-    var mockResponse = createMockRouteCoverageResponse(0);
-    when(mockSDKExtension.getRouteCoverage(eq(TEST_ORG_ID), eq(""), isNull()))
-        .thenReturn(mockResponse);
-
+  void testGetRouteCoverage_EmptyAppId_ReturnsErrorResponse() throws Exception {
     // Act
     var result = routeCoverageService.getRouteCoverage("", null, null, null);
 
-    // Assert - Service passes empty string through to SDK
+    // Assert - Should return error response with success=false
     assertThat(result).isNotNull();
-    verify(mockSDKExtension).getRouteCoverage(eq(TEST_ORG_ID), eq(""), isNull());
+    assertThat(result.isSuccess()).isFalse();
+
+    // Verify SDK was never called
+    verify(mockSDKExtension, never()).getRouteCoverage(anyString(), anyString(), any());
+  }
+
+  @Test
+  void testGetRouteCoverage_NullAppId_ReturnsErrorResponse() throws Exception {
+    // Act
+    var result = routeCoverageService.getRouteCoverage(null, null, null, null);
+
+    // Assert - Should return error response with success=false
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isFalse();
+
+    // Verify SDK was never called
+    verify(mockSDKExtension, never()).getRouteCoverage(anyString(), anyString(), any());
+  }
+
+  @Test
+  void testGetRouteCoverage_WhitespaceOnlyAppId_ReturnsErrorResponse() throws Exception {
+    // Act
+    var result = routeCoverageService.getRouteCoverage("   ", null, null, null);
+
+    // Assert - Should return error response with success=false (StringUtils.hasText returns false)
+    assertThat(result).isNotNull();
+    assertThat(result.isSuccess()).isFalse();
+
+    // Verify SDK was never called
+    verify(mockSDKExtension, never()).getRouteCoverage(anyString(), anyString(), any());
   }
 
   @Test

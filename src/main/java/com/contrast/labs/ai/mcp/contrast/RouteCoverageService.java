@@ -74,6 +74,14 @@ public class RouteCoverageService {
       Boolean useLatestSession)
       throws IOException {
 
+    // Validate appId is required
+    if (!StringUtils.hasText(appId)) {
+      log.error("appId parameter is required and cannot be empty");
+      var errorResponse = new RouteCoverageResponse();
+      errorResponse.setSuccess(false);
+      return errorResponse;
+    }
+
     log.info("Retrieving route coverage for application ID: {}", appId);
 
     // Validate parameters - treat empty strings as null
