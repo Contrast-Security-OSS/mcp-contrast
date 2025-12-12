@@ -130,6 +130,9 @@ class AssessServiceTest {
     ReflectionTestUtils.setField(assessService, "userName", TEST_USERNAME);
     ReflectionTestUtils.setField(assessService, "httpProxyHost", "");
     ReflectionTestUtils.setField(assessService, "httpProxyPort", "");
+
+    // Manually invoke @PostConstruct since Spring context is not loaded in unit tests
+    assessService.initHelpers();
   }
 
   @AfterEach
@@ -2924,6 +2927,8 @@ class AssessServiceTest {
     int testLimit = 100;
     org.springframework.test.util.ReflectionTestUtils.setField(
         assessService, "maxTracesForSessionFiltering", testLimit);
+    // Re-initialize helper with new limit (simulates @PostConstruct with updated value)
+    assessService.initHelpers();
 
     try {
       // Create 150 traces (exceeds testLimit of 100)
@@ -3008,9 +3013,10 @@ class AssessServiceTest {
             .contains(String.valueOf(testLimit));
       }
     } finally {
-      // Restore default limit
+      // Restore default limit and re-initialize helper
       org.springframework.test.util.ReflectionTestUtils.setField(
           assessService, "maxTracesForSessionFiltering", 50_000);
+      assessService.initHelpers();
     }
   }
 
