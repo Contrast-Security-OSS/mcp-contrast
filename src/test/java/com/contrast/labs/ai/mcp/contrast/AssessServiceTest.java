@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
+import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.utils.PaginationHandler;
@@ -2166,14 +2167,16 @@ class AssessServiceTest {
     traces.add(trace0);
 
     // Trace 1: Confirmed status, old session (excluded by useLatestSession filter)
+    // Note: All stubs must be lenient because early termination filters traces during fetch,
+    // so getters for filtered traces are never called (they're not converted to VulnLight)
     Trace trace1 = mock();
-    when(trace1.getTitle()).thenReturn("LDAP Injection");
-    when(trace1.getRule()).thenReturn("ldap-injection");
-    when(trace1.getUuid()).thenReturn("uuid-confirmed-old");
-    when(trace1.getSeverity()).thenReturn("HIGH");
-    when(trace1.getStatus()).thenReturn("CONFIRMED");
-    when(trace1.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-    when(trace1.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
+    lenient().when(trace1.getTitle()).thenReturn("LDAP Injection");
+    lenient().when(trace1.getRule()).thenReturn("ldap-injection");
+    lenient().when(trace1.getUuid()).thenReturn("uuid-confirmed-old");
+    lenient().when(trace1.getSeverity()).thenReturn("HIGH");
+    lenient().when(trace1.getStatus()).thenReturn("CONFIRMED");
+    lenient().when(trace1.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+    lenient().when(trace1.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
 
     var sessionMetadata1 = mock(SessionMetadata.class);
     lenient().when(sessionMetadata1.getSessionId()).thenReturn("old-session-id");
@@ -2295,14 +2298,16 @@ class AssessServiceTest {
     traces.add(trace1);
 
     // Trace 2: Reported (included in smart defaults), Environment=QA (excluded by metadata)
+    // Note: All stubs must be lenient because early termination filters traces during fetch,
+    // so getters for filtered traces are never called (they're not converted to VulnLight)
     Trace trace2 = mock();
-    when(trace2.getTitle()).thenReturn("QA Vuln");
-    when(trace2.getRule()).thenReturn("rule-2");
-    when(trace2.getUuid()).thenReturn("uuid-2");
-    when(trace2.getSeverity()).thenReturn("MEDIUM");
-    when(trace2.getStatus()).thenReturn("REPORTED");
-    when(trace2.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
-    when(trace2.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
+    lenient().when(trace2.getTitle()).thenReturn("QA Vuln");
+    lenient().when(trace2.getRule()).thenReturn("rule-2");
+    lenient().when(trace2.getUuid()).thenReturn("uuid-2");
+    lenient().when(trace2.getSeverity()).thenReturn("MEDIUM");
+    lenient().when(trace2.getStatus()).thenReturn("REPORTED");
+    lenient().when(trace2.getLastTimeSeen()).thenReturn(System.currentTimeMillis());
+    lenient().when(trace2.getFirstTimeSeen()).thenReturn(System.currentTimeMillis() - 86400000L);
 
     var sessionMetadata2 = mock(SessionMetadata.class);
     var metadataItem2 = mock(MetadataItem.class);
@@ -2428,14 +2433,15 @@ class AssessServiceTest {
                   .thenReturn(mockSessionResponse);
             })) {
 
-      // When - call with useLatestSession=true
+      // When - call with useLatestSession=true, requesting page 14 (offset 650)
+      // This requires targetCount = 650 + 50 = 700, which requires both pages
       // Parameter order: appId, page, pageSize, severities, statuses, vulnTypes, environments,
       //   lastSeenAfter, lastSeenBefore, vulnTags, sessionMetadataName, sessionMetadataValue,
       //   useLatestSession
       var result =
           assessService.searchAppVulnerabilities(
               TEST_APP_ID,
-              1, // page
+              14, // page 14 (offset=650, needs 700 results)
               50, // pageSize
               null, // severities
               null, // statuses
@@ -2449,6 +2455,7 @@ class AssessServiceTest {
               true); // useLatestSession
 
       // Then - verify SDK was called at least twice to fetch multiple pages
+      // (early termination needs 700 results, page 1 has 500, page 2 has 200)
       verify(mockContrastSDK, atLeast(2))
           .getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class));
 
@@ -2456,9 +2463,9 @@ class AssessServiceTest {
       // All traces match the session filter, so all 700 should be available
       assertThat(result.totalItems()).isEqualTo(700);
 
-      // Verify first page of 50 items returned
+      // Verify page 14 of 50 items returned
       assertThat(result.items()).hasSize(50);
-      assertThat(result.page()).isEqualTo(1);
+      assertThat(result.page()).isEqualTo(14);
     }
   }
 
@@ -2596,6 +2603,153 @@ class AssessServiceTest {
       var warnings = (List<String>) warningsCaptor.getValue();
       assertThat(warnings).anyMatch(w -> w.contains("No sessions found"));
     }
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_handle_page3_exceeding_filtered_results() throws Exception {
+    // Given - 200 total vulnerabilities, but session filter reduces to 80 matching (mcp-6xd
+    // scenario)
+    // User requests page 3 (offset=100) which exceeds filtered count
+    var allTraces = mock(Traces.class);
+    var traceList = new ArrayList<Trace>();
+
+    // Create 200 traces: 80 matching session metadata, 120 non-matching
+    for (int i = 0; i < 80; i++) {
+      traceList.add(
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("Matching-Vuln-" + i)
+              .withUuid("matching-uuid-" + i)
+              .withSessionMetadata("session-" + i, "branch", "main") // Matches filter
+              .build());
+    }
+    for (int i = 80; i < 200; i++) {
+      traceList.add(
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("NonMatching-Vuln-" + i)
+              .withUuid("nonmatching-uuid-" + i)
+              .withSessionMetadata("session-" + i, "branch", "develop") // Does NOT match
+              .build());
+    }
+    when(allTraces.getTraces()).thenReturn(traceList);
+
+    // Return all 200 traces in a single page to simulate fetching all for session filtering
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(allTraces);
+
+    // When - request page 3 with session metadata filter (80 match, page 3 offset=100 > 80)
+    // Parameter order: appId, page, pageSize, severities, statuses, vulnTypes, environments,
+    //   lastSeenAfter, lastSeenBefore, vulnTags, sessionMetadataName, sessionMetadataValue,
+    //   useLatestSession
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID,
+            3, // page 3 (offset would be 100)
+            50, // pageSize
+            null, // severities
+            null, // statuses
+            null, // vulnTypes
+            null, // environments
+            null, // lastSeenAfter
+            null, // lastSeenBefore
+            null, // vulnTags
+            "branch", // sessionMetadataName
+            "main", // sessionMetadataValue - matches 80 traces
+            null); // useLatestSession
+
+    // Then - verify behavior via ArgumentCaptor (mock doesn't compute message)
+    // Key verifications for mcp-6xd: pagination is calculated on filtered results
+    var itemsCaptor = ArgumentCaptor.forClass(List.class);
+    var paramsCaptor = ArgumentCaptor.forClass(PaginationParams.class);
+    var totalCaptor = ArgumentCaptor.forClass(Integer.class);
+
+    verify(mockPaginationHandler)
+        .createPaginatedResponse(
+            itemsCaptor.capture(), paramsCaptor.capture(), totalCaptor.capture(), anyList());
+
+    // 1. Items passed to PaginationHandler should be empty (offset 100 > 80 filtered results)
+    assertThat(itemsCaptor.getValue()).isEmpty();
+    // 2. totalItems passed should be filtered count (80), not original count (200)
+    assertThat(totalCaptor.getValue()).isEqualTo(80);
+    // 3. Pagination params should reflect the original request
+    assertThat(paramsCaptor.getValue().page()).isEqualTo(3);
+    assertThat(paramsCaptor.getValue().pageSize()).isEqualTo(50);
+
+    // The mock returns these values - real PaginationHandler would compute the message
+    assertThat(result.items()).isEmpty();
+    assertThat(result.totalItems()).isEqualTo(80);
+    assertThat(result.page()).isEqualTo(3);
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_paginate_filtered_results_correctly_on_page2()
+      throws Exception {
+    // Given - 200 total vulnerabilities, session filter reduces to 80 matching
+    // User requests page 2 (offset=50) which should return items 51-80
+    var allTraces = mock(Traces.class);
+    var traceList = new ArrayList<Trace>();
+
+    // Create 200 traces: 80 matching session metadata, 120 non-matching
+    for (int i = 0; i < 80; i++) {
+      traceList.add(
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("Matching-Vuln-" + i)
+              .withUuid("matching-uuid-" + i)
+              .withSessionMetadata("session-" + i, "branch", "main") // Matches filter
+              .build());
+    }
+    for (int i = 80; i < 200; i++) {
+      traceList.add(
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("NonMatching-Vuln-" + i)
+              .withUuid("nonmatching-uuid-" + i)
+              .withSessionMetadata("session-" + i, "branch", "develop") // Does NOT match
+              .build());
+    }
+    when(allTraces.getTraces()).thenReturn(traceList);
+
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenReturn(allTraces);
+
+    // When - request page 2 with session metadata filter (80 match, page 2 should return 30 items)
+    var result =
+        assessService.searchAppVulnerabilities(
+            TEST_APP_ID,
+            2, // page 2 (offset would be 50)
+            50, // pageSize
+            null, // severities
+            null, // statuses
+            null, // vulnTypes
+            null, // environments
+            null, // lastSeenAfter
+            null, // lastSeenBefore
+            null, // vulnTags
+            "branch", // sessionMetadataName
+            "main", // sessionMetadataValue - matches 80 traces
+            null); // useLatestSession
+
+    // Then - verify correct items and pagination passed to PaginationHandler
+    var itemsCaptor = ArgumentCaptor.forClass(List.class);
+    var paramsCaptor = ArgumentCaptor.forClass(PaginationParams.class);
+    var totalCaptor = ArgumentCaptor.forClass(Integer.class);
+
+    verify(mockPaginationHandler)
+        .createPaginatedResponse(
+            itemsCaptor.capture(), paramsCaptor.capture(), totalCaptor.capture(), anyList());
+
+    // Items passed should be items 50-79 (30 items)
+    var items = (List<VulnLight>) itemsCaptor.getValue();
+    assertThat(items).hasSize(30);
+    // totalItems passed should be filtered count (80)
+    assertThat(totalCaptor.getValue()).isEqualTo(80);
+    // First item should be the 51st matching item (index 50)
+    assertThat(items.get(0).title()).isEqualTo("Matching-Vuln-50");
+    // Last item should be the 80th matching item (index 79)
+    assertThat(items.get(29).title()).isEqualTo("Matching-Vuln-79");
+
+    // Verify mock response reflects passed values
+    assertThat(result.items()).hasSize(30);
+    assertThat(result.totalItems()).isEqualTo(80);
+    assertThat(result.page()).isEqualTo(2);
   }
 
   // ========== getVulnerabilityById Tests (mcp-3le fix) ==========
@@ -2758,5 +2912,212 @@ class AssessServiceTest {
 
     // Verify getTrace was called successfully
     verify(mockContrastSDK).getTrace(eq(TEST_ORG_ID), eq(appId), eq(vulnId), any());
+  }
+
+  // ========== Truncation Warning Tests (mcp-6r5) ==========
+
+  @Test
+  void searchAppVulnerabilities_should_include_truncation_warning_when_results_exceed_limit()
+      throws Exception {
+    // Given - Set a low limit for testing
+    int testLimit = 100;
+    org.springframework.test.util.ReflectionTestUtils.setField(
+        assessService, "maxTracesForSessionFiltering", testLimit);
+
+    try {
+      // Create 150 traces (exceeds testLimit of 100)
+      var page1Traces = mock(Traces.class);
+      var page1List = new ArrayList<Trace>();
+      for (int i = 0; i < 150; i++) {
+        page1List.add(
+            AnonymousTraceBuilder.validTrace()
+                .withTitle("Vuln-" + i)
+                .withSessionMetadata("session-id", "branch", "main")
+                .build());
+      }
+      when(page1Traces.getTraces()).thenReturn(page1List);
+
+      when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+          .thenReturn(page1Traces);
+
+      // Create SessionMetadataResponse with AgentSession
+      var mockAgentSession =
+          new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.AgentSession();
+      mockAgentSession.setAgentSessionId("session-id");
+      var mockSessionResponse =
+          new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata
+              .SessionMetadataResponse();
+      mockSessionResponse.setAgentSession(mockAgentSession);
+
+      try (var mockedSDKExtension =
+          mockConstruction(
+              com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension.class,
+              (mock, context) -> {
+                when(mock.getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                    .thenReturn(mockSessionResponse);
+              })) {
+
+        // When - call with useLatestSession=true (triggers in-memory filtering)
+        // Request page 3 to set targetCount=150, which exceeds maxTracesForSessionFiltering=100
+        // Early termination will stop at 100 matching traces and generate truncation warning
+        var result =
+            assessService.searchAppVulnerabilities(
+                TEST_APP_ID,
+                3, // page (offset=100, so targetCount=150)
+                50, // pageSize
+                null, // severities
+                null, // statuses
+                null, // vulnTypes
+                null, // environments
+                null, // lastSeenAfter
+                null, // lastSeenBefore
+                null, // vulnTags
+                null, // sessionMetadataName
+                null, // sessionMetadataValue
+                true); // useLatestSession
+
+        // Then - verify truncation warning was passed to pagination handler
+        // Capture the warnings argument passed to createPaginatedResponse
+        @SuppressWarnings("unchecked")
+        var warningsCaptor = ArgumentCaptor.forClass(List.class);
+
+        verify(mockPaginationHandler)
+            .createPaginatedResponse(anyList(), any(), anyInt(), warningsCaptor.capture());
+
+        List<String> capturedWarnings = warningsCaptor.getValue();
+        assertThat(capturedWarnings)
+            .as("Should contain truncation warning when results exceed limit")
+            .isNotNull()
+            .isNotEmpty();
+
+        var truncationWarning =
+            capturedWarnings.stream().filter(w -> w.contains("IMPORTANT")).findFirst();
+        assertThat(truncationWarning).as("Warning should be marked as IMPORTANT").isPresent();
+
+        assertThat(truncationWarning.get())
+            .as("Warning should mention results were truncated")
+            .contains("truncated");
+
+        assertThat(truncationWarning.get())
+            .as("Warning should explain security implications")
+            .contains("missing critical security findings");
+
+        assertThat(truncationWarning.get())
+            .as("Warning should mention the limit")
+            .contains(String.valueOf(testLimit));
+      }
+    } finally {
+      // Restore default limit
+      org.springframework.test.util.ReflectionTestUtils.setField(
+          assessService, "maxTracesForSessionFiltering", 50_000);
+    }
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_return_partial_results_when_api_fails_mid_fetch()
+      throws Exception {
+    // Given - Page 1 succeeds, Page 2 fails with IOException
+    var page1Traces = mock(Traces.class);
+    var page1List = new ArrayList<Trace>();
+    for (int i = 0; i < 500; i++) {
+      page1List.add(
+          AnonymousTraceBuilder.validTrace()
+              .withTitle("Vuln-" + i)
+              .withUuid("uuid-" + i)
+              .withSessionMetadata("session-id", "branch", "main")
+              .build());
+    }
+    when(page1Traces.getTraces()).thenReturn(page1List);
+
+    // Mock SDK to return page 1 successfully, then throw on page 2
+    when(mockContrastSDK.getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class)))
+        .thenAnswer(
+            invocation -> {
+              TraceFilterForm form = invocation.getArgument(2);
+              if (form.getOffset() == 0) {
+                return page1Traces; // Page 1: success
+              } else {
+                throw new IOException("Network timeout on page 2"); // Page 2: failure
+              }
+            });
+
+    // Create SessionMetadataResponse with AgentSession
+    var mockAgentSession =
+        new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.AgentSession();
+    mockAgentSession.setAgentSessionId("session-id");
+    var mockSessionResponse =
+        new com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata
+            .SessionMetadataResponse();
+    mockSessionResponse.setAgentSession(mockAgentSession);
+
+    try (var mockedSDKExtension =
+        mockConstruction(
+            com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getLatestSessionMetadata(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+                  .thenReturn(mockSessionResponse);
+            })) {
+
+      // When - call with useLatestSession=true, requesting page 11 (offset=500)
+      // This requires targetCount=550 matching results, but page 1 only has 500,
+      // so page 2 is called and fails, triggering partial results behavior
+      var result =
+          assessService.searchAppVulnerabilities(
+              TEST_APP_ID,
+              11, // page (offset=500)
+              50, // pageSize
+              null, // severities
+              null, // statuses
+              null, // vulnTypes
+              null, // environments
+              null, // lastSeenAfter
+              null, // lastSeenBefore
+              null, // vulnTags
+              null, // sessionMetadataName
+              null, // sessionMetadataValue
+              true); // useLatestSession
+
+      // Then - verify partial results were returned (not exception thrown)
+      // Page 11 (offset=500) with 500 total matching traces = empty page (offset >= total)
+      assertThat(result.items())
+          .as("Should return empty page when offset exceeds results")
+          .isEmpty();
+
+      // Verify warning was passed to pagination handler about partial data
+      @SuppressWarnings("unchecked")
+      var warningsCaptor = ArgumentCaptor.forClass(List.class);
+
+      verify(mockPaginationHandler)
+          .createPaginatedResponse(anyList(), any(), anyInt(), warningsCaptor.capture());
+
+      List<String> capturedWarnings = warningsCaptor.getValue();
+      assertThat(capturedWarnings)
+          .as("Should contain warning about partial data")
+          .isNotNull()
+          .isNotEmpty();
+
+      var partialDataWarning =
+          capturedWarnings.stream().filter(w -> w.contains("Partial data")).findFirst();
+      assertThat(partialDataWarning)
+          .as("Warning should mention partial data was returned")
+          .isPresent();
+
+      assertThat(partialDataWarning.get())
+          .as("Warning should mention API error")
+          .contains("API error");
+
+      assertThat(partialDataWarning.get())
+          .as("Warning should indicate additional vulnerabilities may exist")
+          .contains("Additional vulnerabilities may exist");
+
+      // Verify totalItems reflects the matching traces found before page 2 error
+      assertThat(result.totalItems())
+          .as("Total items should reflect fetched matching traces")
+          .isEqualTo(500);
+
+      // Verify SDK was called at least once (early termination may reduce calls)
+      verify(mockContrastSDK, atLeastOnce())
+          .getTraces(eq(TEST_ORG_ID), eq(TEST_APP_ID), any(TraceFilterForm.class));
+    }
   }
 }
