@@ -39,7 +39,7 @@ public class PaginationHandler {
    * @param params Validated pagination parameters
    * @param totalCount Total count from API (null if unavailable)
    * @param <T> Type of items
-   * @return PaginatedResponse with calculated hasMorePages and messages
+   * @return PaginatedResponse with calculated hasMorePages and warnings
    */
   public <T> PaginatedResponse<T> createPaginatedResponse(
       List<T> items, PaginationParams params, Integer totalCount) {
@@ -55,18 +55,18 @@ public class PaginationHandler {
    * @param totalCount Total count from API (null if unavailable)
    * @param additionalWarnings Extra warnings to include (e.g., filter validation warnings)
    * @param <T> Type of items
-   * @return PaginatedResponse with calculated hasMorePages and messages
+   * @return PaginatedResponse with calculated hasMorePages and warnings
    */
   public <T> PaginatedResponse<T> createPaginatedResponse(
       List<T> items, PaginationParams params, Integer totalCount, List<String> additionalWarnings) {
     boolean hasMorePages = calculateHasMorePages(params, totalCount, items.size());
-    var message = buildEmptyResultMessage(items, params, totalCount);
+    var emptyResultWarning = buildEmptyResultWarning(items, params, totalCount);
 
-    // Merge all warnings with result messages
-    var finalMessage = mergeMessages(List.of(params.warnings(), additionalWarnings), message);
+    // Collect all warnings
+    var allWarnings = collectWarnings(params.warnings(), additionalWarnings, emptyResultWarning);
 
     return new PaginatedResponse<>(
-        items, params.page(), params.pageSize(), totalCount, hasMorePages, finalMessage);
+        items, params.page(), params.pageSize(), totalCount, hasMorePages, List.of(), allWarnings);
   }
 
   /**
@@ -90,17 +90,17 @@ public class PaginationHandler {
   }
 
   /**
-   * Build helpful message for empty results or page-beyond-bounds scenarios.
+   * Build helpful warning for empty results or page-beyond-bounds scenarios.
    *
    * @param items Items in current page
    * @param params Pagination parameters
    * @param totalCount Total count (null if unavailable)
-   * @return Message string or null if no message needed
+   * @return Warning string or null if no warning needed
    */
-  private String buildEmptyResultMessage(
+  private String buildEmptyResultWarning(
       List<?> items, PaginationParams params, Integer totalCount) {
     if (!items.isEmpty()) {
-      return null; // No message needed for non-empty results
+      return null; // No warning needed for non-empty results
     }
 
     if (params.page() == 1) {
@@ -118,26 +118,29 @@ public class PaginationHandler {
   }
 
   /**
-   * Merge multiple warning lists with result message. Ensures all messages are visible to the AI.
+   * Collect all warnings into a single list.
    *
-   * @param warningLists Multiple lists of validation warnings (pagination, filters, etc.)
-   * @param resultMessage Message about empty results or page bounds
-   * @return Combined message or null if no messages
+   * @param paginationWarnings Warnings from pagination validation
+   * @param additionalWarnings Extra warnings from filters, etc.
+   * @param emptyResultWarning Warning about empty results (may be null)
+   * @return Combined list of all warnings
    */
-  private String mergeMessages(List<List<String>> warningLists, String resultMessage) {
-    var allMessages = new ArrayList<String>();
+  private List<String> collectWarnings(
+      List<String> paginationWarnings, List<String> additionalWarnings, String emptyResultWarning) {
+    var allWarnings = new ArrayList<String>();
 
-    // Flatten all warning lists
-    for (List<String> warnings : warningLists) {
-      if (!CollectionUtils.isEmpty(warnings)) {
-        allMessages.addAll(warnings);
-      }
+    if (!CollectionUtils.isEmpty(paginationWarnings)) {
+      allWarnings.addAll(paginationWarnings);
     }
 
-    if (StringUtils.hasText(resultMessage)) {
-      allMessages.add(resultMessage);
+    if (!CollectionUtils.isEmpty(additionalWarnings)) {
+      allWarnings.addAll(additionalWarnings);
     }
 
-    return allMessages.isEmpty() ? null : String.join(" ", allMessages);
+    if (StringUtils.hasText(emptyResultWarning)) {
+      allWarnings.add(emptyResultWarning);
+    }
+
+    return allWarnings;
   }
 }

@@ -50,7 +50,8 @@ class PaginationHandlerTest {
     assertThat(response.hasMorePages())
         .as("Should have more pages when 3 items fetched out of 10")
         .isTrue();
-    assertThat(response.message()).as("No message for successful page").isNull();
+    assertThat(response.errors()).as("No errors for successful page").isEmpty();
+    assertThat(response.warnings()).as("No warnings for successful page").isEmpty();
   }
 
   @Test
@@ -67,7 +68,8 @@ class PaginationHandlerTest {
     assertThat(response.hasMorePages())
         .as("Should not have more pages (page 4 * pageSize 3 = 12 >= 10)")
         .isFalse();
-    assertThat(response.message()).isNull();
+    assertThat(response.errors()).isEmpty();
+    assertThat(response.warnings()).isEmpty();
   }
 
   @Test
@@ -108,7 +110,8 @@ class PaginationHandlerTest {
     assertThat(response.items()).isEmpty();
     assertThat(response.totalItems()).isEqualTo(0);
     assertThat(response.hasMorePages()).isFalse();
-    assertThat(response.message()).isEqualTo("No items found.");
+    assertThat(response.errors()).isEmpty();
+    assertThat(response.warnings()).containsExactly("No items found.");
   }
 
   @Test
@@ -121,8 +124,9 @@ class PaginationHandlerTest {
     assertThat(response.items()).isEmpty();
     assertThat(response.totalItems()).isEqualTo(5);
     assertThat(response.hasMorePages()).isFalse();
-    assertThat(response.message())
-        .isEqualTo("Requested page 2 exceeds available pages (total: 1).");
+    assertThat(response.errors()).isEmpty();
+    assertThat(response.warnings())
+        .containsExactly("Requested page 2 exceeds available pages (total: 1).");
   }
 
   @Test
@@ -135,38 +139,39 @@ class PaginationHandlerTest {
     assertThat(response.items()).isEmpty();
     assertThat(response.totalItems()).isNull();
     assertThat(response.hasMorePages()).isFalse();
-    assertThat(response.message()).isEqualTo("Requested page 2 returned no results.");
+    assertThat(response.errors()).isEmpty();
+    assertThat(response.warnings()).containsExactly("Requested page 2 returned no results.");
   }
 
   @Test
-  void testCreatePaginatedResponse_mergesWarnings() {
+  void testCreatePaginatedResponse_collectsWarnings() {
     var items = List.of("item1");
     // Create params with warning (invalid page clamped to 1)
     var params = PaginationParams.of(-5, 10);
 
     var response = handler.createPaginatedResponse(items, params, 1);
 
-    assertThat(response.message()).isNotNull();
-    assertThat(response.message())
-        .as("Should include pagination warning in message")
-        .contains("Invalid page number -5");
+    assertThat(response.errors()).isEmpty();
+    assertThat(response.warnings())
+        .as("Should include pagination warning")
+        .anyMatch(w -> w.contains("Invalid page number -5"));
   }
 
   @Test
-  void testCreatePaginatedResponse_mergesWarningsWithEmptyMessage() {
+  void testCreatePaginatedResponse_collectsMultipleWarnings() {
     var items = List.of();
     // Create params with warning (invalid pageSize)
     var params = PaginationParams.of(2, 200);
 
     var response = handler.createPaginatedResponse(items, params, 5);
 
-    assertThat(response.message()).isNotNull();
-    assertThat(response.message())
+    assertThat(response.errors()).isEmpty();
+    assertThat(response.warnings())
         .as("Should include pageSize warning")
-        .contains("Requested pageSize 200 exceeds maximum 100");
-    assertThat(response.message())
-        .as("Should include empty page message")
-        .contains("Requested page 2 exceeds available pages");
+        .anyMatch(w -> w.contains("Requested pageSize 200 exceeds maximum 100"));
+    assertThat(response.warnings())
+        .as("Should include empty page warning")
+        .anyMatch(w -> w.contains("Requested page 2 exceeds available pages"));
   }
 
   // ========== Edge Cases ==========
@@ -198,16 +203,16 @@ class PaginationHandlerTest {
   }
 
   @Test
-  void testMessagePriority_warningAndEmpty() {
-    // Both warning and empty message should appear
+  void testWarningsCollected_paginationAndEmpty() {
+    // Both pagination warning and empty warning should appear
     var items = List.of();
     var params = PaginationParams.of(-1, 10); // Invalid page
 
     var response = handler.createPaginatedResponse(items, params, 0);
 
-    assertThat(response.message()).isNotNull();
-    assertThat(response.message()).contains("Invalid page number");
-    assertThat(response.message()).contains("No items found");
+    assertThat(response.errors()).isEmpty();
+    assertThat(response.warnings()).anyMatch(w -> w.contains("Invalid page number"));
+    assertThat(response.warnings()).anyMatch(w -> w.contains("No items found"));
   }
 
   // ========== Helper Methods ==========

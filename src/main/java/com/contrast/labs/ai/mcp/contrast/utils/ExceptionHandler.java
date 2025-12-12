@@ -16,9 +16,11 @@
 package com.contrast.labs.ai.mcp.contrast.utils;
 
 import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
+import com.contrast.labs.ai.mcp.contrast.data.ToolResponse;
 import com.contrastsecurity.exceptions.ResourceNotFoundException;
 import com.contrastsecurity.exceptions.UnauthorizedException;
 import java.io.IOException;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -64,12 +66,12 @@ public class ExceptionHandler {
    */
   public static <T> PaginatedResponse<T> toPaginatedResponse(Exception e, int page, int pageSize) {
     String message = categorizeException(e);
-    return PaginatedResponse.error(page, pageSize, message);
+    return PaginatedResponse.errors(page, pageSize, List.of(message));
   }
 
   /**
-   * Convert an exception to a simple error string for non-paginated tools. Use this in tool catch
-   * blocks when the tool doesn't return a PaginatedResponse.
+   * Convert an exception to a ToolResponse for non-paginated tools. Use this in tool catch blocks
+   * when the tool doesn't return a PaginatedResponse.
    *
    * <p>Usage:
    *
@@ -82,9 +84,23 @@ public class ExceptionHandler {
    * }</pre>
    *
    * @param e The exception to convert
-   * @return Formatted error string suitable for tool response
+   * @param <T> Response data type
+   * @return ToolResponse with categorized error
    */
-  public static String toToolResponse(Exception e) {
+  public static <T> ToolResponse<T> toToolResponse(Exception e) {
+    return ToolResponse.error(categorizeException(e));
+  }
+
+  /**
+   * Convert an exception to a simple error string for non-paginated tools. Use this when you need
+   * the raw error message string rather than a ToolResponse.
+   *
+   * @param e The exception to convert
+   * @return Formatted error string suitable for tool response
+   * @deprecated Use {@link #toToolResponse(Exception)} for structured error responses
+   */
+  @Deprecated
+  public static String toErrorString(Exception e) {
     return "Error: " + categorizeException(e);
   }
 

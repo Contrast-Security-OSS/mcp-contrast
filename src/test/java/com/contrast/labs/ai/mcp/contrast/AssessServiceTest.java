@@ -110,7 +110,7 @@ class AssessServiceTest {
               Integer totalItems = invocation.getArgument(2);
               // Return simple response - pagination logic tested in PaginationHandlerTest
               return new PaginatedResponse<>(
-                  items, params.page(), params.pageSize(), totalItems, false, null);
+                  items, params.page(), params.pageSize(), totalItems, false, List.of(), List.of());
             });
 
     // Mock the static SDKHelper.getSDK() method
@@ -232,7 +232,7 @@ class AssessServiceTest {
     when(mockContrastSDK.getTracesInOrg(eq(TEST_ORG_ID), any(TraceFilterForm.class)))
         .thenReturn(emptyTraces);
 
-    // Mock PaginationHandler to return "No items found." message like the real implementation
+    // Mock PaginationHandler to return "No items found." warning like the real implementation
     when(mockPaginationHandler.createPaginatedResponse(
             anyList(), any(PaginationParams.class), any(), anyList()))
         .thenAnswer(
@@ -241,9 +241,10 @@ class AssessServiceTest {
               var params = invocation.getArgument(1, PaginationParams.class);
               var totalItems = invocation.getArgument(2, Integer.class);
               // Real PaginationHandler returns "No items found." for empty page 1 results
-              var message = items.isEmpty() && params.page() == 1 ? "No items found." : null;
+              List<String> warnings =
+                  items.isEmpty() && params.page() == 1 ? List.of("No items found.") : List.of();
               return new PaginatedResponse<>(
-                  items, params.page(), params.pageSize(), totalItems, false, message);
+                  items, params.page(), params.pageSize(), totalItems, false, List.of(), warnings);
             });
 
     // When

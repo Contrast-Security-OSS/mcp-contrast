@@ -28,14 +28,16 @@ class ExceptionHandlerTest {
   // ========== toToolResponse Tests ==========
 
   @Test
-  void toToolResponse_should_prefix_with_error() {
+  void toToolResponse_should_return_error_response() {
     var exception = new RuntimeException("Something went wrong");
 
     var response = ExceptionHandler.toToolResponse(exception);
 
-    assertThat(response).startsWith("Error: ");
-    assertThat(response).contains("Internal error");
-    assertThat(response).contains("Something went wrong");
+    assertThat(response.isSuccess()).isFalse();
+    assertThat(response.data()).isNull();
+    assertThat(response.errors()).hasSize(1);
+    assertThat(response.errors().get(0)).contains("Internal error");
+    assertThat(response.errors().get(0)).contains("Something went wrong");
   }
 
   @Test
@@ -45,8 +47,9 @@ class ExceptionHandlerTest {
 
     var response = ExceptionHandler.toToolResponse(exception);
 
-    assertThat(response).startsWith("Error: ");
-    assertThat(response).contains("Authentication failed");
+    assertThat(response.isSuccess()).isFalse();
+    assertThat(response.errors()).hasSize(1);
+    assertThat(response.errors().get(0)).contains("Authentication failed");
   }
 
   @Test
@@ -56,9 +59,10 @@ class ExceptionHandlerTest {
 
     var response = ExceptionHandler.toToolResponse(exception);
 
-    assertThat(response).startsWith("Error: ");
-    assertThat(response).contains("Resource not found");
-    assertThat(response).contains("xyz");
+    assertThat(response.isSuccess()).isFalse();
+    assertThat(response.errors()).hasSize(1);
+    assertThat(response.errors().get(0)).contains("Resource not found");
+    assertThat(response.errors().get(0)).contains("xyz");
   }
 
   @Test
@@ -67,9 +71,22 @@ class ExceptionHandlerTest {
 
     var response = ExceptionHandler.toToolResponse(exception);
 
+    assertThat(response.isSuccess()).isFalse();
+    assertThat(response.errors()).hasSize(1);
+    assertThat(response.errors().get(0)).contains("Network error");
+    assertThat(response.errors().get(0)).contains("Connection timed out");
+  }
+
+  @Test
+  void toErrorString_should_return_formatted_string() {
+    var exception = new RuntimeException("Something went wrong");
+
+    @SuppressWarnings("deprecation")
+    var response = ExceptionHandler.toErrorString(exception);
+
     assertThat(response).startsWith("Error: ");
-    assertThat(response).contains("Network error");
-    assertThat(response).contains("Connection timed out");
+    assertThat(response).contains("Internal error");
+    assertThat(response).contains("Something went wrong");
   }
 
   // ========== toPaginatedResponse Tests ==========
@@ -85,7 +102,9 @@ class ExceptionHandlerTest {
     assertThat(response.pageSize()).isEqualTo(25);
     assertThat(response.totalItems()).isEqualTo(0);
     assertThat(response.hasMorePages()).isFalse();
-    assertThat(response.message()).isNotNull();
+    assertThat(response.errors()).hasSize(1);
+    assertThat(response.errors().get(0)).contains("Internal error");
+    assertThat(response.warnings()).isEmpty();
   }
 
   // ========== Authentication Errors ==========
