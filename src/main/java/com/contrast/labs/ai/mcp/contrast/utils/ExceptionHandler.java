@@ -119,8 +119,13 @@ public class ExceptionHandler {
       return "Rate limit exceeded. Please wait a few seconds and try again.";
     }
 
-    // Network/IO errors
+    // Network/IO errors - log as error since this blocks all functionality
     if (e instanceof IOException) {
+      log.atError()
+          .setCause(e)
+          .setMessage("Network error connecting to Contrast server")
+          .addKeyValue("exceptionType", e.getClass().getSimpleName())
+          .log();
       return "Network error connecting to Contrast server: "
           + e.getMessage()
           + ". Check CONTRAST_HOST_NAME and network connectivity.";
