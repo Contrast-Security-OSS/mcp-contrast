@@ -3,6 +3,7 @@ package com.contrast.labs.ai.mcp.contrast.sdkextension.data.application;
 import com.google.gson.annotations.SerializedName;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import lombok.Data;
 
 /** Represents an application from the Contrast API. */
@@ -118,30 +119,30 @@ public class Application {
   // These override Lombok's generated getters to ensure null-safety
 
   public List<String> getRoles() {
-    return roles != null ? roles : Collections.emptyList();
+    return Optional.ofNullable(roles).orElse(Collections.emptyList());
   }
 
   public List<String> getTags() {
-    return tags != null ? tags : Collections.emptyList();
+    return Optional.ofNullable(tags).orElse(Collections.emptyList());
   }
 
   public List<String> getTechs() {
-    return techs != null ? techs : Collections.emptyList();
+    return Optional.ofNullable(techs).orElse(Collections.emptyList());
   }
 
   public List<String> getPolicies() {
-    return policies != null ? policies : Collections.emptyList();
+    return Optional.ofNullable(policies).orElse(Collections.emptyList());
   }
 
   public List<Metadata> getMetadataEntities() {
-    return metadataEntities != null ? metadataEntities : Collections.emptyList();
+    return Optional.ofNullable(metadataEntities).orElse(Collections.emptyList());
   }
 
   public List<Field> getValidationErrorFields() {
-    return validationErrorFields != null ? validationErrorFields : Collections.emptyList();
+    return Optional.ofNullable(validationErrorFields).orElse(Collections.emptyList());
   }
 
   public List<Field> getMissingRequiredFields() {
-    return missingRequiredFields != null ? missingRequiredFields : Collections.emptyList();
+    return Optional.ofNullable(missingRequiredFields).orElse(Collections.emptyList());
   }
 }

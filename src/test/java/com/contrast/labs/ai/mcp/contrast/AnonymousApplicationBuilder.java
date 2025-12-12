@@ -8,6 +8,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Metadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -75,7 +76,7 @@ public class AnonymousApplicationBuilder {
 
   public AnonymousApplicationBuilder withTags(List<String> tags) {
     // Never null collections pattern - use empty list if null
-    this.tags = tags != null ? tags : Collections.emptyList();
+    this.tags = Optional.ofNullable(tags).orElse(Collections.emptyList());
     return this;
   }
 
@@ -86,7 +87,7 @@ public class AnonymousApplicationBuilder {
 
   public AnonymousApplicationBuilder withTechs(List<String> techs) {
     // Never null collections pattern - use empty list if null
-    this.techs = techs != null ? techs : Collections.emptyList();
+    this.techs = Optional.ofNullable(techs).orElse(Collections.emptyList());
     return this;
   }
 
@@ -100,7 +101,7 @@ public class AnonymousApplicationBuilder {
 
   public AnonymousApplicationBuilder withMetadataEntities(List<Metadata> metadataEntities) {
     // Never null collections pattern - use empty list if null
-    this.metadataEntities = metadataEntities != null ? metadataEntities : Collections.emptyList();
+    this.metadataEntities = Optional.ofNullable(metadataEntities).orElse(Collections.emptyList());
     return this;
   }
 

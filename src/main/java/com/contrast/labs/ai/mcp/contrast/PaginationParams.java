@@ -30,6 +30,13 @@ import java.util.List;
  */
 public record PaginationParams(
     int page, int pageSize, int offset, int limit, List<String> warnings) {
+
+  /** Default page size when none specified. */
+  public static final int DEFAULT_PAGE_SIZE = 50;
+
+  /** Maximum allowed page size. */
+  public static final int MAX_PAGE_SIZE = 100;
+
   /**
    * Parse and validate pagination parameters. Invalid values are clamped to acceptable defaults
    * with warnings.
@@ -48,14 +55,17 @@ public record PaginationParams(
     }
 
     // Soft failure: invalid pageSize → clamp to range
-    int actualSize = pageSize != null && pageSize > 0 ? pageSize : 50;
+    int actualSize = pageSize != null && pageSize > 0 ? pageSize : DEFAULT_PAGE_SIZE;
     if (pageSize != null && pageSize < 1) {
-      warnings.add(String.format("Invalid pageSize %d, using default 50", pageSize));
-      actualSize = 50;
-    } else if (pageSize != null && pageSize > 100) {
       warnings.add(
-          String.format("Requested pageSize %d exceeds maximum 100, capped to 100", pageSize));
-      actualSize = 100;
+          String.format("Invalid pageSize %d, using default %d", pageSize, DEFAULT_PAGE_SIZE));
+      actualSize = DEFAULT_PAGE_SIZE;
+    } else if (pageSize != null && pageSize > MAX_PAGE_SIZE) {
+      warnings.add(
+          String.format(
+              "Requested pageSize %d exceeds maximum %d, capped to %d",
+              pageSize, MAX_PAGE_SIZE, MAX_PAGE_SIZE));
+      actualSize = MAX_PAGE_SIZE;
     }
 
     return new PaginationParams(

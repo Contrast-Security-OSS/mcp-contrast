@@ -7,6 +7,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCo
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrastsecurity.models.RouteCoverageMetadataLabelValues;
 import java.io.IOException;
+import java.util.Collections;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.beans.factory.annotation.Value;
@@ -61,9 +62,11 @@ public class RouteCoverageService {
               + " not exercised) or EXERCISED (received HTTP traffic). All filter parameters are"
               + " truly optional - if none provided (null or empty strings), returns all routes"
               + " across all sessions. Parameters: appId (required), sessionMetadataName"
-              + " (optional), sessionMetadataValue (optional). NOTE: sessionMetadataName and"
-              + " sessionMetadataValue must be provided together or both omitted - providing"
-              + " only one will result in an error. useLatestSession (optional).")
+              + " (optional), sessionMetadataValue (optional), useLatestSession (optional). NOTE:"
+              + " sessionMetadataName and sessionMetadataValue must be provided together or both"
+              + " omitted. IMPORTANT: useLatestSession and sessionMetadataName/Value are mutually"
+              + " exclusive - if both are provided, useLatestSession takes precedence and the"
+              + " session metadata filter is ignored.")
   public RouteCoverageResponse getRouteCoverage(
       String appId,
       String sessionMetadataName,
@@ -85,6 +88,17 @@ public class RouteCoverageService {
       var errorMsg = "sessionMetadataName is required when sessionMetadataValue is provided";
       log.error(errorMsg);
       throw new IllegalArgumentException(errorMsg);
+    }
+
+    // Warn if mutually exclusive parameters are both provided
+    if (Boolean.TRUE.equals(useLatestSession) && StringUtils.hasText(sessionMetadataName)) {
+      log.atWarn()
+          .setMessage(
+              "Both useLatestSession and sessionMetadataName provided - these are mutually"
+                  + " exclusive. Using useLatestSession and ignoring sessionMetadataName/Value.")
+          .addKeyValue("sessionMetadataName", sessionMetadataName)
+          .addKeyValue("sessionMetadataValue", sessionMetadataValue)
+          .log();
     }
 
     // Initialize SDK
@@ -133,6 +147,20 @@ public class RouteCoverageService {
     // Call SDK to get route coverage
     log.debug("Fetching route coverage data for application ID: {}", appId);
     var response = sdkExtension.getRouteCoverage(orgID, appId, requestExtended);
+
+    // Defensive null checks - API may return null on errors or permission issues
+    if (response == null) {
+      log.error("Route coverage API returned null for app {}", appId);
+      var errorResponse = new RouteCoverageResponse();
+      errorResponse.setSuccess(false);
+      return errorResponse;
+    }
+
+    if (response.getRoutes() == null) {
+      log.warn("No routes returned for app {} - returning empty response", appId);
+      response.setRoutes(Collections.emptyList());
+    }
+
     log.debug("Found {} routes for application", response.getRoutes().size());
 
     // Fetch route details for each route
