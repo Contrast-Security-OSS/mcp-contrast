@@ -68,6 +68,27 @@ public class ExceptionHandler {
   }
 
   /**
+   * Convert an exception to a simple error string for non-paginated tools. Use this in tool catch
+   * blocks when the tool doesn't return a PaginatedResponse.
+   *
+   * <p>Usage:
+   *
+   * <pre>{@code
+   * try {
+   *   // ... tool logic
+   * } catch (Exception e) {
+   *   return ExceptionHandler.toToolResponse(e);
+   * }
+   * }</pre>
+   *
+   * @param e The exception to convert
+   * @return Formatted error string suitable for tool response
+   */
+  public static String toToolResponse(Exception e) {
+    return "Error: " + categorizeException(e);
+  }
+
+  /**
    * Categorize an exception and return a user-friendly error message. Internal errors are logged
    * for debugging.
    *

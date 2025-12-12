@@ -25,6 +25,53 @@ import org.junit.jupiter.api.Test;
 /** Tests for ExceptionHandler categorized error handling. */
 class ExceptionHandlerTest {
 
+  // ========== toToolResponse Tests ==========
+
+  @Test
+  void toToolResponse_should_prefix_with_error() {
+    var exception = new RuntimeException("Something went wrong");
+
+    var response = ExceptionHandler.toToolResponse(exception);
+
+    assertThat(response).startsWith("Error: ");
+    assertThat(response).contains("Internal error");
+    assertThat(response).contains("Something went wrong");
+  }
+
+  @Test
+  void toToolResponse_should_handle_authentication_error() {
+    var exception =
+        new UnauthorizedException("Unauthorized", "GET", "/api/test", 401, "Unauthorized");
+
+    var response = ExceptionHandler.toToolResponse(exception);
+
+    assertThat(response).startsWith("Error: ");
+    assertThat(response).contains("Authentication failed");
+  }
+
+  @Test
+  void toToolResponse_should_handle_not_found_error() {
+    var exception =
+        new ResourceNotFoundException("App xyz not found", "GET", "/api/apps/xyz", "Not Found");
+
+    var response = ExceptionHandler.toToolResponse(exception);
+
+    assertThat(response).startsWith("Error: ");
+    assertThat(response).contains("Resource not found");
+    assertThat(response).contains("xyz");
+  }
+
+  @Test
+  void toToolResponse_should_handle_network_error() {
+    var exception = new IOException("Connection timed out");
+
+    var response = ExceptionHandler.toToolResponse(exception);
+
+    assertThat(response).startsWith("Error: ");
+    assertThat(response).contains("Network error");
+    assertThat(response).contains("Connection timed out");
+  }
+
   // ========== toPaginatedResponse Tests ==========
 
   @Test
