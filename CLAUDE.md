@@ -9,17 +9,33 @@ This is an MCP (Model Context Protocol) server for Contrast Security that enable
 ## Build and Development Commands
 
 ### Building the Project
+
+Use these make targets for all checks and tests:
+
+```bash
+make check       # Run format check (quiet output)
+make test        # Run unit tests (quiet output)
+make check-test  # Run both checks and tests
+make verify      # Run all tests including integration
+make format      # Auto-format code with Spotless
+make build       # Build the project
+make clean       # Clean build artifacts
+
+# Verbose output when debugging failures
+make test VERBOSE=1
+make check VERBOSE=1
+```
+
+**Direct Maven commands** (verbose output, use make targets above for quiet output):
 - **Build**: `mvn clean install` or `./mvnw clean install`
-- **Test (unit)**: `mvn test` - Unit tests only
-- **Test (all)**: `source .env.integration-test && mvn verify` - Unit + integration tests
-- **Test (skip integration)**: `mvn verify -DskipITs` - Unit tests only
-- **Format code**: `mvn spotless:apply` - Auto-format all Java files (run before committing)
-- **Check formatting**: `mvn spotless:check` - Verify code formatting (runs automatically during build)
+- **Test (unit)**: `mvn test`
+- **Test (all)**: `source .env.integration-test && mvn verify`
+- **Format code**: `mvn spotless:apply`
 - **Run locally**: `java -jar target/mcp-contrast-0.0.11.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
 
-**Note:** Spotless enforces Google Java Format style automatically. The `spotless:check` goal runs during the `validate` phase, so any `mvn compile`, `mvn test`, or `mvn install` will fail if code is not properly formatted. Run `mvn spotless:apply` before committing to ensure formatting is correct.
+**Note:** Spotless enforces Google Java Format style automatically. Run `make format` before committing.
 
-**Integration Tests:** Integration tests require Contrast credentials in `.env.integration-test` (copy from `.env.integration-test.template`). Tests only run when `CONTRAST_HOST_NAME` env var is set. See INTEGRATION_TESTS.md for details.
+**Integration Tests:** Require Contrast credentials in `.env.integration-test` (copy from `.env.integration-test.template`). See INTEGRATION_TESTS.md for details.
 
 ### Docker Commands
 - **Build Docker image**: `docker build -t mcp-contrast .`
