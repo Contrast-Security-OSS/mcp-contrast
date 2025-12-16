@@ -177,6 +177,48 @@ class ToolValidationContextTest {
     assertThat(ctx.errors()).isEmpty();
   }
 
+  // -- requireUuid tests --
+
+  @Test
+  void requireUuid_should_add_error_when_null() {
+    ctx.requireUuid(null, "vulnId");
+
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors()).containsExactly("vulnId is required");
+  }
+
+  @Test
+  void requireUuid_should_add_error_when_blank() {
+    ctx.requireUuid("   ", "vulnId");
+
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors()).containsExactly("vulnId is required");
+  }
+
+  @Test
+  void requireUuid_should_add_error_when_invalid_format() {
+    ctx.requireUuid("not-a-uuid", "vulnId");
+
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors()).hasSize(1);
+    assertThat(ctx.errors().get(0)).contains("UUID format");
+  }
+
+  @Test
+  void requireUuid_should_pass_when_valid_uuid() {
+    ctx.requireUuid("550e8400-e29b-41d4-a716-446655440000", "vulnId");
+
+    assertThat(ctx.isValid()).isTrue();
+    assertThat(ctx.errors()).isEmpty();
+  }
+
+  @Test
+  void requireUuid_should_accept_uppercase_uuid() {
+    ctx.requireUuid("550E8400-E29B-41D4-A716-446655440000", "vulnId");
+
+    assertThat(ctx.isValid()).isTrue();
+  }
+
   // -- requireAtLeastOne tests --
 
   @Test

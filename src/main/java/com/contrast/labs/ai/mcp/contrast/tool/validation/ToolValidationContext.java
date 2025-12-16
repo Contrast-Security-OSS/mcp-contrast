@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.util.StringUtils;
 
 /**
@@ -149,6 +150,37 @@ public class ToolValidationContext implements ToolParams {
   public void require(String value, String name) {
     if (!StringUtils.hasText(value)) {
       errors.add(String.format("%s is required", name));
+    }
+  }
+
+  /**
+   * Validates that a required parameter is present and is a valid UUID format.
+   *
+   * @param value the parameter value
+   * @param name the parameter name for error messages
+   */
+  public void requireUuid(String value, String name) {
+    if (!StringUtils.hasText(value)) {
+      errors.add(String.format("%s is required", name));
+    } else if (!isValidUuid(value)) {
+      errors.add(
+          String.format(
+              "%s must be a valid UUID format (e.g., 550e8400-e29b-41d4-a716-446655440000)", name));
+    }
+  }
+
+  /**
+   * Checks if the string is a valid UUID format.
+   *
+   * @param str the string to check
+   * @return true if valid UUID, false otherwise
+   */
+  private static boolean isValidUuid(String str) {
+    try {
+      UUID.fromString(str);
+      return true;
+    } catch (IllegalArgumentException e) {
+      return false;
     }
   }
 
