@@ -178,20 +178,20 @@ public class ToolValidationContext implements ToolParams {
   }
 
   /**
-   * Adds an error message. Package-private for use by Spec classes.
+   * Adds an error message. Protected for use by Spec classes and subclasses.
    *
    * @param message the error message
    */
-  void addError(String message) {
+  protected void addError(String message) {
     errors.add(message);
   }
 
   /**
-   * Adds a warning message. Package-private for use by Spec classes.
+   * Adds a warning message. Protected for use by Spec classes and subclasses.
    *
    * @param message the warning message
    */
-  void addWarning(String message) {
+  protected void addWarning(String message) {
     warnings.add(message);
   }
 
