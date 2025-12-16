@@ -1,0 +1,229 @@
+/*
+ * Copyright 2025 Contrast Security
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package com.contrast.labs.ai.mcp.contrast.tool.base;
+
+import com.contrast.labs.ai.mcp.contrast.PaginationParams;
+import com.contrast.labs.ai.mcp.contrast.config.ContrastConfig;
+import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
+import com.contrastsecurity.exceptions.HttpResponseException;
+import com.contrastsecurity.exceptions.ResourceNotFoundException;
+import com.contrastsecurity.exceptions.UnauthorizedException;
+import com.contrastsecurity.sdk.ContrastSDK;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.Supplier;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+
+/**
+ * Abstract base class for paginated MCP search tools. Enforces a consistent processing pipeline via
+ * Template Method pattern.
+ *
+ * <p>Subclasses implement {@link #doExecute} for tool-specific logic. The base class handles:
+ *
+ * <ul>
+ *   <li>Pagination parameter parsing and validation
+ *   <li>Tool parameter validation
+ *   <li>Exception handling with user-friendly messages
+ *   <li>Request ID generation for log correlation
+ *   <li>Duration tracking for performance monitoring
+ *   <li>Consistent response building
+ * </ul>
+ *
+ * @param <P> the tool parameters type (must implement {@link ToolParams})
+ * @param <R> the result item type
+ */
+@Slf4j
+public abstract class BaseMcpTool<P extends ToolParams, R> {
+
+  @Autowired protected ContrastConfig config;
+
+  /**
+   * Template method - defines the mandatory processing pipeline. Subclasses implement doExecute()
+   * for tool-specific logic. This method is FINAL to enforce consistent processing.
+   *
+   * @param page requested page number (1-based), null defaults to 1
+   * @param pageSize requested page size, null defaults to 50
+   * @param paramsSupplier lazy supplier of tool-specific parameters
+   * @return paginated response with items or errors
+   */
+  protected final PaginatedResponse<R> executePipeline(
+      Integer page, Integer pageSize, Supplier<P> paramsSupplier) {
+
+    var requestId = UUID.randomUUID().toString().substring(0, 8);
+    long startTime = System.currentTimeMillis();
+
+    // 1. Parse pagination FIRST (always succeeds with warnings)
+    var pagination = PaginationParams.of(page, pageSize);
+
+    // 2. Parse tool-specific params (collects all errors)
+    var params = paramsSupplier.get();
+
+    // 3. MUTABLE warnings list - doExecute can ADD to this
+    var warnings = new ArrayList<String>();
+    warnings.addAll(pagination.warnings());
+    warnings.addAll(params.warnings());
+
+    // 4. Single validation checkpoint - ALL errors collected
+    if (!params.isValid()) {
+      logValidationError(requestId, params.errors());
+      return PaginatedResponse.validationError(
+          pagination.page(), pagination.pageSize(), params.errors());
+    }
+
+    // 5. Execute - doExecute returns intermediate result, can add warnings
+    try {
+      var result = doExecute(pagination, params, warnings);
+      var duration = System.currentTimeMillis() - startTime;
+
+      // 6. BASE CLASS builds final response - ensures consistency
+      return buildSuccessResponse(result, pagination, warnings, duration, requestId);
+
+    } catch (UnauthorizedException e) {
+      return handleException(
+          e, pagination, requestId, "Authentication failed. Check API credentials.");
+    } catch (ResourceNotFoundException e) {
+      return handleException(e, pagination, requestId, "Resource not found: " + e.getMessage());
+    } catch (HttpResponseException e) {
+      return handleHttpResponseException(e, pagination, requestId);
+    } catch (Exception e) {
+      log.atError()
+          .addKeyValue("requestId", requestId)
+          .setCause(e)
+          .setMessage("Request failed unexpectedly")
+          .log();
+      return PaginatedResponse.error(
+          pagination.page(), pagination.pageSize(), "Internal error: " + e.getMessage());
+    }
+  }
+
+  /**
+   * Subclasses implement tool-specific execution logic.
+   *
+   * @param pagination validated pagination params
+   * @param params validated tool-specific params
+   * @param warnings MUTABLE list - add execution-time warnings here
+   * @return ExecutionResult with items and optional total count
+   * @throws Exception any exception from SDK or processing
+   */
+  protected abstract ExecutionResult<R> doExecute(
+      PaginationParams pagination, P params, List<String> warnings) throws Exception;
+
+  /**
+   * Creates a ContrastSDK instance using the configured credentials.
+   *
+   * @return configured ContrastSDK
+   */
+  protected ContrastSDK getContrastSDK() {
+    return config.createSDK();
+  }
+
+  /**
+   * Returns the organization ID from configuration.
+   *
+   * @return organization ID
+   */
+  protected String getOrgId() {
+    return config.getOrgId();
+  }
+
+  private PaginatedResponse<R> handleException(
+      Exception e, PaginationParams pagination, String requestId, String userMessage) {
+    log.atWarn()
+        .addKeyValue("requestId", requestId)
+        .addKeyValue("exceptionType", e.getClass().getSimpleName())
+        .setMessage("Request failed: {}")
+        .addArgument(e.getMessage())
+        .log();
+    return PaginatedResponse.error(pagination.page(), pagination.pageSize(), userMessage);
+  }
+
+  private PaginatedResponse<R> handleHttpResponseException(
+      HttpResponseException e, PaginationParams pagination, String requestId) {
+
+    String errorMessage =
+        switch (e.getCode()) {
+          case 401 -> "Authentication failed. Verify API credentials.";
+          case 403 -> "Access denied. User lacks permission for this resource.";
+          case 404 -> "Resource not found.";
+          case 429 -> "Rate limit exceeded. Retry later.";
+          case 500, 502, 503 -> "Contrast API error. Try again later.";
+          default -> "API error: " + e.getMessage();
+        };
+
+    log.atWarn()
+        .addKeyValue("requestId", requestId)
+        .addKeyValue("httpStatus", e.getCode())
+        .setMessage("API error: {}")
+        .addArgument(e.getMessage())
+        .log();
+
+    return PaginatedResponse.error(pagination.page(), pagination.pageSize(), errorMessage);
+  }
+
+  private PaginatedResponse<R> buildSuccessResponse(
+      ExecutionResult<R> result,
+      PaginationParams pagination,
+      List<String> warnings,
+      long duration,
+      String requestId) {
+
+    if (result.items().isEmpty() && result.totalItems() != null && result.totalItems() == 0) {
+      warnings.add("No results found matching the specified criteria.");
+    }
+
+    boolean hasMore = calculateHasMorePages(result, pagination);
+
+    logSuccess(requestId, duration, result.items().size(), result.totalItems());
+
+    return PaginatedResponse.success(
+        result.items(),
+        pagination.page(),
+        pagination.pageSize(),
+        result.totalItems(),
+        hasMore,
+        warnings,
+        duration);
+  }
+
+  private boolean calculateHasMorePages(ExecutionResult<R> result, PaginationParams pagination) {
+    if (result.totalItems() != null) {
+      return pagination.offset() + result.items().size() < result.totalItems();
+    }
+    // Unknown total - assume more pages if we got a full page
+    return result.items().size() >= pagination.limit();
+  }
+
+  private void logValidationError(String requestId, List<String> errors) {
+    log.atDebug()
+        .addKeyValue("requestId", requestId)
+        .addKeyValue("errorCount", errors.size())
+        .setMessage("Validation failed: {}")
+        .addArgument(String.join(", ", errors))
+        .log();
+  }
+
+  private void logSuccess(String requestId, long duration, int itemCount, Integer totalItems) {
+    log.atDebug()
+        .addKeyValue("requestId", requestId)
+        .addKeyValue("durationMs", duration)
+        .addKeyValue("itemCount", itemCount)
+        .addKeyValue("totalItems", totalItems)
+        .setMessage("Request completed successfully")
+        .log();
+  }
+}
