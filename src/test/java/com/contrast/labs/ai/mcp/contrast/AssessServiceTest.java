@@ -109,8 +109,8 @@ class AssessServiceTest {
               PaginationParams params = invocation.getArgument(1);
               Integer totalItems = invocation.getArgument(2);
               // Return simple response - pagination logic tested in PaginationHandlerTest
-              return new PaginatedResponse<>(
-                  items, params.page(), params.pageSize(), totalItems, false, null);
+              return PaginatedResponse.success(
+                  items, params.page(), params.pageSize(), totalItems, false, List.of(), null);
             });
 
     // Mock the static SDKHelper.getSDK() method
@@ -241,9 +241,10 @@ class AssessServiceTest {
               var params = invocation.getArgument(1, PaginationParams.class);
               var totalItems = invocation.getArgument(2, Integer.class);
               // Real PaginationHandler returns "No items found." for empty page 1 results
-              var message = items.isEmpty() && params.page() == 1 ? "No items found." : null;
-              return new PaginatedResponse<>(
-                  items, params.page(), params.pageSize(), totalItems, false, message);
+              List<String> warnings =
+                  items.isEmpty() && params.page() == 1 ? List.of("No items found.") : List.of();
+              return PaginatedResponse.success(
+                  items, params.page(), params.pageSize(), totalItems, false, warnings, null);
             });
 
     // When
