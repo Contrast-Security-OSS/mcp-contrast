@@ -6,8 +6,8 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
 
-# Install the 'shadow' package to get groupadd and useradd
-RUN apk add --no-cache shadow
+# Upgrade all packages to get security patches, then install shadow for user management
+RUN apk upgrade --no-cache && apk add --no-cache shadow
 
 # Create a non-root user to run the application
 RUN groupadd -r appgroup && useradd -r -g appgroup appuser
