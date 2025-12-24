@@ -54,7 +54,7 @@ class GetProtectRulesToolTest {
   void setUp() {
     tool = new GetProtectRulesTool();
     ReflectionTestUtils.setField(tool, "config", config);
-    when(config.createSDK()).thenReturn(sdk);
+    when(config.getSDK()).thenReturn(sdk);
     when(config.getOrgId()).thenReturn(TEST_ORG_ID);
   }
 

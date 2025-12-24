@@ -17,17 +17,21 @@ package com.contrast.labs.ai.mcp.contrast.config;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrastsecurity.sdk.ContrastSDK;
+import lombok.AccessLevel;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
  * Centralized configuration for Contrast SDK. Eliminates duplicated @Value field declarations
- * across service classes.
+ * across service classes. Caches a single SDK instance for reuse across all tool calls.
  */
 @Component
 @Getter
 public class ContrastConfig {
+
+  @Getter(AccessLevel.NONE)
+  private ContrastSDK sdkInstance;
 
   @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
   private String hostName;
@@ -54,11 +58,17 @@ public class ContrastConfig {
   private String protocol;
 
   /**
-   * Creates a new ContrastSDK instance with the configured credentials.
+   * Returns a cached ContrastSDK instance, creating it on first access. Thread-safe via
+   * synchronized lazy initialization. The SDK is safe to share across threads as it maintains no
+   * per-request state.
    *
-   * @return configured ContrastSDK instance
+   * @return cached ContrastSDK instance
    */
-  public ContrastSDK createSDK() {
-    return SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+  public synchronized ContrastSDK getSDK() {
+    if (sdkInstance == null) {
+      sdkInstance =
+          SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+    }
+    return sdkInstance;
   }
 }

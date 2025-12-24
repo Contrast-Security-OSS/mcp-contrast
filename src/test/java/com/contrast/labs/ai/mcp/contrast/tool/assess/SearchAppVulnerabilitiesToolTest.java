@@ -51,7 +51,7 @@ class SearchAppVulnerabilitiesToolTest {
     sdk = mock();
     config = mock();
 
-    when(config.createSDK()).thenReturn(sdk);
+    when(config.getSDK()).thenReturn(sdk);
     when(config.getOrgId()).thenReturn(ORG_ID);
 
     tool = new SearchAppVulnerabilitiesTool(mapper);

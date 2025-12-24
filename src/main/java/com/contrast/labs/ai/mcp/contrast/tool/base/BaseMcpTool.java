@@ -124,12 +124,12 @@ public abstract class BaseMcpTool<P extends ToolParams, R> {
       PaginationParams pagination, P params, List<String> warnings) throws Exception;
 
   /**
-   * Creates a ContrastSDK instance using the configured credentials.
+   * Returns the cached ContrastSDK instance from configuration.
    *
-   * @return configured ContrastSDK
+   * @return cached ContrastSDK
    */
   protected ContrastSDK getContrastSDK() {
-    return config.createSDK();
+    return config.getSDK();
   }
 
   /**
