@@ -61,7 +61,7 @@ class ListApplicationsByCveToolTest {
     sdk = mock();
     config = mock();
 
-    when(config.createSDK()).thenReturn(sdk);
+    when(config.getSDK()).thenReturn(sdk);
     when(config.getOrgId()).thenReturn(TEST_ORG_ID);
 
     tool = new ListApplicationsByCveTool();
