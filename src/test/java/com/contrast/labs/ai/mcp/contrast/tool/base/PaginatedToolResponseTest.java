@@ -13,20 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.contrast.labs.ai.mcp.contrast.data;
+package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-class PaginatedResponseTest {
+class PaginatedToolResponseTest {
 
   // ========== success() factory method tests ==========
 
   @Test
   void success_should_createResponseWithEmptyErrors() {
-    var response = PaginatedResponse.success(List.of("item1"), 1, 50, 1, false, List.of(), 100L);
+    var response =
+        PaginatedToolResponse.success(List.of("item1"), 1, 50, 1, false, List.of(), 100L);
 
     assertThat(response.items()).containsExactly("item1");
     assertThat(response.errors()).isEmpty();
@@ -38,7 +39,7 @@ class PaginatedResponseTest {
   @Test
   void success_should_includeWarnings() {
     var response =
-        PaginatedResponse.success(
+        PaginatedToolResponse.success(
             List.of("item1"), 1, 50, 1, false, List.of("Applied default status"), 100L);
 
     assertThat(response.items()).containsExactly("item1");
@@ -52,7 +53,7 @@ class PaginatedResponseTest {
   @Test
   void validationError_should_createResponseWithErrors() {
     var response =
-        PaginatedResponse.validationError(
+        PaginatedToolResponse.validationError(
             1, 50, List.of("Invalid severity: CRIT", "Invalid status: UNKNOWN"));
 
     assertThat(response.items()).isEmpty();
@@ -68,7 +69,7 @@ class PaginatedResponseTest {
 
   @Test
   void error_should_createSingleErrorResponse() {
-    var response = PaginatedResponse.error(2, 25, "Page 2 exceeds available pages");
+    var response = PaginatedToolResponse.error(2, 25, "Page 2 exceeds available pages");
 
     assertThat(response.items()).isEmpty();
     assertThat(response.errors()).containsExactly("Page 2 exceeds available pages");
@@ -82,7 +83,7 @@ class PaginatedResponseTest {
 
   @Test
   void empty_should_createEmptyResponseWithWarning() {
-    var response = PaginatedResponse.empty(1, 50, "No items found.");
+    var response = PaginatedToolResponse.empty(1, 50, "No items found.");
 
     assertThat(response.items()).isEmpty();
     assertThat(response.errors()).isEmpty();
@@ -94,14 +95,15 @@ class PaginatedResponseTest {
 
   @Test
   void isSuccess_should_returnFalseWhenErrorsPresent() {
-    var response = PaginatedResponse.error(1, 50, "Error occurred");
+    var response = PaginatedToolResponse.error(1, 50, "Error occurred");
 
     assertThat(response.isSuccess()).isFalse();
   }
 
   @Test
   void isSuccess_should_returnTrueWhenNoErrors() {
-    var response = PaginatedResponse.success(List.of(), 1, 50, 0, false, List.of("warning"), null);
+    var response =
+        PaginatedToolResponse.success(List.of(), 1, 50, 0, false, List.of("warning"), null);
 
     assertThat(response.isSuccess()).isTrue();
   }
@@ -111,7 +113,7 @@ class PaginatedResponseTest {
   @Test
   @SuppressWarnings("deprecation")
   void message_deprecated_should_returnErrors() {
-    var response = PaginatedResponse.validationError(1, 50, List.of("Error 1", "Error 2"));
+    var response = PaginatedToolResponse.validationError(1, 50, List.of("Error 1", "Error 2"));
 
     assertThat(response.message()).isEqualTo("Error 1 Error 2");
   }
@@ -120,7 +122,7 @@ class PaginatedResponseTest {
   @SuppressWarnings("deprecation")
   void message_deprecated_should_returnWarningsWhenNoErrors() {
     var response =
-        PaginatedResponse.success(
+        PaginatedToolResponse.success(
             List.of(), 1, 50, 0, false, List.of("Warning 1", "Warning 2"), null);
 
     assertThat(response.message()).isEqualTo("Warning 1 Warning 2");
@@ -129,7 +131,7 @@ class PaginatedResponseTest {
   @Test
   @SuppressWarnings("deprecation")
   void message_deprecated_should_returnNullWhenNoMessagesExist() {
-    var response = PaginatedResponse.success(List.of("item"), 1, 50, 1, false, List.of(), 100L);
+    var response = PaginatedToolResponse.success(List.of("item"), 1, 50, 1, false, List.of(), 100L);
 
     assertThat(response.message()).isNull();
   }
@@ -138,21 +140,22 @@ class PaginatedResponseTest {
 
   @Test
   void compactConstructor_should_ensureNonNullLists_whenItemsNull() {
-    var response = new PaginatedResponse<String>(null, 1, 50, 0, false, List.of(), List.of(), null);
+    var response =
+        new PaginatedToolResponse<String>(null, 1, 50, 0, false, List.of(), List.of(), null);
 
     assertThat(response.items()).isNotNull().isEmpty();
   }
 
   @Test
   void compactConstructor_should_ensureNonNullLists_whenErrorsNull() {
-    var response = new PaginatedResponse<>(List.of(), 1, 50, 0, false, null, List.of(), null);
+    var response = new PaginatedToolResponse<>(List.of(), 1, 50, 0, false, null, List.of(), null);
 
     assertThat(response.errors()).isNotNull().isEmpty();
   }
 
   @Test
   void compactConstructor_should_ensureNonNullLists_whenWarningsNull() {
-    var response = new PaginatedResponse<>(List.of(), 1, 50, 0, false, List.of(), null, null);
+    var response = new PaginatedToolResponse<>(List.of(), 1, 50, 0, false, List.of(), null, null);
 
     assertThat(response.warnings()).isNotNull().isEmpty();
   }
@@ -163,7 +166,7 @@ class PaginatedResponseTest {
     mutableItems.add("item1");
 
     var response =
-        new PaginatedResponse<>(mutableItems, 1, 50, 1, false, List.of(), List.of(), null);
+        new PaginatedToolResponse<>(mutableItems, 1, 50, 1, false, List.of(), List.of(), null);
 
     // Modify original list
     mutableItems.add("item2");
@@ -177,7 +180,7 @@ class PaginatedResponseTest {
   @Test
   void should_preservePaginationMetadata() {
     var response =
-        PaginatedResponse.success(List.of("a", "b", "c"), 3, 25, 100, true, List.of(), 150L);
+        PaginatedToolResponse.success(List.of("a", "b", "c"), 3, 25, 100, true, List.of(), 150L);
 
     assertThat(response.page()).isEqualTo(3);
     assertThat(response.pageSize()).isEqualTo(25);

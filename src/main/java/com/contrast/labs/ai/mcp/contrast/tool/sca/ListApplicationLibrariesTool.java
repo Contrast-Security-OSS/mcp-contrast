@@ -18,8 +18,8 @@ package com.contrast.labs.ai.mcp.contrast.tool.sca;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseGetTool;
-import com.contrast.labs.ai.mcp.contrast.tool.base.ToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.sca.params.ListApplicationLibrariesParams;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +37,7 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class ListApplicationLibrariesTool
-    extends BaseGetTool<ListApplicationLibrariesParams, List<LibraryExtended>> {
+    extends BaseSingleTool<ListApplicationLibrariesParams, List<LibraryExtended>> {
 
   @Tool(
       name = "list_application_libraries",
@@ -64,7 +64,7 @@ public class ListApplicationLibrariesTool
           - search_applications: Find application IDs by name, tag, or metadata
           - list_applications_by_cve: Find applications affected by a specific CVE
           """)
-  public ToolResponse<List<LibraryExtended>> listApplicationLibraries(
+  public SingleToolResponse<List<LibraryExtended>> listApplicationLibraries(
       @ToolParam(description = "Application ID (use search_applications to find)") String appId) {
     return executePipeline(() -> ListApplicationLibrariesParams.of(appId));
   }

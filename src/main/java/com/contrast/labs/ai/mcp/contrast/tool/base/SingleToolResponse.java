@@ -20,7 +20,7 @@ import java.util.List;
 
 /**
  * Response wrapper for non-paginated tools (get_* tools). Separates errors from warnings like
- * PaginatedResponse.
+ * PaginatedToolResponse.
  *
  * @param <T> the type of data in the response
  * @param data the response data (null if not found or error)
@@ -28,10 +28,11 @@ import java.util.List;
  * @param warnings non-fatal warnings (e.g., applied defaults)
  * @param found true if the requested item was found, false if not found or error
  */
-public record ToolResponse<T>(T data, List<String> errors, List<String> warnings, boolean found) {
+public record SingleToolResponse<T>(
+    T data, List<String> errors, List<String> warnings, boolean found) {
 
   /** Compact constructor ensures non-null, immutable error and warning lists. */
-  public ToolResponse {
+  public SingleToolResponse {
     errors = errors != null ? List.copyOf(errors) : List.of();
     warnings = warnings != null ? List.copyOf(warnings) : List.of();
   }
@@ -53,8 +54,8 @@ public record ToolResponse<T>(T data, List<String> errors, List<String> warnings
    * @param <T> the data type
    * @return successful response
    */
-  public static <T> ToolResponse<T> success(T data, List<String> warnings) {
-    return new ToolResponse<>(data, List.of(), warnings, true);
+  public static <T> SingleToolResponse<T> success(T data, List<String> warnings) {
+    return new SingleToolResponse<>(data, List.of(), warnings, true);
   }
 
   /**
@@ -64,7 +65,7 @@ public record ToolResponse<T>(T data, List<String> errors, List<String> warnings
    * @param <T> the data type
    * @return successful response
    */
-  public static <T> ToolResponse<T> success(T data) {
+  public static <T> SingleToolResponse<T> success(T data) {
     return success(data, List.of());
   }
 
@@ -76,10 +77,10 @@ public record ToolResponse<T>(T data, List<String> errors, List<String> warnings
    * @param <T> the data type
    * @return not-found response with found=false
    */
-  public static <T> ToolResponse<T> notFound(String message, List<String> warnings) {
+  public static <T> SingleToolResponse<T> notFound(String message, List<String> warnings) {
     var allWarnings = new ArrayList<>(warnings);
     allWarnings.add(message);
-    return new ToolResponse<>(null, List.of(), allWarnings, false);
+    return new SingleToolResponse<>(null, List.of(), allWarnings, false);
   }
 
   /**
@@ -89,8 +90,8 @@ public record ToolResponse<T>(T data, List<String> errors, List<String> warnings
    * @param <T> the data type
    * @return error response
    */
-  public static <T> ToolResponse<T> error(String error) {
-    return new ToolResponse<>(null, List.of(error), List.of(), false);
+  public static <T> SingleToolResponse<T> error(String error) {
+    return new SingleToolResponse<>(null, List.of(error), List.of(), false);
   }
 
   /**
@@ -100,7 +101,7 @@ public record ToolResponse<T>(T data, List<String> errors, List<String> warnings
    * @param <T> the data type
    * @return error response
    */
-  public static <T> ToolResponse<T> error(List<String> errors) {
-    return new ToolResponse<>(null, errors, List.of(), false);
+  public static <T> SingleToolResponse<T> error(List<String> errors) {
+    return new SingleToolResponse<>(null, errors, List.of(), false);
   }
 }

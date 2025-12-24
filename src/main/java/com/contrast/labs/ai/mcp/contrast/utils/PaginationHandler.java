@@ -16,7 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.utils;
 
 import com.contrast.labs.ai.mcp.contrast.PaginationParams;
-import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -41,7 +41,7 @@ public class PaginationHandler {
    * @param <T> Type of items
    * @return PaginatedResponse with calculated hasMorePages and messages
    */
-  public <T> PaginatedResponse<T> createPaginatedResponse(
+  public <T> PaginatedToolResponse<T> createPaginatedResponse(
       List<T> items, PaginationParams params, Integer totalCount) {
     return createPaginatedResponse(items, params, totalCount, List.of());
   }
@@ -57,7 +57,7 @@ public class PaginationHandler {
    * @param <T> Type of items
    * @return PaginatedResponse with calculated hasMorePages and messages
    */
-  public <T> PaginatedResponse<T> createPaginatedResponse(
+  public <T> PaginatedToolResponse<T> createPaginatedResponse(
       List<T> items, PaginationParams params, Integer totalCount, List<String> additionalWarnings) {
     boolean hasMorePages = calculateHasMorePages(params, totalCount, items.size());
     var emptyResultWarning = buildEmptyResultMessage(items, params, totalCount);
@@ -72,7 +72,7 @@ public class PaginationHandler {
       warnings.add(emptyResultWarning);
     }
 
-    return PaginatedResponse.success(
+    return PaginatedToolResponse.success(
         items, params.page(), params.pageSize(), totalCount, hasMorePages, warnings, null);
   }
 

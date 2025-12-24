@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.applications.params;
 
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 
 /**
@@ -29,7 +30,7 @@ import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
  * }
  * }</pre>
  */
-public class GetSessionMetadataParams extends ToolValidationContext {
+public class GetSessionMetadataParams extends BaseToolParams {
 
   private String appId;
 
@@ -44,11 +45,13 @@ public class GetSessionMetadataParams extends ToolValidationContext {
    */
   public static GetSessionMetadataParams of(String appId) {
     var params = new GetSessionMetadataParams();
+    var ctx = new ToolValidationContext();
 
     // Validate required field
-    params.require(appId, "appId");
+    ctx.require(appId, "appId");
     params.appId = appId;
 
+    params.setValidationResult(ctx);
     return params;
   }
 

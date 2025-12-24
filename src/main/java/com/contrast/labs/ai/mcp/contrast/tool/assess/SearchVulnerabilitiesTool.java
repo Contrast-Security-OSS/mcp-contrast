@@ -16,12 +16,12 @@
 package com.contrast.labs.ai.mcp.contrast.tool.assess;
 
 import com.contrast.labs.ai.mcp.contrast.PaginationParams;
-import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
 import com.contrast.labs.ai.mcp.contrast.tool.assess.params.VulnerabilityFilterParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseMcpTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
+import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrastsecurity.http.TraceFilterForm;
 import java.util.EnumSet;
 import java.util.List;
@@ -36,7 +36,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @RequiredArgsConstructor
-public class SearchVulnerabilitiesTool extends BaseMcpTool<VulnerabilityFilterParams, VulnLight> {
+public class SearchVulnerabilitiesTool
+    extends BasePaginatedTool<VulnerabilityFilterParams, VulnLight> {
 
   private final VulnerabilityMapper vulnerabilityMapper;
 
@@ -74,7 +75,7 @@ public class SearchVulnerabilitiesTool extends BaseMcpTool<VulnerabilityFilterPa
           - search_app_vulnerabilities: For app-scoped searches with session filtering
           - search_applications: To find application IDs by name, tag, or metadata
           """)
-  public PaginatedResponse<VulnLight> searchVulnerabilities(
+  public PaginatedToolResponse<VulnLight> searchVulnerabilities(
       @ToolParam(description = "Page number (1-based), default: 1", required = false) Integer page,
       @ToolParam(description = "Items per page (max 100), default: 50", required = false)
           Integer pageSize,

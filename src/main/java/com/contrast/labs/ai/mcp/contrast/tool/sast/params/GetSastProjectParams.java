@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.sast.params;
 
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 
 /**
@@ -29,7 +30,7 @@ import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
  * }
  * }</pre>
  */
-public class GetSastProjectParams extends ToolValidationContext {
+public class GetSastProjectParams extends BaseToolParams {
 
   private String projectName;
 
@@ -44,12 +45,13 @@ public class GetSastProjectParams extends ToolValidationContext {
    */
   public static GetSastProjectParams of(String projectName) {
     var params = new GetSastProjectParams();
+    var ctx = new ToolValidationContext();
 
     // Validate required field
-    params.require(projectName, "projectName");
-
+    ctx.require(projectName, "projectName");
     params.projectName = projectName;
 
+    params.setValidationResult(ctx);
     return params;
   }
 
