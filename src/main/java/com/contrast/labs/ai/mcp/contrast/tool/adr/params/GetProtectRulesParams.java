@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.adr.params;
 
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 
 /**
@@ -29,7 +30,7 @@ import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
  * }
  * }</pre>
  */
-public class GetProtectRulesParams extends ToolValidationContext {
+public class GetProtectRulesParams extends BaseToolParams {
 
   private String appId;
 
@@ -44,12 +45,13 @@ public class GetProtectRulesParams extends ToolValidationContext {
    */
   public static GetProtectRulesParams of(String appId) {
     var params = new GetProtectRulesParams();
+    var ctx = new ToolValidationContext();
 
     // Validate required field
-    params.require(appId, "appId");
-
+    ctx.require(appId, "appId");
     params.appId = appId;
 
+    params.setValidationResult(ctx);
     return params;
   }
 

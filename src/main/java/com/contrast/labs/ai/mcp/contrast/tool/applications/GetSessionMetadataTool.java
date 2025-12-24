@@ -16,8 +16,8 @@
 package com.contrast.labs.ai.mcp.contrast.tool.applications;
 
 import com.contrast.labs.ai.mcp.contrast.tool.applications.params.GetSessionMetadataParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseGetTool;
-import com.contrast.labs.ai.mcp.contrast.tool.base.ToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrastsecurity.models.MetadataFilterResponse;
 import java.util.List;
 import org.springframework.ai.tool.annotation.Tool;
@@ -30,7 +30,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class GetSessionMetadataTool
-    extends BaseGetTool<GetSessionMetadataParams, MetadataFilterResponse> {
+    extends BaseSingleTool<GetSessionMetadataParams, MetadataFilterResponse> {
 
   @Tool(
       name = "get_session_metadata",
@@ -48,7 +48,7 @@ public class GetSessionMetadataTool
           - search_applications: Find application IDs by name, tag, or metadata
           - search_app_vulnerabilities: Search vulnerabilities with session filtering
           """)
-  public ToolResponse<MetadataFilterResponse> getSessionMetadata(
+  public SingleToolResponse<MetadataFilterResponse> getSessionMetadata(
       @ToolParam(description = "Application ID (use search_applications to find)") String appId) {
     return executePipeline(() -> GetSessionMetadataParams.of(appId));
   }

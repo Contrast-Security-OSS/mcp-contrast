@@ -17,11 +17,11 @@ package com.contrast.labs.ai.mcp.contrast.tool.adr;
 
 import com.contrast.labs.ai.mcp.contrast.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.data.AttackSummary;
-import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.tool.adr.params.AttackFilterParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseMcpTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
+import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.tool.annotation.Tool;
@@ -34,7 +34,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @RequiredArgsConstructor
-public class SearchAttacksTool extends BaseMcpTool<AttackFilterParams, AttackSummary> {
+public class SearchAttacksTool extends BasePaginatedTool<AttackFilterParams, AttackSummary> {
 
   @Tool(
       name = "search_attacks",
@@ -71,7 +71,7 @@ public class SearchAttacksTool extends BaseMcpTool<AttackFilterParams, AttackSum
           - get_protect_rules: View configured protection rules for an application
           - search_applications: Find application IDs by name or tag
           """)
-  public PaginatedResponse<AttackSummary> searchAttacks(
+  public PaginatedToolResponse<AttackSummary> searchAttacks(
       @ToolParam(
               description =
                   "Quick filter for attack categorization. Valid: ALL (no filter), ACTIVE (ongoing"

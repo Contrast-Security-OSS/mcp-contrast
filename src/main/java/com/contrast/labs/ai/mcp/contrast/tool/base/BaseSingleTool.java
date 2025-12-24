@@ -15,17 +15,14 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
-import com.contrast.labs.ai.mcp.contrast.config.ContrastConfig;
 import com.contrastsecurity.exceptions.HttpResponseException;
 import com.contrastsecurity.exceptions.ResourceNotFoundException;
 import com.contrastsecurity.exceptions.UnauthorizedException;
-import com.contrastsecurity.sdk.ContrastSDK;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Abstract base class for non-paginated MCP get tools. Enforces a consistent processing pipeline
@@ -45,9 +42,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @param <R> the result item type
  */
 @Slf4j
-public abstract class BaseGetTool<P extends ToolParams, R> {
-
-  @Autowired protected ContrastConfig config;
+public abstract class BaseSingleTool<P extends ToolParams, R> extends BaseContrastTool {
 
   /**
    * Template method - defines the mandatory processing pipeline for single-item retrieval.
@@ -57,7 +52,7 @@ public abstract class BaseGetTool<P extends ToolParams, R> {
    * @param paramsSupplier lazy supplier of tool-specific parameters
    * @return tool response with item or errors
    */
-  protected final ToolResponse<R> executePipeline(Supplier<P> paramsSupplier) {
+  protected final SingleToolResponse<R> executePipeline(Supplier<P> paramsSupplier) {
     var requestId = UUID.randomUUID().toString().substring(0, 8);
     long startTime = System.currentTimeMillis();
 
@@ -70,7 +65,7 @@ public abstract class BaseGetTool<P extends ToolParams, R> {
     // 3. Single validation checkpoint - ALL errors collected
     if (!params.isValid()) {
       logValidationError(requestId, params.errors());
-      return ToolResponse.error(params.errors());
+      return SingleToolResponse.error(params.errors());
     }
 
     // 4. Execute - doExecute returns item or null if not found
@@ -80,11 +75,11 @@ public abstract class BaseGetTool<P extends ToolParams, R> {
 
       if (result == null) {
         logNotFound(requestId, duration);
-        return ToolResponse.notFound("Resource not found", warnings);
+        return SingleToolResponse.notFound("Resource not found", warnings);
       }
 
       logSuccess(requestId, duration);
-      return ToolResponse.success(result, warnings);
+      return SingleToolResponse.success(result, warnings);
 
     } catch (ResourceNotFoundException e) {
       return handleException(e, requestId, "Resource not found: " + e.getMessage(), warnings);
@@ -99,7 +94,7 @@ public abstract class BaseGetTool<P extends ToolParams, R> {
           .setCause(e)
           .setMessage("Request failed unexpectedly")
           .log();
-      return ToolResponse.error("Internal error: " + e.getMessage());
+      return SingleToolResponse.error("Internal error: " + e.getMessage());
     }
   }
 
@@ -113,25 +108,7 @@ public abstract class BaseGetTool<P extends ToolParams, R> {
    */
   protected abstract R doExecute(P params, List<String> warnings) throws Exception;
 
-  /**
-   * Returns the cached ContrastSDK instance from configuration.
-   *
-   * @return cached ContrastSDK
-   */
-  protected ContrastSDK getContrastSDK() {
-    return config.getSDK();
-  }
-
-  /**
-   * Returns the organization ID from configuration.
-   *
-   * @return organization ID
-   */
-  protected String getOrgId() {
-    return config.getOrgId();
-  }
-
-  private ToolResponse<R> handleException(
+  private SingleToolResponse<R> handleException(
       Exception e, String requestId, String userMessage, List<String> warnings) {
     log.atWarn()
         .addKeyValue("requestId", requestId)
@@ -142,21 +119,13 @@ public abstract class BaseGetTool<P extends ToolParams, R> {
     // Include warnings in error response for context
     var allWarnings = new ArrayList<>(warnings);
     allWarnings.add(userMessage);
-    return new ToolResponse<>(null, List.of(userMessage), warnings, false);
+    return new SingleToolResponse<>(null, List.of(userMessage), warnings, false);
   }
 
-  private ToolResponse<R> handleHttpResponseException(
+  private SingleToolResponse<R> handleHttpResponseException(
       HttpResponseException e, String requestId, List<String> warnings) {
 
-    String errorMessage =
-        switch (e.getCode()) {
-          case 401 -> "Authentication failed. Verify API credentials.";
-          case 403 -> "Access denied. User lacks permission for this resource.";
-          case 404 -> "Resource not found.";
-          case 429 -> "Rate limit exceeded. Retry later.";
-          case 500, 502, 503 -> "Contrast API error. Try again later.";
-          default -> "API error: " + e.getMessage();
-        };
+    String errorMessage = mapHttpErrorCode(e.getCode());
 
     log.atWarn()
         .addKeyValue("requestId", requestId)
@@ -165,7 +134,7 @@ public abstract class BaseGetTool<P extends ToolParams, R> {
         .addArgument(e.getMessage())
         .log();
 
-    return ToolResponse.error(errorMessage);
+    return SingleToolResponse.error(errorMessage);
   }
 
   private void logValidationError(String requestId, List<String> errors) {

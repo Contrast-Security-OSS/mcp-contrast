@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.contrast.labs.ai.mcp.contrast.data;
+package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import java.util.List;
 
@@ -34,7 +34,7 @@ import java.util.List;
  * @param warnings Non-fatal warnings (e.g., applied defaults, empty results) - informational
  * @param durationMs Execution duration in milliseconds (null for validation errors)
  */
-public record PaginatedResponse<T>(
+public record PaginatedToolResponse<T>(
     List<T> items,
     int page,
     int pageSize,
@@ -45,7 +45,7 @@ public record PaginatedResponse<T>(
     Long durationMs) {
 
   /** Compact constructor ensures non-null, immutable lists. */
-  public PaginatedResponse {
+  public PaginatedToolResponse {
     items = items != null ? List.copyOf(items) : List.of();
     errors = errors != null ? List.copyOf(errors) : List.of();
     warnings = warnings != null ? List.copyOf(warnings) : List.of();
@@ -73,7 +73,7 @@ public record PaginatedResponse<T>(
    * @param <T> item type
    * @return successful paginated response
    */
-  public static <T> PaginatedResponse<T> success(
+  public static <T> PaginatedToolResponse<T> success(
       List<T> items,
       int page,
       int pageSize,
@@ -81,7 +81,7 @@ public record PaginatedResponse<T>(
       boolean hasMorePages,
       List<String> warnings,
       Long durationMs) {
-    return new PaginatedResponse<>(
+    return new PaginatedToolResponse<>(
         items, page, pageSize, totalItems, hasMorePages, List.of(), warnings, durationMs);
   }
 
@@ -94,9 +94,10 @@ public record PaginatedResponse<T>(
    * @param <T> item type
    * @return error response with no items
    */
-  public static <T> PaginatedResponse<T> validationError(
+  public static <T> PaginatedToolResponse<T> validationError(
       int page, int pageSize, List<String> errors) {
-    return new PaginatedResponse<>(List.of(), page, pageSize, 0, false, errors, List.of(), null);
+    return new PaginatedToolResponse<>(
+        List.of(), page, pageSize, 0, false, errors, List.of(), null);
   }
 
   /**
@@ -108,8 +109,8 @@ public record PaginatedResponse<T>(
    * @param <T> item type
    * @return empty response with warning
    */
-  public static <T> PaginatedResponse<T> empty(int page, int pageSize, String warningMessage) {
-    return new PaginatedResponse<>(
+  public static <T> PaginatedToolResponse<T> empty(int page, int pageSize, String warningMessage) {
+    return new PaginatedToolResponse<>(
         List.of(), page, pageSize, 0, false, List.of(), List.of(warningMessage), null);
   }
 
@@ -122,8 +123,8 @@ public record PaginatedResponse<T>(
    * @param <T> item type
    * @return error response with no items
    */
-  public static <T> PaginatedResponse<T> error(int page, int pageSize, String errorMessage) {
-    return new PaginatedResponse<>(
+  public static <T> PaginatedToolResponse<T> error(int page, int pageSize, String errorMessage) {
+    return new PaginatedToolResponse<>(
         List.of(), page, pageSize, 0, false, List.of(errorMessage), List.of(), null);
   }
 

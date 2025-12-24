@@ -19,8 +19,8 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseGetTool;
-import com.contrast.labs.ai.mcp.contrast.tool.base.ToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.coverage.params.RouteCoverageParams;
 import com.contrastsecurity.models.RouteCoverageMetadataLabelValues;
 import java.util.Collections;
@@ -38,7 +38,8 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class GetRouteCoverageTool extends BaseGetTool<RouteCoverageParams, RouteCoverageResponse> {
+public class GetRouteCoverageTool
+    extends BaseSingleTool<RouteCoverageParams, RouteCoverageResponse> {
 
   @Tool(
       name = "get_route_coverage",
@@ -71,7 +72,7 @@ public class GetRouteCoverageTool extends BaseGetTool<RouteCoverageParams, Route
           - search_applications: Find application IDs by name or tag
           - get_session_metadata: View available session metadata fields
           """)
-  public ToolResponse<RouteCoverageResponse> getRouteCoverage(
+  public SingleToolResponse<RouteCoverageResponse> getRouteCoverage(
       @ToolParam(description = "Application ID (use search_applications to find)") String appId,
       @ToolParam(
               description =

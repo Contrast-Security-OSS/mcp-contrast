@@ -16,13 +16,13 @@
 package com.contrast.labs.ai.mcp.contrast.tool.assess;
 
 import com.contrast.labs.ai.mcp.contrast.PaginationParams;
-import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.tool.assess.params.SearchAppVulnerabilitiesParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseMcpTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
+import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.models.MetadataItem;
 import com.contrastsecurity.models.SessionMetadata;
@@ -50,7 +50,7 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 @Slf4j
 public class SearchAppVulnerabilitiesTool
-    extends BaseMcpTool<SearchAppVulnerabilitiesParams, VulnLight> {
+    extends BasePaginatedTool<SearchAppVulnerabilitiesParams, VulnLight> {
 
   private final VulnerabilityMapper vulnerabilityMapper;
 
@@ -86,7 +86,7 @@ public class SearchAppVulnerabilitiesTool
           - Session metadata: appId="abc123", sessionMetadataName="branch", sessionMetadataValue="main"
           - Production critical: appId="abc123", severities="CRITICAL", environments="PRODUCTION"
           """)
-  public PaginatedResponse<VulnLight> searchAppVulnerabilities(
+  public PaginatedToolResponse<VulnLight> searchAppVulnerabilities(
       @ToolParam(
               description =
                   "Application ID (required). Use search_applications to find app IDs by name.")
