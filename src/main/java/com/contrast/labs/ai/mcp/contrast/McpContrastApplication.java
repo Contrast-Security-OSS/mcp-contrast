@@ -17,6 +17,8 @@ package com.contrast.labs.ai.mcp.contrast;
 
 import static java.util.List.of;
 
+import com.contrast.labs.ai.mcp.contrast.tool.sca.ListApplicationLibrariesTool;
+import com.contrast.labs.ai.mcp.contrast.tool.sca.ListApplicationsByCveTool;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,11 +58,17 @@ public class McpContrastApplication {
   public List<ToolCallback> tools(
       AssessService assessService,
       SastService sastService,
-      SCAService scaService,
       ADRService adrService,
-      RouteCoverageService routeCoverageService) {
+      RouteCoverageService routeCoverageService,
+      ListApplicationLibrariesTool listApplicationLibrariesTool,
+      ListApplicationsByCveTool listApplicationsByCveTool) {
     return of(
         ToolCallbacks.from(
-            assessService, sastService, scaService, adrService, routeCoverageService));
+            assessService,
+            sastService,
+            adrService,
+            routeCoverageService,
+            listApplicationLibrariesTool,
+            listApplicationsByCveTool));
   }
 }

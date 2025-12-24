@@ -40,6 +40,7 @@ public class StringListSpec {
   private List<String> defaultValue;
   private String defaultReason;
   private Set<String> allowedValues;
+  private boolean convertToUpperCase;
 
   StringListSpec(ToolValidationContext ctx, String value, String name) {
     this.ctx = ctx;
@@ -72,6 +73,16 @@ public class StringListSpec {
   }
 
   /**
+   * Converts all values to uppercase. Useful for case-insensitive enum matching.
+   *
+   * @return this for fluent chaining
+   */
+  public StringListSpec toUpperCase() {
+    this.convertToUpperCase = true;
+    return this;
+  }
+
+  /**
    * Validates and returns the parsed list.
    *
    * @return validated list, or null if no value and no default
@@ -85,6 +96,11 @@ public class StringListSpec {
         return List.copyOf(defaultValue);
       }
       return null;
+    }
+
+    // Apply uppercase conversion if requested
+    if (convertToUpperCase) {
+      parsed = parsed.stream().map(String::toUpperCase).toList();
     }
 
     if (allowedValues != null) {

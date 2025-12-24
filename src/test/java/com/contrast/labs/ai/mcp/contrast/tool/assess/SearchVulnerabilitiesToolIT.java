@@ -168,4 +168,117 @@ public class SearchVulnerabilitiesToolIT
       assertThat(page2.page()).isEqualTo(2);
     }
   }
+
+  @Test
+  void searchVulnerabilities_should_populate_environments_and_tags() {
+    var response =
+        searchVulnerabilitiesTool.searchVulnerabilities(
+            1, 10, null, null, null, null, null, null, null);
+
+    assertThat(response.isSuccess()).isTrue();
+
+    if (!response.items().isEmpty()) {
+      // Verify each vulnerability has non-null environments and tags collections
+      for (var vuln : response.items()) {
+        assertThat(vuln.environments())
+            .as("Environments should never be null for vuln %s", vuln.vulnID())
+            .isNotNull();
+        assertThat(vuln.tags())
+            .as("Tags should never be null for vuln %s", vuln.vulnID())
+            .isNotNull();
+      }
+      log.info(
+          "✓ All {} vulnerabilities have non-null environments and tags", response.items().size());
+    }
+  }
+
+  @Test
+  void searchVulnerabilities_should_populate_session_metadata() {
+    var response =
+        searchVulnerabilitiesTool.searchVulnerabilities(
+            1, 10, null, null, null, null, null, null, null);
+
+    assertThat(response.isSuccess()).isTrue();
+
+    if (!response.items().isEmpty()) {
+      int withSessionMetadata = 0;
+
+      for (var vuln : response.items()) {
+        assertThat(vuln.sessionMetadata())
+            .as("Session metadata should never be null for vuln %s", vuln.vulnID())
+            .isNotNull();
+
+        if (!vuln.sessionMetadata().isEmpty()) {
+          withSessionMetadata++;
+        }
+      }
+
+      log.info(
+          "✓ Session metadata field present on all vulns ({}/{} have session data)",
+          withSessionMetadata,
+          response.items().size());
+    }
+  }
+
+  @Test
+  void searchVulnerabilities_should_populate_basic_fields() {
+    var response =
+        searchVulnerabilitiesTool.searchVulnerabilities(
+            1, 5, null, null, null, null, null, null, null);
+
+    assertThat(response.isSuccess()).isTrue();
+
+    if (!response.items().isEmpty()) {
+      for (var vuln : response.items()) {
+        // Core identification fields
+        assertThat(vuln.title()).as("Title should not be null").isNotNull();
+        assertThat(vuln.type()).as("Type should not be null").isNotNull();
+        assertThat(vuln.vulnID()).as("VulnID should not be null").isNotNull();
+        assertThat(vuln.severity()).as("Severity should not be null").isNotNull();
+        assertThat(vuln.status()).as("Status should not be null").isNotNull();
+
+        // Application correlation fields (from APPLICATION expand)
+        assertThat(vuln.appID())
+            .as("appID should not be null (APPLICATION expand)")
+            .isNotNull()
+            .isNotEmpty();
+        assertThat(vuln.appName())
+            .as("appName should not be null (APPLICATION expand)")
+            .isNotNull()
+            .isNotEmpty();
+
+        log.info(
+            "✓ {}: {} ({}) - App: {} ({})",
+            vuln.vulnID(),
+            vuln.title(),
+            vuln.severity(),
+            vuln.appName(),
+            vuln.appID());
+      }
+    }
+  }
+
+  @Test
+  void searchVulnerabilities_should_handle_vulnTags_with_spaces() {
+    // Query with a tag that contains spaces - SDK should handle URL encoding
+    var response =
+        searchVulnerabilitiesTool.searchVulnerabilities(
+            1, 50, null, null, null, null, null, null, "SmartFix Remediated");
+
+    // The query should complete without error
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.isSuccess()).isTrue();
+
+    log.info(
+        "✓ Query with 'SmartFix Remediated' tag completed ({} results)", response.items().size());
+
+    // Try with multiple tags including spaces
+    var multiTagResponse =
+        searchVulnerabilitiesTool.searchVulnerabilities(
+            1, 10, null, null, null, null, null, null, "Tag With Spaces,another-tag");
+
+    assertThat(multiTagResponse).as("Response should not be null").isNotNull();
+    assertThat(multiTagResponse.isSuccess()).isTrue();
+    log.info("✓ Query with multiple tags (including spaces) completed");
+  }
 }

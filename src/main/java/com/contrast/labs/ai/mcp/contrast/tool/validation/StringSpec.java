@@ -37,7 +37,7 @@ import org.springframework.util.StringUtils;
 public class StringSpec {
 
   private final ToolValidationContext ctx;
-  private final String value;
+  private String value;
   private final String name;
   private String defaultValue;
   private String defaultReason;
@@ -81,6 +81,18 @@ public class StringSpec {
    */
   public StringSpec required() {
     this.required = true;
+    return this;
+  }
+
+  /**
+   * Converts the value to uppercase. Useful for case-insensitive enum matching.
+   *
+   * @return this for fluent chaining
+   */
+  public StringSpec toUpperCase() {
+    if (this.value != null) {
+      this.value = this.value.toUpperCase();
+    }
     return this;
   }
 
