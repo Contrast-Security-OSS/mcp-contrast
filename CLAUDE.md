@@ -50,15 +50,25 @@ make check VERBOSE=1
 
 ### Core Components
 
-**Main Application**: `McpContrastApplication.java` - Spring Boot application that registers MCP tools from all service classes.
+**Main Application**: `McpContrastApplication.java` - Spring Boot application that discovers and registers MCP tools via component scanning.
 
-**Service Layer**: Each service handles a specific aspect of Contrast Security data:
-- `AssessService` - Vulnerability analysis and trace data
-- `SastService` - Static application security testing data
-- `SCAService` - Software composition analysis (library vulnerabilities)
-- `ADRService` - Attack detection and response events
-- `RouteCoverageService` - Route coverage analysis
-- `PromptService` - AI prompt management
+**Tool Layer (tool-per-class pattern)**: Each MCP tool is a standalone `@Service` class organized by domain:
+```
+tool/
+├── base/           # BaseMcpTool, BaseGetTool, ToolParams interfaces
+├── validation/     # ToolValidationContext for fluent validation
+├── assess/         # Vulnerability tools (search_vulnerabilities, get_vulnerability, etc.)
+├── applications/   # Application tools (search_applications, get_session_metadata)
+├── sca/            # Library tools (list_application_libraries, list_applications_by_cve)
+├── adr/            # Attack tools (search_attacks, get_protect_rules)
+├── sast/           # SAST tools (get_sast_project, get_sast_results)
+└── coverage/       # Coverage tools (get_route_coverage)
+```
+
+**Base Classes**:
+- `BaseMcpTool<P, R>` - For paginated search/list operations
+- `BaseGetTool<P, R>` - For single-item retrieval operations
+- `ToolValidationContext` - Fluent validation API for params
 
 **SDK Extensions**: Located in `sdkextension/` package, these extend the Contrast SDK with enhanced data models and helper methods for better AI integration.
 
@@ -93,10 +103,13 @@ Required environment variables/arguments:
 
 ### Development Patterns
 
-1. **MCP Tools**: Services expose methods via `@Tool` annotation for AI agent consumption
-2. **SDK Extension Pattern**: Enhanced data models extend base SDK classes with AI-friendly representations
-3. **Hint Generation**: Rule-based system provides contextual security guidance
-4. **Defensive Design**: All external API calls include error handling and logging
+1. **Tool-per-Class**: Each MCP tool is a standalone `@Service` class with `@Tool` annotation, extending `BaseMcpTool` or `BaseGetTool`
+2. **@Tool Annotation**: Methods annotated with `@Tool(name = "snake_case_name")` are exposed to AI agents
+3. **Params Pattern**: Each tool has an associated `*Params` class extending `ToolValidationContext` for validation
+4. **Template Method**: Base classes enforce consistent pipeline (validation → execution → response building)
+5. **SDK Extension Pattern**: Enhanced data models extend base SDK classes with AI-friendly representations
+6. **Hint Generation**: Rule-based system provides contextual security guidance
+7. **Defensive Design**: All external API calls include error handling and logging via base classes
 
 ### MCP Tool Standards
 

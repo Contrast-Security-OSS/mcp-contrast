@@ -112,6 +112,80 @@ Tools returning analytical data (reports, coverage, metadata) may use `get_*` ev
 
 ---
 
+## Tool-per-Class Architecture
+
+All MCP tools follow a **one-class-per-tool** pattern with shared base classes. Each tool is a standalone `@Service` class that extends either `BaseMcpTool` (for paginated search/list operations) or `BaseGetTool` (for single-item retrieval).
+
+### Package Structure
+
+```
+com.contrast.labs.ai.mcp.contrast.tool/
+├── base/                  # Shared base classes (BaseMcpTool, BaseGetTool, ToolParams)
+├── validation/            # Shared validation utilities (ToolValidationContext)
+├── assess/                # Vulnerability tools
+│   ├── SearchVulnerabilitiesTool.java
+│   ├── GetVulnerabilityTool.java
+│   └── params/            # Parameter classes for assess tools
+├── applications/          # Application tools
+├── sca/                   # SCA (library) tools
+├── adr/                   # Attack detection tools
+├── sast/                  # SAST scan tools
+└── coverage/              # Route coverage tools
+```
+
+### Base Class Usage
+
+**`BaseMcpTool<P extends ToolParams, R>`** - For paginated search/list tools:
+- Template method `executePipeline()` handles pagination, validation, exceptions
+- Subclasses implement `doExecute()` returning `ExecutionResult<R>`
+- Returns `PaginatedResponse<R>` with items, pagination metadata, warnings
+
+**`BaseGetTool<P extends ToolParams, R>`** - For single-item get tools:
+- Template method `executePipeline()` handles validation, exceptions
+- Subclasses implement `doExecute()` returning item or null
+- Returns `ToolResponse<R>` with item, errors, warnings
+
+### Parameter Classes (Params Pattern)
+
+Each tool has an associated `*Params` class extending `ToolValidationContext`:
+- Validates and parses input parameters
+- Collects errors and warnings via fluent API
+- Converts to SDK filter objects (e.g., `toTraceFilterForm()`)
+
+Example:
+```java
+// In tool class
+return executePipeline(page, pageSize,
+    () -> VulnerabilityFilterParams.of(severities, statuses, ...));
+
+// Params class
+public class VulnerabilityFilterParams extends ToolValidationContext {
+  public static VulnerabilityFilterParams of(String severities, ...) {
+    var params = new VulnerabilityFilterParams();
+    params.severities = params.enumSetParam(severities, RuleSeverity.class, "severities").get();
+    // ... more fluent validation
+    return params;
+  }
+}
+```
+
+### Testing Layer
+
+Each tool requires corresponding test classes:
+- `*ToolTest.java` - Unit tests with mocked SDK
+- `*ToolIT.java` - Integration tests against live API (in `src/test/java` with `IT` suffix)
+
+### Adding a New Tool
+
+1. Create tool class in appropriate domain package (e.g., `tool/assess/`)
+2. Extend `BaseMcpTool` or `BaseGetTool` with appropriate type parameters
+3. Create corresponding `*Params` class extending `ToolValidationContext`
+4. Implement `doExecute()` with tool-specific logic
+5. Add `@Tool` annotation with snake_case name following naming standards
+6. Write unit and integration tests
+
+---
+
 ## Checklist
 
 - [ ] `action_entity` snake_case format
@@ -122,4 +196,7 @@ Tools returning analytical data (reports, coverage, metadata) may use `get_*` ev
 - [ ] @Tool description clear and concise
 - [ ] Required vs optional documented
 - [ ] No redundant words
+- [ ] Extends BaseMcpTool or BaseGetTool
+- [ ] Has corresponding Params class
+- [ ] Unit and integration tests present
 
