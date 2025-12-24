@@ -17,6 +17,17 @@ package com.contrast.labs.ai.mcp.contrast;
 
 import static java.util.List.of;
 
+import com.contrast.labs.ai.mcp.contrast.tool.adr.GetProtectRulesTool;
+import com.contrast.labs.ai.mcp.contrast.tool.adr.SearchAttacksTool;
+import com.contrast.labs.ai.mcp.contrast.tool.applications.GetSessionMetadataTool;
+import com.contrast.labs.ai.mcp.contrast.tool.applications.SearchApplicationsTool;
+import com.contrast.labs.ai.mcp.contrast.tool.assess.GetVulnerabilityTool;
+import com.contrast.labs.ai.mcp.contrast.tool.assess.ListVulnerabilityTypesTool;
+import com.contrast.labs.ai.mcp.contrast.tool.assess.SearchAppVulnerabilitiesTool;
+import com.contrast.labs.ai.mcp.contrast.tool.assess.SearchVulnerabilitiesTool;
+import com.contrast.labs.ai.mcp.contrast.tool.coverage.GetRouteCoverageTool;
+import com.contrast.labs.ai.mcp.contrast.tool.sast.GetSastProjectTool;
+import com.contrast.labs.ai.mcp.contrast.tool.sast.GetSastResultsTool;
 import com.contrast.labs.ai.mcp.contrast.tool.sca.ListApplicationLibrariesTool;
 import com.contrast.labs.ai.mcp.contrast.tool.sca.ListApplicationsByCveTool;
 import java.util.List;
@@ -56,19 +67,39 @@ public class McpContrastApplication {
 
   @Bean
   public List<ToolCallback> tools(
-      AssessService assessService,
-      SastService sastService,
-      ADRService adrService,
-      RouteCoverageService routeCoverageService,
+      // Assess tools
+      GetVulnerabilityTool getVulnerabilityTool,
+      SearchVulnerabilitiesTool searchVulnerabilitiesTool,
+      SearchAppVulnerabilitiesTool searchAppVulnerabilitiesTool,
+      ListVulnerabilityTypesTool listVulnerabilityTypesTool,
+      // Application tools
+      SearchApplicationsTool searchApplicationsTool,
+      GetSessionMetadataTool getSessionMetadataTool,
+      // ADR tools
+      GetProtectRulesTool getProtectRulesTool,
+      SearchAttacksTool searchAttacksTool,
+      // SAST tools
+      GetSastProjectTool getSastProjectTool,
+      GetSastResultsTool getSastResultsTool,
+      // SCA tools
       ListApplicationLibrariesTool listApplicationLibrariesTool,
-      ListApplicationsByCveTool listApplicationsByCveTool) {
+      ListApplicationsByCveTool listApplicationsByCveTool,
+      // Coverage tools
+      GetRouteCoverageTool getRouteCoverageTool) {
     return of(
         ToolCallbacks.from(
-            assessService,
-            sastService,
-            adrService,
-            routeCoverageService,
+            getVulnerabilityTool,
+            searchVulnerabilitiesTool,
+            searchAppVulnerabilitiesTool,
+            listVulnerabilityTypesTool,
+            searchApplicationsTool,
+            getSessionMetadataTool,
+            getProtectRulesTool,
+            searchAttacksTool,
+            getSastProjectTool,
+            getSastResultsTool,
             listApplicationLibrariesTool,
-            listApplicationsByCveTool));
+            listApplicationsByCveTool,
+            getRouteCoverageTool));
   }
 }
