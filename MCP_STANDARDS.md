@@ -114,7 +114,7 @@ Tools returning analytical data (reports, coverage, metadata) may use `get_*` ev
 
 ## Tool-per-Class Architecture
 
-All MCP tools follow a **one-class-per-tool** pattern with shared base classes. Each tool is a standalone `@Service` class that extends either `BaseMcpTool` (for paginated search/list operations) or `BaseGetTool` (for single-item retrieval).
+All MCP tools follow a **one-class-per-tool** pattern with shared base classes. Each tool is a standalone `@Service` class that extends either `BasePaginatedTool` (for paginated search/list operations) or `BaseSingleTool` (for single-item retrieval).
 
 ### Package Structure
 
@@ -135,15 +135,15 @@ com.contrast.labs.ai.mcp.contrast.tool/
 
 ### Base Class Usage
 
-**`BaseMcpTool<P extends ToolParams, R>`** - For paginated search/list tools:
+**`BasePaginatedTool<P extends ToolParams, R>`** - For paginated search/list tools:
 - Template method `executePipeline()` handles pagination, validation, exceptions
 - Subclasses implement `doExecute()` returning `ExecutionResult<R>`
-- Returns `PaginatedResponse<R>` with items, pagination metadata, warnings
+- Returns `PaginatedToolResponse<R>` with items, pagination metadata, warnings
 
-**`BaseGetTool<P extends ToolParams, R>`** - For single-item get tools:
+**`BaseSingleTool<P extends ToolParams, R>`** - For single-item get tools:
 - Template method `executePipeline()` handles validation, exceptions
 - Subclasses implement `doExecute()` returning item or null
-- Returns `ToolResponse<R>` with item, errors, warnings
+- Returns `SingleToolResponse<R>` with item, errors, warnings
 
 ### Parameter Classes (Params Pattern)
 
@@ -178,11 +178,43 @@ Each tool requires corresponding test classes:
 ### Adding a New Tool
 
 1. Create tool class in appropriate domain package (e.g., `tool/assess/`)
-2. Extend `BaseMcpTool` or `BaseGetTool` with appropriate type parameters
-3. Create corresponding `*Params` class extending `ToolValidationContext`
+2. Extend `BasePaginatedTool` or `BaseSingleTool` with appropriate type parameters
+3. Create corresponding `*Params` class extending `BaseToolParams`
 4. Implement `doExecute()` with tool-specific logic
 5. Add `@Tool` annotation with snake_case name following naming standards
-6. Write unit and integration tests
+6. **Register the tool in `McpContrastApplication.java`** (see Tool Registration below)
+7. Write unit and integration tests
+
+---
+
+## Tool Registration
+
+Tools are registered with Spring AI MCP through explicit wiring in the application class. Spring component scanning discovers the `@Service` classes, but they must be explicitly added to the tools bean.
+
+### Registration Mechanism
+
+1. **Component Scanning**: Spring discovers `@Service` tool classes in `com.contrast.labs.ai.mcp.contrast.tool.*`
+2. **Injection**: `McpContrastApplication.tools()` method receives each tool as a constructor parameter
+3. **Callback Conversion**: `ToolCallbacks.from(...)` converts tool objects to `ToolCallback` instances
+4. **MCP Exposure**: Spring AI MCP Server starter exposes these callbacks to AI agents
+
+### Registering a New Tool
+
+After creating a tool class, add it to `McpContrastApplication.java`:
+
+```java
+@Bean
+public List<ToolCallback> tools(
+    // ... existing tools ...
+    MyNewTool myNewTool) {  // 1. Add as parameter
+  return of(
+      ToolCallbacks.from(
+          // ... existing tools ...
+          myNewTool));       // 2. Add to ToolCallbacks.from()
+}
+```
+
+**Important**: Both steps are required. The tool won't be exposed to AI agents if only the `@Service` annotation is present.
 
 ---
 
@@ -196,7 +228,8 @@ Each tool requires corresponding test classes:
 - [ ] @Tool description clear and concise
 - [ ] Required vs optional documented
 - [ ] No redundant words
-- [ ] Extends BaseMcpTool or BaseGetTool
+- [ ] Extends BasePaginatedTool or BaseSingleTool
 - [ ] Has corresponding Params class
+- [ ] Registered in McpContrastApplication.tools()
 - [ ] Unit and integration tests present
 

@@ -127,22 +127,4 @@ public record PaginatedToolResponse<T>(
     return new PaginatedToolResponse<>(
         List.of(), page, pageSize, 0, false, List.of(errorMessage), List.of(), null);
   }
-
-  /**
-   * Returns a combined message string for backward compatibility.
-   *
-   * @return errors joined, or warnings joined, or null
-   * @deprecated Use {@link #errors()} and {@link #warnings()} instead. This method will be removed
-   *     in a future release.
-   */
-  @Deprecated(forRemoval = true)
-  public String message() {
-    if (!errors.isEmpty()) {
-      return String.join(" ", errors);
-    }
-    if (!warnings.isEmpty()) {
-      return String.join(" ", warnings);
-    }
-    return null;
-  }
 }
