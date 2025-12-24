@@ -119,15 +119,15 @@ class ContrastConfigTest {
   }
 
   @Test
-  void createSDK_should_return_sdk_instance() {
-    var sdk = config.createSDK();
+  void getSDK_should_return_sdk_instance() {
+    var sdk = config.getSDK();
     assertThat(sdk).isNotNull();
     assertThat(sdk).isEqualTo(mockContrastSDK);
   }
 
   @Test
-  void createSDK_should_call_sdkhelper_with_correct_params() {
-    config.createSDK();
+  void getSDK_should_call_sdkhelper_with_correct_params() {
+    config.getSDK();
 
     mockedSDKHelper.verify(
         () ->
@@ -141,14 +141,28 @@ class ContrastConfigTest {
   }
 
   @Test
-  void createSDK_should_work_without_proxy_settings() {
+  void getSDK_should_work_without_proxy_settings() {
     ReflectionTestUtils.setField(config, "httpProxyHost", "");
     ReflectionTestUtils.setField(config, "httpProxyPort", "");
 
-    var sdk = config.createSDK();
+    var sdk = config.getSDK();
     assertThat(sdk).isNotNull();
 
     mockedSDKHelper.verify(
         () -> SDKHelper.getSDK(TEST_HOST, TEST_API_KEY, TEST_SERVICE_KEY, TEST_USERNAME, "", ""));
+  }
+
+  @Test
+  void getSDK_should_cache_instance_and_return_same_on_subsequent_calls() {
+    var sdk1 = config.getSDK();
+    var sdk2 = config.getSDK();
+
+    assertThat(sdk1).isSameAs(sdk2);
+
+    // SDKHelper.getSDK should only be called once
+    mockedSDKHelper.verify(
+        () ->
+            SDKHelper.getSDK(
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyString()));
   }
 }
