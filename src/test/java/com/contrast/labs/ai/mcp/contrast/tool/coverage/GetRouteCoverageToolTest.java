@@ -62,7 +62,7 @@ class GetRouteCoverageToolTest {
     config = mock();
     sdkExtension = mock();
 
-    when(config.createSDK()).thenReturn(sdk);
+    when(config.getSDK()).thenReturn(sdk);
     when(config.getOrgId()).thenReturn(ORG_ID);
 
     tool = new GetRouteCoverageTool();
