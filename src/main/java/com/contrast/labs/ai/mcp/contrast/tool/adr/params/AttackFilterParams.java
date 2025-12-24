@@ -16,6 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.tool.adr.params;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksFilterBody;
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 import java.util.List;
 import java.util.Set;
@@ -34,7 +35,7 @@ import java.util.Set;
  * var filterBody = params.toAttacksFilterBody();
  * }</pre>
  */
-public class AttackFilterParams extends ToolValidationContext {
+public class AttackFilterParams extends BaseToolParams {
 
   /** Valid quickFilter values for validation (from AttackQuickFilterType). */
   public static final Set<String> VALID_QUICK_FILTERS =
@@ -78,11 +79,11 @@ public class AttackFilterParams extends ToolValidationContext {
       String sort) {
 
     var params = new AttackFilterParams();
+    var ctx = new ToolValidationContext();
 
     // Parse quickFilter with validation
     params.quickFilter =
-        params
-            .stringParam(quickFilter, "quickFilter")
+        ctx.stringParam(quickFilter, "quickFilter")
             .toUpperCase()
             .allowedValues(VALID_QUICK_FILTERS)
             .defaultTo("ALL", "No quickFilter applied - showing all attack types")
@@ -90,19 +91,19 @@ public class AttackFilterParams extends ToolValidationContext {
 
     // Parse statusFilter with validation
     params.statusFilters =
-        params
-            .stringListParam(statusFilter, "statusFilter")
+        ctx.stringListParam(statusFilter, "statusFilter")
             .toUpperCase()
             .allowedValues(VALID_STATUS_FILTERS)
             .get();
 
     // Parse keyword (no validation - pass through)
-    params.keyword = params.stringParam(keyword, "keyword").get();
+    params.keyword = ctx.stringParam(keyword, "keyword").get();
 
     // Parse includeSuppressed with smart default
     if (includeSuppressed == null) {
       params.includeSuppressed = false;
-      params.addWarning(
+      ctx.warnIf(
+          true,
           "Excluding suppressed attacks by default. "
               + "To see all attacks including suppressed, set includeSuppressed=true.");
     } else {
@@ -119,7 +120,8 @@ public class AttackFilterParams extends ToolValidationContext {
       if (trimmedSort.matches("^-?[a-zA-Z][a-zA-Z0-9_]*$")) {
         params.sort = trimmedSort;
       } else {
-        params.addError(
+        ctx.errorIf(
+            true,
             String.format(
                 "Invalid sort format '%s'. Must be a field name with optional '-' prefix for"
                     + " descending. Example: 'severity' or '-severity'",
@@ -127,6 +129,7 @@ public class AttackFilterParams extends ToolValidationContext {
       }
     }
 
+    params.setValidationResult(ctx);
     return params;
   }
 

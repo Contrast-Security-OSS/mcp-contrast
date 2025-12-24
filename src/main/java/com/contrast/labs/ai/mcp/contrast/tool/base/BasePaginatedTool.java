@@ -16,18 +16,14 @@
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import com.contrast.labs.ai.mcp.contrast.PaginationParams;
-import com.contrast.labs.ai.mcp.contrast.config.ContrastConfig;
-import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
 import com.contrastsecurity.exceptions.HttpResponseException;
 import com.contrastsecurity.exceptions.ResourceNotFoundException;
 import com.contrastsecurity.exceptions.UnauthorizedException;
-import com.contrastsecurity.sdk.ContrastSDK;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Abstract base class for paginated MCP search tools. Enforces a consistent processing pipeline via
@@ -48,9 +44,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @param <R> the result item type
  */
 @Slf4j
-public abstract class BaseMcpTool<P extends ToolParams, R> {
-
-  @Autowired protected ContrastConfig config;
+public abstract class BasePaginatedTool<P extends ToolParams, R> extends BaseContrastTool {
 
   /**
    * Template method - defines the mandatory processing pipeline. Subclasses implement doExecute()
@@ -61,7 +55,7 @@ public abstract class BaseMcpTool<P extends ToolParams, R> {
    * @param paramsSupplier lazy supplier of tool-specific parameters
    * @return paginated response with items or errors
    */
-  protected final PaginatedResponse<R> executePipeline(
+  protected final PaginatedToolResponse<R> executePipeline(
       Integer page, Integer pageSize, Supplier<P> paramsSupplier) {
 
     var requestId = UUID.randomUUID().toString().substring(0, 8);
@@ -81,7 +75,7 @@ public abstract class BaseMcpTool<P extends ToolParams, R> {
     // 4. Single validation checkpoint - ALL errors collected
     if (!params.isValid()) {
       logValidationError(requestId, params.errors());
-      return PaginatedResponse.validationError(
+      return PaginatedToolResponse.validationError(
           pagination.page(), pagination.pageSize(), params.errors());
     }
 
@@ -106,7 +100,7 @@ public abstract class BaseMcpTool<P extends ToolParams, R> {
           .setCause(e)
           .setMessage("Request failed unexpectedly")
           .log();
-      return PaginatedResponse.error(
+      return PaginatedToolResponse.error(
           pagination.page(), pagination.pageSize(), "Internal error: " + e.getMessage());
     }
   }
@@ -123,25 +117,7 @@ public abstract class BaseMcpTool<P extends ToolParams, R> {
   protected abstract ExecutionResult<R> doExecute(
       PaginationParams pagination, P params, List<String> warnings) throws Exception;
 
-  /**
-   * Returns the cached ContrastSDK instance from configuration.
-   *
-   * @return cached ContrastSDK
-   */
-  protected ContrastSDK getContrastSDK() {
-    return config.getSDK();
-  }
-
-  /**
-   * Returns the organization ID from configuration.
-   *
-   * @return organization ID
-   */
-  protected String getOrgId() {
-    return config.getOrgId();
-  }
-
-  private PaginatedResponse<R> handleException(
+  private PaginatedToolResponse<R> handleException(
       Exception e, PaginationParams pagination, String requestId, String userMessage) {
     log.atWarn()
         .addKeyValue("requestId", requestId)
@@ -149,21 +125,13 @@ public abstract class BaseMcpTool<P extends ToolParams, R> {
         .setMessage("Request failed: {}")
         .addArgument(e.getMessage())
         .log();
-    return PaginatedResponse.error(pagination.page(), pagination.pageSize(), userMessage);
+    return PaginatedToolResponse.error(pagination.page(), pagination.pageSize(), userMessage);
   }
 
-  private PaginatedResponse<R> handleHttpResponseException(
+  private PaginatedToolResponse<R> handleHttpResponseException(
       HttpResponseException e, PaginationParams pagination, String requestId) {
 
-    String errorMessage =
-        switch (e.getCode()) {
-          case 401 -> "Authentication failed. Verify API credentials.";
-          case 403 -> "Access denied. User lacks permission for this resource.";
-          case 404 -> "Resource not found.";
-          case 429 -> "Rate limit exceeded. Retry later.";
-          case 500, 502, 503 -> "Contrast API error. Try again later.";
-          default -> "API error: " + e.getMessage();
-        };
+    String errorMessage = mapHttpErrorCode(e.getCode());
 
     log.atWarn()
         .addKeyValue("requestId", requestId)
@@ -172,10 +140,10 @@ public abstract class BaseMcpTool<P extends ToolParams, R> {
         .addArgument(e.getMessage())
         .log();
 
-    return PaginatedResponse.error(pagination.page(), pagination.pageSize(), errorMessage);
+    return PaginatedToolResponse.error(pagination.page(), pagination.pageSize(), errorMessage);
   }
 
-  private PaginatedResponse<R> buildSuccessResponse(
+  private PaginatedToolResponse<R> buildSuccessResponse(
       ExecutionResult<R> result,
       PaginationParams pagination,
       List<String> warnings,
@@ -190,7 +158,7 @@ public abstract class BaseMcpTool<P extends ToolParams, R> {
 
     logSuccess(requestId, duration, result.items().size(), result.totalItems());
 
-    return PaginatedResponse.success(
+    return PaginatedToolResponse.success(
         result.items(),
         pagination.page(),
         pagination.pageSize(),
