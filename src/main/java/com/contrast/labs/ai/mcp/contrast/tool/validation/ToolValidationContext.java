@@ -210,6 +210,18 @@ public class ToolValidationContext implements ToolParams {
   }
 
   /**
+   * Adds an error if the condition is true.
+   *
+   * @param condition the condition to check
+   * @param message the error message if condition is true
+   */
+  public void errorIf(boolean condition, String message) {
+    if (condition) {
+      errors.add(message);
+    }
+  }
+
+  /**
    * Adds an error message. Protected for use by Spec classes and subclasses.
    *
    * @param message the error message

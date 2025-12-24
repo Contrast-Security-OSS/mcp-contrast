@@ -15,8 +15,8 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.sast;
 
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseGetTool;
-import com.contrast.labs.ai.mcp.contrast.tool.base.ToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.sast.params.GetSastProjectParams;
 import com.contrastsecurity.sdk.scan.Project;
 import java.util.List;
@@ -31,7 +31,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @Slf4j
-public class GetSastProjectTool extends BaseGetTool<GetSastProjectParams, Project> {
+public class GetSastProjectTool extends BaseSingleTool<GetSastProjectParams, Project> {
 
   @Tool(
       name = "get_scan_project",
@@ -56,7 +56,7 @@ public class GetSastProjectTool extends BaseGetTool<GetSastProjectParams, Projec
           Related tools:
           - get_scan_results: Get SARIF results for a project's latest scan
           """)
-  public ToolResponse<Project> getScanProject(
+  public SingleToolResponse<Project> getScanProject(
       @ToolParam(description = "Scan project name (case-sensitive, must match exactly)")
           String projectName) {
     return executePipeline(() -> GetSastProjectParams.of(projectName));

@@ -19,12 +19,12 @@ import com.contrast.labs.ai.mcp.contrast.FilterHelper;
 import com.contrast.labs.ai.mcp.contrast.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.data.ApplicationData;
 import com.contrast.labs.ai.mcp.contrast.data.Metadata;
-import com.contrast.labs.ai.mcp.contrast.data.PaginatedResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.tool.applications.params.ApplicationFilterParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseMcpTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
+import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import java.util.List;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -35,7 +35,8 @@ import org.springframework.stereotype.Service;
  * with BaseMcpTool and in-memory filtering.
  */
 @Service
-public class SearchApplicationsTool extends BaseMcpTool<ApplicationFilterParams, ApplicationData> {
+public class SearchApplicationsTool
+    extends BasePaginatedTool<ApplicationFilterParams, ApplicationData> {
 
   @Tool(
       name = "search_applications",
@@ -56,7 +57,7 @@ public class SearchApplicationsTool extends BaseMcpTool<ApplicationFilterParams,
           - get_session_metadata: Get session metadata for an application
           - search_vulnerabilities: Search vulnerabilities across applications
           """)
-  public PaginatedResponse<ApplicationData> searchApplications(
+  public PaginatedToolResponse<ApplicationData> searchApplications(
       @ToolParam(description = "Page number (1-based), default: 1", required = false) Integer page,
       @ToolParam(description = "Items per page (max 100), default: 50", required = false)
           Integer pageSize,
