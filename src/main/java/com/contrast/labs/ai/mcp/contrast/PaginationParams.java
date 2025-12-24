@@ -15,6 +15,9 @@
  */
 package com.contrast.labs.ai.mcp.contrast;
 
+import static com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants.DEFAULT_PAGE_SIZE;
+import static com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants.MAX_PAGE_SIZE;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,12 +33,6 @@ import java.util.List;
  */
 public record PaginationParams(
     int page, int pageSize, int offset, int limit, List<String> warnings) {
-
-  /** Default page size when none specified. */
-  public static final int DEFAULT_PAGE_SIZE = 50;
-
-  /** Maximum allowed page size. */
-  public static final int MAX_PAGE_SIZE = 100;
 
   /**
    * Parse and validate pagination parameters. Invalid values are clamped to acceptable defaults

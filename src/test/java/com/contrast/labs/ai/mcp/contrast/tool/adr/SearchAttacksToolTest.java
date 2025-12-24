@@ -229,7 +229,7 @@ class SearchAttacksToolTest {
     var result = tool.searchAttacks("INVALID", null, null, null, null, null, null, null, null);
 
     assertThat(result.items()).isEmpty();
-    assertThat(result.message()).contains("Invalid quickFilter");
+    assertThat(result.errors()).anyMatch(e -> e.contains("Invalid quickFilter"));
   }
 
   @Test
@@ -237,7 +237,7 @@ class SearchAttacksToolTest {
     var result = tool.searchAttacks(null, "INVALID", null, null, null, null, null, null, null);
 
     assertThat(result.items()).isEmpty();
-    assertThat(result.message()).contains("Invalid statusFilter");
+    assertThat(result.errors()).anyMatch(e -> e.contains("Invalid statusFilter"));
   }
 
   @Test
@@ -245,7 +245,7 @@ class SearchAttacksToolTest {
     var result = tool.searchAttacks(null, null, null, null, null, null, "bad!", null, null);
 
     assertThat(result.items()).isEmpty();
-    assertThat(result.message()).contains("Invalid sort format");
+    assertThat(result.errors()).anyMatch(e -> e.contains("Invalid sort format"));
   }
 
   @Test
@@ -263,7 +263,7 @@ class SearchAttacksToolTest {
       var result = tool.searchAttacks(null, null, null, null, null, null, null, null, null);
 
       assertThat(result.items()).isEmpty();
-      assertThat(result.message()).contains("No results found");
+      assertThat(result.warnings()).anyMatch(w -> w.contains("No results found"));
     }
   }
 
@@ -280,7 +280,7 @@ class SearchAttacksToolTest {
       var result = tool.searchAttacks(null, null, null, null, null, null, null, null, null);
 
       assertThat(result.items()).isEmpty();
-      assertThat(result.message()).contains("API returned no attack data");
+      assertThat(result.warnings()).anyMatch(w -> w.contains("API returned no attack data"));
     }
   }
 

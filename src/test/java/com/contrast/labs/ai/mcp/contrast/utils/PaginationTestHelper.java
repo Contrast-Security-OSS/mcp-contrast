@@ -51,10 +51,11 @@ public class PaginationTestHelper {
     }
   }
 
-  /** Asserts that response contains a validation message */
+  /** Asserts that response contains validation errors or warnings */
   public static <T> void assertHasValidationMessage(PaginatedToolResponse<T> response) {
-    assertNotNull(response.message(), "Expected validation message");
-    assertFalse(response.message().isEmpty(), "Message should not be empty");
+    assertTrue(
+        !response.errors().isEmpty() || !response.warnings().isEmpty(),
+        "Expected validation errors or warnings");
   }
 
   /** Asserts that response represents an empty page */
@@ -77,11 +78,10 @@ public class PaginationTestHelper {
     }
   }
 
-  /** Asserts that response has no validation message (clean response) */
+  /** Asserts that response has no validation errors or warnings (clean response) */
   public static <T> void assertNoValidationMessage(PaginatedToolResponse<T> response) {
-    assertTrue(
-        response.message() == null || response.message().isEmpty(),
-        "Expected no validation message");
+    assertTrue(response.errors().isEmpty(), "Expected no validation errors");
+    assertTrue(response.warnings().isEmpty(), "Expected no validation warnings");
   }
 
   /** Asserts that the response contains the expected number of items */
