@@ -27,7 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-class BaseGetToolTest {
+class BaseSingleToolTest {
 
   private TestGetTool tool;
   private ContrastConfig config;
@@ -189,8 +189,8 @@ class BaseGetToolTest {
     assertThat(result.warnings()).contains("Partial data returned");
   }
 
-  // Test implementation of BaseGetTool
-  private static class TestGetTool extends BaseGetTool<TestParams, String> {
+  // Test implementation of BaseSingleTool
+  private static class TestGetTool extends BaseSingleTool<TestParams, String> {
     private DoExecuteHandler handler;
 
     void setDoExecuteHandler(DoExecuteHandler handler) {

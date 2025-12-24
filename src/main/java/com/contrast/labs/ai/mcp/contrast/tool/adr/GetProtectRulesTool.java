@@ -18,8 +18,8 @@ package com.contrast.labs.ai.mcp.contrast.tool.adr;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.tool.adr.params.GetProtectRulesParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseGetTool;
-import com.contrast.labs.ai.mcp.contrast.tool.base.ToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +34,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class GetProtectRulesTool extends BaseGetTool<GetProtectRulesParams, ProtectData> {
+public class GetProtectRulesTool extends BaseSingleTool<GetProtectRulesParams, ProtectData> {
 
   @Tool(
       name = "get_protect_rules",
@@ -59,7 +59,7 @@ public class GetProtectRulesTool extends BaseGetTool<GetProtectRulesParams, Prot
           - search_applications: Find application IDs by name or tag
           - search_attacks: Search for attacks across the organization
           """)
-  public ToolResponse<ProtectData> getProtectRules(
+  public SingleToolResponse<ProtectData> getProtectRules(
       @ToolParam(description = "Application ID (use search_applications to find)") String appId) {
     return executePipeline(() -> GetProtectRulesParams.of(appId));
   }

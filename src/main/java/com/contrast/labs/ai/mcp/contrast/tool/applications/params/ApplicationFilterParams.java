@@ -16,6 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.tool.applications.params;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 import org.springframework.util.StringUtils;
 
@@ -33,7 +34,7 @@ import org.springframework.util.StringUtils;
  * boolean matches = params.matches(application);
  * }</pre>
  */
-public class ApplicationFilterParams extends ToolValidationContext {
+public class ApplicationFilterParams extends BaseToolParams {
 
   private String name;
   private String tag;
@@ -56,6 +57,7 @@ public class ApplicationFilterParams extends ToolValidationContext {
       String name, String tag, String metadataName, String metadataValue) {
 
     var params = new ApplicationFilterParams();
+    var ctx = new ToolValidationContext();
 
     // Store raw values - all filters are optional
     params.name = StringUtils.hasText(name) ? name : null;
@@ -64,8 +66,9 @@ public class ApplicationFilterParams extends ToolValidationContext {
     params.metadataValue = StringUtils.hasText(metadataValue) ? metadataValue : null;
 
     // Cross-field validation: metadataValue requires metadataName
-    params.requireIfPresent(metadataValue, "metadataValue", metadataName, "metadataName");
+    ctx.requireIfPresent(metadataValue, "metadataValue", metadataName, "metadataName");
 
+    params.setValidationResult(ctx);
     return params;
   }
 

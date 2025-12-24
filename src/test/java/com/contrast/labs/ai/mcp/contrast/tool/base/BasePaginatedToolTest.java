@@ -28,7 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-class BaseMcpToolTest {
+class BasePaginatedToolTest {
 
   private TestSearchTool tool;
   private ContrastConfig config;
@@ -265,8 +265,8 @@ class BaseMcpToolTest {
     assertThat(result.durationMs()).isGreaterThanOrEqualTo(0);
   }
 
-  // Test implementation of BaseMcpTool
-  private static class TestSearchTool extends BaseMcpTool<TestParams, String> {
+  // Test implementation of BasePaginatedTool
+  private static class TestSearchTool extends BasePaginatedTool<TestParams, String> {
     private DoExecuteHandler handler;
 
     void setDoExecuteHandler(DoExecuteHandler handler) {
