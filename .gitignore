@@ -44,6 +44,6 @@ test-cache/
 ### Beads ###
 .beads/
 .beads.zip
-test-plan-*.md
+/test-plan-*.md
 results-*.md
 plans/
