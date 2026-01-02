@@ -157,13 +157,13 @@ class SearchAttacksToolIT {
         searchAttacksTool.searchAttacks("INVALID", null, null, null, null, null, null, 1, 10);
 
     assertThat(response).as("Response should not be null").isNotNull();
-    assertThat(response.message()).as("Should have error message").isNotNull();
-    assertThat(response.message())
+    assertThat(response.errors()).as("Should have errors").isNotEmpty();
+    assertThat(response.errors())
         .as("Should explain invalid filter")
-        .contains("Invalid quickFilter");
+        .anyMatch(e -> e.contains("Invalid quickFilter"));
 
     log.info("✓ Invalid filter correctly rejected");
-    log.info("  Error message: {}", response.message());
+    log.info("  Errors: {}", response.errors());
   }
 
   @Test
@@ -174,13 +174,13 @@ class SearchAttacksToolIT {
         searchAttacksTool.searchAttacks(null, "INVALID", null, null, null, null, null, 1, 10);
 
     assertThat(response).as("Response should not be null").isNotNull();
-    assertThat(response.message()).as("Should have error message").isNotNull();
-    assertThat(response.message())
+    assertThat(response.errors()).as("Should have errors").isNotEmpty();
+    assertThat(response.errors())
         .as("Should explain invalid filter")
-        .contains("Invalid statusFilter");
+        .anyMatch(e -> e.contains("Invalid statusFilter"));
 
     log.info("✓ Invalid status filter correctly rejected");
-    log.info("  Error message: {}", response.message());
+    log.info("  Errors: {}", response.errors());
   }
 
   @Test

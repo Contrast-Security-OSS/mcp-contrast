@@ -108,34 +108,6 @@ class PaginatedToolResponseTest {
     assertThat(response.isSuccess()).isTrue();
   }
 
-  // ========== Deprecated message() method tests ==========
-
-  @Test
-  @SuppressWarnings("deprecation")
-  void message_deprecated_should_returnErrors() {
-    var response = PaginatedToolResponse.validationError(1, 50, List.of("Error 1", "Error 2"));
-
-    assertThat(response.message()).isEqualTo("Error 1 Error 2");
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  void message_deprecated_should_returnWarningsWhenNoErrors() {
-    var response =
-        PaginatedToolResponse.success(
-            List.of(), 1, 50, 0, false, List.of("Warning 1", "Warning 2"), null);
-
-    assertThat(response.message()).isEqualTo("Warning 1 Warning 2");
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  void message_deprecated_should_returnNullWhenNoMessagesExist() {
-    var response = PaginatedToolResponse.success(List.of("item"), 1, 50, 1, false, List.of(), 100L);
-
-    assertThat(response.message()).isNull();
-  }
-
   // ========== Compact constructor tests ==========
 
   @Test
