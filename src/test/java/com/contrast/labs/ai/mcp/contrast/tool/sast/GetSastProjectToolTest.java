@@ -57,7 +57,7 @@ class GetSastProjectToolTest {
   void setUp() {
     tool = new GetSastProjectTool();
     ReflectionTestUtils.setField(tool, "config", config);
-    when(config.createSDK()).thenReturn(sdk);
+    when(config.getSDK()).thenReturn(sdk);
     when(config.getOrgId()).thenReturn(TEST_ORG_ID);
     when(sdk.scan(any())).thenReturn(scanManager);
     when(scanManager.projects()).thenReturn(projects);
