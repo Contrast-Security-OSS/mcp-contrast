@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.sca.params;
 
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 import java.util.regex.Pattern;
 import org.springframework.util.StringUtils;
@@ -31,7 +32,7 @@ import org.springframework.util.StringUtils;
  * }
  * }</pre>
  */
-public class ListApplicationsByCveParams extends ToolValidationContext {
+public class ListApplicationsByCveParams extends BaseToolParams {
 
   /** CVE ID format pattern: CVE-YYYY-NNNNN (4+ digit sequence number) */
   private static final Pattern CVE_PATTERN = Pattern.compile("^CVE-\\d{4}-\\d{4,}$");
@@ -49,19 +50,22 @@ public class ListApplicationsByCveParams extends ToolValidationContext {
    */
   public static ListApplicationsByCveParams of(String cveId) {
     var params = new ListApplicationsByCveParams();
+    var ctx = new ToolValidationContext();
 
     // Validate required field
-    params.require(cveId, "cveId");
+    ctx.require(cveId, "cveId");
 
     // Validate CVE format if provided
     if (StringUtils.hasText(cveId) && !CVE_PATTERN.matcher(cveId).matches()) {
-      params.addError(
+      ctx.errorIf(
+          true,
           "cveId must be in CVE format (e.g., CVE-2021-44228). "
               + "Format: CVE-YYYY-NNNNN where YYYY is the year and NNNNN is a sequence number.");
     }
 
     params.cveId = cveId;
 
+    params.setValidationResult(ctx);
     return params;
   }
 

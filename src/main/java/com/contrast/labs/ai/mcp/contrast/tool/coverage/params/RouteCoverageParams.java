@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.coverage.params;
 
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 import org.springframework.util.StringUtils;
 
@@ -31,7 +32,7 @@ import org.springframework.util.StringUtils;
  * }
  * }</pre>
  */
-public class RouteCoverageParams extends ToolValidationContext {
+public class RouteCoverageParams extends BaseToolParams {
 
   private String appId;
   private String sessionMetadataName;
@@ -56,28 +57,28 @@ public class RouteCoverageParams extends ToolValidationContext {
       String sessionMetadataValue,
       Boolean useLatestSession) {
     var params = new RouteCoverageParams();
+    var ctx = new ToolValidationContext();
 
     // Validate required field
-    params.require(appId, "appId");
+    ctx.require(appId, "appId");
 
     // Validate paired metadata params - both or neither must be provided
     // Treat empty strings as null (no filter)
     boolean hasName = StringUtils.hasText(sessionMetadataName);
     boolean hasValue = StringUtils.hasText(sessionMetadataValue);
 
-    if (hasName && !hasValue) {
-      params.addError("sessionMetadataValue is required when sessionMetadataName is provided");
-    }
-    if (hasValue && !hasName) {
-      params.addError("sessionMetadataName is required when sessionMetadataValue is provided");
-    }
+    ctx.errorIf(
+        hasName && !hasValue,
+        "sessionMetadataValue is required when sessionMetadataName is provided");
+    ctx.errorIf(
+        hasValue && !hasName,
+        "sessionMetadataName is required when sessionMetadataValue is provided");
 
     // Warn if both useLatestSession and metadata params provided (mutually exclusive)
-    if (Boolean.TRUE.equals(useLatestSession) && hasName) {
-      params.addWarning(
-          "Both useLatestSession and sessionMetadataName provided - "
-              + "useLatestSession takes precedence and sessionMetadata filter will be ignored");
-    }
+    ctx.warnIf(
+        Boolean.TRUE.equals(useLatestSession) && hasName,
+        "Both useLatestSession and sessionMetadataName provided - "
+            + "useLatestSession takes precedence and sessionMetadata filter will be ignored");
 
     // Store values (empty strings normalized to null)
     params.appId = appId;
@@ -85,6 +86,7 @@ public class RouteCoverageParams extends ToolValidationContext {
     params.sessionMetadataValue = hasValue ? sessionMetadataValue : null;
     params.useLatestSession = useLatestSession;
 
+    params.setValidationResult(ctx);
     return params;
   }
 

@@ -21,8 +21,8 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.App;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseGetTool;
-import com.contrast.labs.ai.mcp.contrast.tool.base.ToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.sca.params.ListApplicationsByCveParams;
 import java.util.Collections;
 import java.util.List;
@@ -40,7 +40,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @Slf4j
-public class ListApplicationsByCveTool extends BaseGetTool<ListApplicationsByCveParams, CveData> {
+public class ListApplicationsByCveTool
+    extends BaseSingleTool<ListApplicationsByCveParams, CveData> {
 
   @Tool(
       name = "list_applications_by_cve",
@@ -65,7 +66,7 @@ public class ListApplicationsByCveTool extends BaseGetTool<ListApplicationsByCve
           - list_application_libraries: Get all libraries for a specific application
           - search_applications: Find applications by name, tag, or metadata
           """)
-  public ToolResponse<CveData> listApplicationsByCve(
+  public SingleToolResponse<CveData> listApplicationsByCve(
       @ToolParam(description = "CVE identifier (e.g., CVE-2021-44228)") String cveId) {
     return executePipeline(() -> ListApplicationsByCveParams.of(cveId));
   }

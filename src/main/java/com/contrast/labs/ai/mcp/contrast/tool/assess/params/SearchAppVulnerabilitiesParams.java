@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.assess.params;
 
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.http.ServerEnvironment;
@@ -39,7 +40,7 @@ import java.util.Set;
  * var filterForm = params.toTraceFilterForm();
  * }</pre>
  */
-public class SearchAppVulnerabilitiesParams extends ToolValidationContext {
+public class SearchAppVulnerabilitiesParams extends BaseToolParams {
 
   /** Valid status values for vulnerability filtering. */
   public static final Set<String> VALID_STATUSES =
@@ -94,18 +95,17 @@ public class SearchAppVulnerabilitiesParams extends ToolValidationContext {
       Boolean useLatestSessionParam) {
 
     var params = new SearchAppVulnerabilitiesParams();
+    var ctx = new ToolValidationContext();
 
     // Required field
-    params.require(appIdParam, "appId");
+    ctx.require(appIdParam, "appId");
     params.appId = appIdParam;
 
     // Parse filter parameters with fluent API
-    params.severities =
-        params.enumSetParam(severitiesParam, RuleSeverity.class, "severities").get();
+    params.severities = ctx.enumSetParam(severitiesParam, RuleSeverity.class, "severities").get();
 
     params.statuses =
-        params
-            .stringListParam(statusesParam, "statuses")
+        ctx.stringListParam(statusesParam, "statuses")
             .allowedValues(VALID_STATUSES)
             .defaultTo(
                 DEFAULT_STATUSES,
@@ -113,23 +113,23 @@ public class SearchAppVulnerabilitiesParams extends ToolValidationContext {
                     + "To see all statuses, specify statuses parameter explicitly.")
             .get();
 
-    params.vulnTypes = params.stringListParam(vulnTypesParam, "vulnTypes").get();
+    params.vulnTypes = ctx.stringListParam(vulnTypesParam, "vulnTypes").get();
 
     params.environments =
-        params.enumSetParam(environmentsParam, ServerEnvironment.class, "environments").get();
+        ctx.enumSetParam(environmentsParam, ServerEnvironment.class, "environments").get();
 
-    params.lastSeenAfter = params.dateParam(lastSeenAfterParam, "lastSeenAfter").get();
-    params.lastSeenBefore = params.dateParam(lastSeenBeforeParam, "lastSeenBefore").get();
-    params.validateDateRange(
+    params.lastSeenAfter = ctx.dateParam(lastSeenAfterParam, "lastSeenAfter").get();
+    params.lastSeenBefore = ctx.dateParam(lastSeenBeforeParam, "lastSeenBefore").get();
+    ctx.validateDateRange(
         params.lastSeenAfter, params.lastSeenBefore, "lastSeenAfter", "lastSeenBefore");
 
     // Add time filter note if dates were specified
     if (params.lastSeenAfter != null || params.lastSeenBefore != null) {
-      params.warnIf(
+      ctx.warnIf(
           true, "Time filters apply to LAST ACTIVITY DATE (lastTimeSeen), not discovery date.");
     }
 
-    params.vulnTags = params.stringListParam(vulnTagsParam, "vulnTags").get();
+    params.vulnTags = ctx.stringListParam(vulnTagsParam, "vulnTags").get();
 
     // Session filtering parameters with cross-field validation
     params.sessionMetadataName = sessionMetadataNameParam;
@@ -137,12 +137,13 @@ public class SearchAppVulnerabilitiesParams extends ToolValidationContext {
     params.useLatestSession = useLatestSessionParam;
 
     // Validate sessionMetadataValue requires sessionMetadataName
-    params.requireIfPresent(
+    ctx.requireIfPresent(
         sessionMetadataValueParam,
         "sessionMetadataValue",
         sessionMetadataNameParam,
         "sessionMetadataName");
 
+    params.setValidationResult(ctx);
     return params;
   }
 
