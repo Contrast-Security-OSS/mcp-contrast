@@ -45,18 +45,15 @@ VulnLight {
     String type,                  // Vulnerability type (e.g., "sql-injection")
     String vulnID,                // Unique identifier (UUID)
     String severity,              // CRITICAL, HIGH, MEDIUM, LOW, NOTE
-    String status,                // Reported, Suspicious, Confirmed, Remediated, Fixed
+    String appID,                 // Application UUID
+    String appName,               // Application display name
     List<SessionMetadata> sessionMetadata,  // Session context
     String lastSeenAt,            // ISO-8601 timestamp
+    String status,                // Reported, Suspicious, Confirmed, Remediated, Fixed
     String firstSeenAt,           // ISO-8601 timestamp (nullable)
     String closedAt,              // ISO-8601 timestamp (nullable)
     List<String> environments,    // Historical environments (DEVELOPMENT, QA, PRODUCTION)
-    ApplicationInfo application   // Application name and ID
-}
-
-ApplicationInfo {
-    String appId,                 // Application UUID
-    String appName                // Application display name
+    List<String> tags             // User-defined vulnerability tags
 }
 ```
 
@@ -870,28 +867,30 @@ ApplicationInfo {
   - `type`: string (vulnerability type)
   - `vulnID`: string (UUID format)
   - `severity`: one of CRITICAL, HIGH, MEDIUM, LOW, NOTE
+  - `appID`: string (UUID format)
+  - `appName`: string (application name)
   - `status`: one of Reported, Suspicious, Confirmed, Remediated, Fixed
   - `sessionMetadata`: array (may be empty)
   - `lastSeenAt`: ISO timestamp
   - `firstSeenAt`: ISO timestamp or null
   - `closedAt`: ISO timestamp or null
   - `environments`: array of strings
-  - `application`: object with appId and appName
+  - `tags`: array of strings (may be empty)
 
 ---
 
-### Test Case 10.3: Application Field Presence
+### Test Case 10.3: Application Fields Presence
 
 **Objective:** Verify application context is included.
 
 **Test Steps:**
 1. Query vulnerabilities
-2. Check each item for application field
+2. Check each item for application fields
 
 **Expected Results:**
-- Each item has `application` object
-- Contains `appId` (UUID)
-- Contains `appName` (application display name)
+- Each item has `appID` field (UUID)
+- Each item has `appName` field (application display name)
+- Both fields are direct properties of VulnLight (not nested)
 
 ---
 
