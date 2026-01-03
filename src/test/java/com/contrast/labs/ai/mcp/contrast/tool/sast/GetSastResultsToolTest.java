@@ -141,6 +141,7 @@ class GetSastResultsToolTest {
 
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
+    assertThat(result.warnings()).anyMatch(w -> w.contains("DEPRECATED"));
   }
 
   @Test
@@ -159,6 +160,7 @@ class GetSastResultsToolTest {
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
     assertThat(result.warnings()).anyMatch(w -> w.contains("No scan results available"));
+    assertThat(result.warnings()).anyMatch(w -> w.contains("DEPRECATED"));
   }
 
   @Test
@@ -180,6 +182,7 @@ class GetSastResultsToolTest {
     assertThat(result.data()).isNull();
     assertThat(result.warnings())
         .anyMatch(w -> w.contains("Scan ID " + TEST_SCAN_ID + " not found"));
+    assertThat(result.warnings()).anyMatch(w -> w.contains("DEPRECATED"));
   }
 
   @Test

@@ -73,6 +73,11 @@ public class GetSastResultsTool extends BaseSingleTool<GetSastResultsParams, Str
     var sdk = getContrastSDK();
     var orgId = getOrgId();
 
+    // Add deprecation warning at start - shown on every call regardless of success/failure
+    warnings.add(
+        "DEPRECATED: This tool returns raw SARIF which may be very large. "
+            + "Consider using future paginated SAST search tools for better AI-friendly access.");
+
     log.debug(
         "Retrieving latest scan results in SARIF format for project: {}", params.projectName());
 
@@ -116,12 +121,6 @@ public class GetSastResultsTool extends BaseSingleTool<GetSastResultsParams, Str
         var reader = new BufferedReader(new InputStreamReader(sarifStream))) {
       var result = reader.lines().collect(Collectors.joining(System.lineSeparator()));
       log.info("Successfully retrieved SARIF data for project: {}", params.projectName());
-
-      // Add deprecation warning
-      warnings.add(
-          "DEPRECATED: This tool returns raw SARIF which may be very large. "
-              + "Consider using future paginated SAST search tools for better AI-friendly access.");
-
       return result;
     }
   }
