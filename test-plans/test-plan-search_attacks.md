@@ -34,7 +34,7 @@ Search for attacks from Contrast ADR with flexible filtering, pagination, and so
 | `includeIpBlacklist` | Boolean | Include attacks from blacklisted IPs | false |
 | `page` | Integer | Page number (1-indexed) | null (no pagination) |
 | `pageSize` | Integer | Results per page | 25 |
-| `sortBy` | String | Sort order: "NEWEST", "OLDEST", "SEVERITY", "PROBES" | "NEWEST" |
+| `sort` | String | Sort field with optional `-` prefix for descending. Valid: `startTime`, `endTime`, `sourceIP`, `status`, `type` | "-startTime" |
 
 ### Response Structure: AttackSummary
 
@@ -84,7 +84,7 @@ Search for attacks from Contrast ADR with flexible filtering, pagination, and so
 - Returns list of AttackSummary objects
 - Uses default `status="ALL"`
 - Uses default `includeSuppressed=false`, `includeBotBlockers=false`, `includeIpBlacklist=false`
-- Uses default `sortBy="NEWEST"` (most recent first)
+- Uses default `sort="-startTime"` (most recent first)
 - No pagination (returns all matching attacks)
 - Each AttackSummary contains all required fields
 
@@ -576,83 +576,86 @@ Test sequence:
 
 ### 6. Sorting
 
-#### Test Case 6.1: Sort - "NEWEST" (Default)
-**Objective:** Sort by newest attacks first.
+#### Test Case 6.1: Sort - "-startTime" (Default, Descending)
+**Objective:** Sort by newest attacks first (descending start time).
 
-**Parameters:** `sortBy="NEWEST"`
+**Parameters:** `sort="-startTime"`
 
 **Expected Result:**
 - Returns attacks ordered by most recent first
 - Latest attacks appear first in list
-- Descending time order
-- Verify by checking startTime or lastEventTime
+- Descending time order (newest to oldest)
+- Verify by checking startTime values decrease through results
 
 ---
 
-#### Test Case 6.2: Sort - "OLDEST"
-**Objective:** Sort by oldest attacks first.
+#### Test Case 6.2: Sort - "startTime" (Ascending)
+**Objective:** Sort by oldest attacks first (ascending start time).
 
-**Parameters:** `sortBy="OLDEST"`
+**Parameters:** `sort="startTime"`
 
 **Expected Result:**
 - Returns attacks ordered by oldest first
 - Earliest attacks appear first
-- Ascending time order
-- Verify by checking startTime or firstEventTime
+- Ascending time order (oldest to newest)
+- Verify by checking startTime values increase through results
 
 ---
 
-#### Test Case 6.3: Sort - "SEVERITY"
-**Objective:** Sort by attack severity.
+#### Test Case 6.3: Sort - "status"
+**Objective:** Sort by attack status.
 
-**Parameters:** `sortBy="SEVERITY"`
+**Parameters:** `sort="status"` or `sort="-status"`
 
 **Expected Result:**
-- Returns attacks ordered by severity
-- Higher severity attacks first (CRITICAL → HIGH → MEDIUM → LOW)
-- Verify by checking severity in ApplicationAttackInfo
+- Returns attacks ordered by status field
+- Verify by checking status values are grouped/ordered
+- Note: Severity sorting is not supported at attack level (severity is per-application)
 
 ---
 
-#### Test Case 6.4: Sort - "PROBES"
-**Objective:** Sort by probe count.
+#### Test Case 6.4: Sort - "sourceIP"
+**Objective:** Sort by source IP address.
 
-**Parameters:** `sortBy="PROBES"`
+**Parameters:** `sort="sourceIP"` or `sort="-sourceIP"`
 
 **Expected Result:**
-- Returns attacks ordered by probe count
-- Attacks with most probes first
-- Descending probe count order
+- Returns attacks ordered by source IP address
+- Verify by checking source field values are ordered
+- Note: Probe count sorting is not supported by the API
 
 ---
 
 #### Test Case 6.5: Sort - Invalid Value
-**Objective:** Test invalid sort parameter.
+**Objective:** Test invalid sort parameter returns helpful validation error.
 
 **Parameters:**
 ```
 Test cases:
-- sortBy="INVALID"
-- sortBy="invalid"
-- sortBy="UNKNOWN_SORT"
+- sort="INVALID"
+- sort="invalid"
+- sort="UNKNOWN_SORT"
+- sort="severity" (not supported)
+- sort="probes" (not supported)
 ```
 
 **Expected Result:**
-- May return error
-- Or may default to "NEWEST"
-- Document actual behavior
+- Returns validation error (not generic API error)
+- Error message lists valid sort fields: `startTime`, `endTime`, `sourceIP`, `status`, `type`
+- Error explains `-` prefix convention for descending order
+- Example: "Invalid sort field 'INVALID'. Valid fields: [endTime, sourceIP, startTime, status, type]. Use '-' prefix for descending order (e.g., '-startTime')."
 
 ---
 
 #### Test Case 6.6: Sort - Null (Default Sorting)
-**Objective:** Verify default sorting when sortBy is null.
+**Objective:** Verify default sorting when sort is null/omitted.
 
-**Parameters:** `sortBy=null`
+**Parameters:** `sort=null` (or omit parameter)
 
 **Expected Result:**
-- Uses default sort order ("NEWEST")
-- Results sorted by most recent first
-- Document observed default behavior
+- Uses default sort order (`-startTime`)
+- Results sorted by most recent first (descending start time)
+- Same behavior as explicitly passing `sort="-startTime"`
 
 ---
 
@@ -661,7 +664,7 @@ Test cases:
 
 **Parameters:**
 ```
-sortBy="NEWEST"
+sort="-startTime"
 page=1
 pageSize=10
 ```
@@ -669,7 +672,8 @@ pageSize=10
 **Expected Result:**
 - Page 1 has 10 newest attacks
 - Page 2 has next 10 newest attacks
-- Sorting maintained across pages
+- Sort order maintained across pages
+- No duplicate or missing attacks between pages
 
 ---
 
@@ -1190,7 +1194,7 @@ pageSize=5
 ```
 status="BLOCKED"
 keyword="sql"
-sortBy="NEWEST"
+sort="-startTime"
 ```
 
 **Expected Result:**
@@ -1212,7 +1216,7 @@ includeBotBlockers=false
 includeIpBlacklist=false
 page=2
 pageSize=20
-sortBy="NEWEST"
+sort="-startTime"
 ```
 
 **Expected Result:**
@@ -1232,7 +1236,7 @@ includeBotBlockers=true
 includeIpBlacklist=true
 page=1
 pageSize=10
-sortBy="NEWEST"
+sort="-startTime"
 ```
 
 **Expected Result:**
@@ -1269,7 +1273,7 @@ Test cases:
 Test cases:
 - status="" vs status=null
 - keyword="" vs keyword=null
-- sortBy="" vs sortBy=null
+- sort="" vs sort=null
 ```
 
 **Expected Result:**
@@ -1369,7 +1373,7 @@ Test cases:
 status="PROBED"
 keyword="sql"
 includeSuppressed=true
-sortBy="NEWEST"
+sort="-startTime"
 ```
 
 **Expected Result:**
