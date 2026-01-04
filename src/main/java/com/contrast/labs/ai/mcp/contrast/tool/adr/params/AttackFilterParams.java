@@ -138,7 +138,7 @@ public class AttackFilterParams extends BaseToolParams {
             String.format(
                 "Invalid sort field '%s'. Valid fields: %s. Use '-' prefix for descending order"
                     + " (e.g., '-startTime'). Default: -startTime",
-                baseField, String.join(", ", VALID_SORT_FIELDS)));
+                baseField, VALID_SORT_FIELDS.stream().sorted().toList()));
       }
     }
 

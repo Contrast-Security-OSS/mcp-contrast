@@ -185,9 +185,7 @@ class AttackFilterParamsTest {
       var params = AttackFilterParams.of(null, null, null, null, null, null, "severity");
 
       assertThat(params.isValid()).isFalse();
-      assertThat(params.errors())
-          .anyMatch(e -> e.contains("Invalid sort field"))
-          .anyMatch(e -> e.contains("severity"));
+      assertThat(params.errors().get(0)).contains("Invalid sort field").contains("severity");
     }
 
     @Test
@@ -203,9 +201,7 @@ class AttackFilterParamsTest {
       var params = AttackFilterParams.of(null, null, null, null, null, null, "-invalidField");
 
       assertThat(params.isValid()).isFalse();
-      assertThat(params.errors())
-          .anyMatch(e -> e.contains("Invalid sort field"))
-          .anyMatch(e -> e.contains("invalidField"));
+      assertThat(params.errors().get(0)).contains("Invalid sort field").contains("invalidField");
     }
 
     @Test
@@ -237,6 +233,15 @@ class AttackFilterParamsTest {
           .contains("status")
           .contains("sourceIP")
           .contains("type");
+    }
+
+    @Test
+    void of_should_list_valid_fields_in_alphabetical_order() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "badField");
+
+      assertThat(params.isValid()).isFalse();
+      // Verify fields are in consistent alphabetical order for predictable UX
+      assertThat(params.errors().get(0)).contains("[endTime, sourceIP, startTime, status, type]");
     }
 
     @Test
