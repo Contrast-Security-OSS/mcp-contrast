@@ -21,6 +21,8 @@ import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -208,5 +210,34 @@ class SearchAttacksToolIT {
 
     log.info("✓ Retrieved {} attacks with combined filters", response.items().size());
     log.info("  Filters: quickFilter=EFFECTIVE, statusFilter=EXPLOITED");
+  }
+
+  // ========== Special Character Keyword Tests (Test Cases 3.5 and 13.4) ==========
+  // Note: Full XSS payloads like "<script>alert('xss')</script>" are blocked by Contrast Protect
+  // on the API server, so we test with patterns that demonstrate URL encoding works without
+  // triggering attack detection.
+
+  @ParameterizedTest(name = "keyword with special chars: {0}")
+  @ValueSource(
+      strings = {
+        "'; DROP TABLE users;--", // SQL injection
+        "../../../etc/passwd", // Path traversal
+        "<>", // Angle brackets (HTML/XML)
+        "attacker@malicious.com", // Email address
+        "/admin/login?user=admin", // URL path with query string
+        "%00null-byte" // Null byte pattern (tests double-encoding of %)
+      })
+  void searchAttacks_should_handle_specialCharacterKeywords(String keyword) {
+    log.info("\n=== Integration Test: search_attacks (keyword='{}') ===", keyword);
+
+    var response =
+        searchAttacksTool.searchAttacks(null, null, keyword, null, null, null, null, 1, 10);
+
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have no errors for keyword: " + keyword).isEmpty();
+    assertThat(response.items()).as("Items should not be null").isNotNull();
+
+    log.info("✓ Special character keyword handled correctly: {}", keyword);
+    log.info("  Results: {} attacks found", response.items().size());
   }
 }

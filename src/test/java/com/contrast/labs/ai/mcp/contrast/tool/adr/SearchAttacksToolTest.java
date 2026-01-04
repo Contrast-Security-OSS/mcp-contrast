@@ -148,7 +148,8 @@ class SearchAttacksToolTest {
       var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
       verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
 
-      assertThat(captor.getValue().getKeyword()).isEqualTo("sql injection");
+      // Keyword is URL-encoded: space becomes +
+      assertThat(captor.getValue().getKeyword()).isEqualTo("sql+injection");
     }
   }
 
