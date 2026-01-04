@@ -212,6 +212,86 @@ class SearchAttacksToolIT {
     log.info("  Filters: quickFilter=EFFECTIVE, statusFilter=EXPLOITED");
   }
 
+  // ========== Sort Field Validation Tests (Bug Fix: AIML-345) ==========
+
+  @Test
+  void searchAttacks_should_return_validation_error_for_invalid_sort_field() {
+    log.info("\n=== Integration Test: search_attacks (invalid sort field - BUG FIX) ===");
+
+    // This test verifies the bug fix: invalid sort fields should return a helpful
+    // validation error listing valid options, NOT a generic "Contrast API error"
+    var response =
+        searchAttacksTool.searchAttacks(null, null, null, null, null, null, "severity", 1, 10);
+
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have validation errors").isNotEmpty();
+    assertThat(response.errors())
+        .as("Should contain 'Invalid sort field' not generic API error")
+        .anyMatch(e -> e.contains("Invalid sort field"));
+    assertThat(response.errors())
+        .as("Should list valid sort fields")
+        .anyMatch(e -> e.contains("Valid fields:"));
+    assertThat(response.errors())
+        .as("Error message should NOT be generic API error")
+        .noneMatch(e -> e.contains("Contrast API error"));
+
+    log.info("✓ Invalid sort field correctly rejected with helpful error");
+    log.info("  Errors: {}", response.errors());
+  }
+
+  @ParameterizedTest(name = "valid sort field: {0}")
+  @ValueSource(strings = {"sourceIP", "status", "startTime", "endTime", "type"})
+  void searchAttacks_should_accept_all_valid_sort_fields(String sortField) {
+    log.info("\n=== Integration Test: search_attacks (sort={}) ===", sortField);
+
+    var response =
+        searchAttacksTool.searchAttacks(null, null, null, null, null, null, sortField, 1, 10);
+
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have no errors for sort: " + sortField).isEmpty();
+    assertThat(response.items()).as("Items should not be null").isNotNull();
+
+    log.info("✓ Sort field '{}' accepted", sortField);
+    log.info("  Results: {} attacks found", response.items().size());
+  }
+
+  @ParameterizedTest(name = "valid sort field descending: -{0}")
+  @ValueSource(strings = {"sourceIP", "status", "startTime", "endTime", "type"})
+  void searchAttacks_should_accept_all_valid_sort_fields_with_descending_prefix(String sortField) {
+    String descending = "-" + sortField;
+    log.info("\n=== Integration Test: search_attacks (sort={}) ===", descending);
+
+    var response =
+        searchAttacksTool.searchAttacks(null, null, null, null, null, null, descending, 1, 10);
+
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have no errors for sort: " + descending).isEmpty();
+    assertThat(response.items()).as("Items should not be null").isNotNull();
+
+    log.info("✓ Sort field '{}' accepted", descending);
+    log.info("  Results: {} attacks found", response.items().size());
+  }
+
+  @ParameterizedTest(name = "invalid sort field: {0}")
+  @ValueSource(strings = {"severity", "probes", "NEWEST", "OLDEST", "invalidField"})
+  void searchAttacks_should_reject_invalid_sort_fields(String sortField) {
+    log.info("\n=== Integration Test: search_attacks (invalid sort={}) ===", sortField);
+
+    var response =
+        searchAttacksTool.searchAttacks(null, null, null, null, null, null, sortField, 1, 10);
+
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.errors())
+        .as("Should have validation errors for: " + sortField)
+        .isNotEmpty();
+    assertThat(response.errors())
+        .as("Should be validation error not API error")
+        .anyMatch(e -> e.contains("Invalid sort field"));
+
+    log.info("✓ Invalid sort field '{}' correctly rejected", sortField);
+    log.info("  Errors: {}", response.errors());
+  }
+
   // ========== Special Character Keyword Tests (Test Cases 3.5 and 13.4) ==========
   // Note: Full XSS payloads like "<script>alert('xss')</script>" are blocked by Contrast Protect
   // on the API server, so we test with patterns that demonstrate URL encoding works without
