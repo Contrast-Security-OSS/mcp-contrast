@@ -15,10 +15,10 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.sast;
 
+import com.contrast.labs.ai.mcp.contrast.data.sast.ScanProject;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.sast.params.GetSastProjectParams;
-import com.contrastsecurity.sdk.scan.Project;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -31,7 +31,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @Slf4j
-public class GetSastProjectTool extends BaseSingleTool<GetSastProjectParams, Project> {
+public class GetSastProjectTool extends BaseSingleTool<GetSastProjectParams, ScanProject> {
 
   @Tool(
       name = "get_scan_project",
@@ -56,14 +56,15 @@ public class GetSastProjectTool extends BaseSingleTool<GetSastProjectParams, Pro
           Related tools:
           - get_scan_results: Get SARIF results for a project's latest scan
           """)
-  public SingleToolResponse<Project> getScanProject(
+  public SingleToolResponse<ScanProject> getScanProject(
       @ToolParam(description = "Scan project name (case-sensitive, must match exactly)")
           String projectName) {
     return executePipeline(() -> GetSastProjectParams.of(projectName));
   }
 
   @Override
-  protected Project doExecute(GetSastProjectParams params, List<String> warnings) throws Exception {
+  protected ScanProject doExecute(GetSastProjectParams params, List<String> warnings)
+      throws Exception {
     var sdk = getContrastSDK();
     var orgId = getOrgId();
 
@@ -83,6 +84,6 @@ public class GetSastProjectTool extends BaseSingleTool<GetSastProjectParams, Pro
         project.id(),
         project.language());
 
-    return project;
+    return ScanProject.from(project);
   }
 }
