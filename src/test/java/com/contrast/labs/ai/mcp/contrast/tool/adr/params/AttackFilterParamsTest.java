@@ -17,6 +17,8 @@ package com.contrast.labs.ai.mcp.contrast.tool.adr.params;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /** Unit tests for AttackFilterParams validation. */
@@ -214,5 +216,114 @@ class AttackFilterParamsTest {
     assertThat(filterBody).isNotNull();
     assertThat(filterBody.getQuickFilter()).isEqualTo("ALL"); // Default
     assertThat(filterBody.isIncludeSuppressed()).isFalse(); // Default
+  }
+
+  // ========== Keyword Encoding Tests ==========
+
+  @Nested
+  @DisplayName("toAttacksFilterBody keyword encoding")
+  class KeywordEncodingTests {
+
+    @Test
+    void toAttacksFilterBody_should_urlEncode_specialCharacters() {
+      var params = AttackFilterParams.of(null, null, "<script>", null, null, null, null);
+
+      var filterBody = params.toAttacksFilterBody();
+
+      assertThat(filterBody.getKeyword()).isEqualTo("%3Cscript%3E");
+    }
+
+    @Test
+    void toAttacksFilterBody_should_encode_angleBrackets() {
+      var params =
+          AttackFilterParams.of(
+              null, null, "<script>alert('xss')</script>", null, null, null, null);
+
+      var filterBody = params.toAttacksFilterBody();
+
+      // < = %3C, > = %3E, ' = %27
+      assertThat(filterBody.getKeyword()).contains("%3C").contains("%3E");
+    }
+
+    @Test
+    void toAttacksFilterBody_should_encode_sqlInjectionPattern() {
+      var params =
+          AttackFilterParams.of(null, null, "'; DROP TABLE users;--", null, null, null, null);
+
+      var filterBody = params.toAttacksFilterBody();
+
+      // ; = %3B, ' = %27, space = +
+      assertThat(filterBody.getKeyword()).contains("%27").contains("%3B");
+    }
+
+    @Test
+    void toAttacksFilterBody_should_encode_pathTraversalPattern() {
+      var params = AttackFilterParams.of(null, null, "../../../etc/passwd", null, null, null, null);
+
+      var filterBody = params.toAttacksFilterBody();
+
+      // / = %2F
+      assertThat(filterBody.getKeyword()).contains("%2F");
+    }
+
+    @Test
+    void toAttacksFilterBody_should_encode_emailAddress() {
+      var params = AttackFilterParams.of(null, null, "user@domain.com", null, null, null, null);
+
+      var filterBody = params.toAttacksFilterBody();
+
+      // @ = %40
+      assertThat(filterBody.getKeyword()).isEqualTo("user%40domain.com");
+    }
+
+    @Test
+    void toAttacksFilterBody_should_notEncode_alphanumericKeyword() {
+      var params = AttackFilterParams.of(null, null, "sql-injection", null, null, null, null);
+
+      var filterBody = params.toAttacksFilterBody();
+
+      // Hyphen is encoded as %2D in URLEncoder, but alphanumeric unchanged
+      assertThat(filterBody.getKeyword()).isEqualTo("sql-injection");
+    }
+
+    @Test
+    void toAttacksFilterBody_should_encode_spaces() {
+      var params = AttackFilterParams.of(null, null, "SELECT * FROM users", null, null, null, null);
+
+      var filterBody = params.toAttacksFilterBody();
+
+      // Space = + in form URL encoding, * is not encoded by URLEncoder
+      assertThat(filterBody.getKeyword()).isEqualTo("SELECT+*+FROM+users");
+    }
+
+    @Test
+    void toAttacksFilterBody_should_handleNullKeyword() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, null);
+
+      var filterBody = params.toAttacksFilterBody();
+
+      // Null keyword should result in empty string from builder
+      assertThat(filterBody.getKeyword()).isEmpty();
+    }
+
+    @Test
+    void toAttacksFilterBody_should_handleEmptyKeyword() {
+      var params = AttackFilterParams.of(null, null, "", null, null, null, null);
+
+      var filterBody = params.toAttacksFilterBody();
+
+      assertThat(filterBody.getKeyword()).isEmpty();
+    }
+
+    @Test
+    void toAttacksFilterBody_should_encode_unicodeCharacters() {
+      var params = AttackFilterParams.of(null, null, "攻撃", null, null, null, null);
+
+      var filterBody = params.toAttacksFilterBody();
+
+      // UTF-8 encoded
+      assertThat(filterBody.getKeyword()).doesNotContain("攻撃");
+      assertThat(filterBody.getKeyword()).contains("%");
+    }
   }
 }

@@ -209,4 +209,102 @@ class SearchAttacksToolIT {
     log.info("✓ Retrieved {} attacks with combined filters", response.items().size());
     log.info("  Filters: quickFilter=EFFECTIVE, statusFilter=EXPLOITED");
   }
+
+  // ========== Special Character Keyword Tests (Test Cases 3.5 and 13.4) ==========
+  // Note: Full XSS payloads like "<script>alert('xss')</script>" are blocked by Contrast Protect
+  // on the API server, so we test with patterns that demonstrate URL encoding works without
+  // triggering attack detection.
+
+  @Test
+  void searchAttacks_should_handle_sqlInjectionKeyword() {
+    log.info("\n=== Integration Test: search_attacks (keyword with SQL injection) ===");
+
+    var response =
+        searchAttacksTool.searchAttacks(
+            null, null, "'; DROP TABLE users;--", null, null, null, null, 1, 10);
+
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have no errors").isEmpty();
+    assertThat(response.items()).as("Items should not be null").isNotNull();
+
+    log.info("✓ SQL injection pattern keyword handled correctly");
+    log.info("  Results: {} attacks found", response.items().size());
+  }
+
+  @Test
+  void searchAttacks_should_handle_pathTraversalKeyword() {
+    log.info("\n=== Integration Test: search_attacks (keyword with path traversal) ===");
+
+    var response =
+        searchAttacksTool.searchAttacks(
+            null, null, "../../../etc/passwd", null, null, null, null, 1, 10);
+
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have no errors").isEmpty();
+    assertThat(response.items()).as("Items should not be null").isNotNull();
+
+    log.info("✓ Path traversal pattern keyword handled correctly");
+    log.info("  Results: {} attacks found", response.items().size());
+  }
+
+  @Test
+  void searchAttacks_should_handle_angleBracketsKeyword() {
+    log.info("\n=== Integration Test: search_attacks (keyword with angle brackets) ===");
+
+    var response = searchAttacksTool.searchAttacks(null, null, "<>", null, null, null, null, 1, 10);
+
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have no errors").isEmpty();
+    assertThat(response.items()).as("Items should not be null").isNotNull();
+
+    log.info("✓ Angle brackets keyword handled correctly");
+    log.info("  Results: {} attacks found", response.items().size());
+  }
+
+  @Test
+  void searchAttacks_should_handle_emailKeyword() {
+    log.info("\n=== Integration Test: search_attacks (keyword with email) ===");
+
+    var response =
+        searchAttacksTool.searchAttacks(
+            null, null, "attacker@malicious.com", null, null, null, null, 1, 10);
+
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have no errors").isEmpty();
+    assertThat(response.items()).as("Items should not be null").isNotNull();
+
+    log.info("✓ Email keyword handled correctly");
+    log.info("  Results: {} attacks found", response.items().size());
+  }
+
+  @Test
+  void searchAttacks_should_handle_urlPathKeyword() {
+    log.info("\n=== Integration Test: search_attacks (keyword with URL path) ===");
+
+    var response =
+        searchAttacksTool.searchAttacks(
+            null, null, "/admin/login?user=admin", null, null, null, null, 1, 10);
+
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have no errors").isEmpty();
+    assertThat(response.items()).as("Items should not be null").isNotNull();
+
+    log.info("✓ URL path keyword handled correctly");
+    log.info("  Results: {} attacks found", response.items().size());
+  }
+
+  @Test
+  void searchAttacks_should_handle_nullByteKeyword() {
+    log.info("\n=== Integration Test: search_attacks (keyword with null byte) ===");
+
+    var response =
+        searchAttacksTool.searchAttacks(null, null, "%00null-byte", null, null, null, null, 1, 10);
+
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have no errors").isEmpty();
+    assertThat(response.items()).as("Items should not be null").isNotNull();
+
+    log.info("✓ Null byte keyword handled correctly");
+    log.info("  Results: {} attacks found", response.items().size());
+  }
 }

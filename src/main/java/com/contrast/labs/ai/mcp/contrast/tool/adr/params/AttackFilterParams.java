@@ -18,6 +18,8 @@ package com.contrast.labs.ai.mcp.contrast.tool.adr.params;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksFilterBody;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 
@@ -148,7 +150,7 @@ public class AttackFilterParams extends BaseToolParams {
       builder.statusFilter(statusFilters);
     }
     if (keyword != null) {
-      builder.keyword(keyword);
+      builder.keyword(URLEncoder.encode(keyword, StandardCharsets.UTF_8));
     }
     if (includeSuppressed != null) {
       builder.includeSuppressed(includeSuppressed);
