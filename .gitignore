@@ -44,6 +44,12 @@ test-cache/
 ### Beads ###
 .beads/
 .beads.zip
-test-plan-*.md
 results-*.md
 plans/
+
+# Test plan validation results
+test-plan-results/
+
+# MCP local config
+.mcp.json
+test-plans-archive/
