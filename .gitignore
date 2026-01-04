@@ -53,3 +53,4 @@ test-plan-results/
 
 # MCP local config
 .mcp.json
+test-plans-archive/
