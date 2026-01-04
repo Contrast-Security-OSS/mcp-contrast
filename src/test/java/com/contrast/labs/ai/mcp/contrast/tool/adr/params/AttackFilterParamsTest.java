@@ -109,26 +109,173 @@ class AttackFilterParamsTest {
     assertThat(params.warnings()).noneMatch(w -> w.contains("Excluding suppressed"));
   }
 
-  @Test
-  void of_should_accept_valid_sort_ascending() {
-    var params = AttackFilterParams.of(null, null, null, null, null, null, "severity");
+  @Nested
+  @DisplayName("Sort Field Allowlist Validation")
+  class SortFieldValidationTests {
 
-    assertThat(params.isValid()).isTrue();
-    assertThat(params.getSort()).isEqualTo("severity");
-  }
+    @Test
+    void of_should_accept_all_valid_sort_fields() {
+      for (String field : AttackFilterParams.VALID_SORT_FIELDS) {
+        var params = AttackFilterParams.of(null, null, null, null, null, null, field);
+        assertThat(params.isValid()).as("Sort field '%s' should be valid", field).isTrue();
+        assertThat(params.getSort()).isEqualTo(field);
+      }
+    }
 
-  @Test
-  void of_should_accept_valid_sort_descending() {
-    var params = AttackFilterParams.of(null, null, null, null, null, null, "-startTime");
+    @Test
+    void of_should_accept_all_valid_sort_fields_with_descending_prefix() {
+      for (String field : AttackFilterParams.VALID_SORT_FIELDS) {
+        String descending = "-" + field;
+        var params = AttackFilterParams.of(null, null, null, null, null, null, descending);
+        assertThat(params.isValid()).as("Sort field '%s' should be valid", descending).isTrue();
+        assertThat(params.getSort()).isEqualTo(descending);
+      }
+    }
 
-    assertThat(params.isValid()).isTrue();
-    assertThat(params.getSort()).isEqualTo("-startTime");
+    @Test
+    void of_should_accept_startTime_ascending() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "startTime");
+
+      assertThat(params.isValid()).isTrue();
+      assertThat(params.getSort()).isEqualTo("startTime");
+    }
+
+    @Test
+    void of_should_accept_startTime_descending() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "-startTime");
+
+      assertThat(params.isValid()).isTrue();
+      assertThat(params.getSort()).isEqualTo("-startTime");
+    }
+
+    @Test
+    void of_should_accept_endTime() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "endTime");
+
+      assertThat(params.isValid()).isTrue();
+      assertThat(params.getSort()).isEqualTo("endTime");
+    }
+
+    @Test
+    void of_should_accept_status() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "status");
+
+      assertThat(params.isValid()).isTrue();
+      assertThat(params.getSort()).isEqualTo("status");
+    }
+
+    @Test
+    void of_should_accept_sourceIP() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "sourceIP");
+
+      assertThat(params.isValid()).isTrue();
+      assertThat(params.getSort()).isEqualTo("sourceIP");
+    }
+
+    @Test
+    void of_should_accept_type() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "type");
+
+      assertThat(params.isValid()).isTrue();
+      assertThat(params.getSort()).isEqualTo("type");
+    }
+
+    @Test
+    void of_should_reject_severity_not_valid_sort_field() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "severity");
+
+      assertThat(params.isValid()).isFalse();
+      assertThat(params.errors())
+          .anyMatch(e -> e.contains("Invalid sort field"))
+          .anyMatch(e -> e.contains("severity"));
+    }
+
+    @Test
+    void of_should_reject_probes_not_valid_sort_field() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "probes");
+
+      assertThat(params.isValid()).isFalse();
+      assertThat(params.errors()).anyMatch(e -> e.contains("Invalid sort field"));
+    }
+
+    @Test
+    void of_should_reject_invalid_field_with_descending_prefix() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "-invalidField");
+
+      assertThat(params.isValid()).isFalse();
+      assertThat(params.errors())
+          .anyMatch(e -> e.contains("Invalid sort field"))
+          .anyMatch(e -> e.contains("invalidField"));
+    }
+
+    @Test
+    void of_should_be_case_sensitive_starttime_lowercase_invalid() {
+      // API is case-sensitive - must match exact camelCase
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "starttime");
+
+      assertThat(params.isValid()).isFalse();
+      assertThat(params.errors()).anyMatch(e -> e.contains("Invalid sort field"));
+    }
+
+    @Test
+    void of_should_be_case_sensitive_STARTTIME_uppercase_invalid() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "STARTTIME");
+
+      assertThat(params.isValid()).isFalse();
+      assertThat(params.errors()).anyMatch(e -> e.contains("Invalid sort field"));
+    }
+
+    @Test
+    void of_should_include_valid_fields_in_error_message() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "badField");
+
+      assertThat(params.isValid()).isFalse();
+      assertThat(params.errors().get(0))
+          .contains("Valid fields:")
+          .contains("startTime")
+          .contains("endTime")
+          .contains("status")
+          .contains("sourceIP")
+          .contains("type");
+    }
+
+    @Test
+    void of_should_handle_null_sort() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, null);
+
+      assertThat(params.isValid()).isTrue();
+      assertThat(params.getSort()).isNull();
+    }
+
+    @Test
+    void of_should_handle_empty_sort() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "");
+
+      assertThat(params.isValid()).isTrue();
+      assertThat(params.getSort()).isNull();
+    }
+
+    @Test
+    void of_should_handle_whitespace_only_sort() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "   ");
+
+      assertThat(params.isValid()).isTrue();
+      assertThat(params.getSort()).isNull();
+    }
+
+    @Test
+    void of_should_trim_whitespace_from_valid_sort() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "  startTime  ");
+
+      assertThat(params.isValid()).isTrue();
+      assertThat(params.getSort()).isEqualTo("startTime");
+    }
   }
 
   @Test
   void of_should_accept_combined_valid_filters() {
     var params =
-        AttackFilterParams.of("EFFECTIVE", "EXPLOITED", "xss", true, true, false, "-severity");
+        AttackFilterParams.of("EFFECTIVE", "EXPLOITED", "xss", true, true, false, "-status");
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.getQuickFilter()).isEqualTo("EFFECTIVE");
@@ -137,7 +284,7 @@ class AttackFilterParamsTest {
     assertThat(params.getIncludeSuppressed()).isTrue();
     assertThat(params.getIncludeBotBlockers()).isTrue();
     assertThat(params.getIncludeIpBlacklist()).isFalse();
-    assertThat(params.getSort()).isEqualTo("-severity");
+    assertThat(params.getSort()).isEqualTo("-status");
   }
 
   // ========== Invalid Input Tests ==========
@@ -161,33 +308,16 @@ class AttackFilterParamsTest {
   }
 
   @Test
-  void of_should_reject_invalid_sort_format() {
-    var params = AttackFilterParams.of(null, null, null, null, null, null, "invalid sort!");
-
-    assertThat(params.isValid()).isFalse();
-    assertThat(params.errors())
-        .anyMatch(e -> e.contains("Invalid sort format"))
-        .anyMatch(e -> e.contains("Must be a field name with optional '-' prefix"));
-  }
-
-  @Test
-  void of_should_reject_sort_with_spaces() {
-    var params = AttackFilterParams.of(null, null, null, null, null, null, "start time");
-
-    assertThat(params.isValid()).isFalse();
-    assertThat(params.errors()).anyMatch(e -> e.contains("Invalid sort format"));
-  }
-
-  @Test
   void of_should_collect_multiple_errors() {
-    var params = AttackFilterParams.of("BAD_FILTER", "BAD_STATUS", null, null, null, null, "bad!");
+    var params =
+        AttackFilterParams.of("BAD_FILTER", "BAD_STATUS", null, null, null, null, "invalidField");
 
     assertThat(params.isValid()).isFalse();
     assertThat(params.errors()).hasSize(3);
     assertThat(params.errors())
         .anyMatch(e -> e.contains("Invalid quickFilter"))
         .anyMatch(e -> e.contains("Invalid statusFilter"))
-        .anyMatch(e -> e.contains("Invalid sort format"));
+        .anyMatch(e -> e.contains("Invalid sort field"));
   }
 
   // ========== SDK Conversion Tests ==========
@@ -195,7 +325,7 @@ class AttackFilterParamsTest {
   @Test
   void toAttacksFilterBody_should_convert_all_filters() {
     var params =
-        AttackFilterParams.of("EFFECTIVE", "BLOCKED", "sql", false, true, false, "-severity");
+        AttackFilterParams.of("EFFECTIVE", "BLOCKED", "sql", false, true, false, "-status");
 
     var filterBody = params.toAttacksFilterBody();
 

@@ -209,19 +209,14 @@ class SearchAttacksToolTest {
             SDKExtension.class,
             (mock, context) -> {
               when(mock.getAttacks(
-                      eq(TEST_ORG_ID),
-                      any(AttacksFilterBody.class),
-                      eq(50),
-                      eq(0),
-                      eq("-severity")))
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), eq("-status")))
                   .thenReturn(mockResponse);
             })) {
-      tool.searchAttacks(null, null, null, null, null, null, "-severity", null, null);
+      tool.searchAttacks(null, null, null, null, null, null, "-status", null, null);
 
       var extension = mockedConstruction.constructed().get(0);
       verify(extension)
-          .getAttacks(
-              eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), eq("-severity"));
+          .getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), eq("-status"));
     }
   }
 
@@ -243,10 +238,10 @@ class SearchAttacksToolTest {
 
   @Test
   void searchAttacks_should_return_validation_error_for_invalid_sort() {
-    var result = tool.searchAttacks(null, null, null, null, null, null, "bad!", null, null);
+    var result = tool.searchAttacks(null, null, null, null, null, null, "severity", null, null);
 
     assertThat(result.items()).isEmpty();
-    assertThat(result.errors()).anyMatch(e -> e.contains("Invalid sort format"));
+    assertThat(result.errors()).anyMatch(e -> e.contains("Invalid sort field"));
   }
 
   @Test
