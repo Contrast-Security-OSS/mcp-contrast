@@ -98,7 +98,10 @@ public class SearchAttacksTool extends BasePaginatedTool<AttackFilterParams, Att
       @ToolParam(description = "Include attacks from blacklisted IPs", required = false)
           Boolean includeIpBlacklist,
       @ToolParam(
-              description = "Sort order (default: -startTime, prefix '-' for descending)",
+              description =
+                  "Sort field for ordering results. Valid fields: sourceIP, status, startTime,"
+                      + " endTime, type. Use '-' prefix for descending order (e.g., '-startTime')."
+                      + " Default: -startTime",
               required = false)
           String sort,
       @ToolParam(description = "Page number (1-based), default: 1", required = false) Integer page,

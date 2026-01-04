@@ -49,6 +49,13 @@ public class AttackFilterParams extends BaseToolParams {
       Set.of(
           "EXPLOITED", "PROBED", "BLOCKED", "BLOCKED_PERIMETER", "PROBED_PERIMETER", "SUSPICIOUS");
 
+  /**
+   * Valid sort fields for attacks API (from TeamServer NgAttackRestController). Use '-' prefix for
+   * descending order. Default is -startTime when not specified.
+   */
+  public static final Set<String> VALID_SORT_FIELDS =
+      Set.of("sourceIP", "status", "startTime", "endTime", "type");
+
   private String quickFilter;
   private List<String> statusFilters;
   private String keyword;
@@ -69,7 +76,7 @@ public class AttackFilterParams extends BaseToolParams {
    * @param includeSuppressed Include suppressed attacks (null = use smart default of false)
    * @param includeBotBlockers Include bot blocker attacks
    * @param includeIpBlacklist Include IP blacklist attacks
-   * @param sort Sort field (e.g., "severity", "-severity" for descending)
+   * @param sort Sort field (e.g., "startTime", "-startTime" for descending)
    * @return AttackFilterParams with validation state
    */
   public static AttackFilterParams of(
@@ -117,18 +124,21 @@ public class AttackFilterParams extends BaseToolParams {
     params.includeBotBlockers = includeBotBlockers;
     params.includeIpBlacklist = includeIpBlacklist;
 
-    // Parse sort with basic format validation
+    // Parse sort with allowlist validation (case-sensitive to match API)
     if (sort != null && !sort.trim().isEmpty()) {
       String trimmedSort = sort.trim();
-      if (trimmedSort.matches("^-?[a-zA-Z][a-zA-Z0-9_]*$")) {
+      // Extract base field (strip '-' prefix for validation)
+      String baseField = trimmedSort.startsWith("-") ? trimmedSort.substring(1) : trimmedSort;
+
+      if (VALID_SORT_FIELDS.contains(baseField)) {
         params.sort = trimmedSort;
       } else {
         ctx.errorIf(
             true,
             String.format(
-                "Invalid sort format '%s'. Must be a field name with optional '-' prefix for"
-                    + " descending. Example: 'severity' or '-severity'",
-                sort));
+                "Invalid sort field '%s'. Valid fields: %s. Use '-' prefix for descending order"
+                    + " (e.g., '-startTime'). Default: -startTime",
+                baseField, String.join(", ", VALID_SORT_FIELDS)));
       }
     }
 
