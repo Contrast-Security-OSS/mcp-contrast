@@ -282,7 +282,7 @@ class AttackFilterParamsTest {
 
       var filterBody = params.toAttacksFilterBody();
 
-      // Hyphen is encoded as %2D in URLEncoder, but alphanumeric unchanged
+      // Alphanumeric characters and hyphens pass through unchanged
       assertThat(filterBody.getKeyword()).isEqualTo("sql-injection");
     }
 

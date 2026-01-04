@@ -22,6 +22,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
+import org.springframework.util.StringUtils;
 
 /**
  * Attack filter parameters using fluent validation API. Demonstrates the ToolValidationContext
@@ -149,7 +150,7 @@ public class AttackFilterParams extends BaseToolParams {
     if (statusFilters != null && !statusFilters.isEmpty()) {
       builder.statusFilter(statusFilters);
     }
-    if (keyword != null) {
+    if (StringUtils.hasText(keyword)) {
       builder.keyword(URLEncoder.encode(keyword, StandardCharsets.UTF_8));
     }
     if (includeSuppressed != null) {

@@ -21,6 +21,8 @@ import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -215,96 +217,27 @@ class SearchAttacksToolIT {
   // on the API server, so we test with patterns that demonstrate URL encoding works without
   // triggering attack detection.
 
-  @Test
-  void searchAttacks_should_handle_sqlInjectionKeyword() {
-    log.info("\n=== Integration Test: search_attacks (keyword with SQL injection) ===");
+  @ParameterizedTest(name = "keyword with special chars: {0}")
+  @ValueSource(
+      strings = {
+        "'; DROP TABLE users;--", // SQL injection
+        "../../../etc/passwd", // Path traversal
+        "<>", // Angle brackets (HTML/XML)
+        "attacker@malicious.com", // Email address
+        "/admin/login?user=admin", // URL path with query string
+        "%00null-byte" // Null byte pattern (tests double-encoding of %)
+      })
+  void searchAttacks_should_handle_specialCharacterKeywords(String keyword) {
+    log.info("\n=== Integration Test: search_attacks (keyword='{}') ===", keyword);
 
     var response =
-        searchAttacksTool.searchAttacks(
-            null, null, "'; DROP TABLE users;--", null, null, null, null, 1, 10);
+        searchAttacksTool.searchAttacks(null, null, keyword, null, null, null, null, 1, 10);
 
     assertThat(response).as("Response should not be null").isNotNull();
-    assertThat(response.errors()).as("Should have no errors").isEmpty();
+    assertThat(response.errors()).as("Should have no errors for keyword: " + keyword).isEmpty();
     assertThat(response.items()).as("Items should not be null").isNotNull();
 
-    log.info("✓ SQL injection pattern keyword handled correctly");
-    log.info("  Results: {} attacks found", response.items().size());
-  }
-
-  @Test
-  void searchAttacks_should_handle_pathTraversalKeyword() {
-    log.info("\n=== Integration Test: search_attacks (keyword with path traversal) ===");
-
-    var response =
-        searchAttacksTool.searchAttacks(
-            null, null, "../../../etc/passwd", null, null, null, null, 1, 10);
-
-    assertThat(response).as("Response should not be null").isNotNull();
-    assertThat(response.errors()).as("Should have no errors").isEmpty();
-    assertThat(response.items()).as("Items should not be null").isNotNull();
-
-    log.info("✓ Path traversal pattern keyword handled correctly");
-    log.info("  Results: {} attacks found", response.items().size());
-  }
-
-  @Test
-  void searchAttacks_should_handle_angleBracketsKeyword() {
-    log.info("\n=== Integration Test: search_attacks (keyword with angle brackets) ===");
-
-    var response = searchAttacksTool.searchAttacks(null, null, "<>", null, null, null, null, 1, 10);
-
-    assertThat(response).as("Response should not be null").isNotNull();
-    assertThat(response.errors()).as("Should have no errors").isEmpty();
-    assertThat(response.items()).as("Items should not be null").isNotNull();
-
-    log.info("✓ Angle brackets keyword handled correctly");
-    log.info("  Results: {} attacks found", response.items().size());
-  }
-
-  @Test
-  void searchAttacks_should_handle_emailKeyword() {
-    log.info("\n=== Integration Test: search_attacks (keyword with email) ===");
-
-    var response =
-        searchAttacksTool.searchAttacks(
-            null, null, "attacker@malicious.com", null, null, null, null, 1, 10);
-
-    assertThat(response).as("Response should not be null").isNotNull();
-    assertThat(response.errors()).as("Should have no errors").isEmpty();
-    assertThat(response.items()).as("Items should not be null").isNotNull();
-
-    log.info("✓ Email keyword handled correctly");
-    log.info("  Results: {} attacks found", response.items().size());
-  }
-
-  @Test
-  void searchAttacks_should_handle_urlPathKeyword() {
-    log.info("\n=== Integration Test: search_attacks (keyword with URL path) ===");
-
-    var response =
-        searchAttacksTool.searchAttacks(
-            null, null, "/admin/login?user=admin", null, null, null, null, 1, 10);
-
-    assertThat(response).as("Response should not be null").isNotNull();
-    assertThat(response.errors()).as("Should have no errors").isEmpty();
-    assertThat(response.items()).as("Items should not be null").isNotNull();
-
-    log.info("✓ URL path keyword handled correctly");
-    log.info("  Results: {} attacks found", response.items().size());
-  }
-
-  @Test
-  void searchAttacks_should_handle_nullByteKeyword() {
-    log.info("\n=== Integration Test: search_attacks (keyword with null byte) ===");
-
-    var response =
-        searchAttacksTool.searchAttacks(null, null, "%00null-byte", null, null, null, null, 1, 10);
-
-    assertThat(response).as("Response should not be null").isNotNull();
-    assertThat(response.errors()).as("Should have no errors").isEmpty();
-    assertThat(response.items()).as("Items should not be null").isNotNull();
-
-    log.info("✓ Null byte keyword handled correctly");
+    log.info("✓ Special character keyword handled correctly: {}", keyword);
     log.info("  Results: {} attacks found", response.items().size());
   }
 }
