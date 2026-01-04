@@ -66,9 +66,9 @@ bd close bd-42 --reason "Completed" --json
 When creating beads that relate to Jira tickets:
 - **Always prepend the Jira issue ID to the bead title**
   - Example: `"AIML-224: Consolidate RouteCoverageService tools"`
-  - NOT: `"Consolidate RouteCoverageService tools"`
-- **Set the `external_ref` parameter to the Jira issue ID**
-  - Use `--external-ref AIML-224` in CLI or `external_ref="AIML-224"` in MCP calls
+  - If creating Jira ticket for existing bead, update title: `bd update <id> --title="AIML-XXX: ..."`
+- **Set the `external_ref` to the Jira issue ID**
+  - `bd update <id> --external-ref=AIML-224`
 - This creates bidirectional linkage:
   - Bead tracks local technical work (code, tests, implementation)
   - Jira tracks project management (planning, stakeholders, timeline)

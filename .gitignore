@@ -47,3 +47,9 @@ test-cache/
 /test-plan-*.md
 results-*.md
 plans/
+
+# Test plan validation results
+test-plan-results/
+
+# MCP local config
+.mcp.json
