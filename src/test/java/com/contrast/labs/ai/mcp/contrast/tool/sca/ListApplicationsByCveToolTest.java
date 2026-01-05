@@ -32,6 +32,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.App;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
+import com.contrastsecurity.exceptions.ResourceNotFoundException;
 import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -231,6 +232,26 @@ class ListApplicationsByCveToolTest {
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).anyMatch(e -> e.contains("Internal error"));
+  }
+
+  @Test
+  void listApplicationsByCve_should_return_not_found_for_unknown_cve() throws IOException {
+    mockedSDKExtension =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAppsForCVE(any(), any()))
+                  .thenThrow(
+                      new ResourceNotFoundException(
+                          "CVE not found", "GET", "/api/cve/CVE-2020-99999", "Not Found"));
+            });
+
+    var result = tool.listApplicationsByCve("CVE-2020-99999");
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.found()).isFalse();
+    assertThat(result.data()).isNull();
+    assertThat(result.warnings()).anyMatch(w -> w.toLowerCase().contains("not found"));
   }
 
   @Test
