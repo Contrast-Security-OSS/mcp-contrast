@@ -85,9 +85,9 @@ public class SDKExtension {
     }
   }
 
-  public ProtectData getProtectConfig(String orgID, String appID) throws IOException {
+  public ProtectData getProtectConfig(String orgId, String appId) throws IOException {
     try (InputStream is =
-        contrastSDK.makeRequest(HttpMethod.GET, getProtectDataURL(orgID, appID)); ) {
+        contrastSDK.makeRequest(HttpMethod.GET, getProtectDataURL(orgId, appId)); ) {
 
       var reader = new InputStreamReader(is, StandardCharsets.UTF_8);
       return gson.fromJson(reader, ProtectData.class);
@@ -104,8 +104,8 @@ public class SDKExtension {
     }
   }
 
-  private String getProtectDataURL(String orgID, String appID) {
-    return String.format("/ng/%s/protection/policy/%s?expand=skip_links", orgID, appID);
+  private String getProtectDataURL(String orgId, String appId) {
+    return String.format("/ng/%s/protection/policy/%s?expand=skip_links", orgId, appId);
   }
 
   private String getCVEDataURL(String organizationId, String cve, FilterForm form) {

@@ -69,7 +69,7 @@ class GetProtectRulesToolIT extends AbstractIntegrationTest<GetProtectRulesToolI
   @Override
   protected TestData performDiscovery() throws IOException {
     Optional<ApplicationWithProtectRules> protectCandidate =
-        TestDataDiscoveryHelper.findApplicationWithProtectRules(orgID, sdkExtension);
+        TestDataDiscoveryHelper.findApplicationWithProtectRules(orgId, sdkExtension);
 
     if (protectCandidate.isEmpty()) {
       throw new NoTestDataException(
