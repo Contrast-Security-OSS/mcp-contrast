@@ -38,10 +38,12 @@ import org.springframework.ai.tool.ToolCallback;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
+@ConfigurationPropertiesScan
 public class McpContrastApplication {
 
   private static final Logger logger = LoggerFactory.getLogger(McpContrastApplication.class);
