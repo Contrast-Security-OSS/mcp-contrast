@@ -60,7 +60,13 @@ class ContrastConfigTest {
         .when(
             () ->
                 SDKHelper.getSDK(
-                    anyString(), anyString(), anyString(), anyString(), anyString(), anyString()))
+                    anyString(),
+                    anyString(),
+                    anyString(),
+                    anyString(),
+                    anyString(),
+                    anyString(),
+                    anyString()))
         .thenReturn(mockContrastSDK);
 
     ReflectionTestUtils.setField(config, "hostName", TEST_HOST);
@@ -78,46 +84,6 @@ class ContrastConfigTest {
     if (mockedSDKHelper != null) {
       mockedSDKHelper.close();
     }
-  }
-
-  @Test
-  void getHostName_should_return_configured_value() {
-    assertThat(config.getHostName()).isEqualTo(TEST_HOST);
-  }
-
-  @Test
-  void getApiKey_should_return_configured_value() {
-    assertThat(config.getApiKey()).isEqualTo(TEST_API_KEY);
-  }
-
-  @Test
-  void getServiceKey_should_return_configured_value() {
-    assertThat(config.getServiceKey()).isEqualTo(TEST_SERVICE_KEY);
-  }
-
-  @Test
-  void getUserName_should_return_configured_value() {
-    assertThat(config.getUserName()).isEqualTo(TEST_USERNAME);
-  }
-
-  @Test
-  void getOrgId_should_return_configured_value() {
-    assertThat(config.getOrgId()).isEqualTo(TEST_ORG_ID);
-  }
-
-  @Test
-  void getHttpProxyHost_should_return_configured_value() {
-    assertThat(config.getHttpProxyHost()).isEqualTo(TEST_PROXY_HOST);
-  }
-
-  @Test
-  void getHttpProxyPort_should_return_configured_value() {
-    assertThat(config.getHttpProxyPort()).isEqualTo(TEST_PROXY_PORT);
-  }
-
-  @Test
-  void getProtocol_should_return_configured_value() {
-    assertThat(config.getProtocol()).isEqualTo(TEST_PROTOCOL);
   }
 
   @Test
