@@ -16,6 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mockStatic;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
@@ -105,5 +106,54 @@ class ContrastSDKFactoryTest {
     var orgId = factory.getOrgId();
 
     assertThat(orgId).isEqualTo("org-789");
+  }
+
+  @Test
+  void validateConfiguration_should_throw_when_required_property_is_blank() {
+    var invalidProps =
+        new ContrastProperties(
+            "", // blank hostName
+            "api-key",
+            "service-key",
+            "user",
+            "org",
+            null,
+            null,
+            "https");
+
+    var factoryWithInvalidProps = new ContrastSDKFactory(invalidProps);
+
+    assertThatThrownBy(factoryWithInvalidProps::validateConfiguration)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("CONTRAST_HOST_NAME");
+  }
+
+  @Test
+  void validateConfiguration_should_list_all_missing_credentials() {
+    var invalidProps =
+        new ContrastProperties(
+            "", // blank hostName
+            "", // blank apiKey
+            "service-key",
+            "", // blank userName
+            "org",
+            null,
+            null,
+            "https");
+
+    var factoryWithInvalidProps = new ContrastSDKFactory(invalidProps);
+
+    assertThatThrownBy(factoryWithInvalidProps::validateConfiguration)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("CONTRAST_HOST_NAME")
+        .hasMessageContaining("CONTRAST_API_KEY")
+        .hasMessageContaining("CONTRAST_USERNAME");
+  }
+
+  @Test
+  void validateConfiguration_should_pass_when_all_required_properties_are_set() {
+    // Factory created with TEST_PROPS should validate without exception
+    factory.validateConfiguration();
+    // No exception means success
   }
 }
