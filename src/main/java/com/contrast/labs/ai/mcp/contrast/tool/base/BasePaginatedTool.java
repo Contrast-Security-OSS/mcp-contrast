@@ -15,6 +15,8 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
+import static com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants.MAX_PAGE_SIZE;
+
 import com.contrast.labs.ai.mcp.contrast.PaginationParams;
 import com.contrastsecurity.exceptions.HttpResponseException;
 import com.contrastsecurity.exceptions.ResourceNotFoundException;
@@ -47,6 +49,16 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class BasePaginatedTool<P extends ToolParams, R> extends BaseContrastTool {
 
   /**
+   * Returns the maximum page size for this tool. Default is 100. Override in subclasses to set a
+   * lower limit (e.g., when API has stricter limits).
+   *
+   * @return maximum page size allowed for this tool
+   */
+  protected int getMaxPageSize() {
+    return MAX_PAGE_SIZE; // 100
+  }
+
+  /**
    * Template method - defines the mandatory processing pipeline. Subclasses implement doExecute()
    * for tool-specific logic. This method is FINAL to enforce consistent processing.
    *
@@ -61,8 +73,8 @@ public abstract class BasePaginatedTool<P extends ToolParams, R> extends BaseCon
     var requestId = UUID.randomUUID().toString().substring(0, 8);
     long startTime = System.currentTimeMillis();
 
-    // 1. Parse pagination FIRST (always succeeds with warnings)
-    var pagination = PaginationParams.of(page, pageSize);
+    // 1. Parse pagination FIRST with tool-specific max (always succeeds with warnings)
+    var pagination = PaginationParams.of(page, pageSize, getMaxPageSize());
 
     // 2. Parse tool-specific params (collects all errors)
     var params = paramsSupplier.get();

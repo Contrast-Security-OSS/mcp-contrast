@@ -171,4 +171,35 @@ class PaginationParamsTest {
             })
         .isInstanceOf(UnsupportedOperationException.class);
   }
+
+  @Test
+  void testCustomMaxPageSize() {
+    // Custom max of 50
+    var params = PaginationParams.of(1, 100, 50);
+
+    assertThat(params.page()).isEqualTo(1);
+    assertThat(params.pageSize()).isEqualTo(50); // Capped to custom max 50
+    assertThat(params.warnings()).hasSize(1);
+    assertThat(params.warnings().get(0)).contains("Requested pageSize 100 exceeds maximum 50");
+  }
+
+  @Test
+  void testCustomMaxPageSizeWithinLimit() {
+    // Custom max of 50, requesting 30 (within limit)
+    var params = PaginationParams.of(1, 30, 50);
+
+    assertThat(params.page()).isEqualTo(1);
+    assertThat(params.pageSize()).isEqualTo(30);
+    assertThat(params.warnings()).isEmpty();
+  }
+
+  @Test
+  void testCustomMaxPageSizeWithDefaultPageSize() {
+    // Custom max of 50, requesting null (should use default 50)
+    var params = PaginationParams.of(1, null, 50);
+
+    assertThat(params.page()).isEqualTo(1);
+    assertThat(params.pageSize()).isEqualTo(50);
+    assertThat(params.warnings()).isEmpty();
+  }
 }
