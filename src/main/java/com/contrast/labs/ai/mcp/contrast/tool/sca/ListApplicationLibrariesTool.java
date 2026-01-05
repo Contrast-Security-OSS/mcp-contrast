@@ -41,6 +41,13 @@ import org.springframework.stereotype.Service;
 public class ListApplicationLibrariesTool
     extends BasePaginatedTool<ListApplicationLibrariesParams, LibraryExtended> {
 
+  private static final int API_MAX_PAGE_SIZE = 50;
+
+  @Override
+  protected int getMaxPageSize() {
+    return API_MAX_PAGE_SIZE;
+  }
+
   @Tool(
       name = "list_application_libraries",
       description =
@@ -68,7 +75,7 @@ public class ListApplicationLibrariesTool
           """)
   public PaginatedToolResponse<LibraryExtended> listApplicationLibraries(
       @ToolParam(description = "Page number (1-based), default: 1", required = false) Integer page,
-      @ToolParam(description = "Items per page (max 100), default: 50", required = false)
+      @ToolParam(description = "Items per page (max 50), default: 50", required = false)
           Integer pageSize,
       @ToolParam(description = "Application ID (use search_applications to find)") String appId) {
     return executePipeline(page, pageSize, () -> ListApplicationLibrariesParams.of(appId));
