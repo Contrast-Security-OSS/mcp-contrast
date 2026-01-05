@@ -77,17 +77,20 @@ public class GetRouteCoverageTool
       @ToolParam(
               description =
                   "Session metadata field name to filter by (e.g., 'branch'). Must be provided with"
-                      + " sessionMetadataValue.")
+                      + " sessionMetadataValue.",
+              required = false)
           String sessionMetadataName,
       @ToolParam(
               description =
                   "Session metadata field value to filter by (e.g., 'main'). Must be provided with"
-                      + " sessionMetadataName.")
+                      + " sessionMetadataName.",
+              required = false)
           String sessionMetadataValue,
       @ToolParam(
               description =
                   "If true, only return routes from the latest session. Mutually exclusive with"
-                      + " session metadata filter.")
+                      + " session metadata filter.",
+              required = false)
           Boolean useLatestSession) {
     return executePipeline(
         () ->
