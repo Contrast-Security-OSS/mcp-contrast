@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.contrast.labs.ai.mcp.contrast.config.ContrastConfig;
+import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
 import com.contrastsecurity.http.TraceFilterForm;
@@ -39,20 +39,20 @@ class SearchVulnerabilitiesToolTest {
 
   private SearchVulnerabilitiesTool tool;
   private VulnerabilityMapper mapper;
-  private ContrastConfig config;
+  private ContrastSDKFactory sdkFactory;
   private ContrastSDK sdk;
 
   @BeforeEach
   void setUp() {
     mapper = mock();
     sdk = mock();
-    config = mock();
+    sdkFactory = mock();
 
-    when(config.getSDK()).thenReturn(sdk);
-    when(config.getOrgId()).thenReturn("test-org-id");
+    when(sdkFactory.getSDK()).thenReturn(sdk);
+    when(sdkFactory.getOrgId()).thenReturn("test-org-id");
 
     tool = new SearchVulnerabilitiesTool(mapper);
-    ReflectionTestUtils.setField(tool, "config", config);
+    ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
   }
 
   @Test

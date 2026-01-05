@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.AnonymousLibraryExtendedBuilder;
-import com.contrast.labs.ai.mcp.contrast.config.ContrastConfig;
+import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibrariesExtended;
@@ -47,7 +47,7 @@ class ListApplicationLibrariesToolTest {
   private static final String TEST_APP_ID = "test-app-456";
 
   private ListApplicationLibrariesTool tool;
-  private ContrastConfig config;
+  private ContrastSDKFactory sdkFactory;
   private ContrastSDK sdk;
 
   private MockedStatic<SDKHelper> mockedSDKHelper;
@@ -56,13 +56,13 @@ class ListApplicationLibrariesToolTest {
   @BeforeEach
   void setUp() {
     sdk = mock();
-    config = mock();
+    sdkFactory = mock();
 
-    when(config.getSDK()).thenReturn(sdk);
-    when(config.getOrgId()).thenReturn(TEST_ORG_ID);
+    when(sdkFactory.getSDK()).thenReturn(sdk);
+    when(sdkFactory.getOrgId()).thenReturn(TEST_ORG_ID);
 
     tool = new ListApplicationLibrariesTool();
-    ReflectionTestUtils.setField(tool, "config", config);
+    ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
 
     // Mock SDKHelper static methods
     mockedSDKHelper = mockStatic(SDKHelper.class);
