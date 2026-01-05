@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
-import com.contrast.labs.ai.mcp.contrast.config.ContrastConfig;
+import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -33,24 +33,24 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public abstract class BaseContrastTool {
 
-  @Autowired protected ContrastConfig config;
+  @Autowired protected ContrastSDKFactory sdkFactory;
 
   /**
-   * Returns the cached ContrastSDK instance from configuration.
+   * Returns the cached ContrastSDK instance from the factory.
    *
    * @return cached ContrastSDK
    */
   protected ContrastSDK getContrastSDK() {
-    return config.getSDK();
+    return sdkFactory.getSDK();
   }
 
   /**
-   * Returns the organization ID from configuration.
+   * Returns the organization ID from the factory.
    *
    * @return organization ID
    */
   protected String getOrgId() {
-    return config.getOrgId();
+    return sdkFactory.getOrgId();
   }
 
   /**

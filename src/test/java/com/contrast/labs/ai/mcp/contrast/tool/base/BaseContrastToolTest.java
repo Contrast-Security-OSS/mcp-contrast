@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.contrast.labs.ai.mcp.contrast.config.ContrastConfig;
+import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,30 +31,30 @@ import org.springframework.test.util.ReflectionTestUtils;
 class BaseContrastToolTest {
 
   private TestableContrastTool tool;
-  private ContrastConfig config;
+  private ContrastSDKFactory sdkFactory;
   private ContrastSDK sdk;
 
   @BeforeEach
   void setUp() {
     tool = new TestableContrastTool();
-    config = mock();
+    sdkFactory = mock();
     sdk = mock();
 
-    when(config.getSDK()).thenReturn(sdk);
-    when(config.getOrgId()).thenReturn("test-org-123");
+    when(sdkFactory.getSDK()).thenReturn(sdk);
+    when(sdkFactory.getOrgId()).thenReturn("test-org-123");
 
-    ReflectionTestUtils.setField(tool, "config", config);
+    ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
   }
 
   @Test
-  void getContrastSDK_should_return_sdk_from_config() {
+  void getContrastSDK_should_return_sdk_from_factory() {
     var result = tool.getContrastSDK();
 
     assertThat(result).isSameAs(sdk);
   }
 
   @Test
-  void getOrgId_should_return_orgId_from_config() {
+  void getOrgId_should_return_orgId_from_factory() {
     var result = tool.getOrgId();
 
     assertThat(result).isEqualTo("test-org-123");
