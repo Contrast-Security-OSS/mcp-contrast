@@ -81,7 +81,7 @@ class ListApplicationLibrariesToolTest {
 
   @Test
   void listApplicationLibraries_should_return_validation_error_for_missing_app_id() {
-    var result = tool.listApplicationLibraries(null);
+    var result = tool.listApplicationLibraries(null, null, null);
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).anyMatch(e -> e.contains("appId") && e.contains("required"));
@@ -90,7 +90,7 @@ class ListApplicationLibrariesToolTest {
 
   @Test
   void listApplicationLibraries_should_return_validation_error_for_empty_app_id() {
-    var result = tool.listApplicationLibraries("");
+    var result = tool.listApplicationLibraries(null, null, "");
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).anyMatch(e -> e.contains("appId") && e.contains("required"));
@@ -105,11 +105,11 @@ class ListApplicationLibrariesToolTest {
             () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
         .thenReturn(mockLibraries);
 
-    var result = tool.listApplicationLibraries(TEST_APP_ID);
+    var result = tool.listApplicationLibraries(null, null, TEST_APP_ID);
 
     assertThat(result.isSuccess()).isTrue();
-    assertThat(result.found()).isTrue();
-    assertThat(result.data()).hasSize(3);
+    assertThat(result.items()).hasSize(3);
+    assertThat(result.totalItems()).isEqualTo(3);
     assertThat(result.errors()).isEmpty();
   }
 
@@ -121,10 +121,11 @@ class ListApplicationLibrariesToolTest {
             () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
         .thenReturn(new ArrayList<>());
 
-    var result = tool.listApplicationLibraries(TEST_APP_ID);
+    var result = tool.listApplicationLibraries(null, null, TEST_APP_ID);
 
     assertThat(result.isSuccess()).isTrue();
-    assertThat(result.data()).isEmpty();
+    assertThat(result.items()).isEmpty();
+    assertThat(result.totalItems()).isEqualTo(0);
     assertThat(result.warnings()).anyMatch(w -> w.contains("No libraries found"));
   }
 
@@ -135,10 +136,10 @@ class ListApplicationLibrariesToolTest {
             () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
         .thenReturn(null);
 
-    var result = tool.listApplicationLibraries(TEST_APP_ID);
+    var result = tool.listApplicationLibraries(null, null, TEST_APP_ID);
 
     assertThat(result.isSuccess()).isTrue();
-    assertThat(result.data()).isEmpty();
+    assertThat(result.items()).isEmpty();
     assertThat(result.warnings()).anyMatch(w -> w.contains("No libraries found"));
   }
 
@@ -148,10 +149,75 @@ class ListApplicationLibrariesToolTest {
         .when(() -> SDKHelper.getLibsForID(any(), any(), any(SDKExtension.class)))
         .thenThrow(new IOException("SDK connection failed"));
 
-    var result = tool.listApplicationLibraries(TEST_APP_ID);
+    var result = tool.listApplicationLibraries(null, null, TEST_APP_ID);
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).anyMatch(e -> e.contains("Internal error"));
+  }
+
+  @Test
+  void listApplicationLibraries_should_paginate_results() throws IOException {
+    var mockLibraries = createMockLibraries(10);
+    mockedSDKHelper
+        .when(
+            () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
+        .thenReturn(mockLibraries);
+
+    var result = tool.listApplicationLibraries(1, 3, TEST_APP_ID);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.items()).hasSize(3);
+    assertThat(result.totalItems()).isEqualTo(10);
+    assertThat(result.hasMorePages()).isTrue();
+    assertThat(result.page()).isEqualTo(1);
+    assertThat(result.pageSize()).isEqualTo(3);
+  }
+
+  @Test
+  void listApplicationLibraries_should_return_second_page() throws IOException {
+    var mockLibraries = createMockLibraries(10);
+    mockedSDKHelper
+        .when(
+            () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
+        .thenReturn(mockLibraries);
+
+    var result = tool.listApplicationLibraries(2, 3, TEST_APP_ID);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.items()).hasSize(3);
+    assertThat(result.page()).isEqualTo(2);
+    assertThat(result.hasMorePages()).isTrue();
+  }
+
+  @Test
+  void listApplicationLibraries_should_return_last_page_partial() throws IOException {
+    var mockLibraries = createMockLibraries(10);
+    mockedSDKHelper
+        .when(
+            () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
+        .thenReturn(mockLibraries);
+
+    var result = tool.listApplicationLibraries(4, 3, TEST_APP_ID);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.items()).hasSize(1); // Only 1 item on last page (10 total, page 4 of 3)
+    assertThat(result.hasMorePages()).isFalse();
+  }
+
+  @Test
+  void listApplicationLibraries_should_return_empty_for_page_beyond_results() throws IOException {
+    var mockLibraries = createMockLibraries(5);
+    mockedSDKHelper
+        .when(
+            () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
+        .thenReturn(mockLibraries);
+
+    var result = tool.listApplicationLibraries(10, 50, TEST_APP_ID);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.items()).isEmpty();
+    assertThat(result.totalItems()).isEqualTo(5);
+    assertThat(result.hasMorePages()).isFalse();
   }
 
   private List<LibraryExtended> createMockLibraries(int count) {

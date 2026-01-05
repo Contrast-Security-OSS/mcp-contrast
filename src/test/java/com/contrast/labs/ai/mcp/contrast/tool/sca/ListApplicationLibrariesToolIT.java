@@ -100,17 +100,16 @@ class ListApplicationLibrariesToolIT
   void listApplicationLibraries_should_return_libraries() {
     log.info("\n=== Integration Test: list_application_libraries ===");
 
-    var result = tool.listApplicationLibraries(testData.appId);
+    var result = tool.listApplicationLibraries(null, null, testData.appId);
 
     assertThat(result.isSuccess()).isTrue();
-    assertThat(result.found()).isTrue();
-    assertThat(result.data()).isNotEmpty();
+    assertThat(result.items()).isNotEmpty();
     assertThat(result.errors()).isEmpty();
 
-    log.info("Retrieved {} libraries for application: {}", result.data().size(), testData.appName);
+    log.info("Retrieved {} libraries for application: {}", result.items().size(), testData.appName);
 
     // Verify library structure
-    var firstLib = result.data().get(0);
+    var firstLib = result.items().get(0);
     assertThat(firstLib.getFilename()).as("Library filename should not be null").isNotNull();
     assertThat(firstLib.getHash()).as("Library hash should not be null").isNotNull();
     assertThat(firstLib.getClassCount()).as("Class count should be non-negative").isNotNegative();
@@ -120,7 +119,7 @@ class ListApplicationLibrariesToolIT
   void listApplicationLibraries_should_handle_invalid_app_id() {
     log.info("\n=== Integration Test: Invalid app ID handling ===");
 
-    var result = tool.listApplicationLibraries("invalid-app-id-12345");
+    var result = tool.listApplicationLibraries(null, null, "invalid-app-id-12345");
 
     // API should handle gracefully - either empty list or API error
     if (result.isSuccess()) {
@@ -134,13 +133,13 @@ class ListApplicationLibrariesToolIT
   void listApplicationLibraries_should_include_class_usage_data() {
     log.info("\n=== Integration Test: Class usage statistics ===");
 
-    var result = tool.listApplicationLibraries(testData.appId);
+    var result = tool.listApplicationLibraries(null, null, testData.appId);
 
     assertThat(result.isSuccess()).isTrue();
-    assertThat(result.data()).isNotEmpty();
+    assertThat(result.items()).isNotEmpty();
 
     // Check class usage is populated
-    var libraries = result.data();
+    var libraries = result.items();
     long activeLibs = libraries.stream().filter(lib -> lib.getClassedUsed() > 0).count();
     long unusedLibs = libraries.stream().filter(lib -> lib.getClassedUsed() == 0).count();
 
@@ -153,5 +152,40 @@ class ListApplicationLibrariesToolIT
           .as("Classes used should not exceed class count for " + lib.getFilename())
           .isLessThanOrEqualTo(lib.getClassCount());
     }
+  }
+
+  @Test
+  void listApplicationLibraries_should_paginate_with_small_page_size() {
+    log.info("\n=== Integration Test: Pagination ===");
+
+    // First get total count
+    var fullResult = tool.listApplicationLibraries(null, null, testData.appId);
+    assertThat(fullResult.isSuccess()).isTrue();
+    int totalLibraries = fullResult.totalItems();
+
+    if (totalLibraries <= 5) {
+      log.info("Skipping pagination test - only {} libraries available", totalLibraries);
+      return;
+    }
+
+    // Request first page with small page size
+    var page1 = tool.listApplicationLibraries(1, 5, testData.appId);
+    assertThat(page1.isSuccess()).isTrue();
+    assertThat(page1.items()).hasSize(5);
+    assertThat(page1.page()).isEqualTo(1);
+    assertThat(page1.pageSize()).isEqualTo(5);
+    assertThat(page1.totalItems()).isEqualTo(totalLibraries);
+    assertThat(page1.hasMorePages()).isTrue();
+
+    // Request second page
+    var page2 = tool.listApplicationLibraries(2, 5, testData.appId);
+    assertThat(page2.isSuccess()).isTrue();
+    assertThat(page2.page()).isEqualTo(2);
+
+    log.info(
+        "Page 1: {} items, Page 2: {} items, Total: {}",
+        page1.items().size(),
+        page2.items().size(),
+        totalLibraries);
   }
 }
