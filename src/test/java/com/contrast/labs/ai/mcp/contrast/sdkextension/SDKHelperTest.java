@@ -2,8 +2,15 @@ package com.contrast.labs.ai.mcp.contrast.sdkextension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibrariesExtended;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
+import com.contrastsecurity.http.LibraryFilterForm;
+import java.io.IOException;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -12,7 +19,11 @@ import org.springframework.core.env.Environment;
 
 class SDKHelperTest {
 
+  private static final String TEST_ORG_ID = "test-org-123";
+  private static final String TEST_APP_ID = "test-app-456";
+
   @Mock private Environment environment;
+  @Mock private SDKExtension extendedSDK;
 
   @BeforeEach
   void setUp() throws Exception {
@@ -161,5 +172,21 @@ class SDKHelperTest {
     // Note: Only one trailing slash is removed
     var result = SDKHelper.getProtocolAndServer("example.com//");
     assertThat(result).isEqualTo("https://example.com/");
+  }
+
+  @Test
+  void getLibraryPage_should_return_single_page_with_count() throws IOException {
+    var mockResponse = new LibrariesExtended();
+    mockResponse.setLibraries(List.of(new LibraryExtended()));
+    mockResponse.setCount(50L);
+
+    when(extendedSDK.getLibrariesWithFilter(
+            eq(TEST_ORG_ID), eq(TEST_APP_ID), any(LibraryFilterForm.class)))
+        .thenReturn(mockResponse);
+
+    var result = SDKHelper.getLibraryPage(TEST_APP_ID, TEST_ORG_ID, extendedSDK, 50, 0);
+
+    assertThat(result.getLibraries()).hasSize(1);
+    assertThat(result.getCount()).isEqualTo(50L);
   }
 }

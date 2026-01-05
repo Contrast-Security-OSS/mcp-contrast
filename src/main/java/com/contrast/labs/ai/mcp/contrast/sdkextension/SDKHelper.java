@@ -59,6 +59,33 @@ public class SDKHelper {
   private static final Cache<String, List<Application>> applicationsCache =
       CacheBuilder.newBuilder().maximumSize(500000).expireAfterWrite(5, TimeUnit.MINUTES).build();
 
+  /**
+   * Retrieves a single page of libraries for an application with server-side pagination. Unlike
+   * {@link #getLibsForID}, this method does NOT cache results and returns only the requested page
+   * along with the total count for pagination metadata.
+   *
+   * @param appId The application ID
+   * @param orgId The organization ID
+   * @param extendedSDK The SDK extension instance
+   * @param limit Number of items per page (max 50 per API)
+   * @param offset Starting index (0-based)
+   * @return LibrariesExtended containing the page of libraries and total count
+   */
+  public static com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibrariesExtended
+      getLibraryPage(String appId, String orgId, SDKExtension extendedSDK, int limit, int offset)
+          throws IOException {
+
+    // API enforces max limit of 50
+    int effectiveLimit = Math.min(limit, 50);
+
+    var filterForm = new LibraryFilterForm();
+    filterForm.setLimit(effectiveLimit);
+    filterForm.setOffset(offset);
+    filterForm.setExpand(EnumSet.of(LibraryFilterForm.LibrariesExpandValues.VULNS));
+
+    return extendedSDK.getLibrariesWithFilter(orgId, appId, filterForm);
+  }
+
   public static List<LibraryExtended> getLibsForID(
       String appID, String orgID, SDKExtension extendedSDK) throws IOException {
     // Check cache for existing result
