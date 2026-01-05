@@ -118,10 +118,9 @@ public abstract class BaseSingleTool<P extends ToolParams, R> extends BaseContra
         .setMessage("Request failed: {}")
         .addArgument(e.getMessage())
         .log();
-    // Include warnings in error response for context
     var allWarnings = new ArrayList<>(warnings);
     allWarnings.add(userMessage);
-    return new SingleToolResponse<>(null, List.of(userMessage), warnings, false);
+    return new SingleToolResponse<>(null, List.of(userMessage), allWarnings, false);
   }
 
   private SingleToolResponse<R> handleHttpResponseException(

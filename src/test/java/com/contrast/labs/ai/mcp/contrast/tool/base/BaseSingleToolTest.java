@@ -186,6 +186,26 @@ class BaseSingleToolTest {
     assertThat(result.warnings()).contains("Partial data returned");
   }
 
+  @Test
+  void executePipeline_should_preserve_warnings_when_unauthorized_exception_occurs() {
+    tool.setDoExecuteHandler(
+        (params, warnings) -> {
+          warnings.add("Warning added before exception");
+          throw new UnauthorizedException(
+              "Invalid credentials", "GET", "/api/test", 401, "Unauthorized");
+        });
+
+    var result = tool.executePipeline(() -> TestParams.withWarning("Initial warning"));
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).containsExactly("Authentication failed. Check API credentials.");
+    assertThat(result.warnings())
+        .containsExactlyInAnyOrder(
+            "Initial warning",
+            "Warning added before exception",
+            "Authentication failed. Check API credentials.");
+  }
+
   // Test implementation of BaseSingleTool
   private static class TestGetTool extends BaseSingleTool<TestParams, String> {
     private DoExecuteHandler handler;
