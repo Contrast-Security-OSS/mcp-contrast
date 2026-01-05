@@ -12,7 +12,8 @@ This test plan provides comprehensive testing guidance for the `list_application
 **Changes from Original:**
 - **Tool name unchanged**: `list_application_libraries`
 - **Parameter unchanged**: `appId` (was `appID`, now camelCase)
-- **Architecture changed**: Now uses tool-per-class pattern with `BaseSingleTool`
+- **Architecture changed**: Now uses tool-per-class pattern with `BasePaginatedTool`
+- **Pagination added**: Supports `page` and `pageSize` parameters
 - **Workflow**: Use `search_applications(name=...)` first to find appId
 
 **Future Note:** This tool may be deprecated when `search_libraries` is implemented.
@@ -24,17 +25,24 @@ This test plan provides comprehensive testing guidance for the `list_application
 **Parameters:**
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `page` | Integer | No | Page number (1-based), default: 1 |
+| `pageSize` | Integer | No | Items per page (max 100), default: 50 |
 | `appId` | String | Yes | Application ID (use search_applications to find) |
 
 ### Response Structure
 
-**Returns:** `SingleToolResponse<List<LibraryExtended>>`
+**Returns:** `PaginatedToolResponse<LibraryExtended>`
 
 ```java
-SingleToolResponse {
-    List<LibraryExtended> data,   // List of libraries
-    String message,               // Warnings or info messages
-    boolean found                 // True if data returned
+PaginatedToolResponse {
+    List<LibraryExtended> items,  // Libraries for current page
+    int page,                     // Current page number (1-based)
+    int pageSize,                 // Items per page
+    Integer totalItems,           // Total library count
+    boolean hasMorePages,         // True if more pages exist
+    List<String> errors,          // Validation/execution errors
+    List<String> warnings,        // Non-fatal warnings
+    Long durationMs               // Execution time in ms
 }
 
 // LibraryExtended structure:
@@ -545,6 +553,87 @@ LibraryExtended {
 
 ---
 
+## 11. Pagination Tests
+
+### Test Case 11.1: Default Pagination
+
+**Objective:** Verify default page and pageSize when not provided.
+
+**Test Steps:**
+1. Call `list_application_libraries(appId="<valid-id>")`
+2. Examine pagination metadata
+
+**Expected Results:**
+- `page: 1`
+- `pageSize: 50`
+- `totalItems`: total library count
+- `hasMorePages`: true if totalItems > 50
+
+---
+
+### Test Case 11.2: Custom Page Size
+
+**Objective:** Verify pagination with custom pageSize.
+
+**Test Steps:**
+1. Call `list_application_libraries(page=1, pageSize=10, appId="<valid-id>")`
+2. Compare with full results
+
+**Expected Results:**
+- `items.length <= 10`
+- `pageSize: 10`
+- `totalItems` matches full count
+- `hasMorePages: true` if totalItems > 10
+
+---
+
+### Test Case 11.3: Second Page
+
+**Objective:** Verify second page retrieval.
+
+**Test Steps:**
+1. Call `list_application_libraries(page=2, pageSize=5, appId="<valid-id>")`
+2. Compare to first page
+
+**Expected Results:**
+- Different libraries than page 1
+- `page: 2`
+- Items 6-10 from full list
+
+---
+
+### Test Case 11.4: Page Beyond Results
+
+**Objective:** Verify behavior when page exceeds data.
+
+**Test Steps:**
+1. Call `list_application_libraries(page=1000, pageSize=50, appId="<valid-id>")`
+
+**Expected Results:**
+- `items: []` (empty array)
+- `totalItems`: actual count
+- `hasMorePages: false`
+- No error
+
+---
+
+### Test Case 11.5: Invalid Pagination Values
+
+**Objective:** Verify graceful handling of invalid values.
+
+**Test Steps:**
+1. Call with `page=0`
+2. Call with `page=-1`
+3. Call with `pageSize=0`
+4. Call with `pageSize=200`
+
+**Expected Results:**
+- `page < 1` → uses page 1 with warning
+- `pageSize < 1` → uses default 50 with warning
+- `pageSize > 100` → caps at 100 with warning
+
+---
+
 ## Test Execution Guidelines
 
 ### Pre-Test Setup
@@ -589,8 +678,9 @@ The `list_application_libraries` tool passes testing if:
 | Data Quality | 3 | Data consistency checks |
 | Error Handling | 3 | Failures, timeouts |
 | Performance | 2 | Response time |
+| Pagination | 5 | Page navigation, edge cases |
 
-**Total: 29 test cases**
+**Total: 34 test cases**
 
 ---
 
@@ -599,7 +689,7 @@ The `list_application_libraries` tool passes testing if:
 ### Successful Response Example
 ```json
 {
-  "data": [
+  "items": [
     {
       "fileName": "spring-core-5.3.10.jar",
       "version": "5.3.10",
@@ -642,26 +732,41 @@ The `list_application_libraries` tool passes testing if:
       "custom": false
     }
   ],
-  "message": null,
-  "found": true
+  "page": 1,
+  "pageSize": 50,
+  "totalItems": 127,
+  "hasMorePages": true,
+  "errors": [],
+  "warnings": [],
+  "durationMs": 245
 }
 ```
 
 ### Empty Response Example
 ```json
 {
-  "data": [],
-  "message": "No libraries found for this application. The application may not have any third-party dependencies, or library data may not have been collected yet.",
-  "found": true
+  "items": [],
+  "page": 1,
+  "pageSize": 50,
+  "totalItems": 0,
+  "hasMorePages": false,
+  "errors": [],
+  "warnings": ["No libraries found for this application. The application may not have any third-party dependencies, or library data may not have been collected yet."],
+  "durationMs": 42
 }
 ```
 
 ### Error Response Example
 ```json
 {
-  "data": null,
-  "message": "Validation failed: appId is required",
-  "found": false
+  "items": [],
+  "page": 1,
+  "pageSize": 50,
+  "totalItems": 0,
+  "hasMorePages": false,
+  "errors": ["appId is required"],
+  "warnings": [],
+  "durationMs": null
 }
 ```
 
