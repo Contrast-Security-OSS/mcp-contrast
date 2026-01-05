@@ -85,6 +85,21 @@ public class LibraryExtended {
   @SerializedName("high_vulnerabilities")
   private int highVulnerabilities;
 
+  /**
+   * Gets the total number of vulnerabilities.
+   *
+   * <p>Computed from vulnerabilities array when available, as a workaround for TeamServer bug
+   * (TS-41988) where total_vulnerabilities returns 0 despite vulns array being populated.
+   *
+   * @return the count of vulnerabilities from the array, or the API value if array is empty/null
+   */
+  public int getTotalVulnerabilities() {
+    if (vulnerabilities != null && !vulnerabilities.isEmpty()) {
+      return vulnerabilities.size();
+    }
+    return totalVulnerabilities;
+  }
+
   private boolean custom;
 
   @SerializedName("lib_score")
