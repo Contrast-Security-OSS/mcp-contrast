@@ -45,8 +45,6 @@ class SearchAttacksToolIT {
   void searchAttacks_should_return_response_with_no_filters() {
     log.info("\n=== Integration Test: search_attacks (no filters) ===");
 
-    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
-    // includeBotBlockers, includeIpBlacklist, sort
     var response = searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
@@ -75,8 +73,6 @@ class SearchAttacksToolIT {
   void searchAttacks_should_filter_by_quickFilter() {
     log.info("\n=== Integration Test: search_attacks (quickFilter=EFFECTIVE) ===");
 
-    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
-    // includeBotBlockers, includeIpBlacklist, sort
     var response =
         searchAttacksTool.searchAttacks(1, 10, "EFFECTIVE", null, null, null, null, null, null);
 
@@ -90,8 +86,6 @@ class SearchAttacksToolIT {
   void searchAttacks_should_filter_by_statusFilter() {
     log.info("\n=== Integration Test: search_attacks (statusFilter=EXPLOITED) ===");
 
-    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
-    // includeBotBlockers, includeIpBlacklist, sort
     var response =
         searchAttacksTool.searchAttacks(1, 10, null, "EXPLOITED", null, null, null, null, null);
 
@@ -105,8 +99,6 @@ class SearchAttacksToolIT {
   void searchAttacks_should_filter_by_keyword() {
     log.info("\n=== Integration Test: search_attacks (keyword=sql) ===");
 
-    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
-    // includeBotBlockers, includeIpBlacklist, sort
     var response =
         searchAttacksTool.searchAttacks(1, 10, null, null, "sql", null, null, null, null);
 
@@ -120,8 +112,6 @@ class SearchAttacksToolIT {
   void searchAttacks_should_handle_pagination() {
     log.info("\n=== Integration Test: search_attacks (pagination) ===");
 
-    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
-    // includeBotBlockers, includeIpBlacklist, sort
     var page1 = searchAttacksTool.searchAttacks(1, 5, null, null, null, null, null, null, null);
 
     assertThat(page1).as("Page 1 response should not be null").isNotNull();
@@ -152,8 +142,6 @@ class SearchAttacksToolIT {
   void searchAttacks_should_handle_sort() {
     log.info("\n=== Integration Test: search_attacks (sort=-startTime) ===");
 
-    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
-    // includeBotBlockers, includeIpBlacklist, sort
     var response =
         searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, "-startTime");
 
@@ -167,8 +155,6 @@ class SearchAttacksToolIT {
   void searchAttacks_should_return_error_for_invalid_quickFilter() {
     log.info("\n=== Integration Test: search_attacks (invalid quickFilter) ===");
 
-    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
-    // includeBotBlockers, includeIpBlacklist, sort
     var response =
         searchAttacksTool.searchAttacks(1, 10, "INVALID", null, null, null, null, null, null);
 
@@ -186,8 +172,6 @@ class SearchAttacksToolIT {
   void searchAttacks_should_return_error_for_invalid_statusFilter() {
     log.info("\n=== Integration Test: search_attacks (invalid statusFilter) ===");
 
-    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
-    // includeBotBlockers, includeIpBlacklist, sort
     var response =
         searchAttacksTool.searchAttacks(1, 10, null, "INVALID", null, null, null, null, null);
 
@@ -205,8 +189,6 @@ class SearchAttacksToolIT {
   void searchAttacks_should_handle_boolean_filters() {
     log.info("\n=== Integration Test: search_attacks (boolean filters) ===");
 
-    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
-    // includeBotBlockers, includeIpBlacklist, sort
     var response = searchAttacksTool.searchAttacks(1, 10, null, null, null, true, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
@@ -219,8 +201,6 @@ class SearchAttacksToolIT {
   void searchAttacks_should_handle_combined_filters() {
     log.info("\n=== Integration Test: search_attacks (combined filters) ===");
 
-    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
-    // includeBotBlockers, includeIpBlacklist, sort
     var response =
         searchAttacksTool.searchAttacks(
             1, 10, "EFFECTIVE", "EXPLOITED", null, false, null, null, null);
@@ -240,8 +220,6 @@ class SearchAttacksToolIT {
 
     // This test verifies the bug fix: invalid sort fields should return a helpful
     // validation error listing valid options, NOT a generic "Contrast API error"
-    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
-    // includeBotBlockers, includeIpBlacklist, sort
     var response =
         searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, "severity");
 
@@ -266,8 +244,6 @@ class SearchAttacksToolIT {
   void searchAttacks_should_accept_all_valid_sort_fields(String sortField) {
     log.info("\n=== Integration Test: search_attacks (sort={}) ===", sortField);
 
-    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
-    // includeBotBlockers, includeIpBlacklist, sort
     var response =
         searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, sortField);
 
@@ -285,8 +261,6 @@ class SearchAttacksToolIT {
     String descending = "-" + sortField;
     log.info("\n=== Integration Test: search_attacks (sort={}) ===", descending);
 
-    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
-    // includeBotBlockers, includeIpBlacklist, sort
     var response =
         searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, descending);
 
@@ -303,8 +277,6 @@ class SearchAttacksToolIT {
   void searchAttacks_should_reject_invalid_sort_fields(String sortField) {
     log.info("\n=== Integration Test: search_attacks (invalid sort={}) ===", sortField);
 
-    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
-    // includeBotBlockers, includeIpBlacklist, sort
     var response =
         searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, sortField);
 
@@ -338,8 +310,6 @@ class SearchAttacksToolIT {
   void searchAttacks_should_handle_specialCharacterKeywords(String keyword) {
     log.info("\n=== Integration Test: search_attacks (keyword='{}') ===", keyword);
 
-    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
-    // includeBotBlockers, includeIpBlacklist, sort
     var response =
         searchAttacksTool.searchAttacks(1, 10, null, null, keyword, null, null, null, null);
 
