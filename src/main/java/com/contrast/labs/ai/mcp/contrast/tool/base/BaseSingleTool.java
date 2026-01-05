@@ -82,7 +82,9 @@ public abstract class BaseSingleTool<P extends ToolParams, R> extends BaseContra
       return SingleToolResponse.success(result, warnings);
 
     } catch (ResourceNotFoundException e) {
-      return handleException(e, requestId, "Resource not found: " + e.getMessage(), warnings);
+      var duration = System.currentTimeMillis() - startTime;
+      logNotFound(requestId, duration);
+      return SingleToolResponse.notFound(e.getMessage(), warnings);
     } catch (UnauthorizedException e) {
       return handleException(
           e, requestId, "Authentication failed. Check API credentials.", warnings);
