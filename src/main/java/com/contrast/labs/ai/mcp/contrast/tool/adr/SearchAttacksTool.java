@@ -72,6 +72,9 @@ public class SearchAttacksTool extends BasePaginatedTool<AttackFilterParams, Att
           - search_applications: Find application IDs by name or tag
           """)
   public PaginatedToolResponse<AttackSummary> searchAttacks(
+      @ToolParam(description = "Page number (1-based), default: 1", required = false) Integer page,
+      @ToolParam(description = "Items per page (max 100), default: 50", required = false)
+          Integer pageSize,
       @ToolParam(
               description =
                   "Quick filter for attack categorization. Valid: ALL (no filter), ACTIVE (ongoing"
@@ -103,10 +106,7 @@ public class SearchAttacksTool extends BasePaginatedTool<AttackFilterParams, Att
                       + " endTime, type. Use '-' prefix for descending order (e.g., '-startTime')."
                       + " Default: -startTime",
               required = false)
-          String sort,
-      @ToolParam(description = "Page number (1-based), default: 1", required = false) Integer page,
-      @ToolParam(description = "Items per page (max 100), default: 50", required = false)
-          Integer pageSize) {
+          String sort) {
 
     return executePipeline(
         page,

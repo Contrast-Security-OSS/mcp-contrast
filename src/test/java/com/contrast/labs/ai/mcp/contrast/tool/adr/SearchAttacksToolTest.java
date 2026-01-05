@@ -98,7 +98,9 @@ class SearchAttacksToolTest {
                       eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
                   .thenReturn(mockResponse);
             })) {
-      tool.searchAttacks("ACTIVE", null, null, null, null, null, null, null, null);
+      // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+      // includeBotBlockers, includeIpBlacklist, sort
+      tool.searchAttacks(null, null, "ACTIVE", null, null, null, null, null, null);
 
       var extension = mockedConstruction.constructed().get(0);
       var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
@@ -120,7 +122,9 @@ class SearchAttacksToolTest {
                       eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
                   .thenReturn(mockResponse);
             })) {
-      tool.searchAttacks(null, "EXPLOITED", null, null, null, null, null, null, null);
+      // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+      // includeBotBlockers, includeIpBlacklist, sort
+      tool.searchAttacks(null, null, null, "EXPLOITED", null, null, null, null, null);
 
       var extension = mockedConstruction.constructed().get(0);
       var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
@@ -142,7 +146,9 @@ class SearchAttacksToolTest {
                       eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
                   .thenReturn(mockResponse);
             })) {
-      tool.searchAttacks(null, null, "sql injection", null, null, null, null, null, null);
+      // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+      // includeBotBlockers, includeIpBlacklist, sort
+      tool.searchAttacks(null, null, null, null, "sql injection", null, null, null, null);
 
       var extension = mockedConstruction.constructed().get(0);
       var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
@@ -165,7 +171,9 @@ class SearchAttacksToolTest {
                       eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
                   .thenReturn(mockResponse);
             })) {
-      tool.searchAttacks(null, null, null, true, false, true, null, null, null);
+      // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+      // includeBotBlockers, includeIpBlacklist, sort
+      tool.searchAttacks(null, null, null, null, null, true, false, true, null);
 
       var extension = mockedConstruction.constructed().get(0);
       var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
@@ -189,7 +197,9 @@ class SearchAttacksToolTest {
                       eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(25), eq(50), isNull()))
                   .thenReturn(mockResponse);
             })) {
-      var result = tool.searchAttacks(null, null, null, null, null, null, null, 3, 25);
+      // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+      // includeBotBlockers, includeIpBlacklist, sort
+      var result = tool.searchAttacks(3, 25, null, null, null, null, null, null, null);
 
       assertThat(result.page()).isEqualTo(3);
       assertThat(result.pageSize()).isEqualTo(25);
@@ -212,7 +222,9 @@ class SearchAttacksToolTest {
                       eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), eq("-status")))
                   .thenReturn(mockResponse);
             })) {
-      tool.searchAttacks(null, null, null, null, null, null, "-status", null, null);
+      // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+      // includeBotBlockers, includeIpBlacklist, sort
+      tool.searchAttacks(null, null, null, null, null, null, null, null, "-status");
 
       var extension = mockedConstruction.constructed().get(0);
       verify(extension)
@@ -222,7 +234,9 @@ class SearchAttacksToolTest {
 
   @Test
   void searchAttacks_should_return_validation_error_for_invalid_quickFilter() {
-    var result = tool.searchAttacks("INVALID", null, null, null, null, null, null, null, null);
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
+    var result = tool.searchAttacks(null, null, "INVALID", null, null, null, null, null, null);
 
     assertThat(result.items()).isEmpty();
     assertThat(result.errors()).anyMatch(e -> e.contains("Invalid quickFilter"));
@@ -230,7 +244,9 @@ class SearchAttacksToolTest {
 
   @Test
   void searchAttacks_should_return_validation_error_for_invalid_statusFilter() {
-    var result = tool.searchAttacks(null, "INVALID", null, null, null, null, null, null, null);
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
+    var result = tool.searchAttacks(null, null, null, "INVALID", null, null, null, null, null);
 
     assertThat(result.items()).isEmpty();
     assertThat(result.errors()).anyMatch(e -> e.contains("Invalid statusFilter"));
@@ -238,7 +254,9 @@ class SearchAttacksToolTest {
 
   @Test
   void searchAttacks_should_return_validation_error_for_invalid_sort() {
-    var result = tool.searchAttacks(null, null, null, null, null, null, "severity", null, null);
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
+    var result = tool.searchAttacks(null, null, null, null, null, null, null, null, "severity");
 
     assertThat(result.items()).isEmpty();
     assertThat(result.errors()).anyMatch(e -> e.contains("Invalid sort field"));
@@ -292,7 +310,9 @@ class SearchAttacksToolTest {
                       anyString(), any(AttacksFilterBody.class), anyInt(), anyInt(), any()))
                   .thenReturn(mockResponse);
             })) {
-      var result = tool.searchAttacks(null, null, null, null, null, null, null, 1, 50);
+      // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+      // includeBotBlockers, includeIpBlacklist, sort
+      var result = tool.searchAttacks(1, 50, null, null, null, null, null, null, null);
 
       assertThat(result.hasMorePages()).isTrue();
       assertThat(result.totalItems()).isEqualTo(150);

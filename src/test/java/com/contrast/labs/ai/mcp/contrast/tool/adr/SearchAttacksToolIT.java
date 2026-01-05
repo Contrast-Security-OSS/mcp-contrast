@@ -45,7 +45,9 @@ class SearchAttacksToolIT {
   void searchAttacks_should_return_response_with_no_filters() {
     log.info("\n=== Integration Test: search_attacks (no filters) ===");
 
-    var response = searchAttacksTool.searchAttacks(null, null, null, null, null, null, null, 1, 10);
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
+    var response = searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.items()).as("Items should not be null").isNotNull();
@@ -73,8 +75,10 @@ class SearchAttacksToolIT {
   void searchAttacks_should_filter_by_quickFilter() {
     log.info("\n=== Integration Test: search_attacks (quickFilter=EFFECTIVE) ===");
 
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
     var response =
-        searchAttacksTool.searchAttacks("EFFECTIVE", null, null, null, null, null, null, 1, 10);
+        searchAttacksTool.searchAttacks(1, 10, "EFFECTIVE", null, null, null, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.items()).as("Items should not be null").isNotNull();
@@ -86,8 +90,10 @@ class SearchAttacksToolIT {
   void searchAttacks_should_filter_by_statusFilter() {
     log.info("\n=== Integration Test: search_attacks (statusFilter=EXPLOITED) ===");
 
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
     var response =
-        searchAttacksTool.searchAttacks(null, "EXPLOITED", null, null, null, null, null, 1, 10);
+        searchAttacksTool.searchAttacks(1, 10, null, "EXPLOITED", null, null, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.items()).as("Items should not be null").isNotNull();
@@ -99,8 +105,10 @@ class SearchAttacksToolIT {
   void searchAttacks_should_filter_by_keyword() {
     log.info("\n=== Integration Test: search_attacks (keyword=sql) ===");
 
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
     var response =
-        searchAttacksTool.searchAttacks(null, null, "sql", null, null, null, null, 1, 10);
+        searchAttacksTool.searchAttacks(1, 10, null, null, "sql", null, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.items()).as("Items should not be null").isNotNull();
@@ -112,7 +120,9 @@ class SearchAttacksToolIT {
   void searchAttacks_should_handle_pagination() {
     log.info("\n=== Integration Test: search_attacks (pagination) ===");
 
-    var page1 = searchAttacksTool.searchAttacks(null, null, null, null, null, null, null, 1, 5);
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
+    var page1 = searchAttacksTool.searchAttacks(1, 5, null, null, null, null, null, null, null);
 
     assertThat(page1).as("Page 1 response should not be null").isNotNull();
     assertThat(page1.page()).as("Should be page 1").isEqualTo(1);
@@ -123,7 +133,7 @@ class SearchAttacksToolIT {
     log.info("  Has more pages: {}", page1.hasMorePages());
 
     if (page1.hasMorePages()) {
-      var page2 = searchAttacksTool.searchAttacks(null, null, null, null, null, null, null, 2, 5);
+      var page2 = searchAttacksTool.searchAttacks(2, 5, null, null, null, null, null, null, null);
 
       assertThat(page2).as("Page 2 response should not be null").isNotNull();
       assertThat(page2.page()).as("Should be page 2").isEqualTo(2);
@@ -142,8 +152,10 @@ class SearchAttacksToolIT {
   void searchAttacks_should_handle_sort() {
     log.info("\n=== Integration Test: search_attacks (sort=-startTime) ===");
 
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
     var response =
-        searchAttacksTool.searchAttacks(null, null, null, null, null, null, "-startTime", 1, 10);
+        searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, "-startTime");
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.items()).as("Items should not be null").isNotNull();
@@ -155,8 +167,10 @@ class SearchAttacksToolIT {
   void searchAttacks_should_return_error_for_invalid_quickFilter() {
     log.info("\n=== Integration Test: search_attacks (invalid quickFilter) ===");
 
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
     var response =
-        searchAttacksTool.searchAttacks("INVALID", null, null, null, null, null, null, 1, 10);
+        searchAttacksTool.searchAttacks(1, 10, "INVALID", null, null, null, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors()).as("Should have errors").isNotEmpty();
@@ -172,8 +186,10 @@ class SearchAttacksToolIT {
   void searchAttacks_should_return_error_for_invalid_statusFilter() {
     log.info("\n=== Integration Test: search_attacks (invalid statusFilter) ===");
 
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
     var response =
-        searchAttacksTool.searchAttacks(null, "INVALID", null, null, null, null, null, 1, 10);
+        searchAttacksTool.searchAttacks(1, 10, null, "INVALID", null, null, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors()).as("Should have errors").isNotEmpty();
@@ -189,7 +205,9 @@ class SearchAttacksToolIT {
   void searchAttacks_should_handle_boolean_filters() {
     log.info("\n=== Integration Test: search_attacks (boolean filters) ===");
 
-    var response = searchAttacksTool.searchAttacks(null, null, null, true, null, null, null, 1, 10);
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
+    var response = searchAttacksTool.searchAttacks(1, 10, null, null, null, true, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.items()).as("Items should not be null").isNotNull();
@@ -201,9 +219,11 @@ class SearchAttacksToolIT {
   void searchAttacks_should_handle_combined_filters() {
     log.info("\n=== Integration Test: search_attacks (combined filters) ===");
 
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
     var response =
         searchAttacksTool.searchAttacks(
-            "EFFECTIVE", "EXPLOITED", null, false, null, null, null, 1, 10);
+            1, 10, "EFFECTIVE", "EXPLOITED", null, false, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.items()).as("Items should not be null").isNotNull();
@@ -220,8 +240,10 @@ class SearchAttacksToolIT {
 
     // This test verifies the bug fix: invalid sort fields should return a helpful
     // validation error listing valid options, NOT a generic "Contrast API error"
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
     var response =
-        searchAttacksTool.searchAttacks(null, null, null, null, null, null, "severity", 1, 10);
+        searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, "severity");
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors()).as("Should have validation errors").isNotEmpty();
@@ -244,8 +266,10 @@ class SearchAttacksToolIT {
   void searchAttacks_should_accept_all_valid_sort_fields(String sortField) {
     log.info("\n=== Integration Test: search_attacks (sort={}) ===", sortField);
 
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
     var response =
-        searchAttacksTool.searchAttacks(null, null, null, null, null, null, sortField, 1, 10);
+        searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, sortField);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors()).as("Should have no errors for sort: " + sortField).isEmpty();
@@ -261,8 +285,10 @@ class SearchAttacksToolIT {
     String descending = "-" + sortField;
     log.info("\n=== Integration Test: search_attacks (sort={}) ===", descending);
 
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
     var response =
-        searchAttacksTool.searchAttacks(null, null, null, null, null, null, descending, 1, 10);
+        searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, descending);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors()).as("Should have no errors for sort: " + descending).isEmpty();
@@ -277,8 +303,10 @@ class SearchAttacksToolIT {
   void searchAttacks_should_reject_invalid_sort_fields(String sortField) {
     log.info("\n=== Integration Test: search_attacks (invalid sort={}) ===", sortField);
 
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
     var response =
-        searchAttacksTool.searchAttacks(null, null, null, null, null, null, sortField, 1, 10);
+        searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, sortField);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors())
@@ -310,8 +338,10 @@ class SearchAttacksToolIT {
   void searchAttacks_should_handle_specialCharacterKeywords(String keyword) {
     log.info("\n=== Integration Test: search_attacks (keyword='{}') ===", keyword);
 
+    // Param order: page, pageSize, quickFilter, statusFilter, keyword, includeSuppressed,
+    // includeBotBlockers, includeIpBlacklist, sort
     var response =
-        searchAttacksTool.searchAttacks(null, null, keyword, null, null, null, null, 1, 10);
+        searchAttacksTool.searchAttacks(1, 10, null, null, keyword, null, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors()).as("Should have no errors for keyword: " + keyword).isEmpty();
