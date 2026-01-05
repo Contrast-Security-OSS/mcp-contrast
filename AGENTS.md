@@ -143,6 +143,28 @@ Multiple AI agents may work in the same repository simultaneously. Follow these 
 - ✅ Use bd to check if other work is `in_progress` before touching shared files
 - ✅ Commit your work frequently to reduce conflict windows
 
+### Code Refactoring with ast-grep
+
+For bulk structural code changes (renaming, pattern replacement), use **ast-grep (sg)** instead of sed/grep:
+
+```bash
+# Preview changes
+sg run -p 'ContrastConfig' -r 'ContrastSDKFactory' -l java src/
+
+# Apply changes (-U = update all)
+sg run -p 'config.getSDK()' -r 'sdkFactory.getSDK()' -l java -U src/
+
+# Pattern with metavariable
+sg run -p 'ReflectionTestUtils.setField($T, "config", config)' \
+       -r 'ReflectionTestUtils.setField($T, "sdkFactory", sdkFactory)' -l java -U src/
+```
+
+**Why ast-grep over sed:**
+- Understands Java syntax (won't match inside strings/comments)
+- Handles formatting variations (whitespace, line breaks)
+- Metavariables (`$VAR`) capture and reuse matched code
+- Safer bulk refactoring across many files
+
 ### Testing Anti-Patterns
 
 - ❌ **Don't test library behavior** - Never write tests that verify Lombok `@Getter`/`@Setter` works, or that Spring annotations function. Trust your dependencies.
