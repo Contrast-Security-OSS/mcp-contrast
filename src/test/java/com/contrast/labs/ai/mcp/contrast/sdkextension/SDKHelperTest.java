@@ -33,77 +33,73 @@ class SDKHelperTest {
     var envField = SDKHelper.class.getDeclaredField("environment");
     envField.setAccessible(true);
     envField.set(null, environment);
-
-    // Set up default property
-    when(environment.getProperty("contrast.api.protocol", "https")).thenReturn("https");
   }
 
   @Test
   void testGetProtocolAndServer_WithNull() {
-    assertThat(SDKHelper.getProtocolAndServer(null)).isNull();
+    assertThat(SDKHelper.getProtocolAndServer(null, "https")).isNull();
   }
 
   @Test
   void testGetProtocolAndServer_WithHttpProtocol() {
-    var result = SDKHelper.getProtocolAndServer("http://example.com");
+    var result = SDKHelper.getProtocolAndServer("http://example.com", "https");
     assertThat(result).isEqualTo("http://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithHttpsProtocol() {
-    var result = SDKHelper.getProtocolAndServer("https://example.com");
+    var result = SDKHelper.getProtocolAndServer("https://example.com", "https");
     assertThat(result).isEqualTo("https://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithoutProtocol() {
-    var result = SDKHelper.getProtocolAndServer("example.com");
+    var result = SDKHelper.getProtocolAndServer("example.com", "https");
     assertThat(result).isEqualTo("https://example.com");
   }
 
   @Test
-  void testGetProtocolAndServer_WithCustomProtocol() {
-    when(environment.getProperty("contrast.api.protocol", "https")).thenReturn("http");
-
-    var result = SDKHelper.getProtocolAndServer("example.com");
+  void testGetProtocolAndServer_WithHttpProtocolConfig() {
+    // When protocol config is "http", hostnames without protocol should use http
+    var result = SDKHelper.getProtocolAndServer("example.com", "http");
     assertThat(result).isEqualTo("http://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithEmptyString() {
     // Empty string should return null (consistent with null input handling)
-    var result = SDKHelper.getProtocolAndServer("");
+    var result = SDKHelper.getProtocolAndServer("", "https");
     assertThat(result).isNull();
   }
 
   @Test
   void testGetProtocolAndServer_WithWhitespaceOnly() {
     // Whitespace-only string should return null (consistent with null input handling)
-    var result = SDKHelper.getProtocolAndServer("   ");
+    var result = SDKHelper.getProtocolAndServer("   ", "https");
     assertThat(result).isNull();
   }
 
   @Test
   void testGetProtocolAndServer_WithLeadingWhitespace() {
-    var result = SDKHelper.getProtocolAndServer("  example.com");
+    var result = SDKHelper.getProtocolAndServer("  example.com", "https");
     assertThat(result).isEqualTo("https://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithTrailingWhitespace() {
-    var result = SDKHelper.getProtocolAndServer("example.com  ");
+    var result = SDKHelper.getProtocolAndServer("example.com  ", "https");
     assertThat(result).isEqualTo("https://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithLeadingAndTrailingWhitespace() {
-    var result = SDKHelper.getProtocolAndServer("  https://example.com  ");
+    var result = SDKHelper.getProtocolAndServer("  https://example.com  ", "https");
     assertThat(result).isEqualTo("https://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithInvalidProtocol_Ftp() {
-    assertThatThrownBy(() -> SDKHelper.getProtocolAndServer("ftp://example.com"))
+    assertThatThrownBy(() -> SDKHelper.getProtocolAndServer("ftp://example.com", "https"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Invalid protocol")
         .hasMessageContaining("ftp://example.com");
@@ -111,7 +107,7 @@ class SDKHelperTest {
 
   @Test
   void testGetProtocolAndServer_WithInvalidProtocol_Custom() {
-    assertThatThrownBy(() -> SDKHelper.getProtocolAndServer("custom://example.com"))
+    assertThatThrownBy(() -> SDKHelper.getProtocolAndServer("custom://example.com", "https"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Invalid protocol");
   }
@@ -119,9 +115,30 @@ class SDKHelperTest {
   @Test
   void testGetProtocolAndServer_WithMalformedProtocol() {
     // "ht://example.com" contains "://" but doesn't start with http:// or https://
-    assertThatThrownBy(() -> SDKHelper.getProtocolAndServer("ht://example.com"))
+    assertThatThrownBy(() -> SDKHelper.getProtocolAndServer("ht://example.com", "https"))
         .isInstanceOf(IllegalArgumentException.class)
         .hasMessageContaining("Invalid protocol");
+  }
+
+  @Test
+  void testGetProtocolAndServer_WithNullProtocol_DefaultsToHttps() {
+    // When protocol parameter is null, should default to https
+    var result = SDKHelper.getProtocolAndServer("example.com", null);
+    assertThat(result).isEqualTo("https://example.com");
+  }
+
+  @Test
+  void testGetProtocolAndServer_WithEmptyProtocol_DefaultsToHttps() {
+    // When protocol parameter is empty, should default to https
+    var result = SDKHelper.getProtocolAndServer("example.com", "");
+    assertThat(result).isEqualTo("https://example.com");
+  }
+
+  @Test
+  void testGetProtocolAndServer_WithWhitespaceProtocol_DefaultsToHttps() {
+    // When protocol parameter is whitespace, should default to https
+    var result = SDKHelper.getProtocolAndServer("example.com", "   ");
+    assertThat(result).isEqualTo("https://example.com");
   }
 
   @Test
@@ -130,7 +147,8 @@ class SDKHelperTest {
     when(environment.getProperty("spring.ai.mcp.server.version", "unknown")).thenReturn("1.0.0");
 
     // getSDK is a public static method, so we can call it directly
-    var sdk = SDKHelper.getSDK(hostWithProtocol, "apiKey", "serviceKey", "username", null, null);
+    var sdk =
+        SDKHelper.getSDK(hostWithProtocol, "apiKey", "serviceKey", "username", null, null, "https");
 
     assertThat(sdk).isNotNull();
     // The SDK was successfully created with the https URL.
@@ -143,34 +161,45 @@ class SDKHelperTest {
     var hostname = "example.contrastsecurity.com";
     when(environment.getProperty("spring.ai.mcp.server.version", "unknown")).thenReturn("1.0.0");
 
-    var sdk = SDKHelper.getSDK(hostname, "apiKey", "serviceKey", "username", null, null);
+    var sdk = SDKHelper.getSDK(hostname, "apiKey", "serviceKey", "username", null, null, "https");
 
     assertThat(sdk).isNotNull();
     // The SDK should prepend https:// by default
   }
 
   @Test
+  void testGetSDK_WithHttpProtocol() {
+    var hostname = "example.contrastsecurity.com";
+    when(environment.getProperty("spring.ai.mcp.server.version", "unknown")).thenReturn("1.0.0");
+
+    var sdk = SDKHelper.getSDK(hostname, "apiKey", "serviceKey", "username", null, null, "http");
+
+    assertThat(sdk).isNotNull();
+    // The SDK should prepend http:// when protocol is "http"
+  }
+
+  @Test
   void testGetProtocolAndServer_WithTrailingSlash() {
-    var result = SDKHelper.getProtocolAndServer("example.com/");
+    var result = SDKHelper.getProtocolAndServer("example.com/", "https");
     assertThat(result).isEqualTo("https://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithProtocolAndTrailingSlash() {
-    var result = SDKHelper.getProtocolAndServer("https://example.com/");
+    var result = SDKHelper.getProtocolAndServer("https://example.com/", "https");
     assertThat(result).isEqualTo("https://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithHttpProtocolAndTrailingSlash() {
-    var result = SDKHelper.getProtocolAndServer("http://example.com/");
+    var result = SDKHelper.getProtocolAndServer("http://example.com/", "https");
     assertThat(result).isEqualTo("http://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithMultipleTrailingSlashes() {
     // Note: Only one trailing slash is removed
-    var result = SDKHelper.getProtocolAndServer("example.com//");
+    var result = SDKHelper.getProtocolAndServer("example.com//", "https");
     assertThat(result).isEqualTo("https://example.com/");
   }
 

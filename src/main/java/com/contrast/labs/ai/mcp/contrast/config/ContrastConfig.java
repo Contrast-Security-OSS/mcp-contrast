@@ -71,7 +71,8 @@ public class ContrastConfig {
   public synchronized ContrastSDK getSDK() {
     if (sdkInstance == null) {
       sdkInstance =
-          SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+          SDKHelper.getSDK(
+              hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort, protocol);
     }
     return sdkInstance;
   }

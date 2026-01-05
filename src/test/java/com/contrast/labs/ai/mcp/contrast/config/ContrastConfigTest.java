@@ -105,7 +105,8 @@ class ContrastConfigTest {
                 TEST_SERVICE_KEY,
                 TEST_USERNAME,
                 TEST_PROXY_HOST,
-                TEST_PROXY_PORT));
+                TEST_PROXY_PORT,
+                TEST_PROTOCOL));
   }
 
   @Test
@@ -117,7 +118,9 @@ class ContrastConfigTest {
     assertThat(sdk).isNotNull();
 
     mockedSDKHelper.verify(
-        () -> SDKHelper.getSDK(TEST_HOST, TEST_API_KEY, TEST_SERVICE_KEY, TEST_USERNAME, "", ""));
+        () ->
+            SDKHelper.getSDK(
+                TEST_HOST, TEST_API_KEY, TEST_SERVICE_KEY, TEST_USERNAME, "", "", TEST_PROTOCOL));
   }
 
   @Test
@@ -131,7 +134,13 @@ class ContrastConfigTest {
     mockedSDKHelper.verify(
         () ->
             SDKHelper.getSDK(
-                anyString(), anyString(), anyString(), anyString(), anyString(), anyString()));
+                anyString(),
+                anyString(),
+                anyString(),
+                anyString(),
+                anyString(),
+                anyString(),
+                anyString()));
   }
 
   @Test
