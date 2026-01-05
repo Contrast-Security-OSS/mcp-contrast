@@ -143,6 +143,11 @@ Multiple AI agents may work in the same repository simultaneously. Follow these 
 - ✅ Use bd to check if other work is `in_progress` before touching shared files
 - ✅ Commit your work frequently to reduce conflict windows
 
+### Testing Anti-Patterns
+
+- ❌ **Don't test library behavior** - Never write tests that verify Lombok `@Getter`/`@Setter` works, or that Spring annotations function. Trust your dependencies.
+- ✅ **Do test your logic** - Test business rules, validation, conditional branching, and integration points.
+
 ### Important Rules
 
 - ✅ Use bd for ALL task tracking
