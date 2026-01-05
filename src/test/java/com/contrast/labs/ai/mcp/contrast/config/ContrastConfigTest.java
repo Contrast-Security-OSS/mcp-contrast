@@ -16,6 +16,8 @@
 package com.contrast.labs.ai.mcp.contrast.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mockStatic;
 
@@ -164,5 +166,69 @@ class ContrastConfigTest {
         () ->
             SDKHelper.getSDK(
                 anyString(), anyString(), anyString(), anyString(), anyString(), anyString()));
+  }
+
+  @Test
+  void validateConfiguration_should_throw_when_hostName_missing() {
+    ReflectionTestUtils.setField(config, "hostName", "");
+
+    assertThatThrownBy(() -> config.validateConfiguration())
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("CONTRAST_HOST_NAME");
+  }
+
+  @Test
+  void validateConfiguration_should_throw_when_apiKey_missing() {
+    ReflectionTestUtils.setField(config, "apiKey", "");
+
+    assertThatThrownBy(() -> config.validateConfiguration())
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("CONTRAST_API_KEY");
+  }
+
+  @Test
+  void validateConfiguration_should_throw_when_serviceKey_missing() {
+    ReflectionTestUtils.setField(config, "serviceKey", "");
+
+    assertThatThrownBy(() -> config.validateConfiguration())
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("CONTRAST_SERVICE_KEY");
+  }
+
+  @Test
+  void validateConfiguration_should_throw_when_userName_missing() {
+    ReflectionTestUtils.setField(config, "userName", "");
+
+    assertThatThrownBy(() -> config.validateConfiguration())
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("CONTRAST_USERNAME");
+  }
+
+  @Test
+  void validateConfiguration_should_throw_when_orgId_missing() {
+    ReflectionTestUtils.setField(config, "orgId", "");
+
+    assertThatThrownBy(() -> config.validateConfiguration())
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("CONTRAST_ORG_ID");
+  }
+
+  @Test
+  void validateConfiguration_should_list_all_missing_credentials() {
+    ReflectionTestUtils.setField(config, "hostName", "");
+    ReflectionTestUtils.setField(config, "apiKey", "");
+    ReflectionTestUtils.setField(config, "orgId", "");
+
+    assertThatThrownBy(() -> config.validateConfiguration())
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("CONTRAST_HOST_NAME")
+        .hasMessageContaining("CONTRAST_API_KEY")
+        .hasMessageContaining("CONTRAST_ORG_ID");
+  }
+
+  @Test
+  void validateConfiguration_should_pass_when_all_credentials_present() {
+    // All fields already set in setUp() - this should not throw
+    assertThatCode(() -> config.validateConfiguration()).doesNotThrowAnyException();
   }
 }
