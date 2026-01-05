@@ -615,6 +615,7 @@ LibraryExtended {
 - `totalItems`: actual count
 - `hasMorePages: false`
 - No error
+- **No warning** (warning only appears when app has zero libraries total)
 
 ---
 
@@ -632,6 +633,28 @@ LibraryExtended {
 - `page < 1` → uses page 1 with warning
 - `pageSize < 1` → uses default 50 with warning
 - `pageSize > 50` → caps at 50 with warning
+  - Response `pageSize` field shows `50` (capped value, not requested value)
+  - Warning message mentions "exceeds maximum 50"
+
+---
+
+### Test Case 11.6: Pagination Integrity - No Duplicates
+
+**Objective:** Verify paginating through all results produces complete, non-duplicate dataset.
+
+**Prerequisites:** Application with 100+ libraries
+
+**Test Steps:**
+1. Call `list_application_libraries(page=1, pageSize=25, appId="<valid-id>")`
+2. Call `list_application_libraries(page=2, pageSize=25, appId="<valid-id>")`
+3. Continue until `hasMorePages: false`
+4. Collect all library hashes from all pages
+
+**Expected Results:**
+- Total items collected equals `totalItems` from first response
+- No duplicate hashes across pages
+- Each page returns exactly `pageSize` items (except last page)
+- `hasMorePages: false` only on final page
 
 ---
 
@@ -679,9 +702,9 @@ The `list_application_libraries` tool passes testing if:
 | Data Quality | 3 | Data consistency checks |
 | Error Handling | 3 | Failures, timeouts |
 | Performance | 2 | Response time |
-| Pagination | 5 | Page navigation, edge cases |
+| Pagination | 6 | Page navigation, edge cases, integrity |
 
-**Total: 34 test cases**
+**Total: 35 test cases**
 
 ---
 
