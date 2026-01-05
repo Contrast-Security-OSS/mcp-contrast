@@ -35,14 +35,27 @@ public record PaginationParams(
     int page, int pageSize, int offset, int limit, List<String> warnings) {
 
   /**
-   * Parse and validate pagination parameters. Invalid values are clamped to acceptable defaults
-   * with warnings.
+   * Parse and validate pagination parameters with default max page size. Invalid values are clamped
+   * to acceptable defaults with warnings.
    *
    * @param page Requested page number (1-based), null defaults to 1
    * @param pageSize Requested page size, null defaults to 50
    * @return PaginationParams with validated values and warnings
    */
   public static PaginationParams of(Integer page, Integer pageSize) {
+    return of(page, pageSize, MAX_PAGE_SIZE);
+  }
+
+  /**
+   * Parse and validate pagination parameters with custom max page size. Invalid values are clamped
+   * to acceptable defaults with warnings.
+   *
+   * @param page Requested page number (1-based), null defaults to 1
+   * @param pageSize Requested page size, null defaults to 50
+   * @param maxPageSize Tool-specific maximum page size (e.g., 50 for APIs with stricter limits)
+   * @return PaginationParams with validated values and warnings
+   */
+  public static PaginationParams of(Integer page, Integer pageSize, int maxPageSize) {
     List<String> warnings = new ArrayList<>();
 
     // Soft failure: invalid page → clamp to 1
@@ -51,18 +64,18 @@ public record PaginationParams(
       warnings.add(String.format("Invalid page number %d, using page 1", page));
     }
 
-    // Soft failure: invalid pageSize → clamp to range
+    // Soft failure: invalid pageSize → clamp to range with tool-specific max
     int actualSize = pageSize != null && pageSize > 0 ? pageSize : DEFAULT_PAGE_SIZE;
     if (pageSize != null && pageSize < 1) {
       warnings.add(
           String.format("Invalid pageSize %d, using default %d", pageSize, DEFAULT_PAGE_SIZE));
       actualSize = DEFAULT_PAGE_SIZE;
-    } else if (pageSize != null && pageSize > MAX_PAGE_SIZE) {
+    } else if (pageSize != null && pageSize > maxPageSize) {
       warnings.add(
           String.format(
               "Requested pageSize %d exceeds maximum %d, capped to %d",
-              pageSize, MAX_PAGE_SIZE, MAX_PAGE_SIZE));
-      actualSize = MAX_PAGE_SIZE;
+              pageSize, maxPageSize, maxPageSize));
+      actualSize = maxPageSize;
     }
 
     return new PaginationParams(
