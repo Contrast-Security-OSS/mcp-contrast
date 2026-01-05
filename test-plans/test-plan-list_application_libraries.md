@@ -14,6 +14,7 @@ This test plan provides comprehensive testing guidance for the `list_application
 - **Parameter unchanged**: `appId` (was `appID`, now camelCase)
 - **Architecture changed**: Now uses tool-per-class pattern with `BasePaginatedTool`
 - **Pagination added**: Supports `page` and `pageSize` parameters
+- **Pagination changed**: Now uses server-side pagination (API enforces max 50)
 - **Workflow**: Use `search_applications(name=...)` first to find appId
 
 **Future Note:** This tool may be deprecated when `search_libraries` is implemented.
@@ -26,7 +27,7 @@ This test plan provides comprehensive testing guidance for the `list_application
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `page` | Integer | No | Page number (1-based), default: 1 |
-| `pageSize` | Integer | No | Items per page (max 100), default: 50 |
+| `pageSize` | Integer | No | Items per page (max 50), default: 50 |
 | `appId` | String | Yes | Application ID (use search_applications to find) |
 
 ### Response Structure
@@ -625,12 +626,12 @@ LibraryExtended {
 1. Call with `page=0`
 2. Call with `page=-1`
 3. Call with `pageSize=0`
-4. Call with `pageSize=200`
+4. Call with `pageSize=100`
 
 **Expected Results:**
 - `page < 1` → uses page 1 with warning
 - `pageSize < 1` → uses default 50 with warning
-- `pageSize > 100` → caps at 100 with warning
+- `pageSize > 50` → caps at 50 with warning
 
 ---
 
