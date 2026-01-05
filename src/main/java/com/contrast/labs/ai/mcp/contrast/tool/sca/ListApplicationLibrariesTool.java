@@ -91,27 +91,29 @@ public class ListApplicationLibrariesTool
 
     log.debug("Retrieving libraries for application: {}", params.appId());
 
-    var libraries = SDKHelper.getLibsForID(params.appId(), orgId, extendedSDK);
+    // Server-side pagination - pageSize already capped by getMaxPageSize()
+    var response =
+        SDKHelper.getLibraryPage(
+            params.appId(), orgId, extendedSDK, pagination.pageSize(), pagination.offset());
+
+    var libraries = response.getLibraries();
+    Long totalCount = response.getCount();
+    int total = totalCount != null ? totalCount.intValue() : 0;
 
     if (libraries == null || libraries.isEmpty()) {
-      warnings.add(
-          "No libraries found for this application. "
-              + "The application may not have any third-party dependencies, "
-              + "or library data may not have been collected yet.");
-      return ExecutionResult.empty();
+      // Only add warning if this is page 1 (no libraries exist at all)
+      // For subsequent pages beyond results, empty is expected behavior
+      if (pagination.offset() == 0 && total == 0) {
+        warnings.add(
+            "No libraries found for this application. "
+                + "The application may not have any third-party dependencies, "
+                + "or library data may not have been collected yet.");
+      }
+      return ExecutionResult.of(List.of(), total);
     }
 
     log.debug("Retrieved {} libraries for application {}", libraries.size(), params.appId());
 
-    // Apply pagination to results (same pattern as SearchApplicationsTool)
-    int startIndex = pagination.offset();
-    int endIndex = Math.min(startIndex + pagination.pageSize(), libraries.size());
-
-    var pagedLibraries =
-        (startIndex < libraries.size())
-            ? libraries.subList(startIndex, endIndex)
-            : List.<LibraryExtended>of();
-
-    return ExecutionResult.of(pagedLibraries, libraries.size());
+    return ExecutionResult.of(libraries, total);
   }
 }

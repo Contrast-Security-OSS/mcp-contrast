@@ -17,6 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.sca;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -27,6 +28,7 @@ import com.contrast.labs.ai.mcp.contrast.AnonymousLibraryExtendedBuilder;
 import com.contrast.labs.ai.mcp.contrast.config.ContrastConfig;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibrariesExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
@@ -100,10 +102,13 @@ class ListApplicationLibrariesToolTest {
   @Test
   void listApplicationLibraries_should_return_libraries_on_success() throws IOException {
     var mockLibraries = createMockLibraries(3);
+    var mockResponse = createMockResponse(mockLibraries, 3L);
     mockedSDKHelper
         .when(
-            () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
-        .thenReturn(mockLibraries);
+            () ->
+                SDKHelper.getLibraryPage(
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class), anyInt(), anyInt()))
+        .thenReturn(mockResponse);
 
     var result = tool.listApplicationLibraries(null, null, TEST_APP_ID);
 
@@ -116,10 +121,13 @@ class ListApplicationLibrariesToolTest {
   @Test
   void listApplicationLibraries_should_return_empty_list_with_warning_when_no_libraries()
       throws IOException {
+    var mockResponse = createMockResponse(new ArrayList<>(), 0L);
     mockedSDKHelper
         .when(
-            () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
-        .thenReturn(new ArrayList<>());
+            () ->
+                SDKHelper.getLibraryPage(
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class), anyInt(), anyInt()))
+        .thenReturn(mockResponse);
 
     var result = tool.listApplicationLibraries(null, null, TEST_APP_ID);
 
@@ -130,11 +138,16 @@ class ListApplicationLibrariesToolTest {
   }
 
   @Test
-  void listApplicationLibraries_should_handle_null_response() throws IOException {
+  void listApplicationLibraries_should_handle_null_libraries_in_response() throws IOException {
+    var mockResponse = new LibrariesExtended();
+    mockResponse.setLibraries(null);
+    mockResponse.setCount(0L);
     mockedSDKHelper
         .when(
-            () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
-        .thenReturn(null);
+            () ->
+                SDKHelper.getLibraryPage(
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class), anyInt(), anyInt()))
+        .thenReturn(mockResponse);
 
     var result = tool.listApplicationLibraries(null, null, TEST_APP_ID);
 
@@ -146,7 +159,9 @@ class ListApplicationLibrariesToolTest {
   @Test
   void listApplicationLibraries_should_handle_api_exception() throws IOException {
     mockedSDKHelper
-        .when(() -> SDKHelper.getLibsForID(any(), any(), any(SDKExtension.class)))
+        .when(
+            () ->
+                SDKHelper.getLibraryPage(any(), any(), any(SDKExtension.class), anyInt(), anyInt()))
         .thenThrow(new IOException("SDK connection failed"));
 
     var result = tool.listApplicationLibraries(null, null, TEST_APP_ID);
@@ -157,11 +172,15 @@ class ListApplicationLibrariesToolTest {
 
   @Test
   void listApplicationLibraries_should_paginate_results() throws IOException {
-    var mockLibraries = createMockLibraries(10);
+    // Server-side pagination returns only the requested page
+    var mockLibraries = createMockLibraries(3);
+    var mockResponse = createMockResponse(mockLibraries, 10L); // 10 total items
     mockedSDKHelper
         .when(
-            () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
-        .thenReturn(mockLibraries);
+            () ->
+                SDKHelper.getLibraryPage(
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class), eq(3), eq(0)))
+        .thenReturn(mockResponse);
 
     var result = tool.listApplicationLibraries(1, 3, TEST_APP_ID);
 
@@ -175,11 +194,15 @@ class ListApplicationLibrariesToolTest {
 
   @Test
   void listApplicationLibraries_should_return_second_page() throws IOException {
-    var mockLibraries = createMockLibraries(10);
+    // Server-side pagination: page 2 with pageSize 3 means offset=3
+    var mockLibraries = createMockLibraries(3);
+    var mockResponse = createMockResponse(mockLibraries, 10L);
     mockedSDKHelper
         .when(
-            () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
-        .thenReturn(mockLibraries);
+            () ->
+                SDKHelper.getLibraryPage(
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class), eq(3), eq(3)))
+        .thenReturn(mockResponse);
 
     var result = tool.listApplicationLibraries(2, 3, TEST_APP_ID);
 
@@ -191,11 +214,15 @@ class ListApplicationLibrariesToolTest {
 
   @Test
   void listApplicationLibraries_should_return_last_page_partial() throws IOException {
-    var mockLibraries = createMockLibraries(10);
+    // Server-side pagination: page 4 with pageSize 3 means offset=9, API returns 1 item
+    var mockLibraries = createMockLibraries(1);
+    var mockResponse = createMockResponse(mockLibraries, 10L);
     mockedSDKHelper
         .when(
-            () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
-        .thenReturn(mockLibraries);
+            () ->
+                SDKHelper.getLibraryPage(
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class), eq(3), eq(9)))
+        .thenReturn(mockResponse);
 
     var result = tool.listApplicationLibraries(4, 3, TEST_APP_ID);
 
@@ -206,11 +233,14 @@ class ListApplicationLibrariesToolTest {
 
   @Test
   void listApplicationLibraries_should_return_empty_for_page_beyond_results() throws IOException {
-    var mockLibraries = createMockLibraries(5);
+    // Server-side pagination: page 10 with pageSize 50 means offset=450, API returns 0 items
+    var mockResponse = createMockResponse(new ArrayList<>(), 5L);
     mockedSDKHelper
         .when(
-            () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
-        .thenReturn(mockLibraries);
+            () ->
+                SDKHelper.getLibraryPage(
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class), eq(50), eq(450)))
+        .thenReturn(mockResponse);
 
     var result = tool.listApplicationLibraries(10, 50, TEST_APP_ID);
 
@@ -234,5 +264,12 @@ class ListApplicationLibrariesToolTest {
       libraries.add(lib);
     }
     return libraries;
+  }
+
+  private LibrariesExtended createMockResponse(List<LibraryExtended> libraries, Long count) {
+    var response = new LibrariesExtended();
+    response.setLibraries(libraries);
+    response.setCount(count);
+    return response;
   }
 }
