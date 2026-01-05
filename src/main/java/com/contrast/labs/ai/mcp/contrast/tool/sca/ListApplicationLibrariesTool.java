@@ -15,11 +15,13 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.sca;
 
+import com.contrast.labs.ai.mcp.contrast.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
-import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
+import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.sca.params.ListApplicationLibrariesParams;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +39,7 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class ListApplicationLibrariesTool
-    extends BaseSingleTool<ListApplicationLibrariesParams, List<LibraryExtended>> {
+    extends BasePaginatedTool<ListApplicationLibrariesParams, LibraryExtended> {
 
   @Tool(
       name = "list_application_libraries",
@@ -64,14 +66,18 @@ public class ListApplicationLibrariesTool
           - search_applications: Find application IDs by name, tag, or metadata
           - list_applications_by_cve: Find applications affected by a specific CVE
           """)
-  public SingleToolResponse<List<LibraryExtended>> listApplicationLibraries(
+  public PaginatedToolResponse<LibraryExtended> listApplicationLibraries(
+      @ToolParam(description = "Page number (1-based), default: 1", required = false) Integer page,
+      @ToolParam(description = "Items per page (max 100), default: 50", required = false)
+          Integer pageSize,
       @ToolParam(description = "Application ID (use search_applications to find)") String appId) {
-    return executePipeline(() -> ListApplicationLibrariesParams.of(appId));
+    return executePipeline(page, pageSize, () -> ListApplicationLibrariesParams.of(appId));
   }
 
   @Override
-  protected List<LibraryExtended> doExecute(
-      ListApplicationLibrariesParams params, List<String> warnings) throws Exception {
+  protected ExecutionResult<LibraryExtended> doExecute(
+      PaginationParams pagination, ListApplicationLibrariesParams params, List<String> warnings)
+      throws Exception {
     var sdk = getContrastSDK();
     var orgId = getOrgId();
     var extendedSDK = new SDKExtension(sdk);
@@ -85,11 +91,20 @@ public class ListApplicationLibrariesTool
           "No libraries found for this application. "
               + "The application may not have any third-party dependencies, "
               + "or library data may not have been collected yet.");
-      return List.of();
+      return ExecutionResult.empty();
     }
 
     log.debug("Retrieved {} libraries for application {}", libraries.size(), params.appId());
 
-    return libraries;
+    // Apply pagination to results (same pattern as SearchApplicationsTool)
+    int startIndex = pagination.offset();
+    int endIndex = Math.min(startIndex + pagination.pageSize(), libraries.size());
+
+    var pagedLibraries =
+        (startIndex < libraries.size())
+            ? libraries.subList(startIndex, endIndex)
+            : List.<LibraryExtended>of();
+
+    return ExecutionResult.of(pagedLibraries, libraries.size());
   }
 }
