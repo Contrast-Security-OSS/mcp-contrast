@@ -21,7 +21,7 @@ import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.AnonymousProjectBuilder;
 import com.contrast.labs.ai.mcp.contrast.AnonymousScanBuilder;
-import com.contrast.labs.ai.mcp.contrast.config.ContrastConfig;
+import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
 import com.contrastsecurity.sdk.ContrastSDK;
 import com.contrastsecurity.sdk.scan.Projects;
 import com.contrastsecurity.sdk.scan.ScanManager;
@@ -44,7 +44,7 @@ class GetSastResultsToolTest {
 
   private GetSastResultsTool tool;
 
-  @Mock private ContrastConfig config;
+  @Mock private ContrastSDKFactory sdkFactory;
 
   @Mock private ContrastSDK sdk;
 
@@ -61,9 +61,9 @@ class GetSastResultsToolTest {
   @BeforeEach
   void setUp() {
     tool = new GetSastResultsTool();
-    ReflectionTestUtils.setField(tool, "config", config);
-    when(config.getSDK()).thenReturn(sdk);
-    when(config.getOrgId()).thenReturn(TEST_ORG_ID);
+    ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
+    when(sdkFactory.getSDK()).thenReturn(sdk);
+    when(sdkFactory.getOrgId()).thenReturn(TEST_ORG_ID);
     when(sdk.scan(any())).thenReturn(scanManager);
     when(scanManager.projects()).thenReturn(projects);
   }

@@ -18,7 +18,6 @@ package com.contrast.labs.ai.mcp.contrast.tool.base;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.PaginationParams;
-import com.contrast.labs.ai.mcp.contrast.config.ContrastConfig;
 import com.contrastsecurity.exceptions.HttpResponseException;
 import com.contrastsecurity.exceptions.ResourceNotFoundException;
 import com.contrastsecurity.exceptions.UnauthorizedException;
@@ -26,18 +25,14 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 class BasePaginatedToolTest {
 
   private TestSearchTool tool;
-  private ContrastConfig config;
 
   @BeforeEach
   void setUp() {
     tool = new TestSearchTool();
-    config = new ContrastConfig();
-    ReflectionTestUtils.setField(tool, "config", config);
   }
 
   @Test
