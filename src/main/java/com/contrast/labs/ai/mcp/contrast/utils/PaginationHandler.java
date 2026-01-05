@@ -60,13 +60,20 @@ public class PaginationHandler {
   public <T> PaginatedResponse<T> createPaginatedResponse(
       List<T> items, PaginationParams params, Integer totalCount, List<String> additionalWarnings) {
     boolean hasMorePages = calculateHasMorePages(params, totalCount, items.size());
-    var message = buildEmptyResultMessage(items, params, totalCount);
+    var emptyResultWarning = buildEmptyResultMessage(items, params, totalCount);
 
-    // Merge all warnings with result messages
-    var finalMessage = mergeMessages(List.of(params.warnings(), additionalWarnings), message);
+    // Collect all warnings
+    var warnings = new ArrayList<String>();
+    warnings.addAll(params.warnings());
+    if (!CollectionUtils.isEmpty(additionalWarnings)) {
+      warnings.addAll(additionalWarnings);
+    }
+    if (StringUtils.hasText(emptyResultWarning)) {
+      warnings.add(emptyResultWarning);
+    }
 
-    return new PaginatedResponse<>(
-        items, params.page(), params.pageSize(), totalCount, hasMorePages, finalMessage);
+    return PaginatedResponse.success(
+        items, params.page(), params.pageSize(), totalCount, hasMorePages, warnings, null);
   }
 
   /**
@@ -115,29 +122,5 @@ public class PaginationHandler {
         return String.format("Requested page %d returned no results.", params.page());
       }
     }
-  }
-
-  /**
-   * Merge multiple warning lists with result message. Ensures all messages are visible to the AI.
-   *
-   * @param warningLists Multiple lists of validation warnings (pagination, filters, etc.)
-   * @param resultMessage Message about empty results or page bounds
-   * @return Combined message or null if no messages
-   */
-  private String mergeMessages(List<List<String>> warningLists, String resultMessage) {
-    var allMessages = new ArrayList<String>();
-
-    // Flatten all warning lists
-    for (List<String> warnings : warningLists) {
-      if (!CollectionUtils.isEmpty(warnings)) {
-        allMessages.addAll(warnings);
-      }
-    }
-
-    if (StringUtils.hasText(resultMessage)) {
-      allMessages.add(resultMessage);
-    }
-
-    return allMessages.isEmpty() ? null : String.join(" ", allMessages);
   }
 }
