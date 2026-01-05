@@ -15,20 +15,16 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 
-import java.util.List;
-import lombok.Data;
+import static org.assertj.core.api.Assertions.assertThat;
 
-/** Base class for api calls for libraries. */
-@Data
-public class LibrariesExtended {
+import org.junit.jupiter.api.Test;
 
-  private String averageScoreLetter = null;
+class LibrariesExtendedTest {
 
-  private Integer averageScore = null;
-
-  private Integer averageMonths = null;
-
-  private List<LibraryExtended> libraries;
-
-  private Long count;
+  @Test
+  void should_have_count_field() {
+    var libraries = new LibrariesExtended();
+    libraries.setCount(100L);
+    assertThat(libraries.getCount()).isEqualTo(100L);
+  }
 }
