@@ -169,15 +169,16 @@ public class SDKHelper {
 
   /**
    * Constructs a URL with protocol and server. If the hostname already contains a protocol (e.g.,
-   * "https://host.com"), it returns the hostname as is. Otherwise, it prepends the protocol from
-   * properties. Trailing slashes are removed to ensure consistent URL formatting.
+   * "https://host.com"), it returns the hostname as is. Otherwise, it prepends the provided
+   * protocol. Trailing slashes are removed to ensure consistent URL formatting.
    *
    * @param hostName The hostname, which may or may not include a protocol
+   * @param protocol The protocol to use if hostname doesn't include one (e.g., "https")
    * @return A URL with protocol and hostname (without trailing slash), or null if hostname is
    *     null/empty
    * @throws IllegalArgumentException If the hostname contains an invalid protocol
    */
-  public static String getProtocolAndServer(String hostName) {
+  public static String getProtocolAndServer(String hostName, String protocol) {
     if (hostName == null) {
       return null;
     }
@@ -203,9 +204,9 @@ public class SDKHelper {
       }
       result = hostName;
     } else {
-      // No protocol specified, prepend from configuration
-      var protocol = SDKHelper.environment.getProperty("contrast.api.protocol", "https");
-      result = protocol + "://" + hostName;
+      // No protocol specified, prepend provided protocol (default to https if not specified)
+      var effectiveProtocol = StringUtils.hasText(protocol) ? protocol : "https";
+      result = effectiveProtocol + "://" + hostName;
     }
 
     // Remove trailing slash to prevent double slashes in URLs
@@ -224,10 +225,11 @@ public class SDKHelper {
       String serviceKey,
       String userName,
       String httpProxyHost,
-      String httpProxyPort) {
+      String httpProxyPort,
+      String protocol) {
     log.info("Initializing ContrastSDK with username: {}, host: {}", userName, hostName);
 
-    var baseUrl = getProtocolAndServer(hostName);
+    var baseUrl = getProtocolAndServer(hostName, protocol);
     var apiUrl = baseUrl + "/Contrast/api";
     log.info("API URL will be : {}", apiUrl);
 

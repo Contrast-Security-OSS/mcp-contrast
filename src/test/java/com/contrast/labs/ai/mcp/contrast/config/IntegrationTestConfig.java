@@ -55,6 +55,9 @@ public class IntegrationTestConfig {
   @Value("${http.proxy.port:${http_proxy_port:}}")
   private String httpProxyPort;
 
+  @Value("${contrast.api.protocol:https}")
+  private String protocol;
+
   /**
    * Provides a shared, singleton SDK extension instance for all integration tests.
    *
@@ -71,7 +74,8 @@ public class IntegrationTestConfig {
     logger.info("  Username: {}", userName);
 
     var sdk =
-        SDKHelper.getSDK(hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort);
+        SDKHelper.getSDK(
+            hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort, protocol);
     var sdkExtension = new SDKExtension(sdk);
 
     logger.info("✓ Shared SDK extension initialized successfully");
