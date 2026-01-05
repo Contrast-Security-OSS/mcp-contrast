@@ -105,7 +105,7 @@ public class GetRouteCoverageToolIT
   @Override
   protected TestData performDiscovery() throws IOException {
     Optional<RouteCoverageTestData> routeCandidate =
-        TestDataDiscoveryHelper.findApplicationWithRouteCoverage(orgID, sdkExtension);
+        TestDataDiscoveryHelper.findApplicationWithRouteCoverage(orgId, sdkExtension);
 
     if (routeCandidate.isEmpty()) {
       throw new NoTestDataException(buildTestDataErrorMessage(50));

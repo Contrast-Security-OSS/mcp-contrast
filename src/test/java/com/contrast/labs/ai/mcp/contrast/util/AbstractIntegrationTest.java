@@ -43,7 +43,7 @@ public abstract class AbstractIntegrationTest<T> {
   @Autowired protected SDKExtension sdkExtension;
 
   @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
-  protected String orgID;
+  protected String orgId;
 
   protected T testData;
   private long discoveryDurationMs;
@@ -83,7 +83,7 @@ public abstract class AbstractIntegrationTest<T> {
 
     if (IntegrationTestDiskCache.loadIfPresent(
         cacheKey(),
-        orgID,
+        orgId,
         testDataType(),
         cached -> {
           testData = cached;
@@ -100,7 +100,7 @@ public abstract class AbstractIntegrationTest<T> {
       testData = performDiscovery();
       discoveryDurationMs = System.currentTimeMillis() - startTime;
       logDiscoverySuccess(testData, discoveryDurationMs);
-      IntegrationTestDiskCache.write(cacheKey(), orgID, testData);
+      IntegrationTestDiskCache.write(cacheKey(), orgId, testData);
       afterDiscovery(testData);
     } catch (NoTestDataException e) {
       log.error(e.getMessage());

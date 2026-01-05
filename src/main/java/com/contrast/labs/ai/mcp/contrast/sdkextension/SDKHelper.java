@@ -87,34 +87,34 @@ public class SDKHelper {
   }
 
   public static List<LibraryExtended> getLibsForID(
-      String appID, String orgID, SDKExtension extendedSDK) throws IOException {
+      String appId, String orgId, SDKExtension extendedSDK) throws IOException {
     // Check cache for existing result
-    var cachedLibraries = libraryCache.getIfPresent(appID);
+    var cachedLibraries = libraryCache.getIfPresent(appId);
     if (cachedLibraries != null) {
-      log.info("Cache hit for appID: {}", appID);
+      log.info("Cache hit for appId: {}", appId);
       return cachedLibraries;
     }
-    log.info("Cache miss for appID: {}, fetching libraries from SDK", appID);
+    log.info("Cache miss for appId: {}, fetching libraries from SDK", appId);
     int libraryCallSize = 50;
     var filterForm = new LibraryFilterForm();
     filterForm.setLimit(libraryCallSize);
     filterForm.setExpand(EnumSet.of(LibraryFilterForm.LibrariesExpandValues.VULNS));
-    var libraries = extendedSDK.getLibrariesWithFilter(orgID, appID, filterForm);
+    var libraries = extendedSDK.getLibrariesWithFilter(orgId, appId, filterForm);
     var libs = new ArrayList<LibraryExtended>();
     libs.addAll(libraries.getLibraries());
     int offset = libraryCallSize;
     while (libraries.getLibraries().size() == libraryCallSize) {
       log.debug("Retrieved {} libraries, fetching more with offset: {}", libraryCallSize, offset);
       filterForm.setOffset(offset);
-      libraries = extendedSDK.getLibrariesWithFilter(orgID, appID, filterForm);
+      libraries = extendedSDK.getLibrariesWithFilter(orgId, appId, filterForm);
       libs.addAll(libraries.getLibraries());
       offset += libraryCallSize;
     }
 
-    log.info("Successfully retrieved {} libraries for application id: {}", libs.size(), appID);
+    log.info("Successfully retrieved {} libraries for application id: {}", libs.size(), appId);
 
     // Store result in cache
-    libraryCache.put(appID, libs);
+    libraryCache.put(appId, libs);
 
     return libs;
   }

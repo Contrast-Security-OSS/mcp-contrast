@@ -68,7 +68,7 @@ class ListApplicationLibrariesToolIT
   @Override
   protected TestData performDiscovery() throws IOException {
     var appWithLibraries =
-        TestDataDiscoveryHelper.findApplicationWithLibraries(orgID, sdkExtension);
+        TestDataDiscoveryHelper.findApplicationWithLibraries(orgId, sdkExtension);
 
     if (appWithLibraries.isEmpty()) {
       throw new NoTestDataException("No application with libraries found in organization");
