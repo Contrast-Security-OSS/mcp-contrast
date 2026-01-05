@@ -84,7 +84,7 @@ class BaseSingleToolTest {
   }
 
   @Test
-  void executePipeline_should_handle_resource_not_found_exception() {
+  void executePipeline_should_return_not_found_for_resource_not_found_exception() {
     tool.setDoExecuteHandler(
         (params, warnings) -> {
           throw new ResourceNotFoundException(
@@ -93,8 +93,10 @@ class BaseSingleToolTest {
 
     var result = tool.executePipeline(() -> TestParams.valid());
 
-    assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors().get(0)).startsWith("Resource not found:");
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.found()).isFalse();
+    assertThat(result.data()).isNull();
+    assertThat(result.warnings()).anyMatch(w -> w.contains("not found"));
   }
 
   @Test
