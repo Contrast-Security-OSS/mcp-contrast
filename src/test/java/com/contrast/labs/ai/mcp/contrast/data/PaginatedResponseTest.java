@@ -185,4 +185,81 @@ class PaginatedResponseTest {
     assertThat(response.hasMorePages()).isTrue();
     assertThat(response.durationMs()).isEqualTo(150L);
   }
+
+  // ========== Conditional defensive copying optimization tests ==========
+
+  @Test
+  void compactConstructor_should_reuseImmutableList_whenItemsFromListOf() {
+    var immutableItems = List.of("item1", "item2");
+    var response =
+        new PaginatedResponse<>(immutableItems, 1, 50, 2, false, List.of(), List.of(), null);
+
+    // Same instance should be reused (no defensive copy needed)
+    assertThat(response.items()).isSameAs(immutableItems);
+  }
+
+  @Test
+  void compactConstructor_should_reuseImmutableList_whenErrorsFromListOf() {
+    var immutableErrors = List.of("error1", "error2");
+    var response =
+        new PaginatedResponse<>(List.of(), 1, 50, 0, false, immutableErrors, List.of(), null);
+
+    assertThat(response.errors()).isSameAs(immutableErrors);
+  }
+
+  @Test
+  void compactConstructor_should_reuseImmutableList_whenWarningsFromListOf() {
+    var immutableWarnings = List.of("warning1", "warning2");
+    var response =
+        new PaginatedResponse<>(List.of(), 1, 50, 0, false, List.of(), immutableWarnings, null);
+
+    assertThat(response.warnings()).isSameAs(immutableWarnings);
+  }
+
+  @Test
+  void compactConstructor_should_copyArrayList_forItems() {
+    var mutableItems = new java.util.ArrayList<String>();
+    mutableItems.add("item1");
+
+    var response =
+        new PaginatedResponse<>(mutableItems, 1, 50, 1, false, List.of(), List.of(), null);
+
+    // Different instance (defensive copy made)
+    assertThat(response.items()).isNotSameAs(mutableItems);
+    // But same contents
+    assertThat(response.items()).containsExactly("item1");
+  }
+
+  @Test
+  void compactConstructor_should_copyArrayList_forErrors() {
+    var mutableErrors = new java.util.ArrayList<String>();
+    mutableErrors.add("error1");
+
+    var response =
+        new PaginatedResponse<>(List.of(), 1, 50, 0, false, mutableErrors, List.of(), null);
+
+    assertThat(response.errors()).isNotSameAs(mutableErrors);
+    assertThat(response.errors()).containsExactly("error1");
+  }
+
+  @Test
+  void compactConstructor_should_copyArrayList_forWarnings() {
+    var mutableWarnings = new java.util.ArrayList<String>();
+    mutableWarnings.add("warning1");
+
+    var response =
+        new PaginatedResponse<>(List.of(), 1, 50, 0, false, List.of(), mutableWarnings, null);
+
+    assertThat(response.warnings()).isNotSameAs(mutableWarnings);
+    assertThat(response.warnings()).containsExactly("warning1");
+  }
+
+  @Test
+  void compactConstructor_should_reuseList_fromStreamToList() {
+    var streamList = java.util.stream.Stream.of("a", "b", "c").toList();
+    var response = new PaginatedResponse<>(streamList, 1, 50, 3, false, List.of(), List.of(), null);
+
+    // toList() returns immutable list, should be reused
+    assertThat(response.items()).isSameAs(streamList);
+  }
 }

@@ -44,11 +44,20 @@ public record PaginatedResponse<T>(
     List<String> warnings,
     Long durationMs) {
 
-  /** Compact constructor ensures non-null, immutable lists. */
+  /** Compact constructor ensures non-null, immutable lists with optimized defensive copying. */
   public PaginatedResponse {
-    items = items != null ? List.copyOf(items) : List.of();
-    errors = errors != null ? List.copyOf(errors) : List.of();
-    warnings = warnings != null ? List.copyOf(warnings) : List.of();
+    items =
+        items == null
+            ? List.of()
+            : (items instanceof java.util.ArrayList) ? List.copyOf(items) : items;
+    errors =
+        errors == null
+            ? List.of()
+            : (errors instanceof java.util.ArrayList) ? List.copyOf(errors) : errors;
+    warnings =
+        warnings == null
+            ? List.of()
+            : (warnings instanceof java.util.ArrayList) ? List.copyOf(warnings) : warnings;
   }
 
   /**
