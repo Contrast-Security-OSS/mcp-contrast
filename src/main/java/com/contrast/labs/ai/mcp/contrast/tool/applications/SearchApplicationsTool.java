@@ -32,7 +32,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * MCP tool for searching applications in an organization. Demonstrates the tool-per-class pattern
- * with BaseMcpTool and in-memory filtering.
+ * with BasePaginatedTool and in-memory filtering.
  */
 @Service
 public class SearchApplicationsTool

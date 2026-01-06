@@ -26,7 +26,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * MCP tool for retrieving session metadata for an application. Demonstrates the tool-per-class
- * pattern with BaseGetTool for non-paginated single-item retrieval.
+ * pattern with BaseSingleTool for non-paginated single-item retrieval.
  */
 @Service
 public class GetSessionMetadataTool

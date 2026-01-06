@@ -74,7 +74,7 @@ public class GetSastProjectTool extends BaseSingleTool<GetSastProjectParams, Sca
 
     if (projectOptional.isEmpty()) {
       log.debug("Project not found: {}", params.projectName());
-      return null; // BaseGetTool converts this to notFound response
+      return null; // BaseSingleTool converts this to notFound response
     }
 
     var project = projectOptional.get();

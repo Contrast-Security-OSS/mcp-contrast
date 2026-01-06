@@ -30,7 +30,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * MCP tool for searching attacks across the organization. Demonstrates the tool-per-class pattern
- * with BaseMcpTool.
+ * with BasePaginatedTool.
  */
 @Service
 @RequiredArgsConstructor

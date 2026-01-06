@@ -32,7 +32,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * MCP tool for searching vulnerabilities across all applications in an organization. Demonstrates
- * the tool-per-class pattern with BaseMcpTool and ToolValidationContext.
+ * the tool-per-class pattern with BasePaginatedTool and ToolValidationContext.
  */
 @Service
 @RequiredArgsConstructor

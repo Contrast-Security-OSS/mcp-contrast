@@ -83,7 +83,7 @@ public class ListApplicationsByCveTool
     var cveData = extendedSDK.getAppsForCVE(orgId, params.cveId());
 
     if (cveData == null) {
-      return null; // BaseGetTool converts this to notFound response
+      return null; // BaseSingleTool converts this to notFound response
     }
 
     // Handle null lists gracefully

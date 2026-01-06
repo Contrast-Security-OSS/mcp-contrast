@@ -33,7 +33,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * MCP tool for retrieving route coverage data for an application. Demonstrates the tool-per-class
- * pattern with BaseGetTool for non-paginated retrieval.
+ * pattern with BaseSingleTool for non-paginated retrieval.
  */
 @Service
 @RequiredArgsConstructor
@@ -115,12 +115,12 @@ public class GetRouteCoverageTool
 
       if (latest == null) {
         log.warn("No session metadata found for application ID: {}", params.appId());
-        return null; // BaseGetTool converts this to notFound response
+        return null; // BaseSingleTool converts this to notFound response
       }
 
       if (latest.getAgentSession() == null) {
         log.warn("No agent session found for application ID: {}", params.appId());
-        return null; // BaseGetTool converts this to notFound response
+        return null; // BaseSingleTool converts this to notFound response
       }
 
       request = new RouteCoverageBySessionIDAndMetadataRequestExtended();
@@ -149,7 +149,7 @@ public class GetRouteCoverageTool
     // Defensive null checks - API may return null on errors or permission issues
     if (response == null) {
       log.warn("Route coverage API returned null for app {}", params.appId());
-      return null; // BaseGetTool converts this to notFound response
+      return null; // BaseSingleTool converts this to notFound response
     }
 
     if (response.getRoutes() == null) {
