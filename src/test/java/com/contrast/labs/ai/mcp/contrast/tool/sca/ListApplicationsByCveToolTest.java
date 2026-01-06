@@ -188,7 +188,7 @@ class ListApplicationsByCveToolTest {
   void listApplicationsByCve_should_handle_null_libraries_list_gracefully() throws IOException {
     var cveData = new CveData();
     var app = mock(App.class);
-    when(app.getApp_id()).thenReturn(TEST_APP_ID);
+    when(app.getAppId()).thenReturn(TEST_APP_ID);
     when(app.getName()).thenReturn("Test App");
 
     var apps = new ArrayList<App>();
@@ -283,7 +283,7 @@ class ListApplicationsByCveToolTest {
     var cveData = new CveData();
 
     var app = mock(App.class);
-    when(app.getApp_id()).thenReturn(TEST_APP_ID);
+    when(app.getAppId()).thenReturn(TEST_APP_ID);
     when(app.getName()).thenReturn("Test Application");
     when(app.getClassCount()).thenReturn(0);
 

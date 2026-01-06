@@ -129,7 +129,7 @@ public class ListApplicationsByCveTool
 
     for (App app : apps) {
       try {
-        var appLibraries = SDKHelper.getLibsForID(app.getApp_id(), orgId, extendedSDK);
+        var appLibraries = SDKHelper.getLibsForID(app.getAppId(), orgId, extendedSDK);
 
         for (LibraryExtended appLib : appLibraries) {
           for (Library vulnLib : vulnerableLibs) {
@@ -144,7 +144,7 @@ public class ListApplicationsByCveTool
           }
         }
       } catch (Exception e) {
-        log.debug("Could not fetch library data for app {}: {}", app.getApp_id(), e.getMessage());
+        log.debug("Could not fetch library data for app {}: {}", app.getAppId(), e.getMessage());
         warnings.add(
             "Could not fetch class usage data for application '"
                 + app.getName()

@@ -219,7 +219,7 @@ class AttackSummaryTest {
     var attackApp = new Attack.ApplicationAttackInfo();
 
     var app = new Application();
-    app.setApp_id("test-app-id");
+    app.setAppId("test-app-id");
     app.setName("Test Application");
     app.setLanguage("Java");
     attackApp.setApplication(app);

@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 
+import com.google.gson.annotations.SerializedName;
 import lombok.Data;
 
 /** Class representing application information affected by a vulnerability. */
@@ -22,11 +23,21 @@ import lombok.Data;
 public class App {
 
   private String name;
-  private String app_id;
-  private long last_seen;
-  private Object last_reset; // Using Object as last_reset was null in the example
-  private long first_seen;
-  private String importance_description;
+
+  @SerializedName("app_id")
+  private String appId;
+
+  @SerializedName("last_seen")
+  private long lastSeen;
+
+  @SerializedName("last_reset")
+  private Object lastReset;
+
+  @SerializedName("first_seen")
+  private long firstSeen;
+
+  @SerializedName("importance_description")
+  private String importanceDescription;
 
   private int classCount;
 
