@@ -70,6 +70,15 @@ class SingleToolResponseTest {
   }
 
   @Test
+  void notFound_should_handle_null_warnings() {
+    var response = SingleToolResponse.<String>notFound("Not found", null);
+
+    assertThat(response.warnings()).containsExactly("Not found");
+    assertThat(response.found()).isFalse();
+    assertThat(response.isSuccess()).isTrue();
+  }
+
+  @Test
   void error_should_create_response_with_single_error() {
     var response = SingleToolResponse.<String>error("Something went wrong");
 
