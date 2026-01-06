@@ -78,7 +78,7 @@ public record SingleToolResponse<T>(
    * @return not-found response with found=false
    */
   public static <T> SingleToolResponse<T> notFound(String message, List<String> warnings) {
-    var allWarnings = new ArrayList<>(warnings);
+    var allWarnings = new ArrayList<>(warnings != null ? warnings : List.of());
     allWarnings.add(message);
     return new SingleToolResponse<>(null, List.of(), allWarnings, false);
   }
