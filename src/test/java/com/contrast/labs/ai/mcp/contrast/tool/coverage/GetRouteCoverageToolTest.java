@@ -244,7 +244,7 @@ class GetRouteCoverageToolTest {
       var result = tool.getRouteCoverage(VALID_APP_ID, null, null, true);
 
       assertThat(result.isSuccess()).isTrue();
-      assertThat(result.found()).isFalse(); // BaseGetTool treats success=false as not found
+      assertThat(result.found()).isFalse(); // BaseSingleTool treats success=false as not found
 
       var constructedMock = mockedConstruction.constructed().get(0);
       verify(constructedMock, never()).getRouteCoverage(anyString(), anyString(), any());

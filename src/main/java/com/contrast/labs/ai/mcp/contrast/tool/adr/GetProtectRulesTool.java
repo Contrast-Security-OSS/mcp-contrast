@@ -29,7 +29,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * MCP tool for retrieving Protect rules for an application. Demonstrates the tool-per-class pattern
- * with BaseGetTool for non-paginated single-item retrieval.
+ * with BaseSingleTool for non-paginated single-item retrieval.
  */
 @Service
 @RequiredArgsConstructor
@@ -76,7 +76,7 @@ public class GetProtectRulesTool extends BaseSingleTool<GetProtectRulesParams, P
 
     if (protectData == null) {
       log.debug("No protection data returned for application ID: {}", params.appId());
-      return null; // BaseGetTool converts this to notFound response
+      return null; // BaseSingleTool converts this to notFound response
     }
 
     int ruleCount = protectData.getRules() != null ? protectData.getRules().size() : 0;
