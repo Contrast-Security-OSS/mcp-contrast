@@ -155,6 +155,7 @@
 					<!-- Include integration test pattern -->
 					<includes>
 						<include>**/*IntegrationTest.java</include>
+						<include>**/*IT.java</include>
 					</includes>
 					<!-- Configure JUnit 5 parallel execution -->
 					<properties>
@@ -174,6 +175,14 @@
 						<CONTRAST_USERNAME>${env.CONTRAST_USERNAME}</CONTRAST_USERNAME>
 						<CONTRAST_ORG_ID>${env.CONTRAST_ORG_ID}</CONTRAST_ORG_ID>
 					</systemPropertyVariables>
+					<environmentVariables>
+						<!-- Also pass as env vars for @EnabledIfEnvironmentVariable -->
+						<CONTRAST_HOST_NAME>${env.CONTRAST_HOST_NAME}</CONTRAST_HOST_NAME>
+						<CONTRAST_API_KEY>${env.CONTRAST_API_KEY}</CONTRAST_API_KEY>
+						<CONTRAST_SERVICE_KEY>${env.CONTRAST_SERVICE_KEY}</CONTRAST_SERVICE_KEY>
+						<CONTRAST_USERNAME>${env.CONTRAST_USERNAME}</CONTRAST_USERNAME>
+						<CONTRAST_ORG_ID>${env.CONTRAST_ORG_ID}</CONTRAST_ORG_ID>
+					</environmentVariables>
 					<!-- Capture test output to see performance instrumentation -->
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
 					<useFile>true</useFile>
