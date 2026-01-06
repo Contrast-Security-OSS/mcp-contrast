@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr;
 
+import com.google.gson.annotations.SerializedName;
 import lombok.Data;
 
 /** Class representing the application information in an attack event. */
@@ -26,14 +27,31 @@ public class Application {
   private String status;
   private int importance;
 
-  private String app_id;
+  @SerializedName("app_id")
+  private String appId;
+
   private String name;
-  private String parent_app_id;
-  private int total_modules;
+
+  @SerializedName("parent_app_id")
+  private String parentAppId;
+
+  @SerializedName("total_modules")
+  private int totalModules;
+
   private String language;
-  private String context_path;
-  private long last_seen;
-  private String license_level;
-  private String importance_description;
-  private long first_seen;
+
+  @SerializedName("context_path")
+  private String contextPath;
+
+  @SerializedName("last_seen")
+  private long lastSeen;
+
+  @SerializedName("license_level")
+  private String licenseLevel;
+
+  @SerializedName("importance_description")
+  private String importanceDescription;
+
+  @SerializedName("first_seen")
+  private long firstSeen;
 }

@@ -79,7 +79,7 @@ public record AttackSummary(
     public static ApplicationAttackInfo fromAttackApplication(
         Attack.ApplicationAttackInfo attackApp) {
       return new ApplicationAttackInfo(
-          attackApp.getApplication().getApp_id(),
+          attackApp.getApplication().getAppId(),
           attackApp.getApplication().getName(),
           attackApp.getApplication().getLanguage(),
           attackApp.getSeverity(),
