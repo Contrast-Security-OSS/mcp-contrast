@@ -270,4 +270,49 @@ class SearchAppVulnerabilitiesParamsTest {
         .as("untracked should be true to include untracked vulnerabilities")
         .isTrue();
   }
+
+  // -- toTraceFilterBody tests (POST endpoint) --
+
+  @Test
+  void toTraceFilterBody_should_map_all_fields() {
+    var params =
+        SearchAppVulnerabilitiesParams.of(
+            VALID_APP_ID,
+            "CRITICAL,HIGH",
+            "Reported,Confirmed",
+            "sql-injection",
+            "PRODUCTION",
+            "2025-01-01",
+            "2025-01-31",
+            "reviewed",
+            null,
+            null,
+            null);
+
+    var body = params.toTraceFilterBody();
+
+    assertThat(body.getSeverities())
+        .containsExactlyInAnyOrder(RuleSeverity.CRITICAL, RuleSeverity.HIGH);
+    assertThat(body.getFilterTags()).containsExactly("reviewed");
+    assertThat(body.getEnvironments()).containsExactly(ServerEnvironment.PRODUCTION);
+    assertThat(body.getVulnTypes()).containsExactly("sql-injection");
+    assertThat(body.getStartDate()).isNotNull();
+    assertThat(body.getEndDate()).isNotNull();
+    // tracked/untracked stay at defaults (false) = return all
+    assertThat(body.isTracked()).isFalse();
+    assertThat(body.isUntracked()).isFalse();
+  }
+
+  @Test
+  void toTraceFilterBody_empty_should_return_all_vulnerabilities() {
+    var params =
+        SearchAppVulnerabilitiesParams.of(
+            VALID_APP_ID, null, null, null, null, null, null, null, null, null, null);
+
+    var body = params.toTraceFilterBody();
+
+    // With no filters and tracked/untracked both false, API returns ALL vulnerabilities
+    assertThat(body.isTracked()).isFalse();
+    assertThat(body.isUntracked()).isFalse();
+  }
 }
