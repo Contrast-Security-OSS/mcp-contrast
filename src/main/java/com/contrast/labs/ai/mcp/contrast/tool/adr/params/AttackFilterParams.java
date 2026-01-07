@@ -22,6 +22,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
+import lombok.Getter;
 import org.springframework.util.StringUtils;
 
 /**
@@ -38,6 +39,7 @@ import org.springframework.util.StringUtils;
  * var filterBody = params.toAttacksFilterBody();
  * }</pre>
  */
+@Getter
 public class AttackFilterParams extends BaseToolParams {
 
   /** Valid quickFilter values for validation (from AttackQuickFilterType). */
@@ -125,7 +127,7 @@ public class AttackFilterParams extends BaseToolParams {
     params.includeIpBlacklist = includeIpBlacklist;
 
     // Parse sort with allowlist validation (case-sensitive to match API)
-    if (sort != null && !sort.trim().isEmpty()) {
+    if (StringUtils.hasText(sort)) {
       String trimmedSort = sort.trim();
       // Extract base field (strip '-' prefix for validation)
       String baseField = trimmedSort.startsWith("-") ? trimmedSort.substring(1) : trimmedSort;
@@ -174,33 +176,5 @@ public class AttackFilterParams extends BaseToolParams {
     }
 
     return builder.build();
-  }
-
-  public String getQuickFilter() {
-    return quickFilter;
-  }
-
-  public List<String> getStatusFilters() {
-    return statusFilters;
-  }
-
-  public String getKeyword() {
-    return keyword;
-  }
-
-  public Boolean getIncludeSuppressed() {
-    return includeSuppressed;
-  }
-
-  public Boolean getIncludeBotBlockers() {
-    return includeBotBlockers;
-  }
-
-  public Boolean getIncludeIpBlacklist() {
-    return includeIpBlacklist;
-  }
-
-  public String getSort() {
-    return sort;
   }
 }
