@@ -17,8 +17,10 @@ package com.contrast.labs.ai.mcp.contrast.tool.assess;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -26,13 +28,15 @@ import static org.mockito.Mockito.when;
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
-import com.contrastsecurity.http.TraceFilterForm;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrastsecurity.models.Trace;
+import com.contrastsecurity.models.TraceFilterBody;
 import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.sdk.ContrastSDK;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class SearchVulnerabilitiesToolTest {
@@ -75,30 +79,46 @@ class SearchVulnerabilitiesToolTest {
     var traces = mock(Traces.class);
     when(traces.getTraces()).thenReturn(List.of(trace));
     when(traces.getCount()).thenReturn(1);
-    when(sdk.getTracesInOrg(eq("test-org-id"), any(TraceFilterForm.class))).thenReturn(traces);
 
     var vulnLight = mock(VulnLight.class);
     when(mapper.toVulnLight(trace)).thenReturn(vulnLight);
 
-    var result = tool.searchVulnerabilities(1, 10, "CRITICAL", null, null, null, null, null, null);
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getTracesInOrg(
+                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), anyString()))
+                  .thenReturn(traces);
+            })) {
 
-    assertThat(result.isSuccess()).isTrue();
-    assertThat(result.items()).hasSize(1);
-    assertThat(result.totalItems()).isEqualTo(1);
+      var result =
+          tool.searchVulnerabilities(1, 10, "CRITICAL", null, null, null, null, null, null);
 
-    verify(sdk).getTracesInOrg(eq("test-org-id"), any(TraceFilterForm.class));
-    verify(mapper).toVulnLight(trace);
+      assertThat(result.isSuccess()).isTrue();
+      assertThat(result.items()).hasSize(1);
+      assertThat(result.totalItems()).isEqualTo(1);
+      verify(mapper).toVulnLight(trace);
+    }
   }
 
   @Test
   void searchVulnerabilities_should_add_warning_when_api_returns_null() throws Exception {
-    when(sdk.getTracesInOrg(eq("test-org-id"), any(TraceFilterForm.class))).thenReturn(null);
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getTracesInOrg(
+                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), anyString()))
+                  .thenReturn(null);
+            })) {
 
-    var result = tool.searchVulnerabilities(1, 10, null, null, null, null, null, null, null);
+      var result = tool.searchVulnerabilities(1, 10, null, null, null, null, null, null, null);
 
-    assertThat(result.isSuccess()).isTrue();
-    assertThat(result.items()).isEmpty();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("API returned no trace data"));
+      assertThat(result.isSuccess()).isTrue();
+      assertThat(result.items()).isEmpty();
+      assertThat(result.warnings()).anyMatch(w -> w.contains("API returned no trace data"));
+    }
   }
 
   @Test
@@ -106,13 +126,22 @@ class SearchVulnerabilitiesToolTest {
     var traces = mock(Traces.class);
     when(traces.getTraces()).thenReturn(List.of());
     when(traces.getCount()).thenReturn(0);
-    when(sdk.getTracesInOrg(eq("test-org-id"), any(TraceFilterForm.class))).thenReturn(traces);
 
-    var result = tool.searchVulnerabilities(1, 10, null, null, null, null, null, null, null);
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getTracesInOrg(
+                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), anyString()))
+                  .thenReturn(traces);
+            })) {
 
-    assertThat(result.isSuccess()).isTrue();
-    // Should have warning about default statuses
-    assertThat(result.warnings()).anyMatch(w -> w.contains("excluding Fixed and Remediated"));
+      var result = tool.searchVulnerabilities(1, 10, null, null, null, null, null, null, null);
+
+      assertThat(result.isSuccess()).isTrue();
+      // Should have warning about default statuses
+      assertThat(result.warnings()).anyMatch(w -> w.contains("excluding Fixed and Remediated"));
+    }
   }
 
   @Test
@@ -120,13 +149,22 @@ class SearchVulnerabilitiesToolTest {
     var traces = mock(Traces.class);
     when(traces.getTraces()).thenReturn(List.of());
     when(traces.getCount()).thenReturn(0);
-    when(sdk.getTracesInOrg(eq("test-org-id"), any(TraceFilterForm.class))).thenReturn(traces);
 
-    // Invalid page number
-    var result = tool.searchVulnerabilities(-1, 10, null, null, null, null, null, null, null);
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getTracesInOrg(
+                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), anyString()))
+                  .thenReturn(traces);
+            })) {
 
-    assertThat(result.isSuccess()).isTrue();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("Invalid page number"));
+      // Invalid page number
+      var result = tool.searchVulnerabilities(-1, 10, null, null, null, null, null, null, null);
+
+      assertThat(result.isSuccess()).isTrue();
+      assertThat(result.warnings()).anyMatch(w -> w.contains("Invalid page number"));
+    }
   }
 
   @Test
@@ -145,12 +183,21 @@ class SearchVulnerabilitiesToolTest {
     var traces = mock(Traces.class);
     when(traces.getTraces()).thenReturn(List.of());
     when(traces.getCount()).thenReturn(0);
-    when(sdk.getTracesInOrg(eq("test-org-id"), any(TraceFilterForm.class))).thenReturn(traces);
 
-    var result =
-        tool.searchVulnerabilities(1, 10, null, null, null, null, "2025-01-01", null, null);
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getTracesInOrg(
+                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), anyString()))
+                  .thenReturn(traces);
+            })) {
 
-    assertThat(result.isSuccess()).isTrue();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("LAST ACTIVITY DATE"));
+      var result =
+          tool.searchVulnerabilities(1, 10, null, null, null, null, "2025-01-01", null, null);
+
+      assertThat(result.isSuccess()).isTrue();
+      assertThat(result.warnings()).anyMatch(w -> w.contains("LAST ACTIVITY DATE"));
+    }
   }
 }

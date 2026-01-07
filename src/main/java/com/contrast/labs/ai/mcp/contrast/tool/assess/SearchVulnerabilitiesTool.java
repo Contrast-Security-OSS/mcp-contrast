@@ -18,12 +18,11 @@ package com.contrast.labs.ai.mcp.contrast.tool.assess;
 import com.contrast.labs.ai.mcp.contrast.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.tool.assess.params.VulnerabilityFilterParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
-import com.contrastsecurity.http.TraceFilterForm;
-import java.util.EnumSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.tool.annotation.Tool;
@@ -145,17 +144,16 @@ public class SearchVulnerabilitiesTool
       PaginationParams pagination, VulnerabilityFilterParams params, List<String> warnings)
       throws Exception {
 
-    var sdk = getContrastSDK();
-    var filterForm = params.toTraceFilterForm();
-    filterForm.setLimit(pagination.limit());
-    filterForm.setOffset(pagination.offset());
-    filterForm.setExpand(
-        EnumSet.of(
-            TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
-            TraceFilterForm.TraceExpandValue.SESSION_METADATA,
-            TraceFilterForm.TraceExpandValue.APPLICATION));
+    var sdkExtension = new SDKExtension(getContrastSDK());
+    var filterBody = params.toTraceFilterBody();
 
-    var traces = sdk.getTracesInOrg(getOrgId(), filterForm);
+    var traces =
+        sdkExtension.getTracesInOrg(
+            getOrgId(),
+            filterBody,
+            pagination.limit(),
+            pagination.offset(),
+            "session_metadata,server_environments,application");
 
     if (traces == null || traces.getTraces() == null) {
       warnings.add("API returned no trace data. Verify permissions and filters.");
