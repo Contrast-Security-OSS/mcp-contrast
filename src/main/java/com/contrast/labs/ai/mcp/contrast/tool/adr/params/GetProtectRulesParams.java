@@ -17,6 +17,8 @@ package com.contrast.labs.ai.mcp.contrast.tool.adr.params;
 
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
  * Validation parameters for GetProtectRulesTool. Validates required appId.
@@ -30,12 +32,10 @@ import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
  * }
  * }</pre>
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class GetProtectRulesParams extends BaseToolParams {
 
   private String appId;
-
-  /** Private constructor - use static factory method {@link #of}. */
-  private GetProtectRulesParams() {}
 
   /**
    * Parse and validate protect rules get parameters.

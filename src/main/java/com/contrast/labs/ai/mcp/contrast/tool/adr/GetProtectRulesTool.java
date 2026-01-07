@@ -21,6 +21,7 @@ import com.contrast.labs.ai.mcp.contrast.tool.adr.params.GetProtectRulesParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -79,7 +80,7 @@ public class GetProtectRulesTool extends BaseSingleTool<GetProtectRulesParams, P
       return null; // BaseSingleTool converts this to notFound response
     }
 
-    int ruleCount = protectData.getRules() != null ? protectData.getRules().size() : 0;
+    var ruleCount = Optional.ofNullable(protectData.getRules()).map(List::size).orElse(0);
     log.debug(
         "Successfully retrieved {} protection rules for application ID: {}",
         ruleCount,
