@@ -318,6 +318,40 @@ public class SDKExtension {
     }
   }
 
+  /**
+   * Get vulnerabilities across all applications in the organization using POST endpoint.
+   *
+   * <p>This uses the POST /ng/{orgId}/orgtraces/filter endpoint with body-based filtering. Unlike
+   * the deprecated GET endpoint with TraceFilterForm, this endpoint defaults to returning ALL
+   * vulnerabilities when tracked/untracked are both false (primitive defaults).
+   *
+   * @param organizationId the organization ID
+   * @param filters the filter request body
+   * @param limit max results to return
+   * @param offset pagination offset
+   * @param expand comma-separated expand values (e.g., "session_metadata,application")
+   * @return Traces response
+   */
+  public Traces getTracesInOrg(
+      String organizationId, TraceFilterBody filters, int limit, int offset, String expand)
+      throws IOException, UnauthorizedException {
+
+    var url =
+        String.format(
+            "/ng/%s/orgtraces/filter?limit=%d&offset=%d&sort=-lastTimeSeen%s",
+            organizationId,
+            limit,
+            offset,
+            expand != null && !expand.isEmpty() ? "&expand=" + expand : "");
+
+    try (InputStream is =
+            contrastSDK.makeRequestWithBody(
+                HttpMethod.POST, url, gson.toJson(filters), MediaType.JSON);
+        Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+      return gson.fromJson(reader, Traces.class);
+    }
+  }
+
   public SessionMetadataResponse getLatestSessionMetadata(String organizationId, String appId)
       throws IOException, UnauthorizedException {
 
