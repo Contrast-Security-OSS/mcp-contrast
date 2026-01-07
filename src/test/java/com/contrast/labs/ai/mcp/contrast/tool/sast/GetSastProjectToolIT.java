@@ -18,7 +18,6 @@ package com.contrast.labs.ai.mcp.contrast.tool.sast;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -34,7 +33,6 @@ import org.springframework.test.context.TestPropertySource;
  * <p>These tests require Contrast credentials to be set in environment variables and a valid SAST
  * project name configured. Run: source .env.integration-test && mvn verify
  */
-@Slf4j
 @SpringBootTest
 @TestPropertySource(locations = "classpath:application-integration-test.properties")
 @Tag("integration")
@@ -62,8 +60,6 @@ class GetSastProjectToolIT {
 
   @Test
   void getScanProject_should_return_project_for_valid_name() {
-    log.info("\n=== Integration Test: get_scan_project ===");
-
     var response = getSastProjectTool.getScanProject(testProjectName);
 
     assertThat(response).as("Response should not be null").isNotNull();
@@ -71,62 +67,38 @@ class GetSastProjectToolIT {
     assertThat(response.data()).as("Project data should not be null").isNotNull();
     assertThat(response.data().name()).as("Project name should match").isEqualTo(testProjectName);
     assertThat(response.data().id()).as("Project ID should be set").isNotNull();
-
-    log.info("✓ Retrieved project: {} (id: {})", response.data().name(), response.data().id());
-    log.info("  Language: {}", response.data().language());
-    log.info("  Completed scans: {}", response.data().completedScans());
-    log.info(
-        "  Vulnerabilities: critical={}, high={}, medium={}, low={}",
-        response.data().critical(),
-        response.data().high(),
-        response.data().medium(),
-        response.data().low());
   }
 
   @Test
   void getScanProject_should_return_error_for_null_projectName() {
-    log.info("\n=== Integration Test: Null project name handling ===");
-
     var response = getSastProjectTool.getScanProject(null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.isSuccess()).as("Should not be successful").isFalse();
     assertThat(response.errors()).anyMatch(e -> e.contains("projectName is required"));
-
-    log.info("✓ Null project name correctly rejected");
   }
 
   @Test
   void getScanProject_should_return_error_for_empty_projectName() {
-    log.info("\n=== Integration Test: Empty project name handling ===");
-
     var response = getSastProjectTool.getScanProject("");
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.isSuccess()).as("Should not be successful").isFalse();
     assertThat(response.errors()).anyMatch(e -> e.contains("projectName is required"));
-
-    log.info("✓ Empty project name correctly rejected");
   }
 
   @Test
   void getScanProject_should_return_notFound_for_nonexistent_project() {
-    log.info("\n=== Integration Test: Non-existent project handling ===");
-
     var nonExistentProject = "nonexistent-project-" + System.currentTimeMillis();
     var response = getSastProjectTool.getScanProject(nonExistentProject);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.found()).as("Should not find non-existent project").isFalse();
     assertThat(response.data()).as("Data should be null").isNull();
-
-    log.info("✓ Non-existent project correctly returned not found");
   }
 
   @Test
   void getScanProject_should_verify_project_has_required_fields() {
-    log.info("\n=== Integration Test: Verify project structure ===");
-
     var response = getSastProjectTool.getScanProject(testProjectName);
 
     assertThat(response.isSuccess()).isTrue();
@@ -136,11 +108,6 @@ class GetSastProjectToolIT {
     assertThat(response.data().id()).as("Project ID is required").isNotNull();
     assertThat(response.data().name()).as("Project name is required").isNotNull();
     assertThat(response.data().language()).as("Language is required").isNotNull();
-
-    log.info("✓ All required fields present:");
-    log.info("  - id: {}", response.data().id());
-    log.info("  - name: {}", response.data().name());
-    log.info("  - language: {}", response.data().language());
   }
 
   /**
@@ -152,8 +119,6 @@ class GetSastProjectToolIT {
    */
   @Test
   void getScanProject_regression_all_fields_should_be_populated() {
-    log.info("\n=== Regression Test: AIML-343 - Data should not be empty ===");
-
     var response = getSastProjectTool.getScanProject(testProjectName);
 
     assertThat(response.found()).as("Project should be found").isTrue();
@@ -189,22 +154,5 @@ class GetSastProjectToolIT {
     assertThat(project.excludeNamespaceFilters())
         .as("excludeNamespaceFilters should be a list")
         .isNotNull();
-
-    log.info("✓ AIML-343 regression test passed - all fields populated:");
-    log.info("  - id: {}", project.id());
-    log.info("  - name: {}", project.name());
-    log.info("  - organizationId: {}", project.organizationId());
-    log.info("  - language: {}", project.language());
-    log.info("  - archived: {}", project.archived());
-    log.info("  - critical: {}", project.critical());
-    log.info("  - high: {}", project.high());
-    log.info("  - medium: {}", project.medium());
-    log.info("  - low: {}", project.low());
-    log.info("  - note: {}", project.note());
-    log.info("  - lastScanId: {}", project.lastScanId());
-    log.info("  - lastScanTime: {}", project.lastScanTime());
-    log.info("  - completedScans: {}", project.completedScans());
-    log.info("  - includeNamespaceFilters: {}", project.includeNamespaceFilters());
-    log.info("  - excludeNamespaceFilters: {}", project.excludeNamespaceFilters());
   }
 }
