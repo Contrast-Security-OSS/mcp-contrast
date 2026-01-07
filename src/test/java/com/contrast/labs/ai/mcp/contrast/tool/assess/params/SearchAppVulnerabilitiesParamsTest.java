@@ -252,4 +252,22 @@ class SearchAppVulnerabilitiesParamsTest {
     assertThat(form.getEndDate()).isNotNull();
     assertThat(form.getFilterTags()).containsExactly("reviewed");
   }
+
+  @Test
+  void toTraceFilterForm_should_include_both_tracked_and_untracked_vulnerabilities() {
+    var params =
+        SearchAppVulnerabilitiesParams.of(
+            VALID_APP_ID, null, null, null, null, null, null, null, null, null, null);
+
+    var form = params.toTraceFilterForm();
+
+    // SDK defaults to tracked=true, untracked=false which filters out untracked vulns
+    // We need both set to true to return ALL vulnerabilities
+    assertThat(form.getTracked())
+        .as("tracked should be true to include tracked vulnerabilities")
+        .isTrue();
+    assertThat(form.getUntracked())
+        .as("untracked should be true to include untracked vulnerabilities")
+        .isTrue();
+  }
 }

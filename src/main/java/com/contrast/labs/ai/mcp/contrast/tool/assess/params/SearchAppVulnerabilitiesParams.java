@@ -154,6 +154,10 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
    */
   public TraceFilterForm toTraceFilterForm() {
     var form = new TraceFilterForm();
+    // Override SDK defaults to return ALL vulnerabilities (tracked and untracked)
+    // SDK defaults to tracked=true, untracked=false which filters out untracked vulns
+    form.setTracked(true);
+    form.setUntracked(true);
     if (severities != null) {
       form.setSeverities(severities);
     }
