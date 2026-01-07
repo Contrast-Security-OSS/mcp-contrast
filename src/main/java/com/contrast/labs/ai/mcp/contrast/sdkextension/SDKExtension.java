@@ -319,6 +319,47 @@ public class SDKExtension {
   }
 
   /**
+   * Get vulnerabilities for an application using POST endpoint with pagination.
+   *
+   * <p>This uses the POST /ng/{orgId}/traces/{appId}/filter endpoint with body-based filtering.
+   * Unlike the deprecated GET endpoint with TraceFilterForm, this endpoint defaults to returning
+   * ALL vulnerabilities when tracked/untracked are both false (primitive defaults).
+   *
+   * @param organizationId the organization ID
+   * @param appId the application ID
+   * @param filters the filter request body
+   * @param limit max results to return
+   * @param offset pagination offset
+   * @param expand comma-separated expand values (e.g., "session_metadata,server_environments")
+   * @return Traces response
+   */
+  public Traces getTraces(
+      String organizationId,
+      String appId,
+      TraceFilterBody filters,
+      int limit,
+      int offset,
+      String expand)
+      throws IOException, UnauthorizedException {
+
+    var url =
+        String.format(
+            "/ng/%s/traces/%s/filter?limit=%d&offset=%d&sort=-lastTimeSeen%s",
+            organizationId,
+            appId,
+            limit,
+            offset,
+            expand != null && !expand.isEmpty() ? "&expand=" + expand : "");
+
+    try (InputStream is =
+            contrastSDK.makeRequestWithBody(
+                HttpMethod.POST, url, gson.toJson(filters), MediaType.JSON);
+        Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+      return gson.fromJson(reader, Traces.class);
+    }
+  }
+
+  /**
    * Get vulnerabilities across all applications in the organization using POST endpoint.
    *
    * <p>This uses the POST /ng/{orgId}/orgtraces/filter endpoint with body-based filtering. Unlike
