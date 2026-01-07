@@ -20,6 +20,7 @@ import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.http.ServerEnvironment;
 import com.contrastsecurity.http.TraceFilterForm;
+import com.contrastsecurity.models.TraceFilterBody;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
@@ -145,6 +146,35 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
 
     params.setValidationResult(ctx);
     return params;
+  }
+
+  /**
+   * Convert to SDK TraceFilterBody for POST endpoint API calls.
+   *
+   * @return TraceFilterBody configured with all filters
+   */
+  public TraceFilterBody toTraceFilterBody() {
+    var body = new TraceFilterBody();
+    // Note: tracked/untracked NOT set - primitive defaults (false) mean "return all"
+    if (severities != null) {
+      body.setSeverities(severities.stream().toList());
+    }
+    if (vulnTypes != null) {
+      body.setVulnTypes(vulnTypes);
+    }
+    if (environments != null) {
+      body.setEnvironments(environments.stream().toList());
+    }
+    if (lastSeenAfter != null) {
+      body.setStartDate(lastSeenAfter);
+    }
+    if (lastSeenBefore != null) {
+      body.setEndDate(lastSeenBefore);
+    }
+    if (vulnTags != null) {
+      body.setFilterTags(vulnTags);
+    }
+    return body;
   }
 
   /**
