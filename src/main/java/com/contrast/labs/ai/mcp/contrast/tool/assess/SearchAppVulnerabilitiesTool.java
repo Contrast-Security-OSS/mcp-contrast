@@ -175,21 +175,19 @@ public class SearchAppVulnerabilitiesTool
     var orgId = getOrgId();
     var appId = params.appId();
 
-    // Build TraceFilterForm from params
-    var filterForm = params.toTraceFilterForm();
-
-    // Always set expand values for session metadata
-    filterForm.setExpand(
-        EnumSet.of(
-            TraceFilterForm.TraceExpandValue.SESSION_METADATA,
-            TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
-            TraceFilterForm.TraceExpandValue.APPLICATION));
-
     if (params.needsSessionFiltering()) {
+      // Session filtering still uses TraceFilterForm for multi-page fetch
+      var filterForm = params.toTraceFilterForm();
+      filterForm.setExpand(
+          EnumSet.of(
+              TraceFilterForm.TraceExpandValue.SESSION_METADATA,
+              TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
+              TraceFilterForm.TraceExpandValue.APPLICATION));
       return executeWithSessionFiltering(
           sdk, orgId, appId, filterForm, params, pagination, warnings);
     } else {
-      return executeWithSdkPagination(sdk, orgId, appId, filterForm, pagination, warnings);
+      // Non-session path uses POST endpoint with TraceFilterBody
+      return executeWithSdkPagination(sdk, orgId, appId, params, pagination, warnings);
     }
   }
 
@@ -197,15 +195,22 @@ public class SearchAppVulnerabilitiesTool
       ContrastSDK sdk,
       String orgId,
       String appId,
-      TraceFilterForm filterForm,
+      SearchAppVulnerabilitiesParams params,
       PaginationParams pagination,
       List<String> warnings)
       throws Exception {
 
-    filterForm.setLimit(pagination.limit());
-    filterForm.setOffset(pagination.offset());
+    var sdkExtension = new SDKExtension(sdk);
+    var filterBody = params.toTraceFilterBody();
 
-    var traces = sdk.getTraces(orgId, appId, filterForm);
+    var traces =
+        sdkExtension.getTraces(
+            orgId,
+            appId,
+            filterBody,
+            pagination.limit(),
+            pagination.offset(),
+            "session_metadata,server_environments,application");
 
     if (traces == null || traces.getTraces() == null) {
       warnings.add("API returned no trace data. Verify permissions and filters.");

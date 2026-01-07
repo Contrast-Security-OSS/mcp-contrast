@@ -17,8 +17,11 @@ package com.contrast.labs.ai.mcp.contrast.tool.assess;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -26,13 +29,16 @@ import static org.mockito.Mockito.when;
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.models.Trace;
+import com.contrastsecurity.models.TraceFilterBody;
 import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.sdk.ContrastSDK;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class SearchAppVulnerabilitiesToolTest {
@@ -102,6 +108,8 @@ class SearchAppVulnerabilitiesToolTest {
   }
 
   // -- Success tests without session filtering --
+  // These tests use mockConstruction for SDKExtension since the non-session path
+  // now uses SDKExtension.getTraces() with TraceFilterBody (POST endpoint)
 
   @Test
   void searchAppVulnerabilities_should_return_mapped_results_on_success() throws Exception {
@@ -109,34 +117,59 @@ class SearchAppVulnerabilitiesToolTest {
     var traces = mock(Traces.class);
     when(traces.getTraces()).thenReturn(List.of(trace));
     when(traces.getCount()).thenReturn(1);
-    when(sdk.getTraces(eq(ORG_ID), eq(APP_ID), any(TraceFilterForm.class))).thenReturn(traces);
 
     var vulnLight = mock(VulnLight.class);
     when(mapper.toVulnLight(trace)).thenReturn(vulnLight);
 
-    var result =
-        tool.searchAppVulnerabilities(
-            APP_ID, 1, 10, "CRITICAL", null, null, null, null, null, null, null, null, null);
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getTraces(
+                      anyString(),
+                      anyString(),
+                      any(TraceFilterBody.class),
+                      anyInt(),
+                      anyInt(),
+                      anyString()))
+                  .thenReturn(traces);
+            })) {
 
-    assertThat(result.isSuccess()).isTrue();
-    assertThat(result.items()).hasSize(1);
-    assertThat(result.totalItems()).isEqualTo(1);
+      var result =
+          tool.searchAppVulnerabilities(
+              APP_ID, 1, 10, "CRITICAL", null, null, null, null, null, null, null, null, null);
 
-    verify(sdk).getTraces(eq(ORG_ID), eq(APP_ID), any(TraceFilterForm.class));
-    verify(mapper).toVulnLight(trace);
+      assertThat(result.isSuccess()).isTrue();
+      assertThat(result.items()).hasSize(1);
+      assertThat(result.totalItems()).isEqualTo(1);
+      verify(mapper).toVulnLight(trace);
+    }
   }
 
   @Test
   void searchAppVulnerabilities_should_add_warning_when_api_returns_null() throws Exception {
-    when(sdk.getTraces(eq(ORG_ID), eq(APP_ID), any(TraceFilterForm.class))).thenReturn(null);
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getTraces(
+                      anyString(),
+                      anyString(),
+                      any(TraceFilterBody.class),
+                      anyInt(),
+                      anyInt(),
+                      anyString()))
+                  .thenReturn(null);
+            })) {
 
-    var result =
-        tool.searchAppVulnerabilities(
-            APP_ID, 1, 10, null, null, null, null, null, null, null, null, null, null);
+      var result =
+          tool.searchAppVulnerabilities(
+              APP_ID, 1, 10, null, null, null, null, null, null, null, null, null, null);
 
-    assertThat(result.isSuccess()).isTrue();
-    assertThat(result.items()).isEmpty();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("API returned no trace data"));
+      assertThat(result.isSuccess()).isTrue();
+      assertThat(result.items()).isEmpty();
+      assertThat(result.warnings()).anyMatch(w -> w.contains("API returned no trace data"));
+    }
   }
 
   @Test
@@ -144,14 +177,28 @@ class SearchAppVulnerabilitiesToolTest {
     var traces = mock(Traces.class);
     when(traces.getTraces()).thenReturn(List.of());
     when(traces.getCount()).thenReturn(0);
-    when(sdk.getTraces(eq(ORG_ID), eq(APP_ID), any(TraceFilterForm.class))).thenReturn(traces);
 
-    var result =
-        tool.searchAppVulnerabilities(
-            APP_ID, 1, 10, null, null, null, null, null, null, null, null, null, null);
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getTraces(
+                      anyString(),
+                      anyString(),
+                      any(TraceFilterBody.class),
+                      anyInt(),
+                      anyInt(),
+                      anyString()))
+                  .thenReturn(traces);
+            })) {
 
-    assertThat(result.isSuccess()).isTrue();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("excluding Fixed and Remediated"));
+      var result =
+          tool.searchAppVulnerabilities(
+              APP_ID, 1, 10, null, null, null, null, null, null, null, null, null, null);
+
+      assertThat(result.isSuccess()).isTrue();
+      assertThat(result.warnings()).anyMatch(w -> w.contains("excluding Fixed and Remediated"));
+    }
   }
 
   @Test
@@ -161,21 +208,35 @@ class SearchAppVulnerabilitiesToolTest {
     var traces = mock(Traces.class);
     when(traces.getTraces()).thenReturn(List.of(trace1, trace2));
     when(traces.getCount()).thenReturn(10); // Total of 10, showing 2
-    when(sdk.getTraces(eq(ORG_ID), eq(APP_ID), any(TraceFilterForm.class))).thenReturn(traces);
 
     var vulnLight1 = mock(VulnLight.class);
     var vulnLight2 = mock(VulnLight.class);
     when(mapper.toVulnLight(trace1)).thenReturn(vulnLight1);
     when(mapper.toVulnLight(trace2)).thenReturn(vulnLight2);
 
-    var result =
-        tool.searchAppVulnerabilities(
-            APP_ID, 1, 2, null, null, null, null, null, null, null, null, null, null);
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getTraces(
+                      anyString(),
+                      anyString(),
+                      any(TraceFilterBody.class),
+                      anyInt(),
+                      anyInt(),
+                      anyString()))
+                  .thenReturn(traces);
+            })) {
 
-    assertThat(result.isSuccess()).isTrue();
-    assertThat(result.items()).hasSize(2);
-    assertThat(result.totalItems()).isEqualTo(10);
-    assertThat(result.hasMorePages()).isTrue();
+      var result =
+          tool.searchAppVulnerabilities(
+              APP_ID, 1, 2, null, null, null, null, null, null, null, null, null, null);
+
+      assertThat(result.isSuccess()).isTrue();
+      assertThat(result.items()).hasSize(2);
+      assertThat(result.totalItems()).isEqualTo(10);
+      assertThat(result.hasMorePages()).isTrue();
+    }
   }
 
   // -- Tests with session filtering --
