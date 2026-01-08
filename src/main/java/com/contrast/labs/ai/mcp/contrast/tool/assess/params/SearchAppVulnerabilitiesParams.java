@@ -19,7 +19,6 @@ import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.http.ServerEnvironment;
-import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.models.TraceFilterBody;
 import com.contrastsecurity.models.TraceMetadataFilter;
 import java.util.Date;
@@ -39,7 +38,7 @@ import java.util.Set;
  * if (!params.isValid()) {
  *   // Handle errors
  * }
- * var filterForm = params.toTraceFilterForm();
+ * var filterBody = params.toTraceFilterBody();
  * }</pre>
  */
 public class SearchAppVulnerabilitiesParams extends BaseToolParams {
@@ -197,45 +196,6 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
       body.setMetadataFilters(List.of(metadataFilter));
     }
     return body;
-  }
-
-  /**
-   * Convert to SDK TraceFilterForm for legacy GET endpoint API calls.
-   *
-   * @deprecated Use {@link #toTraceFilterBody()} for POST endpoint which has correct defaults. This
-   *     method is retained for session filtering which still requires TraceFilterForm.
-   * @return TraceFilterForm configured with all filters and tracked/untracked workaround
-   */
-  @Deprecated
-  public TraceFilterForm toTraceFilterForm() {
-    var form = new TraceFilterForm();
-    // WORKAROUND: Override SDK defaults to return ALL vulnerabilities (tracked and untracked)
-    // SDK defaults to tracked=true, untracked=false which filters out untracked vulns.
-    // This workaround is required for session filtering path which still uses GET endpoint.
-    form.setTracked(true);
-    form.setUntracked(true);
-    if (severities != null) {
-      form.setSeverities(severities);
-    }
-    if (statuses != null) {
-      form.setStatus(statuses);
-    }
-    if (vulnTypes != null) {
-      form.setVulnTypes(vulnTypes);
-    }
-    if (environments != null) {
-      form.setEnvironments(environments);
-    }
-    if (lastSeenAfter != null) {
-      form.setStartDate(lastSeenAfter);
-    }
-    if (lastSeenBefore != null) {
-      form.setEndDate(lastSeenBefore);
-    }
-    if (vulnTags != null) {
-      form.setFilterTags(vulnTags);
-    }
-    return form;
   }
 
   /**
