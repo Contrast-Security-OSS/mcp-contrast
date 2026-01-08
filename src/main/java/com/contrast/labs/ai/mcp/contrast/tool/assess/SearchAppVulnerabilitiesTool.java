@@ -177,15 +177,13 @@ public class SearchAppVulnerabilitiesTool
     var appId = params.appId();
 
     if (params.needsSessionFiltering()) {
-      // Session filtering now uses POST endpoint with TraceFilterBody
-      return executeWithSessionFiltering(sdk, orgId, appId, params, pagination, warnings);
+      return executeWithInMemorySessionFiltering(sdk, orgId, appId, params, pagination, warnings);
     } else {
-      // Non-session path uses POST endpoint with TraceFilterBody
-      return executeWithSdkPagination(sdk, orgId, appId, params, pagination, warnings);
+      return executeWithServerSidePagination(sdk, orgId, appId, params, pagination, warnings);
     }
   }
 
-  private ExecutionResult<VulnLight> executeWithSdkPagination(
+  private ExecutionResult<VulnLight> executeWithServerSidePagination(
       ContrastSDK sdk,
       String orgId,
       String appId,
@@ -218,7 +216,7 @@ public class SearchAppVulnerabilitiesTool
     return ExecutionResult.of(vulnerabilities, traces.getCount());
   }
 
-  private ExecutionResult<VulnLight> executeWithSessionFiltering(
+  private ExecutionResult<VulnLight> executeWithInMemorySessionFiltering(
       ContrastSDK sdk,
       String orgId,
       String appId,
