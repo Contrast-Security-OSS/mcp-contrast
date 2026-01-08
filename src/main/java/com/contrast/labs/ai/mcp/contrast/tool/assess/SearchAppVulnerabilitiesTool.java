@@ -246,7 +246,7 @@ public class SearchAppVulnerabilitiesTool
     }
 
     // Build TraceFilterBody with session parameters
-    var filterBody = params.toTraceFilterBody(agentSessionId);
+    var filterBody = params.toTraceFilterBodyWithSessionId(agentSessionId);
 
     // Build filter predicate for in-memory filtering (case-insensitive name/value matching)
     var filterPredicate =

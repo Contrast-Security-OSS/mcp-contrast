@@ -277,7 +277,7 @@ class SearchAppVulnerabilitiesParamsTest {
         SearchAppVulnerabilitiesParams.of(
             VALID_APP_ID, null, null, null, null, null, null, null, null, null, null);
 
-    var body = params.toTraceFilterBody("session-abc-123");
+    var body = params.toTraceFilterBodyWithSessionId("session-abc-123");
 
     assertThat(body.getAgentSessionId()).isEqualTo("session-abc-123");
   }
@@ -288,7 +288,7 @@ class SearchAppVulnerabilitiesParamsTest {
         SearchAppVulnerabilitiesParams.of(
             VALID_APP_ID, null, null, null, null, null, null, null, null, null, null);
 
-    var body = params.toTraceFilterBody(null);
+    var body = params.toTraceFilterBodyWithSessionId(null);
 
     assertThat(body.getAgentSessionId()).isNull();
   }
@@ -299,7 +299,7 @@ class SearchAppVulnerabilitiesParamsTest {
         SearchAppVulnerabilitiesParams.of(
             VALID_APP_ID, null, null, null, null, null, null, null, "branch", "main", null);
 
-    var body = params.toTraceFilterBody(null);
+    var body = params.toTraceFilterBodyWithSessionId(null);
 
     assertThat(body.getMetadataFilters()).hasSize(1);
     assertThat(body.getMetadataFilters().get(0).getFieldID()).isEqualTo("branch");
@@ -312,7 +312,7 @@ class SearchAppVulnerabilitiesParamsTest {
         SearchAppVulnerabilitiesParams.of(
             VALID_APP_ID, null, null, null, null, null, null, null, "branch", null, null);
 
-    var body = params.toTraceFilterBody(null);
+    var body = params.toTraceFilterBodyWithSessionId(null);
 
     assertThat(body.getMetadataFilters()).hasSize(1);
     assertThat(body.getMetadataFilters().get(0).getFieldID()).isEqualTo("branch");
@@ -325,7 +325,7 @@ class SearchAppVulnerabilitiesParamsTest {
         SearchAppVulnerabilitiesParams.of(
             VALID_APP_ID, null, null, null, null, null, null, null, "branch", "main", null);
 
-    var body = params.toTraceFilterBody("session-xyz");
+    var body = params.toTraceFilterBodyWithSessionId("session-xyz");
 
     assertThat(body.getAgentSessionId()).isEqualTo("session-xyz");
     assertThat(body.getMetadataFilters()).hasSize(1);
