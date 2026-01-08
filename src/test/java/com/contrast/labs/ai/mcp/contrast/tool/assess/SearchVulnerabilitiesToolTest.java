@@ -59,6 +59,19 @@ class SearchVulnerabilitiesToolTest {
     ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
   }
 
+  /**
+   * Creates a MockedConstruction that stubs SDKExtension.getTracesInOrg() to return the given
+   * traces.
+   */
+  private MockedConstruction<SDKExtension> mockSDKExtensionWithTracesInOrg(Traces traces) {
+    return mockConstruction(
+        SDKExtension.class,
+        (mock, context) ->
+            when(mock.getTracesInOrg(
+                    anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), any()))
+                .thenReturn(traces));
+  }
+
   @Test
   void searchVulnerabilities_should_return_validation_error_without_sdk_call() {
     var result =
@@ -74,7 +87,6 @@ class SearchVulnerabilitiesToolTest {
 
   @Test
   void searchVulnerabilities_should_return_mapped_results_on_success() throws Exception {
-    // Setup mock trace
     var trace = mock(Trace.class);
     var traces = mock(Traces.class);
     when(traces.getTraces()).thenReturn(List.of(trace));
@@ -83,15 +95,7 @@ class SearchVulnerabilitiesToolTest {
     var vulnLight = mock(VulnLight.class);
     when(mapper.toVulnLight(trace)).thenReturn(vulnLight);
 
-    try (MockedConstruction<SDKExtension> mocked =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getTracesInOrg(
-                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), any()))
-                  .thenReturn(traces);
-            })) {
-
+    try (var ignored = mockSDKExtensionWithTracesInOrg(traces)) {
       var result =
           tool.searchVulnerabilities(1, 10, "CRITICAL", null, null, null, null, null, null);
 
@@ -104,15 +108,7 @@ class SearchVulnerabilitiesToolTest {
 
   @Test
   void searchVulnerabilities_should_add_warning_when_api_returns_null() throws Exception {
-    try (MockedConstruction<SDKExtension> mocked =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getTracesInOrg(
-                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), any()))
-                  .thenReturn(null);
-            })) {
-
+    try (var ignored = mockSDKExtensionWithTracesInOrg(null)) {
       var result = tool.searchVulnerabilities(1, 10, null, null, null, null, null, null, null);
 
       assertThat(result.isSuccess()).isTrue();
@@ -127,15 +123,7 @@ class SearchVulnerabilitiesToolTest {
     when(traces.getTraces()).thenReturn(List.of());
     when(traces.getCount()).thenReturn(0);
 
-    try (MockedConstruction<SDKExtension> mocked =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getTracesInOrg(
-                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), any()))
-                  .thenReturn(traces);
-            })) {
-
+    try (var ignored = mockSDKExtensionWithTracesInOrg(traces)) {
       var result = tool.searchVulnerabilities(1, 10, null, null, null, null, null, null, null);
 
       assertThat(result.isSuccess()).isTrue();
@@ -150,15 +138,7 @@ class SearchVulnerabilitiesToolTest {
     when(traces.getTraces()).thenReturn(List.of());
     when(traces.getCount()).thenReturn(0);
 
-    try (MockedConstruction<SDKExtension> mocked =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getTracesInOrg(
-                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), any()))
-                  .thenReturn(traces);
-            })) {
-
+    try (var ignored = mockSDKExtensionWithTracesInOrg(traces)) {
       // Invalid page number
       var result = tool.searchVulnerabilities(-1, 10, null, null, null, null, null, null, null);
 
@@ -184,15 +164,7 @@ class SearchVulnerabilitiesToolTest {
     when(traces.getTraces()).thenReturn(List.of());
     when(traces.getCount()).thenReturn(0);
 
-    try (MockedConstruction<SDKExtension> mocked =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getTracesInOrg(
-                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), any()))
-                  .thenReturn(traces);
-            })) {
-
+    try (var ignored = mockSDKExtensionWithTracesInOrg(traces)) {
       var result =
           tool.searchVulnerabilities(1, 10, null, null, null, null, "2025-01-01", null, null);
 

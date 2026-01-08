@@ -63,6 +63,23 @@ class SearchAppVulnerabilitiesToolTest {
     ReflectionTestUtils.setField(tool, "maxTracesForSessionFiltering", 50000);
   }
 
+  /**
+   * Creates a MockedConstruction that stubs SDKExtension.getTraces() to return the given traces.
+   */
+  private MockedConstruction<SDKExtension> mockSDKExtensionWithTraces(Traces traces) {
+    return mockConstruction(
+        SDKExtension.class,
+        (mock, context) ->
+            when(mock.getTraces(
+                    anyString(),
+                    anyString(),
+                    any(TraceFilterBody.class),
+                    anyInt(),
+                    anyInt(),
+                    any()))
+                .thenReturn(traces));
+  }
+
   // -- Validation tests --
 
   @Test
@@ -119,20 +136,7 @@ class SearchAppVulnerabilitiesToolTest {
     var vulnLight = mock(VulnLight.class);
     when(mapper.toVulnLight(trace)).thenReturn(vulnLight);
 
-    try (MockedConstruction<SDKExtension> mocked =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getTraces(
-                      anyString(),
-                      anyString(),
-                      any(TraceFilterBody.class),
-                      anyInt(),
-                      anyInt(),
-                      any()))
-                  .thenReturn(traces);
-            })) {
-
+    try (var ignored = mockSDKExtensionWithTraces(traces)) {
       var result =
           tool.searchAppVulnerabilities(
               APP_ID, 1, 10, "CRITICAL", null, null, null, null, null, null, null, null, null);
@@ -146,20 +150,7 @@ class SearchAppVulnerabilitiesToolTest {
 
   @Test
   void searchAppVulnerabilities_should_add_warning_when_api_returns_null() throws Exception {
-    try (MockedConstruction<SDKExtension> mocked =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getTraces(
-                      anyString(),
-                      anyString(),
-                      any(TraceFilterBody.class),
-                      anyInt(),
-                      anyInt(),
-                      any()))
-                  .thenReturn(null);
-            })) {
-
+    try (var ignored = mockSDKExtensionWithTraces(null)) {
       var result =
           tool.searchAppVulnerabilities(
               APP_ID, 1, 10, null, null, null, null, null, null, null, null, null, null);
@@ -176,20 +167,7 @@ class SearchAppVulnerabilitiesToolTest {
     when(traces.getTraces()).thenReturn(List.of());
     when(traces.getCount()).thenReturn(0);
 
-    try (MockedConstruction<SDKExtension> mocked =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getTraces(
-                      anyString(),
-                      anyString(),
-                      any(TraceFilterBody.class),
-                      anyInt(),
-                      anyInt(),
-                      any()))
-                  .thenReturn(traces);
-            })) {
-
+    try (var ignored = mockSDKExtensionWithTraces(traces)) {
       var result =
           tool.searchAppVulnerabilities(
               APP_ID, 1, 10, null, null, null, null, null, null, null, null, null, null);
@@ -212,20 +190,7 @@ class SearchAppVulnerabilitiesToolTest {
     when(mapper.toVulnLight(trace1)).thenReturn(vulnLight1);
     when(mapper.toVulnLight(trace2)).thenReturn(vulnLight2);
 
-    try (MockedConstruction<SDKExtension> mocked =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getTraces(
-                      anyString(),
-                      anyString(),
-                      any(TraceFilterBody.class),
-                      anyInt(),
-                      anyInt(),
-                      any()))
-                  .thenReturn(traces);
-            })) {
-
+    try (var ignored = mockSDKExtensionWithTraces(traces)) {
       var result =
           tool.searchAppVulnerabilities(
               APP_ID, 1, 2, null, null, null, null, null, null, null, null, null, null);
@@ -246,20 +211,7 @@ class SearchAppVulnerabilitiesToolTest {
     when(traces.getTraces()).thenReturn(List.of());
     when(traces.getCount()).thenReturn(0);
 
-    try (MockedConstruction<SDKExtension> mocked =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getTraces(
-                      anyString(),
-                      anyString(),
-                      any(TraceFilterBody.class),
-                      anyInt(),
-                      anyInt(),
-                      any()))
-                  .thenReturn(traces);
-            })) {
-
+    try (var ignored = mockSDKExtensionWithTraces(traces)) {
       var result =
           tool.searchAppVulnerabilities(
               APP_ID, 1, 10, null, null, null, null, null, null, null, "branch", null, null);
@@ -274,20 +226,7 @@ class SearchAppVulnerabilitiesToolTest {
     when(traces.getTraces()).thenReturn(List.of());
     when(traces.getCount()).thenReturn(0);
 
-    try (MockedConstruction<SDKExtension> mocked =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getTraces(
-                      anyString(),
-                      anyString(),
-                      any(TraceFilterBody.class),
-                      anyInt(),
-                      anyInt(),
-                      any()))
-                  .thenReturn(traces);
-            })) {
-
+    try (var ignored = mockSDKExtensionWithTraces(traces)) {
       var result =
           tool.searchAppVulnerabilities(
               APP_ID, 1, 10, null, null, null, null, null, null, null, "branch", "main", null);
