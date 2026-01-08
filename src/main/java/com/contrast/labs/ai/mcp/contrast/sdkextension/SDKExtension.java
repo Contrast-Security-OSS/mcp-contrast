@@ -31,6 +31,7 @@ import com.contrastsecurity.http.FilterForm;
 import com.contrastsecurity.http.HttpMethod;
 import com.contrastsecurity.http.LibraryFilterForm;
 import com.contrastsecurity.http.MediaType;
+import com.contrastsecurity.http.TraceFilterForm.TraceExpandValue;
 import com.contrastsecurity.http.UrlBuilder;
 import com.contrastsecurity.models.RouteCoverageBySessionIDAndMetadataRequest;
 import com.contrastsecurity.models.TraceFilterBody;
@@ -46,7 +47,9 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -330,7 +333,7 @@ public class SDKExtension {
    * @param filters the filter request body
    * @param limit max results to return
    * @param offset pagination offset
-   * @param expand comma-separated expand values (e.g., "session_metadata,server_environments")
+   * @param expand expand values to include additional data in response
    * @return Traces response
    */
   public Traces getTraces(
@@ -339,17 +342,13 @@ public class SDKExtension {
       TraceFilterBody filters,
       int limit,
       int offset,
-      String expand)
+      EnumSet<TraceExpandValue> expand)
       throws IOException, UnauthorizedException {
 
     var url =
         String.format(
             "/ng/%s/traces/%s/filter?limit=%d&offset=%d&sort=-lastTimeSeen%s",
-            organizationId,
-            appId,
-            limit,
-            offset,
-            expand != null && !expand.isEmpty() ? "&expand=" + expand : "");
+            organizationId, appId, limit, offset, toExpandString(expand));
 
     try (InputStream is =
             contrastSDK.makeRequestWithBody(
@@ -370,20 +369,21 @@ public class SDKExtension {
    * @param filters the filter request body
    * @param limit max results to return
    * @param offset pagination offset
-   * @param expand comma-separated expand values (e.g., "session_metadata,application")
+   * @param expand expand values to include additional data in response
    * @return Traces response
    */
   public Traces getTracesInOrg(
-      String organizationId, TraceFilterBody filters, int limit, int offset, String expand)
+      String organizationId,
+      TraceFilterBody filters,
+      int limit,
+      int offset,
+      EnumSet<TraceExpandValue> expand)
       throws IOException, UnauthorizedException {
 
     var url =
         String.format(
             "/ng/%s/orgtraces/filter?limit=%d&offset=%d&sort=-lastTimeSeen%s",
-            organizationId,
-            limit,
-            offset,
-            expand != null && !expand.isEmpty() ? "&expand=" + expand : "");
+            organizationId, limit, offset, toExpandString(expand));
 
     try (InputStream is =
             contrastSDK.makeRequestWithBody(
@@ -489,5 +489,20 @@ public class SDKExtension {
   public AttacksResponse getAttacks(String organizationId)
       throws IOException, UnauthorizedException {
     return getAttacks(organizationId, null, null, null, null);
+  }
+
+  /**
+   * Converts an EnumSet of TraceExpandValue to a URL query parameter string.
+   *
+   * @param expand the expand values to convert
+   * @return query parameter string (e.g., "&expand=session_metadata,application") or empty string
+   */
+  private String toExpandString(EnumSet<TraceExpandValue> expand) {
+    if (expand == null || expand.isEmpty()) {
+      return "";
+    }
+    var expandStr =
+        expand.stream().map(TraceExpandValue::toString).collect(Collectors.joining(","));
+    return "&expand=" + expandStr;
   }
 }

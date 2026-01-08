@@ -23,6 +23,8 @@ import com.contrast.labs.ai.mcp.contrast.tool.assess.params.VulnerabilityFilterP
 import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
+import com.contrastsecurity.http.TraceFilterForm.TraceExpandValue;
+import java.util.EnumSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.tool.annotation.Tool;
@@ -153,7 +155,10 @@ public class SearchVulnerabilitiesTool
             filterBody,
             pagination.limit(),
             pagination.offset(),
-            "session_metadata,server_environments,application");
+            EnumSet.of(
+                TraceExpandValue.SESSION_METADATA,
+                TraceExpandValue.SERVER_ENVIRONMENTS,
+                TraceExpandValue.APPLICATION));
 
     if (traces == null || traces.getTraces() == null) {
       warnings.add("API returned no trace data. Verify permissions and filters.");

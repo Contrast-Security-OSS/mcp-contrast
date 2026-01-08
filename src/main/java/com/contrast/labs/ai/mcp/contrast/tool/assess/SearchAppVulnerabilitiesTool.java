@@ -23,6 +23,7 @@ import com.contrast.labs.ai.mcp.contrast.tool.assess.params.SearchAppVulnerabili
 import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
+import com.contrastsecurity.http.TraceFilterForm.TraceExpandValue;
 import com.contrastsecurity.models.MetadataItem;
 import com.contrastsecurity.models.SessionMetadata;
 import com.contrastsecurity.models.Trace;
@@ -31,6 +32,7 @@ import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -195,14 +197,15 @@ public class SearchAppVulnerabilitiesTool
     var sdkExtension = new SDKExtension(sdk);
     var filterBody = params.toTraceFilterBody();
 
+    var expand =
+        EnumSet.of(
+            TraceExpandValue.SESSION_METADATA,
+            TraceExpandValue.SERVER_ENVIRONMENTS,
+            TraceExpandValue.APPLICATION);
+
     var traces =
         sdkExtension.getTraces(
-            orgId,
-            appId,
-            filterBody,
-            pagination.limit(),
-            pagination.offset(),
-            "session_metadata,server_environments,application");
+            orgId, appId, filterBody, pagination.limit(), pagination.offset(), expand);
 
     if (traces == null || traces.getTraces() == null) {
       warnings.add("API returned no trace data. Verify permissions and filters.");
@@ -337,7 +340,11 @@ public class SearchAppVulnerabilitiesTool
 
     final int PAGE_SIZE = 500;
     final int MAX_PAGES = 100;
-    final String expand = "session_metadata,server_environments,application";
+    final var expand =
+        EnumSet.of(
+            TraceExpandValue.SESSION_METADATA,
+            TraceExpandValue.SERVER_ENVIRONMENTS,
+            TraceExpandValue.APPLICATION);
     var matchingTraces = new ArrayList<Trace>(Math.min(targetCount, 1000));
     int offset = 0;
     int pagesChecked = 0;

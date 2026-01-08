@@ -88,7 +88,7 @@ class SearchVulnerabilitiesToolTest {
             SDKExtension.class,
             (mock, context) -> {
               when(mock.getTracesInOrg(
-                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), anyString()))
+                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), any()))
                   .thenReturn(traces);
             })) {
 
@@ -109,7 +109,7 @@ class SearchVulnerabilitiesToolTest {
             SDKExtension.class,
             (mock, context) -> {
               when(mock.getTracesInOrg(
-                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), anyString()))
+                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), any()))
                   .thenReturn(null);
             })) {
 
@@ -132,7 +132,7 @@ class SearchVulnerabilitiesToolTest {
             SDKExtension.class,
             (mock, context) -> {
               when(mock.getTracesInOrg(
-                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), anyString()))
+                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), any()))
                   .thenReturn(traces);
             })) {
 
@@ -155,7 +155,7 @@ class SearchVulnerabilitiesToolTest {
             SDKExtension.class,
             (mock, context) -> {
               when(mock.getTracesInOrg(
-                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), anyString()))
+                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), any()))
                   .thenReturn(traces);
             })) {
 
@@ -189,7 +189,7 @@ class SearchVulnerabilitiesToolTest {
             SDKExtension.class,
             (mock, context) -> {
               when(mock.getTracesInOrg(
-                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), anyString()))
+                      anyString(), any(TraceFilterBody.class), anyInt(), anyInt(), any()))
                   .thenReturn(traces);
             })) {
 
