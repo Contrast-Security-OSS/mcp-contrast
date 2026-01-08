@@ -9,7 +9,7 @@
 	</parent>
 	<groupId>com.contrast.labs.ai.mcp</groupId>
 	<artifactId>mcp-contrast</artifactId>
-	<version>0.0.16-SNAPSHOT</version>
+	<version>1.0.0-SNAPSHOT</version>
 	<name>mcp-contrast</name>
 	<description>MCP Server</description>
 	<url>https://github.com/Contrast-Security-OSS/mcp-contrast</url>
