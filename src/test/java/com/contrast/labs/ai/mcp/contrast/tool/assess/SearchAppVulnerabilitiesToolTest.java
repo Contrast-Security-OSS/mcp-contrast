@@ -129,7 +129,7 @@ class SearchAppVulnerabilitiesToolTest {
                       any(TraceFilterBody.class),
                       anyInt(),
                       anyInt(),
-                      anyString()))
+                      any()))
                   .thenReturn(traces);
             })) {
 
@@ -156,7 +156,7 @@ class SearchAppVulnerabilitiesToolTest {
                       any(TraceFilterBody.class),
                       anyInt(),
                       anyInt(),
-                      anyString()))
+                      any()))
                   .thenReturn(null);
             })) {
 
@@ -186,7 +186,7 @@ class SearchAppVulnerabilitiesToolTest {
                       any(TraceFilterBody.class),
                       anyInt(),
                       anyInt(),
-                      anyString()))
+                      any()))
                   .thenReturn(traces);
             })) {
 
@@ -222,7 +222,7 @@ class SearchAppVulnerabilitiesToolTest {
                       any(TraceFilterBody.class),
                       anyInt(),
                       anyInt(),
-                      anyString()))
+                      any()))
                   .thenReturn(traces);
             })) {
 
@@ -256,7 +256,7 @@ class SearchAppVulnerabilitiesToolTest {
                       any(TraceFilterBody.class),
                       anyInt(),
                       anyInt(),
-                      anyString()))
+                      any()))
                   .thenReturn(traces);
             })) {
 
@@ -284,7 +284,7 @@ class SearchAppVulnerabilitiesToolTest {
                       any(TraceFilterBody.class),
                       anyInt(),
                       anyInt(),
-                      anyString()))
+                      any()))
                   .thenReturn(traces);
             })) {
 
