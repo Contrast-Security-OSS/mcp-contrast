@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.verify;
@@ -30,7 +29,6 @@ import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
-import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.models.Trace;
 import com.contrastsecurity.models.TraceFilterBody;
 import com.contrastsecurity.models.Traces;
@@ -240,43 +238,61 @@ class SearchAppVulnerabilitiesToolTest {
   }
 
   // -- Tests with session filtering --
+  // Session filtering now uses POST endpoint with TraceFilterBody via SDKExtension
 
   @Test
   void searchAppVulnerabilities_should_accept_sessionMetadataName() throws Exception {
-    var trace = mock(Trace.class);
     var traces = mock(Traces.class);
-    when(traces.getTraces()).thenReturn(List.of(trace));
-    when(traces.getCount()).thenReturn(1);
-    when(sdk.getTraces(eq(ORG_ID), eq(APP_ID), any(TraceFilterForm.class))).thenReturn(traces);
+    when(traces.getTraces()).thenReturn(List.of());
+    when(traces.getCount()).thenReturn(0);
 
-    var vulnLight = mock(VulnLight.class);
-    when(mapper.toVulnLight(trace)).thenReturn(vulnLight);
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getTraces(
+                      anyString(),
+                      anyString(),
+                      any(TraceFilterBody.class),
+                      anyInt(),
+                      anyInt(),
+                      anyString()))
+                  .thenReturn(traces);
+            })) {
 
-    // When session filtering is used, we fetch all pages and filter in-memory
-    // For this test, we mock a single page with one trace that matches
-    var result =
-        tool.searchAppVulnerabilities(
-            APP_ID, 1, 10, null, null, null, null, null, null, null, "branch", null, null);
+      var result =
+          tool.searchAppVulnerabilities(
+              APP_ID, 1, 10, null, null, null, null, null, null, null, "branch", null, null);
 
-    // Should succeed even with session metadata name
-    assertThat(result.isSuccess()).isTrue();
+      assertThat(result.isSuccess()).isTrue();
+    }
   }
 
   @Test
   void searchAppVulnerabilities_should_accept_sessionMetadataName_and_value() throws Exception {
-    var trace = mock(Trace.class);
     var traces = mock(Traces.class);
-    when(traces.getTraces()).thenReturn(List.of(trace));
-    when(traces.getCount()).thenReturn(1);
-    when(sdk.getTraces(eq(ORG_ID), eq(APP_ID), any(TraceFilterForm.class))).thenReturn(traces);
+    when(traces.getTraces()).thenReturn(List.of());
+    when(traces.getCount()).thenReturn(0);
 
-    var vulnLight = mock(VulnLight.class);
-    when(mapper.toVulnLight(trace)).thenReturn(vulnLight);
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getTraces(
+                      anyString(),
+                      anyString(),
+                      any(TraceFilterBody.class),
+                      anyInt(),
+                      anyInt(),
+                      anyString()))
+                  .thenReturn(traces);
+            })) {
 
-    var result =
-        tool.searchAppVulnerabilities(
-            APP_ID, 1, 10, null, null, null, null, null, null, null, "branch", "main", null);
+      var result =
+          tool.searchAppVulnerabilities(
+              APP_ID, 1, 10, null, null, null, null, null, null, null, "branch", "main", null);
 
-    assertThat(result.isSuccess()).isTrue();
+      assertThat(result.isSuccess()).isTrue();
+    }
   }
 }
