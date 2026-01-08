@@ -23,15 +23,14 @@ import com.contrast.labs.ai.mcp.contrast.tool.assess.params.SearchAppVulnerabili
 import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
-import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.models.MetadataItem;
 import com.contrastsecurity.models.SessionMetadata;
 import com.contrastsecurity.models.Trace;
+import com.contrastsecurity.models.TraceFilterBody;
 import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -176,15 +175,8 @@ public class SearchAppVulnerabilitiesTool
     var appId = params.appId();
 
     if (params.needsSessionFiltering()) {
-      // Session filtering still uses TraceFilterForm for multi-page fetch
-      var filterForm = params.toTraceFilterForm();
-      filterForm.setExpand(
-          EnumSet.of(
-              TraceFilterForm.TraceExpandValue.SESSION_METADATA,
-              TraceFilterForm.TraceExpandValue.SERVER_ENVIRONMENTS,
-              TraceFilterForm.TraceExpandValue.APPLICATION));
-      return executeWithSessionFiltering(
-          sdk, orgId, appId, filterForm, params, pagination, warnings);
+      // Session filtering now uses POST endpoint with TraceFilterBody
+      return executeWithSessionFiltering(sdk, orgId, appId, params, pagination, warnings);
     } else {
       // Non-session path uses POST endpoint with TraceFilterBody
       return executeWithSdkPagination(sdk, orgId, appId, params, pagination, warnings);
@@ -227,17 +219,17 @@ public class SearchAppVulnerabilitiesTool
       ContrastSDK sdk,
       String orgId,
       String appId,
-      TraceFilterForm filterForm,
       SearchAppVulnerabilitiesParams params,
       PaginationParams pagination,
       List<String> warnings)
       throws Exception {
 
+    var sdkExtension = new SDKExtension(sdk);
+
     // Fetch agent session ID if useLatestSession requested
     String agentSessionId = null;
     if (Boolean.TRUE.equals(params.getUseLatestSession())) {
-      var extension = new SDKExtension(sdk);
-      var latestSession = extension.getLatestSessionMetadata(orgId, appId);
+      var latestSession = sdkExtension.getLatestSessionMetadata(orgId, appId);
 
       if (latestSession != null
           && latestSession.getAgentSession() != null
@@ -252,7 +244,10 @@ public class SearchAppVulnerabilitiesTool
       }
     }
 
-    // Build filter predicate for early termination optimization
+    // Build TraceFilterBody with session parameters
+    var filterBody = params.toTraceFilterBody(agentSessionId);
+
+    // Build filter predicate for in-memory filtering (case-insensitive name/value matching)
     var filterPredicate =
         buildSessionFilterPredicate(
             agentSessionId, params.getSessionMetadataName(), params.getSessionMetadataValue());
@@ -267,10 +262,10 @@ public class SearchAppVulnerabilitiesTool
             ? pagination.offset() + pagination.pageSize()
             : maxTracesForSessionFiltering;
 
-    // Fetch with early termination when enough filtered results are found
+    // Fetch with early termination using POST endpoint
     var fetchResult =
         fetchTracesWithEarlyTermination(
-            sdk, orgId, appId, filterForm, filterPredicate, targetCount);
+            sdkExtension, orgId, appId, filterBody, filterPredicate, targetCount);
 
     if (fetchResult.wasTruncated()) {
       warnings.add(
@@ -332,16 +327,17 @@ public class SearchAppVulnerabilitiesTool
 
   /** Fetches traces with early termination when enough filtered results are found. */
   private SessionFilteringResult fetchTracesWithEarlyTermination(
-      ContrastSDK sdk,
+      SDKExtension sdkExtension,
       String orgId,
       String appId,
-      TraceFilterForm filterForm,
+      TraceFilterBody filterBody,
       Predicate<Trace> filterPredicate,
       int targetCount)
       throws IOException {
 
     final int PAGE_SIZE = 500;
     final int MAX_PAGES = 100;
+    final String expand = "session_metadata,server_environments,application";
     var matchingTraces = new ArrayList<Trace>(Math.min(targetCount, 1000));
     int offset = 0;
     int pagesChecked = 0;
@@ -352,12 +348,9 @@ public class SearchAppVulnerabilitiesTool
         break;
       }
 
-      filterForm.setLimit(PAGE_SIZE);
-      filterForm.setOffset(offset);
-
       Traces pageResult;
       try {
-        pageResult = sdk.getTraces(orgId, appId, filterForm);
+        pageResult = sdkExtension.getTraces(orgId, appId, filterBody, PAGE_SIZE, offset, expand);
       } catch (Exception e) {
         String errorMsg =
             String.format(
