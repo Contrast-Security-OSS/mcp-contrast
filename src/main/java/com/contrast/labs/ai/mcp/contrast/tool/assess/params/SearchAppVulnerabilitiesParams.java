@@ -183,7 +183,7 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
    * @param agentSessionId Optional agent session ID for latest session filtering
    * @return TraceFilterBody configured with all filters including session parameters
    */
-  public TraceFilterBody toTraceFilterBody(String agentSessionId) {
+  public TraceFilterBody toTraceFilterBodyWithSessionId(String agentSessionId) {
     var body = toTraceFilterBody();
     if (agentSessionId != null) {
       body.setAgentSessionId(agentSessionId);
