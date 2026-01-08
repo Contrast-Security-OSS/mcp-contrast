@@ -315,4 +315,67 @@ class SearchAppVulnerabilitiesParamsTest {
     assertThat(body.isTracked()).isFalse();
     assertThat(body.isUntracked()).isFalse();
   }
+
+  // -- toTraceFilterBody with session filtering tests --
+
+  @Test
+  void toTraceFilterBody_should_set_agentSessionId_when_provided() {
+    var params =
+        SearchAppVulnerabilitiesParams.of(
+            VALID_APP_ID, null, null, null, null, null, null, null, null, null, null);
+
+    var body = params.toTraceFilterBody("session-abc-123");
+
+    assertThat(body.getAgentSessionId()).isEqualTo("session-abc-123");
+  }
+
+  @Test
+  void toTraceFilterBody_should_not_set_agentSessionId_when_null() {
+    var params =
+        SearchAppVulnerabilitiesParams.of(
+            VALID_APP_ID, null, null, null, null, null, null, null, null, null, null);
+
+    var body = params.toTraceFilterBody(null);
+
+    assertThat(body.getAgentSessionId()).isNull();
+  }
+
+  @Test
+  void toTraceFilterBody_should_set_metadataFilters_when_sessionMetadataName_provided() {
+    var params =
+        SearchAppVulnerabilitiesParams.of(
+            VALID_APP_ID, null, null, null, null, null, null, null, "branch", "main", null);
+
+    var body = params.toTraceFilterBody(null);
+
+    assertThat(body.getMetadataFilters()).hasSize(1);
+    assertThat(body.getMetadataFilters().get(0).getFieldID()).isEqualTo("branch");
+    assertThat(body.getMetadataFilters().get(0).getValues()).containsExactly("main");
+  }
+
+  @Test
+  void toTraceFilterBody_should_set_metadataFilters_with_empty_values_when_no_value() {
+    var params =
+        SearchAppVulnerabilitiesParams.of(
+            VALID_APP_ID, null, null, null, null, null, null, null, "branch", null, null);
+
+    var body = params.toTraceFilterBody(null);
+
+    assertThat(body.getMetadataFilters()).hasSize(1);
+    assertThat(body.getMetadataFilters().get(0).getFieldID()).isEqualTo("branch");
+    assertThat(body.getMetadataFilters().get(0).getValues()).isEmpty();
+  }
+
+  @Test
+  void toTraceFilterBody_should_combine_agentSessionId_and_metadataFilters() {
+    var params =
+        SearchAppVulnerabilitiesParams.of(
+            VALID_APP_ID, null, null, null, null, null, null, null, "branch", "main", null);
+
+    var body = params.toTraceFilterBody("session-xyz");
+
+    assertThat(body.getAgentSessionId()).isEqualTo("session-xyz");
+    assertThat(body.getMetadataFilters()).hasSize(1);
+    assertThat(body.getMetadataFilters().get(0).getFieldID()).isEqualTo("branch");
+  }
 }
