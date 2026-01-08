@@ -21,6 +21,7 @@ import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.http.ServerEnvironment;
 import com.contrastsecurity.http.TraceFilterForm;
 import com.contrastsecurity.models.TraceFilterBody;
+import com.contrastsecurity.models.TraceMetadataFilter;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
@@ -173,6 +174,27 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
     }
     if (vulnTags != null) {
       body.setFilterTags(vulnTags);
+    }
+    return body;
+  }
+
+  /**
+   * Convert to SDK TraceFilterBody for POST endpoint API calls with session filtering.
+   *
+   * @param agentSessionId Optional agent session ID for latest session filtering
+   * @return TraceFilterBody configured with all filters including session parameters
+   */
+  public TraceFilterBody toTraceFilterBody(String agentSessionId) {
+    var body = toTraceFilterBody();
+    if (agentSessionId != null) {
+      body.setAgentSessionId(agentSessionId);
+    }
+    if (sessionMetadataName != null && !sessionMetadataName.isBlank()) {
+      var metadataFilter =
+          sessionMetadataValue != null
+              ? new TraceMetadataFilter(sessionMetadataName, sessionMetadataValue)
+              : new TraceMetadataFilter(sessionMetadataName, List.of());
+      body.setMetadataFilters(List.of(metadataFilter));
     }
     return body;
   }
