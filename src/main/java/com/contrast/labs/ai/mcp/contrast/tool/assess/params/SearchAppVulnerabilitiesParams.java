@@ -15,16 +15,17 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.assess.params;
 
+import com.contrast.labs.ai.mcp.contrast.sdkextension.ExtendedTraceFilterBody;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
+import com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants;
 import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.http.ServerEnvironment;
-import com.contrastsecurity.models.TraceFilterBody;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.springframework.util.StringUtils;
 
 /**
@@ -44,14 +45,6 @@ import org.springframework.util.StringUtils;
  * }</pre>
  */
 public class SearchAppVulnerabilitiesParams extends BaseToolParams {
-
-  /** Valid status values for vulnerability filtering. */
-  public static final Set<String> VALID_STATUSES =
-      Set.of("Reported", "Suspicious", "Confirmed", "Remediated", "Fixed");
-
-  /** Default statuses - excludes Fixed and Remediated to focus on actionable items. */
-  public static final List<String> DEFAULT_STATUSES =
-      List.of("Reported", "Suspicious", "Confirmed");
 
   private String appId;
   private EnumSet<RuleSeverity> severities;
@@ -107,9 +100,9 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
 
     params.statuses =
         ctx.stringListParam(statusesParam, "statuses")
-            .allowedValues(VALID_STATUSES)
+            .allowedValues(ValidationConstants.VALID_VULN_STATUSES)
             .defaultTo(
-                DEFAULT_STATUSES,
+                ValidationConstants.DEFAULT_VULN_STATUSES,
                 "Showing actionable vulnerabilities only (excluding Fixed and Remediated). "
                     + "To see all statuses, specify statuses parameter explicitly.")
             .get();
@@ -150,15 +143,18 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
   }
 
   /**
-   * Convert to SDK TraceFilterBody for POST endpoint API calls.
+   * Convert to ExtendedTraceFilterBody for POST endpoint API calls.
    *
-   * @return TraceFilterBody configured with all filters
+   * @return ExtendedTraceFilterBody configured with all filters including status
    */
-  public TraceFilterBody toTraceFilterBody() {
-    var body = new TraceFilterBody();
+  public ExtendedTraceFilterBody toTraceFilterBody() {
+    var body = new ExtendedTraceFilterBody();
     // Note: tracked/untracked NOT set - primitive defaults (false) mean "return all"
     if (severities != null) {
       body.setSeverities(severities.stream().toList());
+    }
+    if (statuses != null) {
+      body.setStatus(new HashSet<>(statuses));
     }
     if (vulnTypes != null) {
       body.setVulnTypes(vulnTypes);

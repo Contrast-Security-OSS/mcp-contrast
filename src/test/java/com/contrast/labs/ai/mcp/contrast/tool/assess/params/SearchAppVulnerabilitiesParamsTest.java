@@ -17,6 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.assess.params;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.contrast.labs.ai.mcp.contrast.sdkextension.ExtendedTraceFilterBody;
 import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.http.ServerEnvironment;
 import java.util.List;
@@ -300,5 +301,17 @@ class SearchAppVulnerabilitiesParamsTest {
     // With no filters and tracked/untracked both false, API returns ALL vulnerabilities
     assertThat(body.isTracked()).isFalse();
     assertThat(body.isUntracked()).isFalse();
+  }
+
+  @Test
+  void toTraceFilterBody_should_return_ExtendedTraceFilterBody_with_status() {
+    var params =
+        SearchAppVulnerabilitiesParams.of(
+            VALID_APP_ID, null, "Reported,Confirmed", null, null, null, null, null, null, null);
+
+    var body = params.toTraceFilterBody();
+
+    assertThat(body).isInstanceOf(ExtendedTraceFilterBody.class);
+    assertThat(body.getStatus()).containsExactlyInAnyOrder("Reported", "Confirmed");
   }
 }
