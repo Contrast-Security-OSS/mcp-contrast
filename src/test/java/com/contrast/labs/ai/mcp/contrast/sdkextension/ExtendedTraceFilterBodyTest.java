@@ -16,6 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.http.ServerEnvironment;
@@ -168,5 +169,12 @@ class ExtendedTraceFilterBodyTest {
     assertThat(result.getMetadataFilters().get(1).getFieldID()).isEqualTo("90");
     assertThat(result.getMetadataFilters().get(1).getValues())
         .containsExactly("feature-1", "feature-2");
+  }
+
+  @Test
+  void withSessionFilters_should_reject_null_source() {
+    assertThatNullPointerException()
+        .isThrownBy(() -> ExtendedTraceFilterBody.withSessionFilters(null, null, null))
+        .withMessage("source TraceFilterBody must not be null");
   }
 }
