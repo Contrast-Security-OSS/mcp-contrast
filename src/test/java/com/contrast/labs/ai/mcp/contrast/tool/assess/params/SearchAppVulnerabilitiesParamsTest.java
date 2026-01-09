@@ -258,35 +258,6 @@ class SearchAppVulnerabilitiesParamsTest {
                     && e.contains("mutually exclusive"));
   }
 
-  // -- needsSessionFiltering tests --
-
-  @Test
-  void needsSessionFiltering_should_return_true_when_useLatestSession() {
-    var params =
-        SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, null, true);
-
-    assertThat(params.needsSessionFiltering()).isTrue();
-  }
-
-  @Test
-  void needsSessionFiltering_should_return_true_when_sessionMetadataFilters_set() {
-    var params =
-        SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, "{\"branch\":\"main\"}", null);
-
-    assertThat(params.needsSessionFiltering()).isTrue();
-  }
-
-  @Test
-  void needsSessionFiltering_should_return_false_when_no_session_params() {
-    var params =
-        SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, null, null);
-
-    assertThat(params.needsSessionFiltering()).isFalse();
-  }
-
   // -- toTraceFilterBody tests (POST endpoint) --
 
   @Test

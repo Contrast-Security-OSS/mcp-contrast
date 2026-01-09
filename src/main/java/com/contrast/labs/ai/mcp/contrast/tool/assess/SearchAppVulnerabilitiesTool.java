@@ -175,25 +175,42 @@ public class SearchAppVulnerabilitiesTool
     var sdk = getContrastSDK();
     var orgId = getOrgId();
     var appId = params.appId();
-
-    if (params.needsSessionFiltering()) {
-      return executeWithInMemorySessionFiltering(sdk, orgId, appId, params, pagination, warnings);
-    } else {
-      return executeWithServerSidePagination(sdk, orgId, appId, params, pagination, warnings);
-    }
-  }
-
-  private ExecutionResult<VulnLight> executeWithServerSidePagination(
-      ContrastSDK sdk,
-      String orgId,
-      String appId,
-      SearchAppVulnerabilitiesParams params,
-      PaginationParams pagination,
-      List<String> warnings)
-      throws Exception {
-
     var sdkExtension = new SDKExtension(sdk);
-    var filterBody = params.toTraceFilterBody();
+
+    // Handle useLatestSession - fetch agent session ID
+    String agentSessionId = null;
+    if (Boolean.TRUE.equals(params.getUseLatestSession())) {
+      var latestSession = sdkExtension.getLatestSessionMetadata(orgId, appId);
+      if (latestSession != null
+          && latestSession.getAgentSession() != null
+          && latestSession.getAgentSession().getAgentSessionId() != null) {
+        agentSessionId = latestSession.getAgentSession().getAgentSessionId();
+        log.debug("Using latest session ID: {}", agentSessionId);
+      } else {
+        warnings.add(
+            "No sessions found for this application. Returning all vulnerabilities across all"
+                + " sessions for this application.");
+        log.warn("No sessions found for application: {}", appId);
+      }
+    }
+
+    // Handle sessionMetadataFilters - resolve field names to numeric IDs
+    List<TraceMetadataFilter> resolvedFilters = null;
+    var sessionMetadataFilters = params.getSessionMetadataFilters();
+    if (sessionMetadataFilters != null && !sessionMetadataFilters.isEmpty()) {
+      resolvedFilters = resolveSessionMetadataFilters(sdk, orgId, appId, sessionMetadataFilters);
+      log.debug("Resolved {} session metadata filters", resolvedFilters.size());
+    }
+
+    // Build filter body - use ExtendedTraceFilterBody if session params present
+    TraceFilterBody filterBody;
+    if (agentSessionId != null || resolvedFilters != null) {
+      filterBody =
+          ExtendedTraceFilterBody.withSessionFilters(
+              params.toTraceFilterBody(), agentSessionId, resolvedFilters);
+    } else {
+      filterBody = params.toTraceFilterBody();
+    }
 
     var expand =
         EnumSet.of(

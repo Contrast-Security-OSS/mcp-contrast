@@ -178,16 +178,6 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
     return body;
   }
 
-  /**
-   * Returns true if session-based filtering is needed.
-   *
-   * @return true if useLatestSession or sessionMetadataFilters is specified
-   */
-  public boolean needsSessionFiltering() {
-    return Boolean.TRUE.equals(useLatestSession)
-        || (sessionMetadataFilters != null && !sessionMetadataFilters.isEmpty());
-  }
-
   public String appId() {
     return appId;
   }
