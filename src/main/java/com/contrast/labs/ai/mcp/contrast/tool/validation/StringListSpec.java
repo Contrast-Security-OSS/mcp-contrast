@@ -41,7 +41,6 @@ public class StringListSpec {
   private String defaultReason;
   private Set<String> allowedValues;
   private boolean convertToUpperCase;
-  private boolean caseInsensitive;
 
   StringListSpec(ToolValidationContext ctx, String value, String name) {
     this.ctx = ctx;
@@ -63,9 +62,10 @@ public class StringListSpec {
   }
 
   /**
-   * Sets allowed values. Invalid items are added as errors.
+   * Sets allowed values with case-insensitive matching. Input values are normalized to the
+   * canonical form (e.g., "reported" becomes "Reported"). Invalid items are added as errors.
    *
-   * @param values set of valid values
+   * @param values set of valid values in canonical form
    * @return this for fluent chaining
    */
   public StringListSpec allowedValues(Set<String> values) {
@@ -80,17 +80,6 @@ public class StringListSpec {
    */
   public StringListSpec toUpperCase() {
     this.convertToUpperCase = true;
-    return this;
-  }
-
-  /**
-   * Enables case-insensitive validation against allowedValues. When enabled, values are normalized
-   * to match the canonical form in allowedValues (e.g., "reported" becomes "Reported").
-   *
-   * @return this for fluent chaining
-   */
-  public StringListSpec caseInsensitive() {
-    this.caseInsensitive = true;
     return this;
   }
 
@@ -116,38 +105,26 @@ public class StringListSpec {
     }
 
     if (allowedValues != null) {
-      if (caseInsensitive) {
-        // Build lowercase -> canonical mapping for case-insensitive matching
-        var canonicalMap = new java.util.HashMap<String, String>();
-        for (String allowed : allowedValues) {
-          canonicalMap.put(allowed.toLowerCase(), allowed);
-        }
+      // Build lowercase -> canonical mapping for case-insensitive matching
+      var canonicalMap = new java.util.HashMap<String, String>();
+      for (String allowed : allowedValues) {
+        canonicalMap.put(allowed.toLowerCase(), allowed);
+      }
 
-        // Validate and normalize each item
-        var normalized = new java.util.ArrayList<String>();
-        for (String item : parsed) {
-          String canonical = canonicalMap.get(item.toLowerCase());
-          if (canonical != null) {
-            normalized.add(canonical);
-          } else {
-            ctx.addError(
-                String.format(
-                    "Invalid %s: '%s'. Valid values: %s",
-                    name, item, String.join(", ", allowedValues)));
-          }
-        }
-        parsed = normalized;
-      } else {
-        // Case-sensitive validation
-        for (String item : parsed) {
-          if (!allowedValues.contains(item)) {
-            ctx.addError(
-                String.format(
-                    "Invalid %s: '%s'. Valid values: %s",
-                    name, item, String.join(", ", allowedValues)));
-          }
+      // Validate and normalize each item
+      var normalized = new java.util.ArrayList<String>();
+      for (String item : parsed) {
+        String canonical = canonicalMap.get(item.toLowerCase());
+        if (canonical != null) {
+          normalized.add(canonical);
+        } else {
+          ctx.addError(
+              String.format(
+                  "Invalid %s: '%s'. Valid values: %s",
+                  name, item, String.join(", ", allowedValues)));
         }
       }
+      parsed = normalized;
     }
 
     return ctx.isValid() ? List.copyOf(parsed) : null;
