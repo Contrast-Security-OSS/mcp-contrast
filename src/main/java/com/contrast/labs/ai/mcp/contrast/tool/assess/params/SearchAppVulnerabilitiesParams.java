@@ -18,13 +18,13 @@ package com.contrast.labs.ai.mcp.contrast.tool.assess.params;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.ExtendedTraceFilterBody;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
+import com.contrast.labs.ai.mcp.contrast.tool.validation.UnresolvedMetadataFilter;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants;
 import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.http.ServerEnvironment;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import org.springframework.util.StringUtils;
 
@@ -54,7 +54,7 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
   private Date lastSeenAfter;
   private Date lastSeenBefore;
   private List<String> vulnTags;
-  private Map<String, Object> sessionMetadataFilters;
+  private List<UnresolvedMetadataFilter> sessionMetadataFilters;
   private Boolean useLatestSession;
 
   /** Private constructor - use static factory method {@link #of}. */
@@ -206,7 +206,7 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
     return vulnTags;
   }
 
-  public Map<String, Object> getSessionMetadataFilters() {
+  public List<UnresolvedMetadataFilter> getSessionMetadataFilters() {
     return sessionMetadataFilters;
   }
 

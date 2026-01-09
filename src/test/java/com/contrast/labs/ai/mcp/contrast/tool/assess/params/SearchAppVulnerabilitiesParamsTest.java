@@ -18,9 +18,9 @@ package com.contrast.labs.ai.mcp.contrast.tool.assess.params;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.ExtendedTraceFilterBody;
+import com.contrast.labs.ai.mcp.contrast.tool.validation.UnresolvedMetadataFilter;
 import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.http.ServerEnvironment;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class SearchAppVulnerabilitiesParamsTest {
@@ -148,7 +148,9 @@ class SearchAppVulnerabilitiesParamsTest {
             VALID_APP_ID, null, null, null, null, null, null, null, "{\"branch\":\"main\"}", null);
 
     assertThat(params.isValid()).isTrue();
-    assertThat(params.getSessionMetadataFilters()).containsEntry("branch", "main");
+    assertThat(params.getSessionMetadataFilters()).hasSize(1);
+    assertThat(params.getSessionMetadataFilters().get(0).fieldName()).isEqualTo("branch");
+    assertThat(params.getSessionMetadataFilters().get(0).values()).containsExactly("main");
   }
 
   @Test
@@ -167,9 +169,11 @@ class SearchAppVulnerabilitiesParamsTest {
             null);
 
     assertThat(params.isValid()).isTrue();
-    assertThat(params.getSessionMetadataFilters())
-        .containsEntry("developer", "Ellen")
-        .containsEntry("commit", "100");
+    assertThat(params.getSessionMetadataFilters()).hasSize(2);
+    // LinkedHashMap preserves order
+    var filters = params.getSessionMetadataFilters();
+    assertThat(filters.stream().map(UnresolvedMetadataFilter::fieldName))
+        .containsExactly("developer", "commit");
   }
 
   @Test
@@ -188,9 +192,9 @@ class SearchAppVulnerabilitiesParamsTest {
             null);
 
     assertThat(params.isValid()).isTrue();
-    @SuppressWarnings("unchecked")
-    var developers = (List<String>) params.getSessionMetadataFilters().get("developer");
-    assertThat(developers).containsExactly("Ellen", "Sam");
+    assertThat(params.getSessionMetadataFilters()).hasSize(1);
+    assertThat(params.getSessionMetadataFilters().get(0).fieldName()).isEqualTo("developer");
+    assertThat(params.getSessionMetadataFilters().get(0).values()).containsExactly("Ellen", "Sam");
   }
 
   @Test

@@ -17,7 +17,6 @@ package com.contrast.labs.ai.mcp.contrast.tool.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class MetadataJsonFilterSpecTest {
@@ -26,7 +25,10 @@ class MetadataJsonFilterSpecTest {
   void get_should_parse_simple_key_value() {
     var ctx = new ToolValidationContext();
     var result = ctx.metadataJsonFilterParam("{\"key\":\"value\"}", "test").get();
-    assertThat(result).containsEntry("key", "value");
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).fieldName()).isEqualTo("key");
+    assertThat(result.get(0).values()).containsExactly("value");
     assertThat(ctx.isValid()).isTrue();
   }
 
@@ -34,10 +36,11 @@ class MetadataJsonFilterSpecTest {
   void get_should_parse_array_values() {
     var ctx = new ToolValidationContext();
     var result = ctx.metadataJsonFilterParam("{\"key\":[\"a\",\"b\"]}", "test").get();
-    assertThat(result).containsKey("key");
-    @SuppressWarnings("unchecked")
-    var values = (List<String>) result.get("key");
-    assertThat(values).containsExactly("a", "b");
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).fieldName()).isEqualTo("key");
+    assertThat(result.get(0).values()).containsExactly("a", "b");
+    assertThat(ctx.isValid()).isTrue();
   }
 
   @Test
@@ -73,7 +76,10 @@ class MetadataJsonFilterSpecTest {
   void get_should_convert_number_to_string() {
     var ctx = new ToolValidationContext();
     var result = ctx.metadataJsonFilterParam("{\"count\":42}", "test").get();
-    assertThat(result.get("count")).isEqualTo("42");
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).fieldName()).isEqualTo("count");
+    assertThat(result.get(0).values()).containsExactly("42");
     assertThat(ctx.isValid()).isTrue();
   }
 
@@ -81,9 +87,10 @@ class MetadataJsonFilterSpecTest {
   void get_should_convert_number_in_array_to_string() {
     var ctx = new ToolValidationContext();
     var result = ctx.metadataJsonFilterParam("{\"ids\":[1,2,3]}", "test").get();
-    @SuppressWarnings("unchecked")
-    var ids = (List<String>) result.get("ids");
-    assertThat(ids).containsExactly("1", "2", "3");
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).fieldName()).isEqualTo("ids");
+    assertThat(result.get(0).values()).containsExactly("1", "2", "3");
     assertThat(ctx.isValid()).isTrue();
   }
 
@@ -112,12 +119,27 @@ class MetadataJsonFilterSpecTest {
     var result =
         ctx.metadataJsonFilterParam("{\"str\":\"val\",\"arr\":[\"a\",\"b\"],\"num\":123}", "test")
             .get();
-    assertThat(result.get("str")).isEqualTo("val");
-    @SuppressWarnings("unchecked")
-    var arr = (List<String>) result.get("arr");
-    assertThat(arr).containsExactly("a", "b");
-    assertThat(result.get("num")).isEqualTo("123");
+
+    assertThat(result).hasSize(3);
+    // Note: LinkedHashMap preserves insertion order
+    assertThat(result.get(0).fieldName()).isEqualTo("str");
+    assertThat(result.get(0).values()).containsExactly("val");
+    assertThat(result.get(1).fieldName()).isEqualTo("arr");
+    assertThat(result.get(1).values()).containsExactly("a", "b");
+    assertThat(result.get(2).fieldName()).isEqualTo("num");
+    assertThat(result.get(2).values()).containsExactly("123");
     assertThat(ctx.isValid()).isTrue();
+  }
+
+  @Test
+  void get_should_preserve_insertion_order() {
+    var ctx = new ToolValidationContext();
+    var result =
+        ctx.metadataJsonFilterParam("{\"branch\":\"main\",\"developer\":\"Ellen\"}", "test").get();
+
+    assertThat(result).hasSize(2);
+    assertThat(result.get(0).fieldName()).isEqualTo("branch");
+    assertThat(result.get(1).fieldName()).isEqualTo("developer");
   }
 
   // Tests for mutuallyExclusive method on ToolValidationContext

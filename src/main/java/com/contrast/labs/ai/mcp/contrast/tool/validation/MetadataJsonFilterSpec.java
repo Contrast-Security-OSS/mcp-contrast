@@ -19,15 +19,14 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.springframework.util.StringUtils;
 
 /**
- * Fluent validation spec for metadata filter JSON parameters. Parses JSON to Map<String, Object>
- * where values are String or List<String>. Used for session metadata filters and can be extended
- * for application metadata.
+ * Fluent validation spec for metadata filter JSON parameters. Parses JSON to a list of {@link
+ * UnresolvedMetadataFilter} records where each filter has a field name and list of values. Used for
+ * session metadata filters and can be extended for application metadata.
  */
 public class MetadataJsonFilterSpec {
 
@@ -45,9 +44,9 @@ public class MetadataJsonFilterSpec {
   /**
    * Parses the JSON value and validates its structure.
    *
-   * @return Map of field names to values (String or List<String>), or null if empty/invalid
+   * @return List of UnresolvedMetadataFilter records, or null if empty/invalid
    */
-  public Map<String, Object> get() {
+  public List<UnresolvedMetadataFilter> get() {
     if (!StringUtils.hasText(value)) {
       return null;
     }
@@ -58,39 +57,14 @@ public class MetadataJsonFilterSpec {
         return null;
       }
 
-      Map<String, Object> result = new LinkedHashMap<>();
-      List<String> invalidEntries = new ArrayList<>();
+      var result = new ArrayList<UnresolvedMetadataFilter>();
+      var invalidEntries = new ArrayList<String>();
 
       for (var entry : rawMap.entrySet()) {
-        var key = entry.getKey();
-        var val = entry.getValue();
-
-        if (val instanceof String) {
-          result.put(key, val);
-        } else if (val instanceof Number) {
-          result.put(key, formatNumber((Number) val));
-        } else if (val instanceof List) {
-          // Validate array contains only strings/numbers
-          List<String> stringList = new ArrayList<>();
-          boolean valid = true;
-          for (Object item : (List<?>) val) {
-            if (item instanceof String) {
-              stringList.add((String) item);
-            } else if (item instanceof Number) {
-              stringList.add(formatNumber((Number) item));
-            } else if (item != null) {
-              valid = false;
-              break;
-            }
-          }
-          if (valid) {
-            result.put(key, stringList);
-          } else {
-            invalidEntries.add(String.format("'%s' (array contains non-string values)", key));
-          }
-        } else if (val != null) {
-          // Reject complex objects
-          invalidEntries.add(String.format("'%s' (expected string or array of strings)", key));
+        var fieldName = entry.getKey();
+        var values = parseValues(entry.getValue(), fieldName, invalidEntries);
+        if (values != null) {
+          result.add(new UnresolvedMetadataFilter(fieldName, values));
         }
       }
 
@@ -103,7 +77,7 @@ public class MetadataJsonFilterSpec {
         return null;
       }
 
-      return result;
+      return result.isEmpty() ? null : List.copyOf(result);
     } catch (JsonSyntaxException e) {
       ctx.addError(
           String.format(
@@ -112,6 +86,30 @@ public class MetadataJsonFilterSpec {
               name, e.getMessage()));
       return null;
     }
+  }
+
+  private List<String> parseValues(Object val, String fieldName, List<String> invalidEntries) {
+    if (val instanceof String s) {
+      return List.of(s);
+    } else if (val instanceof Number n) {
+      return List.of(formatNumber(n));
+    } else if (val instanceof List<?> list) {
+      var strings = new ArrayList<String>();
+      for (Object item : list) {
+        if (item instanceof String s) {
+          strings.add(s);
+        } else if (item instanceof Number n) {
+          strings.add(formatNumber(n));
+        } else if (item != null) {
+          invalidEntries.add(String.format("'%s' (array contains non-string values)", fieldName));
+          return null;
+        }
+      }
+      return strings.isEmpty() ? null : List.copyOf(strings);
+    } else if (val != null) {
+      invalidEntries.add(String.format("'%s' (expected string or array of strings)", fieldName));
+    }
+    return null;
   }
 
   /**
