@@ -110,6 +110,18 @@ public class ToolValidationContext implements ToolParams {
   }
 
   /**
+   * Creates a fluent spec for metadata filter JSON parameter validation. Used for session metadata
+   * and application metadata filters.
+   *
+   * @param value JSON string (may be null or empty)
+   * @param name the parameter name for error messages
+   * @return MetadataJsonFilterSpec for fluent configuration
+   */
+  public MetadataJsonFilterSpec metadataJsonFilterParam(String value, String name) {
+    return new MetadataJsonFilterSpec(this, value, name);
+  }
+
+  /**
    * Validates that a date range is logically consistent (start before end).
    *
    * @param start the start date (may be null)
@@ -194,6 +206,27 @@ public class ToolValidationContext implements ToolParams {
     boolean anyPresent = Arrays.stream(values).anyMatch(StringUtils::hasText);
     if (!anyPresent) {
       errors.add(message);
+    }
+  }
+
+  /**
+   * Validates that two parameters are mutually exclusive (only one can be specified).
+   *
+   * @param firstPresent whether the first parameter is present
+   * @param firstName the first parameter name
+   * @param secondPresent whether the second parameter is present
+   * @param secondName the second parameter name
+   * @param reason explanation of why they are mutually exclusive
+   */
+  public void mutuallyExclusive(
+      boolean firstPresent,
+      String firstName,
+      boolean secondPresent,
+      String secondName,
+      String reason) {
+    if (firstPresent && secondPresent) {
+      errors.add(
+          String.format("%s and %s are mutually exclusive: %s", firstName, secondName, reason));
     }
   }
 
