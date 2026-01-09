@@ -18,6 +18,7 @@ package com.contrast.labs.ai.mcp.contrast.sdkextension;
 import com.contrastsecurity.models.TraceFilterBody;
 import com.contrastsecurity.models.TraceMetadataFilter;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Extended TraceFilterBody that provides helper methods for building filters with session
@@ -39,6 +40,7 @@ public class ExtendedTraceFilterBody extends TraceFilterBody {
    */
   public static ExtendedTraceFilterBody withSessionFilters(
       TraceFilterBody source, String agentSessionId, List<TraceMetadataFilter> metadataFilters) {
+    Objects.requireNonNull(source, "source TraceFilterBody must not be null");
 
     var extended = new ExtendedTraceFilterBody();
 
