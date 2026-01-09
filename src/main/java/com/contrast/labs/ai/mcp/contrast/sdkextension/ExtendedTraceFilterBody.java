@@ -16,18 +16,13 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension;
 
 import com.contrastsecurity.models.TraceFilterBody;
-import com.contrastsecurity.models.TraceMetadataFilter;
-import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 /**
- * Extended TraceFilterBody that provides helper methods for building filters with session
- * parameters (agentSessionId and metadata filters).
+ * Extended TraceFilterBody that adds fields not present in the SDK's base class.
  *
- * <p>This class exists because TeamServer requires numeric field IDs for metadata filtering, but
- * users provide human-readable field names. The resolution happens in the tool layer, and this
- * class accepts the already-resolved filters.
+ * <p>The SDK's TraceFilterBody lacks the 'status' field that TeamServer's API supports. This class
+ * adds it. The base class already has agentSessionId and metadataFilters fields.
  */
 public class ExtendedTraceFilterBody extends TraceFilterBody {
 
@@ -39,53 +34,5 @@ public class ExtendedTraceFilterBody extends TraceFilterBody {
 
   public void setStatus(Set<String> status) {
     this.status = status;
-  }
-
-  /**
-   * Creates an ExtendedTraceFilterBody from a base filter body with session parameters.
-   *
-   * @param source Base filter body with standard filters (severities, environments, etc.)
-   * @param agentSessionId Agent session ID for latest session filtering (nullable)
-   * @param metadataFilters List of metadata filters with resolved field IDs (nullable)
-   * @return Extended filter body with all parameters set
-   */
-  public static ExtendedTraceFilterBody withSessionFilters(
-      TraceFilterBody source, String agentSessionId, List<TraceMetadataFilter> metadataFilters) {
-    Objects.requireNonNull(source, "source TraceFilterBody must not be null");
-
-    var extended = new ExtendedTraceFilterBody();
-
-    // Copy base filters from source
-    if (source.getSeverities() != null) {
-      extended.setSeverities(source.getSeverities());
-    }
-    if (source.getVulnTypes() != null) {
-      extended.setVulnTypes(source.getVulnTypes());
-    }
-    if (source.getEnvironments() != null) {
-      extended.setEnvironments(source.getEnvironments());
-    }
-    if (source.getStartDate() != null) {
-      extended.setStartDate(source.getStartDate());
-    }
-    if (source.getEndDate() != null) {
-      extended.setEndDate(source.getEndDate());
-    }
-    if (source.getFilterTags() != null) {
-      extended.setFilterTags(source.getFilterTags());
-    }
-    extended.setTracked(source.isTracked());
-    extended.setUntracked(source.isUntracked());
-
-    // Add session parameters
-    if (agentSessionId != null) {
-      extended.setAgentSessionId(agentSessionId);
-    }
-
-    if (metadataFilters != null && !metadataFilters.isEmpty()) {
-      extended.setMetadataFilters(metadataFilters);
-    }
-
-    return extended;
   }
 }
