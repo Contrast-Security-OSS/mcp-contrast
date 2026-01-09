@@ -101,7 +101,6 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
     params.statuses =
         ctx.stringListParam(statusesParam, "statuses")
             .allowedValues(ValidationConstants.VALID_VULN_STATUSES)
-            .caseInsensitive()
             .defaultTo(
                 ValidationConstants.DEFAULT_VULN_STATUSES,
                 "Showing actionable vulnerabilities only (excluding Fixed and Remediated). "
