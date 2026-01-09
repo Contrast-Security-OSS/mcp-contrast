@@ -23,10 +23,10 @@ import com.contrast.labs.ai.mcp.contrast.tool.assess.params.SearchAppVulnerabili
 import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.validation.UnresolvedMetadataFilter;
 import com.contrastsecurity.http.TraceFilterForm.TraceExpandValue;
 import com.contrastsecurity.models.TraceMetadataFilter;
 import com.contrastsecurity.sdk.ContrastSDK;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -212,53 +212,26 @@ public class SearchAppVulnerabilitiesTool
   }
 
   /**
-   * Normalizes a filter value to a List of Strings. Handles both single String values and
-   * List<String> values.
-   */
-  @SuppressWarnings("unchecked")
-  private List<String> normalizeFilterValue(Object value) {
-    if (value instanceof String) {
-      return List.of((String) value);
-    } else if (value instanceof List) {
-      return (List<String>) value;
-    }
-    return List.of();
-  }
-
-  /**
    * Resolves session metadata filter names to numeric IDs and builds TraceMetadataFilter list.
    *
    * @param sdk ContrastSDK instance
    * @param orgId Organization ID
    * @param appId Application ID
-   * @param filters Map of field names to values (from parsed JSON)
+   * @param filters List of unresolved metadata filters (from parsed JSON)
    * @return List of TraceMetadataFilter with resolved field IDs
    * @throws IllegalArgumentException if any field name is not found
    */
   private List<TraceMetadataFilter> resolveSessionMetadataFilters(
-      ContrastSDK sdk, String orgId, String appId, Map<String, Object> filters) throws Exception {
+      ContrastSDK sdk, String orgId, String appId, List<UnresolvedMetadataFilter> filters)
+      throws Exception {
 
-    // Build field name to ID mapping (case-insensitive)
     var fieldNameToId = buildFieldNameToIdMapping(sdk, orgId, appId);
 
-    var result = new ArrayList<TraceMetadataFilter>();
-    var notFoundFields = new ArrayList<String>();
-
-    for (var entry : filters.entrySet()) {
-      var fieldName = entry.getKey();
-      var fieldId = fieldNameToId.get(fieldName.toLowerCase());
-
-      if (fieldId == null) {
-        notFoundFields.add(fieldName);
-        continue;
-      }
-
-      // Convert value to List<String>
-      var values = normalizeFilterValue(entry.getValue());
-      result.add(new TraceMetadataFilter(fieldId, values));
-
-      log.debug("Resolved session metadata field '{}' to ID '{}'", fieldName, fieldId);
-    }
+    var notFoundFields =
+        filters.stream()
+            .map(UnresolvedMetadataFilter::fieldName)
+            .filter(name -> !fieldNameToId.containsKey(name.toLowerCase()))
+            .toList();
 
     if (!notFoundFields.isEmpty()) {
       throw new IllegalArgumentException(
@@ -268,7 +241,14 @@ public class SearchAppVulnerabilitiesTool
               appId, String.join(", ", notFoundFields)));
     }
 
-    return result;
+    return filters.stream()
+        .map(
+            f -> {
+              var fieldId = fieldNameToId.get(f.fieldName().toLowerCase());
+              log.debug("Resolved session metadata field '{}' to ID '{}'", f.fieldName(), fieldId);
+              return new TraceMetadataFilter(fieldId, f.values());
+            })
+        .toList();
   }
 
   /**
