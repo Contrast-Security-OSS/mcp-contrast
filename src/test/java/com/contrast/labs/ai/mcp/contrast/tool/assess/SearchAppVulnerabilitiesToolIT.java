@@ -114,7 +114,7 @@ public class SearchAppVulnerabilitiesToolIT
   void searchAppVulnerabilities_should_return_validation_error_for_missing_appId() {
     var result =
         searchAppVulnerabilitiesTool.searchAppVulnerabilities(
-            null, 1, 10, null, null, null, null, null, null, null, null, null, null);
+            null, 1, 10, null, null, null, null, null, null, null, null, null);
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).anyMatch(e -> e.contains("appId") && e.contains("required"));
@@ -134,7 +134,7 @@ public class SearchAppVulnerabilitiesToolIT
 
     var response =
         searchAppVulnerabilitiesTool.searchAppVulnerabilities(
-            appId, 1, 10, null, null, null, null, null, null, null, null, null, null);
+            appId, 1, 10, null, null, null, null, null, null, null, null, null);
 
     assertThat(response).isNotNull();
     assertThat(response.isSuccess()).isTrue();
@@ -161,7 +161,7 @@ public class SearchAppVulnerabilitiesToolIT
 
     var response =
         searchAppVulnerabilitiesTool.searchAppVulnerabilities(
-            appId, 1, 50, null, null, null, null, null, null, null, null, null, null);
+            appId, 1, 50, null, null, null, null, null, null, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.isSuccess()).isTrue();
@@ -211,9 +211,7 @@ public class SearchAppVulnerabilitiesToolIT
 
     var response =
         searchAppVulnerabilitiesTool.searchAppVulnerabilities(
-            appId, 1, 50, null, null, null, null, null, null, null, null, // sessionMetadataName
-            null, // sessionMetadataValue
-            true); // useLatestSession
+            appId, 1, 50, null, null, null, null, null, null, null, null, true);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.isSuccess()).isTrue();
@@ -264,7 +262,7 @@ public class SearchAppVulnerabilitiesToolIT
 
     var response =
         searchAppVulnerabilitiesTool.searchAppVulnerabilities(
-            appId, 1, 10, "CRITICAL,HIGH", null, null, null, null, null, null, null, null, null);
+            appId, 1, 10, "CRITICAL,HIGH", null, null, null, null, null, null, null, null);
 
     assertThat(response.isSuccess()).isTrue();
 
@@ -293,7 +291,7 @@ public class SearchAppVulnerabilitiesToolIT
     // First page
     var page1 =
         searchAppVulnerabilitiesTool.searchAppVulnerabilities(
-            appId, 1, 5, null, null, null, null, null, null, null, null, null, null);
+            appId, 1, 5, null, null, null, null, null, null, null, null, null);
 
     assertThat(page1.isSuccess()).isTrue();
 
@@ -301,7 +299,7 @@ public class SearchAppVulnerabilitiesToolIT
     if (page1.hasMorePages()) {
       var page2 =
           searchAppVulnerabilitiesTool.searchAppVulnerabilities(
-              appId, 2, 5, null, null, null, null, null, null, null, null, null, null);
+              appId, 2, 5, null, null, null, null, null, null, null, null, null);
 
       assertThat(page2.isSuccess()).isTrue();
       assertThat(page2.page()).isEqualTo(2);
@@ -313,7 +311,7 @@ public class SearchAppVulnerabilitiesToolIT
   }
 
   @Test
-  void searchAppVulnerabilities_should_reject_sessionMetadataValue_without_name() {
+  void searchAppVulnerabilities_should_reject_invalid_sessionMetadataFilters_json() {
     var appsResponse = searchApplicationsTool.searchApplications(1, 1, null, null, null, null);
 
     if (!appsResponse.isSuccess() || appsResponse.items().isEmpty()) {
@@ -335,20 +333,18 @@ public class SearchAppVulnerabilitiesToolIT
             null,
             null,
             null,
-            null, // sessionMetadataName missing
-            "someValue", // sessionMetadataValue provided
+            "not valid json", // invalid JSON
             null);
 
     assertThat(response.isSuccess()).isFalse();
-    assertThat(response.errors())
-        .anyMatch(e -> e.contains("sessionMetadataValue") && e.contains("sessionMetadataName"));
-    log.info("Validation correctly rejects sessionMetadataValue without sessionMetadataName");
+    assertThat(response.errors()).anyMatch(e -> e.contains("Invalid JSON"));
+    log.info("Validation correctly rejects invalid JSON for sessionMetadataFilters");
   }
 
   @Test
-  void searchAppVulnerabilities_should_support_sessionMetadataName_filter() {
-    // This test verifies the fix for AIML-358: session metadata filtering 400 Bad Request
-    // The bug was that the SDK was sending string field names instead of numeric IDs
+  void searchAppVulnerabilities_should_support_sessionMetadataFilters() {
+    // This test verifies session metadata filtering with the new JSON format
+    // The fix for AIML-358 ensured field names are resolved to numeric IDs
 
     var appsResponse = searchApplicationsTool.searchApplications(1, 10, null, null, null, null);
 
@@ -365,7 +361,7 @@ public class SearchAppVulnerabilitiesToolIT
       // First check if app has vulnerabilities to test with
       var vulnCheck =
           searchAppVulnerabilitiesTool.searchAppVulnerabilities(
-              app.appID(), 1, 1, null, null, null, null, null, null, null, null, null, null);
+              app.appID(), 1, 1, null, null, null, null, null, null, null, null, null);
 
       if (vulnCheck.isSuccess() && !vulnCheck.items().isEmpty()) {
         var vuln = vulnCheck.items().get(0);
@@ -387,27 +383,18 @@ public class SearchAppVulnerabilitiesToolIT
       return;
     }
 
-    // Now test the session metadata filter - this should NOT return 400 Bad Request
+    // Now test the session metadata filter with JSON format
     log.info(
-        "Testing sessionMetadataName filter with field '{}' on app {}",
+        "Testing sessionMetadataFilters with field '{}' on app {}",
         metadataFieldName,
         appIdWithMetadata);
 
+    // Build JSON filter - note we don't specify a value so it matches any value
+    var jsonFilter = String.format("{\"%s\":\"\"}", metadataFieldName);
+
     var response =
         searchAppVulnerabilitiesTool.searchAppVulnerabilities(
-            appIdWithMetadata,
-            1,
-            50,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            metadataFieldName, // sessionMetadataName
-            null, // sessionMetadataValue (any value)
-            null);
+            appIdWithMetadata, 1, 50, null, null, null, null, null, null, null, jsonFilter, null);
 
     // Key assertion: the call should succeed (not return 400 Bad Request)
     assertThat(response.isSuccess())
@@ -415,13 +402,13 @@ public class SearchAppVulnerabilitiesToolIT
         .isTrue();
 
     log.info(
-        "SUCCESS: search_app_vulnerabilities with sessionMetadataName='{}' returned {} results",
-        metadataFieldName,
+        "SUCCESS: search_app_vulnerabilities with sessionMetadataFilters='{}' returned {} results",
+        jsonFilter,
         response.items().size());
   }
 
   @Test
-  void searchAppVulnerabilities_should_return_error_for_invalid_sessionMetadataName() {
+  void searchAppVulnerabilities_should_return_error_for_invalid_sessionMetadataFilters_field() {
     var appsResponse = searchApplicationsTool.searchApplications(1, 1, null, null, null, null);
 
     if (!appsResponse.isSuccess() || appsResponse.items().isEmpty()) {
@@ -444,14 +431,14 @@ public class SearchAppVulnerabilitiesToolIT
             null,
             null,
             null,
-            "nonexistent_field_xyz_12345", // sessionMetadataName that doesn't exist
-            null,
+            "{\"nonexistent_field_xyz_12345\":\"value\"}", // field name that doesn't exist
             null);
 
     // Should return an error, not a 400 Bad Request
     assertThat(response.isSuccess()).isFalse();
     assertThat(response.errors()).anyMatch(e -> e.contains("not found") || e.contains("Invalid"));
 
-    log.info("Correctly returns error for invalid sessionMetadataName: {}", response.errors());
+    log.info(
+        "Correctly returns error for invalid sessionMetadataFilters field: {}", response.errors());
   }
 }

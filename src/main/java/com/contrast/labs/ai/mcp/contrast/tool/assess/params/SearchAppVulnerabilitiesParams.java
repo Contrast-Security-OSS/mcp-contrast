@@ -20,11 +20,12 @@ import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.http.ServerEnvironment;
 import com.contrastsecurity.models.TraceFilterBody;
-import com.contrastsecurity.models.TraceMetadataFilter;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import org.springframework.util.StringUtils;
 
 /**
  * Validation parameters for SearchAppVulnerabilitiesTool. Extends VulnerabilityFilterParams
@@ -34,7 +35,8 @@ import java.util.Set;
  *
  * <pre>{@code
  * var params = SearchAppVulnerabilitiesParams.of(
- *     "app-123", "CRITICAL", null, null, null, null, null, null, "branch", "main", false);
+ *     "app-123", "CRITICAL", null, null, null, null, null, null,
+ *     "{\"branch\":\"main\"}", false);
  * if (!params.isValid()) {
  *   // Handle errors
  * }
@@ -59,8 +61,7 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
   private Date lastSeenAfter;
   private Date lastSeenBefore;
   private List<String> vulnTags;
-  private String sessionMetadataName;
-  private String sessionMetadataValue;
+  private Map<String, Object> sessionMetadataFilters;
   private Boolean useLatestSession;
 
   /** Private constructor - use static factory method {@link #of}. */
@@ -77,8 +78,8 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
    * @param lastSeenAfterParam ISO date (YYYY-MM-DD) or epoch timestamp
    * @param lastSeenBeforeParam ISO date (YYYY-MM-DD) or epoch timestamp
    * @param vulnTagsParam Comma-separated vulnerability tags
-   * @param sessionMetadataNameParam Session metadata field name (case-insensitive)
-   * @param sessionMetadataValueParam Session metadata field value (requires name)
+   * @param sessionMetadataFiltersParam JSON object mapping field names to values for session
+   *     filtering (e.g., {"branch":"main","developer":["Ellen","Sam"]})
    * @param useLatestSessionParam Filter to latest session only
    * @return SearchAppVulnerabilitiesParams with validation state
    */
@@ -91,8 +92,7 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
       String lastSeenAfterParam,
       String lastSeenBeforeParam,
       String vulnTagsParam,
-      String sessionMetadataNameParam,
-      String sessionMetadataValueParam,
+      String sessionMetadataFiltersParam,
       Boolean useLatestSessionParam) {
 
     var params = new SearchAppVulnerabilitiesParams();
@@ -132,17 +132,18 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
 
     params.vulnTags = ctx.stringListParam(vulnTagsParam, "vulnTags").get();
 
-    // Session filtering parameters with cross-field validation
-    params.sessionMetadataName = sessionMetadataNameParam;
-    params.sessionMetadataValue = sessionMetadataValueParam;
+    // Session filtering parameters
+    params.sessionMetadataFilters =
+        ctx.metadataJsonFilterParam(sessionMetadataFiltersParam, "sessionMetadataFilters").get();
     params.useLatestSession = useLatestSessionParam;
 
-    // Validate sessionMetadataValue requires sessionMetadataName
-    ctx.requireIfPresent(
-        sessionMetadataValueParam,
-        "sessionMetadataValue",
-        sessionMetadataNameParam,
-        "sessionMetadataName");
+    // Validate useLatestSession and sessionMetadataFilters are mutually exclusive
+    ctx.mutuallyExclusive(
+        useLatestSessionParam != null && useLatestSessionParam,
+        "useLatestSession",
+        StringUtils.hasText(sessionMetadataFiltersParam),
+        "sessionMetadataFilters",
+        "Both define which session to filter by");
 
     params.setValidationResult(ctx);
     return params;
@@ -178,34 +179,13 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
   }
 
   /**
-   * Convert to SDK TraceFilterBody for POST endpoint API calls with session filtering.
-   *
-   * @param agentSessionId Optional agent session ID for latest session filtering
-   * @return TraceFilterBody configured with all filters including session parameters
-   */
-  public TraceFilterBody toTraceFilterBodyWithSessionId(String agentSessionId) {
-    var body = toTraceFilterBody();
-    if (agentSessionId != null) {
-      body.setAgentSessionId(agentSessionId);
-    }
-    if (sessionMetadataName != null && !sessionMetadataName.isBlank()) {
-      var metadataFilter =
-          sessionMetadataValue != null
-              ? new TraceMetadataFilter(sessionMetadataName, sessionMetadataValue)
-              : new TraceMetadataFilter(sessionMetadataName, List.of());
-      body.setMetadataFilters(List.of(metadataFilter));
-    }
-    return body;
-  }
-
-  /**
    * Returns true if session-based filtering is needed.
    *
-   * @return true if useLatestSession or sessionMetadataName is specified
+   * @return true if useLatestSession or sessionMetadataFilters is specified
    */
   public boolean needsSessionFiltering() {
     return Boolean.TRUE.equals(useLatestSession)
-        || (sessionMetadataName != null && !sessionMetadataName.isBlank());
+        || (sessionMetadataFilters != null && !sessionMetadataFilters.isEmpty());
   }
 
   public String appId() {
@@ -240,12 +220,8 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
     return vulnTags;
   }
 
-  public String getSessionMetadataName() {
-    return sessionMetadataName;
-  }
-
-  public String getSessionMetadataValue() {
-    return sessionMetadataValue;
+  public Map<String, Object> getSessionMetadataFilters() {
+    return sessionMetadataFilters;
   }
 
   public Boolean getUseLatestSession() {

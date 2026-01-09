@@ -29,12 +29,15 @@ import com.contrastsecurity.models.MetadataItem;
 import com.contrastsecurity.models.SessionMetadata;
 import com.contrastsecurity.models.Trace;
 import com.contrastsecurity.models.TraceFilterBody;
+import com.contrastsecurity.models.TraceMetadataFilter;
 import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,7 +45,6 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 /**
  * MCP tool for searching vulnerabilities within a specific application. Supports session metadata
@@ -71,9 +73,14 @@ public class SearchAppVulnerabilitiesTool
 
           Required: appId parameter. Use search_applications tool to find application IDs by name.
 
-          Supports all standard filters (severity, status, environment, dates, tags) PLUS:
-          - Session metadata filtering: sessionMetadataName, sessionMetadataValue
-          - Latest session filtering: useLatestSession=true
+          Session filtering (mutually exclusive - choose ONE):
+          - sessionMetadataFilters: JSON object for filtering by session metadata
+            - AND across fields: {"developer":"Ellen","commit":"100"}
+            - OR for multiple values within a field: {"developer":["Ellen","Sam"]}
+            - Combined: {"developer":["Ellen","Sam"],"branch":"main"}
+          - useLatestSession=true: Filter to the most recent session only
+
+          Note: useLatestSession and sessionMetadataFilters cannot be combined.
 
           Notes:
           - If useLatestSession=true and no sessions exist, returns all vulnerabilities
@@ -85,7 +92,9 @@ public class SearchAppVulnerabilitiesTool
           Common usage examples:
           - All vulns in app: appId="abc123"
           - Latest session vulns: appId="abc123", useLatestSession=true
-          - Session metadata: appId="abc123", sessionMetadataName="branch", sessionMetadataValue="main"
+          - Single metadata filter: appId="abc123", sessionMetadataFilters='{"branch":"main"}'
+          - Multiple filters (AND): appId="abc123", sessionMetadataFilters='{"branch":"main","developer":"Ellen"}'
+          - Multiple values (OR): appId="abc123", sessionMetadataFilters='{"developer":["Ellen","Sam"]}'
           - Production critical: appId="abc123", severities="CRITICAL", environments="PRODUCTION"
           """)
   public PaginatedToolResponse<VulnLight> searchAppVulnerabilities(
@@ -132,21 +141,12 @@ public class SearchAppVulnerabilitiesTool
           String vulnTags,
       @ToolParam(
               description =
-                  "Filter by session metadata field name. Matching is case-insensitive: 'branch',"
-                      + " 'Branch', and 'BRANCH' all match. Use get_session_metadata(appId) to"
-                      + " discover available field names for this application. When specified"
-                      + " without sessionMetadataValue, returns vulnerabilities that have this"
-                      + " metadata field with any value.",
+                  "JSON object for session metadata filters. Format: {\"fieldName\":\"value\"} or"
+                      + " {\"fieldName\":[\"val1\",\"val2\"]}. Multiple fields use AND logic."
+                      + " Multiple values within a field use OR logic. Field names are"
+                      + " case-insensitive.",
               required = false)
-          String sessionMetadataName,
-      @ToolParam(
-              description =
-                  "Filter by session metadata field value. Matching is case-insensitive: 'Main',"
-                      + " 'main', and 'MAIN' all match. Use get_session_metadata(appId) to discover"
-                      + " available values for the specified field name. Requires"
-                      + " sessionMetadataName to be specified.",
-              required = false)
-          String sessionMetadataValue,
+          String sessionMetadataFilters,
       @ToolParam(description = "Filter to latest session only", required = false)
           Boolean useLatestSession) {
 
@@ -163,8 +163,7 @@ public class SearchAppVulnerabilitiesTool
                 lastSeenAfter,
                 lastSeenBefore,
                 vulnTags,
-                sessionMetadataName,
-                sessionMetadataValue,
+                sessionMetadataFilters,
                 useLatestSession));
   }
 
@@ -246,41 +245,26 @@ public class SearchAppVulnerabilitiesTool
       }
     }
 
-    // Resolve session metadata field name to numeric ID - FAIL if not found
-    String resolvedFieldId = null;
-    if (StringUtils.hasText(params.getSessionMetadataName())) {
-      resolvedFieldId =
-          resolveSessionMetadataFieldId(sdk, orgId, appId, params.getSessionMetadataName());
-
-      if (resolvedFieldId == null) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Session metadata field '%s' not found for application '%s'. "
-                    + "Use get_session_metadata(appId) to discover available field names.",
-                params.getSessionMetadataName(), appId));
-      }
-      log.debug(
-          "Resolved session metadata field '{}' to ID '{}'",
-          params.getSessionMetadataName(),
-          resolvedFieldId);
+    // Resolve session metadata filters to TraceMetadataFilter list
+    List<TraceMetadataFilter> resolvedFilters = null;
+    var sessionMetadataFilters = params.getSessionMetadataFilters();
+    if (sessionMetadataFilters != null && !sessionMetadataFilters.isEmpty()) {
+      resolvedFilters = resolveSessionMetadataFilters(sdk, orgId, appId, sessionMetadataFilters);
+      log.debug("Resolved {} session metadata filters", resolvedFilters.size());
     }
 
     // Build filter body using ExtendedTraceFilterBody - combines base filters with session params
     var filterBody =
-        ExtendedTraceFilterBody.fromWithSession(
-            params.toTraceFilterBody(),
-            agentSessionId,
-            resolvedFieldId,
-            params.getSessionMetadataValue());
+        ExtendedTraceFilterBody.withSessionFilters(
+            params.toTraceFilterBody(), agentSessionId, resolvedFilters);
 
     // Build filter predicate for in-memory filtering (case-insensitive name/value matching)
-    var filterPredicate =
-        buildSessionFilterPredicate(
-            agentSessionId, params.getSessionMetadataName(), params.getSessionMetadataValue());
+    var filterPredicate = buildSessionFilterPredicate(agentSessionId, sessionMetadataFilters);
 
     // Determine if we have a selective filter (one that will actually filter results)
     boolean hasSelectiveFilter =
-        agentSessionId != null || StringUtils.hasText(params.getSessionMetadataName());
+        agentSessionId != null
+            || (sessionMetadataFilters != null && !sessionMetadataFilters.isEmpty());
 
     // Calculate target count for early termination
     int targetCount =
@@ -462,9 +446,13 @@ public class SearchAppVulnerabilitiesTool
     return SessionFilteringResult.success(matchingTraces, wasTruncated);
   }
 
-  /** Builds a predicate for filtering traces based on session criteria. */
+  /**
+   * Builds a predicate for filtering traces based on session criteria. For metadata filters, ALL
+   * criteria must match (AND logic across fields), and for each field with multiple values, ANY
+   * value must match (OR logic within a field).
+   */
   private Predicate<Trace> buildSessionFilterPredicate(
-      String agentSessionId, String sessionMetadataName, String sessionMetadataValue) {
+      String agentSessionId, Map<String, Object> sessionMetadataFilters) {
 
     Predicate<Trace> predicate = trace -> true;
 
@@ -479,60 +467,131 @@ public class SearchAppVulnerabilitiesTool
                           .anyMatch(sm -> sessionIdToMatch.equals(sm.getSessionId())));
     }
 
-    // Add session metadata name/value filter if specified
-    if (StringUtils.hasText(sessionMetadataName)) {
-      final String nameToMatch = sessionMetadataName;
-      final String valueToMatch = sessionMetadataValue;
-      predicate =
-          predicate.and(
-              trace -> {
-                if (trace.getSessionMetadata() == null) {
-                  return false;
-                }
-                for (SessionMetadata sm : trace.getSessionMetadata()) {
-                  if (sm.getMetadata() == null) {
-                    continue;
+    // Add session metadata filters if specified (AND logic across fields)
+    if (sessionMetadataFilters != null && !sessionMetadataFilters.isEmpty()) {
+      for (var entry : sessionMetadataFilters.entrySet()) {
+        final String fieldName = entry.getKey();
+        final List<String> valuesToMatch = normalizeFilterValue(entry.getValue());
+
+        predicate =
+            predicate.and(
+                trace -> {
+                  if (trace.getSessionMetadata() == null) {
+                    return false;
                   }
-                  for (MetadataItem item : sm.getMetadata()) {
-                    boolean nameMatches =
-                        item.getDisplayLabel() != null
-                            && item.getDisplayLabel().equalsIgnoreCase(nameToMatch);
-                    boolean valueMatches =
-                        valueToMatch == null
-                            || (item.getValue() != null
-                                && item.getValue().equalsIgnoreCase(valueToMatch));
-                    if (nameMatches && valueMatches) {
-                      return true;
+                  for (SessionMetadata sm : trace.getSessionMetadata()) {
+                    if (sm.getMetadata() == null) {
+                      continue;
+                    }
+                    for (MetadataItem item : sm.getMetadata()) {
+                      boolean nameMatches =
+                          item.getDisplayLabel() != null
+                              && item.getDisplayLabel().equalsIgnoreCase(fieldName);
+                      if (nameMatches) {
+                        // If no values specified, just match on field name
+                        if (valuesToMatch.isEmpty()) {
+                          return true;
+                        }
+                        // OR logic: any value in the list matches (case-insensitive)
+                        for (String valueToMatch : valuesToMatch) {
+                          if (item.getValue() != null
+                              && item.getValue().equalsIgnoreCase(valueToMatch)) {
+                            return true;
+                          }
+                        }
+                      }
                     }
                   }
-                }
-                return false;
-              });
+                  return false;
+                });
+      }
     }
 
     return predicate;
   }
 
   /**
-   * Resolves a session metadata field name to its numeric ID.
+   * Normalizes a filter value to a List of Strings. Handles both single String values and
+   * List<String> values.
+   */
+  @SuppressWarnings("unchecked")
+  private List<String> normalizeFilterValue(Object value) {
+    if (value instanceof String) {
+      return List.of((String) value);
+    } else if (value instanceof List) {
+      return (List<String>) value;
+    }
+    return List.of();
+  }
+
+  /**
+   * Resolves session metadata filter names to numeric IDs and builds TraceMetadataFilter list.
    *
    * @param sdk ContrastSDK instance
    * @param orgId Organization ID
    * @param appId Application ID
-   * @param fieldName Human-readable field name (e.g., "branch", "repo")
-   * @return The numeric ID as a string, or null if not found
-   * @throws Exception if API call fails
+   * @param filters Map of field names to values (from parsed JSON)
+   * @return List of TraceMetadataFilter with resolved field IDs
+   * @throws IllegalArgumentException if any field name is not found
    */
-  private String resolveSessionMetadataFieldId(
-      ContrastSDK sdk, String orgId, String appId, String fieldName) throws Exception {
+  private List<TraceMetadataFilter> resolveSessionMetadataFilters(
+      ContrastSDK sdk, String orgId, String appId, Map<String, Object> filters) throws Exception {
+
+    // Build field name to ID mapping (case-insensitive)
+    var fieldNameToId = buildFieldNameToIdMapping(sdk, orgId, appId);
+
+    var result = new ArrayList<TraceMetadataFilter>();
+    var notFoundFields = new ArrayList<String>();
+
+    for (var entry : filters.entrySet()) {
+      var fieldName = entry.getKey();
+      var fieldId = fieldNameToId.get(fieldName.toLowerCase());
+
+      if (fieldId == null) {
+        notFoundFields.add(fieldName);
+        continue;
+      }
+
+      // Convert value to List<String>
+      var values = normalizeFilterValue(entry.getValue());
+      result.add(new TraceMetadataFilter(fieldId, values));
+
+      log.debug("Resolved session metadata field '{}' to ID '{}'", fieldName, fieldId);
+    }
+
+    if (!notFoundFields.isEmpty()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Session metadata field(s) not found for application '%s': %s. "
+                  + "Use get_session_metadata(appId) to discover available field names.",
+              appId, String.join(", ", notFoundFields)));
+    }
+
+    return result;
+  }
+
+  /**
+   * Builds a case-insensitive mapping from field names to their numeric IDs.
+   *
+   * @param sdk ContrastSDK instance
+   * @param orgId Organization ID
+   * @param appId Application ID
+   * @return Map of lowercase field names to numeric IDs
+   */
+  private Map<String, String> buildFieldNameToIdMapping(ContrastSDK sdk, String orgId, String appId)
+      throws Exception {
+
     var metadata = sdk.getSessionMetadataForApplication(orgId, appId, null);
     if (metadata == null || metadata.getFilters() == null) {
-      return null;
+      return Map.of();
     }
-    return metadata.getFilters().stream()
-        .filter(group -> group.getLabel() != null && group.getLabel().equalsIgnoreCase(fieldName))
-        .findFirst()
-        .map(group -> group.getId())
-        .orElse(null);
+
+    var mapping = new HashMap<String, String>();
+    for (var filter : metadata.getFilters()) {
+      if (filter.getLabel() != null && filter.getId() != null) {
+        mapping.put(filter.getLabel().toLowerCase(), filter.getId());
+      }
+    }
+    return mapping;
   }
 }

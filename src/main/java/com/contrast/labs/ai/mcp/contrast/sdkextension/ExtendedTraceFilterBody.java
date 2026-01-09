@@ -21,26 +21,24 @@ import java.util.List;
 
 /**
  * Extended TraceFilterBody that provides helper methods for building filters with session
- * parameters (agentSessionId and resolved metadata field ID).
+ * parameters (agentSessionId and metadata filters).
  *
  * <p>This class exists because TeamServer requires numeric field IDs for metadata filtering, but
  * users provide human-readable field names. The resolution happens in the tool layer, and this
- * class accepts the already-resolved numeric ID.
+ * class accepts the already-resolved filters.
  */
 public class ExtendedTraceFilterBody extends TraceFilterBody {
 
   /**
-   * Creates an ExtendedTraceFilterBody from a base TraceFilterBody, adding session-related
-   * parameters.
+   * Creates an ExtendedTraceFilterBody from a base filter body with session parameters.
    *
    * @param source Base filter body with standard filters (severities, environments, etc.)
    * @param agentSessionId Agent session ID for latest session filtering (nullable)
-   * @param resolvedFieldId Resolved numeric field ID for metadata filtering (nullable)
-   * @param metadataValue Metadata filter value (nullable, requires resolvedFieldId)
+   * @param metadataFilters List of metadata filters with resolved field IDs (nullable)
    * @return Extended filter body with all parameters set
    */
-  public static ExtendedTraceFilterBody fromWithSession(
-      TraceFilterBody source, String agentSessionId, String resolvedFieldId, String metadataValue) {
+  public static ExtendedTraceFilterBody withSessionFilters(
+      TraceFilterBody source, String agentSessionId, List<TraceMetadataFilter> metadataFilters) {
 
     var extended = new ExtendedTraceFilterBody();
 
@@ -71,12 +69,8 @@ public class ExtendedTraceFilterBody extends TraceFilterBody {
       extended.setAgentSessionId(agentSessionId);
     }
 
-    if (resolvedFieldId != null && !resolvedFieldId.isBlank()) {
-      var filter =
-          metadataValue != null
-              ? new TraceMetadataFilter(resolvedFieldId, metadataValue)
-              : new TraceMetadataFilter(resolvedFieldId, List.of());
-      extended.setMetadataFilters(List.of(filter));
+    if (metadataFilters != null && !metadataFilters.isEmpty()) {
+      extended.setMetadataFilters(metadataFilters);
     }
 
     return extended;

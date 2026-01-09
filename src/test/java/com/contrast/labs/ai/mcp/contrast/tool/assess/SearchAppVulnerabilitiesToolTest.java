@@ -74,25 +74,27 @@ class SearchAppVulnerabilitiesToolTest {
   }
 
   /**
-   * Mocks the session metadata API to return a response with a single field.
+   * Mocks the session metadata API to return a response with specified fields.
    *
-   * @param fieldLabel The human-readable field label (e.g., "branch")
-   * @param fieldId The numeric field ID (e.g., "87")
+   * @param fields Array of field definitions as [label, id] pairs
    */
-  private void mockSessionMetadataWithField(String fieldLabel, String fieldId) throws Exception {
-    var metadataJson =
-        """
-        {
-          "filters": [
-            {"label": "%s", "id": "%s", "values": []}
-          ]
-        }
-        """
-            .formatted(fieldLabel, fieldId);
+  private void mockSessionMetadataWithFields(String[]... fields) throws Exception {
+    var filterJson = new StringBuilder();
+    filterJson.append("{\"filters\": [");
+    for (int i = 0; i < fields.length; i++) {
+      if (i > 0) filterJson.append(",");
+      filterJson.append(
+          String.format(
+              "{\"label\": \"%s\", \"id\": \"%s\", \"values\": []}", fields[i][0], fields[i][1]));
+    }
+    filterJson.append("]}");
+
     when(sdk.getSessionMetadataForApplication(eq(ORG_ID), eq(APP_ID), any()))
         .thenReturn(
             com.contrastsecurity.sdk.internal.GsonFactory.create()
-                .fromJson(metadataJson, com.contrastsecurity.models.MetadataFilterResponse.class));
+                .fromJson(
+                    filterJson.toString(),
+                    com.contrastsecurity.models.MetadataFilterResponse.class));
   }
 
   // -- Validation tests --
@@ -101,7 +103,7 @@ class SearchAppVulnerabilitiesToolTest {
   void searchAppVulnerabilities_should_return_error_when_appId_missing() {
     var result =
         tool.searchAppVulnerabilities(
-            null, 1, 10, null, null, null, null, null, null, null, null, null, null);
+            null, 1, 10, null, null, null, null, null, null, null, null, null);
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).anyMatch(e -> e.contains("appId is required"));
@@ -114,7 +116,7 @@ class SearchAppVulnerabilitiesToolTest {
   void searchAppVulnerabilities_should_return_error_for_invalid_severity() {
     var result =
         tool.searchAppVulnerabilities(
-            APP_ID, 1, 10, "INVALID", null, null, null, null, null, null, null, null, null);
+            APP_ID, 1, 10, "INVALID", null, null, null, null, null, null, null, null);
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).anyMatch(e -> e.contains("Invalid severities"));
@@ -124,14 +126,27 @@ class SearchAppVulnerabilitiesToolTest {
   }
 
   @Test
-  void searchAppVulnerabilities_should_return_error_when_sessionMetadataValue_without_name() {
+  void searchAppVulnerabilities_should_return_error_for_invalid_json_in_sessionMetadataFilters() {
     var result =
         tool.searchAppVulnerabilities(
-            APP_ID, 1, 10, null, null, null, null, null, null, null, null, "value", null);
+            APP_ID, 1, 10, null, null, null, null, null, null, null, "not valid json", null);
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors())
-        .anyMatch(e -> e.contains("sessionMetadataValue requires sessionMetadataName"));
+    assertThat(result.errors()).anyMatch(e -> e.contains("Invalid JSON"));
+
+    verifyNoInteractions(sdk);
+    verifyNoInteractions(mapper);
+  }
+
+  @Test
+  void
+      searchAppVulnerabilities_should_return_error_when_useLatestSession_with_sessionMetadataFilters() {
+    var result =
+        tool.searchAppVulnerabilities(
+            APP_ID, 1, 10, null, null, null, null, null, null, null, "{\"branch\":\"main\"}", true);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).anyMatch(e -> e.contains("mutually exclusive"));
 
     verifyNoInteractions(sdk);
     verifyNoInteractions(mapper);
@@ -148,7 +163,7 @@ class SearchAppVulnerabilitiesToolTest {
 
     var result =
         tool.searchAppVulnerabilities(
-            APP_ID, 1, 10, "CRITICAL", null, null, null, null, null, null, null, null, null);
+            APP_ID, 1, 10, "CRITICAL", null, null, null, null, null, null, null, null);
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).hasSize(1);
@@ -162,7 +177,7 @@ class SearchAppVulnerabilitiesToolTest {
 
     var result =
         tool.searchAppVulnerabilities(
-            APP_ID, 1, 10, null, null, null, null, null, null, null, null, null, null);
+            APP_ID, 1, 10, null, null, null, null, null, null, null, null, null);
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
@@ -175,7 +190,7 @@ class SearchAppVulnerabilitiesToolTest {
 
     var result =
         tool.searchAppVulnerabilities(
-            APP_ID, 1, 10, null, null, null, null, null, null, null, null, null, null);
+            APP_ID, 1, 10, null, null, null, null, null, null, null, null, null);
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.warnings()).anyMatch(w -> w.contains("excluding Fixed and Remediated"));
@@ -189,7 +204,7 @@ class SearchAppVulnerabilitiesToolTest {
 
     var result =
         tool.searchAppVulnerabilities(
-            APP_ID, 1, 2, null, null, null, null, null, null, null, null, null, null);
+            APP_ID, 1, 2, null, null, null, null, null, null, null, null, null);
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).hasSize(2);
@@ -198,27 +213,62 @@ class SearchAppVulnerabilitiesToolTest {
   }
 
   @Test
-  void searchAppVulnerabilities_should_accept_sessionMetadataName() throws Exception {
-    // Mock session metadata to resolve field name
-    mockSessionMetadataWithField("branch", "87");
+  void searchAppVulnerabilities_should_accept_sessionMetadataFilters_single_field()
+      throws Exception {
+    mockSessionMetadataWithFields(new String[] {"branch", "87"});
     mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
 
     var result =
         tool.searchAppVulnerabilities(
-            APP_ID, 1, 10, null, null, null, null, null, null, null, "branch", null, null);
+            APP_ID, 1, 10, null, null, null, null, null, null, null, "{\"branch\":\"main\"}", null);
 
     assertThat(result.isSuccess()).isTrue();
   }
 
   @Test
-  void searchAppVulnerabilities_should_accept_sessionMetadataName_and_value() throws Exception {
-    // Mock session metadata to resolve field name
-    mockSessionMetadataWithField("branch", "87");
+  void searchAppVulnerabilities_should_accept_sessionMetadataFilters_multiple_fields()
+      throws Exception {
+    mockSessionMetadataWithFields(new String[] {"branch", "87"}, new String[] {"developer", "88"});
     mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
 
     var result =
         tool.searchAppVulnerabilities(
-            APP_ID, 1, 10, null, null, null, null, null, null, null, "branch", "main", null);
+            APP_ID,
+            1,
+            10,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "{\"branch\":\"main\",\"developer\":\"Ellen\"}",
+            null);
+
+    assertThat(result.isSuccess()).isTrue();
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_accept_sessionMetadataFilters_with_array_values()
+      throws Exception {
+    mockSessionMetadataWithFields(new String[] {"developer", "88"});
+    mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
+
+    var result =
+        tool.searchAppVulnerabilities(
+            APP_ID,
+            1,
+            10,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "{\"developer\":[\"Ellen\",\"Sam\"]}",
+            null);
 
     assertThat(result.isSuccess()).isTrue();
   }
@@ -226,11 +276,11 @@ class SearchAppVulnerabilitiesToolTest {
   @Test
   void searchAppVulnerabilities_should_return_error_when_field_name_not_found() throws Exception {
     // Mock session metadata with different field - "branch" not found
-    mockSessionMetadataWithField("commit", "88");
+    mockSessionMetadataWithFields(new String[] {"commit", "88"});
 
     var result =
         tool.searchAppVulnerabilities(
-            APP_ID, 1, 10, null, null, null, null, null, null, null, "branch", "main", null);
+            APP_ID, 1, 10, null, null, null, null, null, null, null, "{\"branch\":\"main\"}", null);
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).anyMatch(e -> e.contains("branch") && e.contains("not found"));
@@ -239,13 +289,13 @@ class SearchAppVulnerabilitiesToolTest {
   @Test
   void searchAppVulnerabilities_should_resolve_field_name_case_insensitively() throws Exception {
     // Mock session metadata with "Branch" (different case)
-    mockSessionMetadataWithField("Branch", "87");
+    mockSessionMetadataWithFields(new String[] {"Branch", "87"});
     mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
 
     // Request with "branch" (lowercase) should work
     var result =
         tool.searchAppVulnerabilities(
-            APP_ID, 1, 10, null, null, null, null, null, null, null, "branch", "main", null);
+            APP_ID, 1, 10, null, null, null, null, null, null, null, "{\"branch\":\"main\"}", null);
 
     assertThat(result.isSuccess()).isTrue();
   }
@@ -258,7 +308,7 @@ class SearchAppVulnerabilitiesToolTest {
     mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
 
     tool.searchAppVulnerabilities(
-        "app-xyz-123", 1, 10, null, null, null, null, null, null, null, null, null, null);
+        "app-xyz-123", 1, 10, null, null, null, null, null, null, null, null, null);
 
     var urlCaptor = ArgumentCaptor.forClass(String.class);
     verify(sdk).makeRequestWithBody(any(), urlCaptor.capture(), anyString(), any());
@@ -270,7 +320,7 @@ class SearchAppVulnerabilitiesToolTest {
     mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
 
     tool.searchAppVulnerabilities(
-        APP_ID, 1, 10, "CRITICAL", null, null, null, null, null, null, null, null, null);
+        APP_ID, 1, 10, "CRITICAL", null, null, null, null, null, null, null, null);
 
     var bodyCaptor = ArgumentCaptor.forClass(String.class);
     verify(sdk).makeRequestWithBody(eq(HttpMethod.POST), anyString(), bodyCaptor.capture(), any());
@@ -282,7 +332,7 @@ class SearchAppVulnerabilitiesToolTest {
     mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
 
     tool.searchAppVulnerabilities(
-        APP_ID, 1, 10, null, null, null, "PRODUCTION,QA", null, null, null, null, null, null);
+        APP_ID, 1, 10, null, null, null, "PRODUCTION,QA", null, null, null, null, null);
 
     var bodyCaptor = ArgumentCaptor.forClass(String.class);
     verify(sdk).makeRequestWithBody(eq(HttpMethod.POST), anyString(), bodyCaptor.capture(), any());
@@ -290,32 +340,55 @@ class SearchAppVulnerabilitiesToolTest {
   }
 
   @Test
-  void searchAppVulnerabilities_should_pass_resolved_field_id_to_sdk() throws Exception {
-    mockSessionMetadataWithField("branch", "87");
+  void searchAppVulnerabilities_should_pass_resolved_field_ids_to_sdk() throws Exception {
+    mockSessionMetadataWithFields(new String[] {"branch", "87"}, new String[] {"developer", "88"});
     mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
 
     tool.searchAppVulnerabilities(
-        APP_ID, 1, 10, null, null, null, null, null, null, null, "branch", null, null);
+        APP_ID,
+        1,
+        10,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "{\"branch\":\"main\",\"developer\":\"Ellen\"}",
+        null);
 
     var bodyCaptor = ArgumentCaptor.forClass(String.class);
     verify(sdk).makeRequestWithBody(eq(HttpMethod.POST), anyString(), bodyCaptor.capture(), any());
-    // The request body should contain the resolved numeric field ID, not the string name
+    // The request body should contain the resolved numeric field IDs
     assertThat(bodyCaptor.getValue()).contains("\"fieldID\":\"87\"");
+    assertThat(bodyCaptor.getValue()).contains("\"fieldID\":\"88\"");
   }
 
   @Test
-  void searchAppVulnerabilities_should_pass_resolved_field_id_and_value_to_sdk() throws Exception {
-    mockSessionMetadataWithField("branch", "87");
+  void searchAppVulnerabilities_should_pass_array_values_to_sdk() throws Exception {
+    mockSessionMetadataWithFields(new String[] {"developer", "88"});
     mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
 
     tool.searchAppVulnerabilities(
-        APP_ID, 1, 10, null, null, null, null, null, null, null, "branch", "main", null);
+        APP_ID,
+        1,
+        10,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "{\"developer\":[\"Ellen\",\"Sam\"]}",
+        null);
 
     var bodyCaptor = ArgumentCaptor.forClass(String.class);
     verify(sdk).makeRequestWithBody(eq(HttpMethod.POST), anyString(), bodyCaptor.capture(), any());
-    // The request body should contain both the resolved numeric field ID and the value
-    assertThat(bodyCaptor.getValue()).contains("\"fieldID\":\"87\"");
-    assertThat(bodyCaptor.getValue()).contains("main");
+    // The request body should contain the array values
+    assertThat(bodyCaptor.getValue()).contains("Ellen");
+    assertThat(bodyCaptor.getValue()).contains("Sam");
   }
 
   @Test
@@ -331,7 +404,7 @@ class SearchAppVulnerabilitiesToolTest {
     mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
 
     tool.searchAppVulnerabilities(
-        APP_ID, 1, 10, null, null, null, null, null, null, null, null, null, true);
+        APP_ID, 1, 10, null, null, null, null, null, null, null, null, true);
 
     // Verify session metadata was fetched
     verify(sdk).makeRequest(eq(HttpMethod.GET), contains("/agent-sessions/latest"));
@@ -342,7 +415,7 @@ class SearchAppVulnerabilitiesToolTest {
     mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
 
     tool.searchAppVulnerabilities(
-        APP_ID, 2, 50, null, null, null, null, null, null, null, null, null, null);
+        APP_ID, 2, 50, null, null, null, null, null, null, null, null, null);
 
     var urlCaptor = ArgumentCaptor.forClass(String.class);
     verify(sdk).makeRequestWithBody(any(), urlCaptor.capture(), anyString(), any());
@@ -354,7 +427,7 @@ class SearchAppVulnerabilitiesToolTest {
     mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
 
     tool.searchAppVulnerabilities(
-        APP_ID, 1, 10, null, null, null, null, null, null, null, null, null, null);
+        APP_ID, 1, 10, null, null, null, null, null, null, null, null, null);
 
     var urlCaptor = ArgumentCaptor.forClass(String.class);
     verify(sdk).makeRequestWithBody(any(), urlCaptor.capture(), anyString(), any());

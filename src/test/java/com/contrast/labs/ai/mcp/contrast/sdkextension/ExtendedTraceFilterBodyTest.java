@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.http.ServerEnvironment;
 import com.contrastsecurity.models.TraceFilterBody;
+import com.contrastsecurity.models.TraceMetadataFilter;
 import java.util.Date;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -27,7 +28,7 @@ import org.junit.jupiter.api.Test;
 class ExtendedTraceFilterBodyTest {
 
   @Test
-  void fromWithSession_should_copy_all_base_filters() {
+  void withSessionFilters_should_copy_all_base_filters() {
     // Given a fully populated source filter body
     var source = new TraceFilterBody();
     source.setSeverities(List.of(RuleSeverity.CRITICAL, RuleSeverity.HIGH));
@@ -42,7 +43,7 @@ class ExtendedTraceFilterBodyTest {
     source.setUntracked(false);
 
     // When creating extended filter with no session params
-    var result = ExtendedTraceFilterBody.fromWithSession(source, null, null, null);
+    var result = ExtendedTraceFilterBody.withSessionFilters(source, null, null);
 
     // Then all base filters should be copied
     assertThat(result.getSeverities()).containsExactly(RuleSeverity.CRITICAL, RuleSeverity.HIGH);
@@ -56,12 +57,12 @@ class ExtendedTraceFilterBodyTest {
   }
 
   @Test
-  void fromWithSession_should_handle_null_source_fields() {
+  void withSessionFilters_should_handle_null_source_fields() {
     // Given a source with null fields
     var source = new TraceFilterBody();
 
     // When creating extended filter
-    var result = ExtendedTraceFilterBody.fromWithSession(source, null, null, null);
+    var result = ExtendedTraceFilterBody.withSessionFilters(source, null, null);
 
     // Then null fields should remain null
     assertThat(result.getSeverities()).isNull();
@@ -73,94 +74,99 @@ class ExtendedTraceFilterBodyTest {
   }
 
   @Test
-  void fromWithSession_should_set_agent_session_id() {
+  void withSessionFilters_should_set_agent_session_id() {
     // Given
     var source = new TraceFilterBody();
     var sessionId = "agent-session-123";
 
     // When
-    var result = ExtendedTraceFilterBody.fromWithSession(source, sessionId, null, null);
+    var result = ExtendedTraceFilterBody.withSessionFilters(source, sessionId, null);
 
     // Then
     assertThat(result.getAgentSessionId()).isEqualTo(sessionId);
   }
 
   @Test
-  void fromWithSession_should_set_metadata_filter_with_value() {
+  void withSessionFilters_should_set_single_metadata_filter() {
     // Given
     var source = new TraceFilterBody();
-    var resolvedFieldId = "87";
-    var metadataValue = "main";
+    var filter = new TraceMetadataFilter("87", "main");
 
     // When
-    var result =
-        ExtendedTraceFilterBody.fromWithSession(source, null, resolvedFieldId, metadataValue);
+    var result = ExtendedTraceFilterBody.withSessionFilters(source, null, List.of(filter));
 
     // Then
     assertThat(result.getMetadataFilters()).hasSize(1);
-    var filter = result.getMetadataFilters().get(0);
-    assertThat(filter.getFieldID()).isEqualTo("87");
-    assertThat(filter.getValues()).containsExactly("main");
+    assertThat(result.getMetadataFilters().get(0).getFieldID()).isEqualTo("87");
+    assertThat(result.getMetadataFilters().get(0).getValues()).containsExactly("main");
   }
 
   @Test
-  void fromWithSession_should_set_metadata_filter_without_value() {
+  void withSessionFilters_should_set_multiple_metadata_filters() {
     // Given
     var source = new TraceFilterBody();
-    var resolvedFieldId = "88";
+    var filters =
+        List.of(
+            new TraceMetadataFilter("87", "main"),
+            new TraceMetadataFilter("88", List.of("Ellen", "Sam")));
 
-    // When creating filter with field ID but no value (match any value)
-    var result = ExtendedTraceFilterBody.fromWithSession(source, null, resolvedFieldId, null);
+    // When
+    var result = ExtendedTraceFilterBody.withSessionFilters(source, null, filters);
 
-    // Then filter should be set with empty values list
-    assertThat(result.getMetadataFilters()).hasSize(1);
-    var filter = result.getMetadataFilters().get(0);
-    assertThat(filter.getFieldID()).isEqualTo("88");
-    assertThat(filter.getValues()).isEmpty();
+    // Then
+    assertThat(result.getMetadataFilters()).hasSize(2);
+    assertThat(result.getMetadataFilters().get(0).getFieldID()).isEqualTo("87");
+    assertThat(result.getMetadataFilters().get(0).getValues()).containsExactly("main");
+    assertThat(result.getMetadataFilters().get(1).getFieldID()).isEqualTo("88");
+    assertThat(result.getMetadataFilters().get(1).getValues()).containsExactly("Ellen", "Sam");
   }
 
   @Test
-  void fromWithSession_should_not_set_metadata_filter_when_field_id_null() {
+  void withSessionFilters_should_handle_null_metadata_filters() {
     // Given
     var source = new TraceFilterBody();
 
     // When
-    var result = ExtendedTraceFilterBody.fromWithSession(source, null, null, "someValue");
+    var result = ExtendedTraceFilterBody.withSessionFilters(source, null, null);
 
-    // Then no metadata filter should be set
+    // Then
     assertThat(result.getMetadataFilters()).isNull();
   }
 
   @Test
-  void fromWithSession_should_not_set_metadata_filter_when_field_id_blank() {
+  void withSessionFilters_should_handle_empty_metadata_filters() {
     // Given
     var source = new TraceFilterBody();
 
     // When
-    var result = ExtendedTraceFilterBody.fromWithSession(source, null, "  ", "someValue");
+    var result = ExtendedTraceFilterBody.withSessionFilters(source, null, List.of());
 
-    // Then no metadata filter should be set
+    // Then
     assertThat(result.getMetadataFilters()).isNull();
   }
 
   @Test
-  void fromWithSession_should_set_all_session_params_together() {
+  void withSessionFilters_should_set_all_session_params_together() {
     // Given
     var source = new TraceFilterBody();
     source.setSeverities(List.of(RuleSeverity.CRITICAL));
     var sessionId = "agent-session-456";
-    var resolvedFieldId = "89";
-    var metadataValue = "Sam";
+    var filters =
+        List.of(
+            new TraceMetadataFilter("89", "Sam"),
+            new TraceMetadataFilter("90", List.of("feature-1", "feature-2")));
 
     // When
-    var result =
-        ExtendedTraceFilterBody.fromWithSession(source, sessionId, resolvedFieldId, metadataValue);
+    var result = ExtendedTraceFilterBody.withSessionFilters(source, sessionId, filters);
 
     // Then all params should be set
     assertThat(result.getSeverities()).containsExactly(RuleSeverity.CRITICAL);
     assertThat(result.getAgentSessionId()).isEqualTo(sessionId);
-    assertThat(result.getMetadataFilters()).hasSize(1);
+    assertThat(result.getMetadataFilters()).hasSize(2);
     assertThat(result.getMetadataFilters().get(0).getFieldID()).isEqualTo("89");
     assertThat(result.getMetadataFilters().get(0).getValues()).containsExactly("Sam");
+    assertThat(result.getMetadataFilters().get(1).getFieldID()).isEqualTo("90");
+    assertThat(result.getMetadataFilters().get(1).getValues())
+        .containsExactly("feature-1", "feature-2");
   }
 }
