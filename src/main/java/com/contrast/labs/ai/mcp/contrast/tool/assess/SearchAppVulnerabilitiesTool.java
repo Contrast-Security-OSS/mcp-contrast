@@ -18,14 +18,12 @@ package com.contrast.labs.ai.mcp.contrast.tool.assess;
 import com.contrast.labs.ai.mcp.contrast.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.ExtendedTraceFilterBody;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.tool.assess.params.SearchAppVulnerabilitiesParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrastsecurity.http.TraceFilterForm.TraceExpandValue;
-import com.contrastsecurity.models.TraceFilterBody;
 import com.contrastsecurity.models.TraceMetadataFilter;
 import com.contrastsecurity.sdk.ContrastSDK;
 import java.util.ArrayList;
@@ -183,14 +181,13 @@ public class SearchAppVulnerabilitiesTool
       log.debug("Resolved {} session metadata filters", resolvedFilters.size());
     }
 
-    // Build filter body - use ExtendedTraceFilterBody if session params present
-    TraceFilterBody filterBody;
-    if (agentSessionId != null || resolvedFilters != null) {
-      filterBody =
-          ExtendedTraceFilterBody.withSessionFilters(
-              params.toTraceFilterBody(), agentSessionId, resolvedFilters);
-    } else {
-      filterBody = params.toTraceFilterBody();
+    // Build filter body and add session params if present
+    var filterBody = params.toTraceFilterBody();
+    if (agentSessionId != null) {
+      filterBody.setAgentSessionId(agentSessionId);
+    }
+    if (resolvedFilters != null && !resolvedFilters.isEmpty()) {
+      filterBody.setMetadataFilters(resolvedFilters);
     }
 
     var expand =
