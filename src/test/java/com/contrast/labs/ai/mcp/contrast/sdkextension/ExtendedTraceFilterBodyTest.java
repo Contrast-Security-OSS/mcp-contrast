@@ -24,9 +24,18 @@ import com.contrastsecurity.models.TraceFilterBody;
 import com.contrastsecurity.models.TraceMetadataFilter;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class ExtendedTraceFilterBodyTest {
+
+  @Test
+  void status_field_should_be_settable_and_gettable() {
+    var body = new ExtendedTraceFilterBody();
+    body.setStatus(Set.of("Reported", "Confirmed"));
+
+    assertThat(body.getStatus()).containsExactlyInAnyOrder("Reported", "Confirmed");
+  }
 
   @Test
   void withSessionFilters_should_copy_all_base_filters() {
