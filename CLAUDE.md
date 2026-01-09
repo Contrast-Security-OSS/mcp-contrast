@@ -190,10 +190,6 @@ This project uses Beads (bd) for issue tracking. See the MCP resource `beads://q
    ```
    bd update <bead-id> status=in_progress
    ```
-   Or use the MCP tool:
-   ```
-   mcp__plugin_beads_beads__update(issue_id="<bead-id>", status="in_progress")
-   ```
 
 2. **While working**: Keep the bead `in_progress` until all work is complete, tested, and ready to close
 
@@ -215,15 +211,6 @@ This project uses Beads (bd) for issue tracking. See the MCP resource `beads://q
 - Before starting work on any bead, check for the `needs-human-review` label
 - If present, **DO NOT start work** on the bead
 - Instead, ask the human to review the bead description and approach
-- Once human reviews and approves, they will remove the `needs-human-review` label
-- Only after label is removed may AI proceed with implementation
-
-**Example workflow:**
-```
-AI: "I see bead mcp-xyz is ready to work on, but it has the 'needs-human-review' label.
-     Please review the bead description and let me know if the approach looks good.
-     Once approved, remove the label and I'll proceed with implementation."
-```
 
 ### Human Review Label Workflow
 
@@ -241,132 +228,6 @@ AI: "I see bead mcp-xyz is ready to work on, but it has the 'needs-human-review'
 **Label meanings:**
 - `needs-human-review` - Bead requires human approval before AI can start work
 - `human-reviewed` - Bead has been reviewed and approved by human, AI may proceed when ready
-
-### AI Model Labeling
-
-**When a bead is worked on by an AI system, label it to track which model performed the work:**
-
-**Codex CLI (autonomous agent):**
-- When user mentions codex is working on a bead, add labels:
-  - `codex-cli` - Identifies work done by autonomous codex agent
-  - `model-gpt-5-codex` - Identifies the specific model version
-
-**Claude Code (interactive agent):**
-- Beads worked on interactively don't require special labels
-- User can manually add model labels if desired for tracking
-
-**Apply labels when:**
-- User mentions codex is working on or has completed a bead
-- Before closing beads that codex worked on
-- When reviewing autonomous agent work
-
-**Example:**
-```bash
-bd label add mcp-xyz codex-cli
-bd label add mcp-xyz model-gpt-5-codex
-```
-
-This enables analysis of:
-- Which types of tasks work well for autonomous agents vs interactive
-- Effectiveness comparison between different AI models
-- Cost optimization for AI-assisted development
-
-### Managing Bead Dependencies
-
-**Command syntax:** `bd dep add <dependent-task> <prerequisite-task>`
-
-Example: If B must be done after A completes, use `bd dep add B A` (not `bd dep add A B`).
-
-Verify with `bd show <task-id>` - dependent tasks show "Depends on", prerequisites show "Blocks".
-
-### Time Tracking for AI Cost Optimization
-
-This project tracks development time and AI effectiveness to optimize AI spend on code changes. Time tracking uses comments for precise timestamps and labels for categorization.
-
-**Time Tracking Rules:**
-
-**Parent Beads (Jira-linked, generate PR):**
-- **START:** When parent bead is set to `in_progress` (when coding work begins)
-- **END:** When PR is created (after all children complete and branch is ready for review)
-- **Duration:** Captures full end-to-end timeline from first work to PR creation
-- **Rating:** Asked once when PR is created
-
-**Child Beads (use parent's branch, no PR):**
-- **START:** When child bead is set to `in_progress` (when work on that subtask begins)
-- **END:** When child bead is closed (when that specific subtask completes)
-- **Duration:** Captures time spent on that specific child
-- **Rating:** Asked when each child is closed
-
-**Comment Format:**
-```bash
-# Starting work
-bd comments add <bead-id> "⏱️ START: 2025-11-13T14:00:00Z - Implementing authentication refactor"
-
-# Ending work
-bd comments add <bead-id> "⏱️ END: 2025-11-13T16:30:00Z - Refactor complete, tests passing"
-```
-
-**Duration Labels:**
-- `duration-0to15min` - Under 15 minutes
-- `duration-15to30min` - 15-30 minutes
-- `duration-30to60min` - 30-60 minutes
-- `duration-60to120min` - 1-2 hours
-- `duration-over120min` - Over 2 hours (indicates task should have been broken down)
-
-**AI Effectiveness Labels:**
-- `ai-multiplier` - AI was a force multiplier (saved significant time/effort)
-- `ai-helpful` - AI was helpful (saved some time)
-- `ai-neutral` - AI was neutral (could have done manually in similar time)
-- `ai-friction` - AI added friction (slowed me down, had to correct/redirect)
-
-**Completing Time Tracking:**
-
-When ending work on a bead, follow this process to complete time tracking:
-
-1. **Record END timestamp:**
-   ```bash
-   bd comments add <bead-id> "⏱️ END: $(date -u +%Y-%m-%dT%H:%M:%SZ) - [Brief description of what was completed]"
-   ```
-
-2. **Calculate duration estimate** from START/END timestamps in comments
-   - Parse all START/END timestamps from the bead's comments
-   - Calculate total elapsed time
-   - Present estimate to user in human-readable format
-
-3. **Ask user to confirm duration** using AskUserQuestion tool:
-   - Show calculated estimate: "Based on timestamps, you worked approximately X minutes/hours"
-   - Prompt: "Please confirm your active coding time (excluding breaks/interruptions):"
-   - Options:
-     1. Under 15 minutes
-     2. 15-30 minutes
-     3. 30-60 minutes
-     4. 1-2 hours
-     5. Over 2 hours
-
-4. **Ask user about AI effectiveness** using AskUserQuestion tool:
-   - Prompt: "How effective was AI assistance on this task?"
-   - Options:
-     1. Force multiplier - AI saved significant time/effort
-     2. Helpful - AI saved some time
-     3. Neutral - Could have done manually in similar time
-     4. Added friction - AI slowed me down
-
-5. **Apply labels** based on user responses:
-   - Duration label: `duration-0to15min`, `duration-15to30min`, `duration-30to60min`, `duration-60to120min`, or `duration-over120min`
-   - Effectiveness label: `ai-multiplier`, `ai-helpful`, `ai-neutral`, or `ai-friction`
-
-**When to complete time tracking:**
-- **Parent beads:** When PR is created (after all children complete)
-- **Child beads:** When bead is closed (when that specific subtask completes)
-- **Note:** Child beads are rated individually when closed; parent bead is rated once when PR is created
-
-**Data Analysis:**
-
-Time tracking enables analysis of:
-- Which types of code changes benefit most from AI
-- Where AI adds friction vs value
-- Task breakdown patterns (tasks >2hr indicate insufficient decomposition)
-- Actual vs estimated coding time
 
 ## Project Management
 
@@ -466,7 +327,7 @@ Promoting Stacked PR (after base PR merges):
 - Ask user if the new bead should be a child of the Jira-linked bead
 - If yes, establish parent-child relationship using `bd dep add <child> <parent>` with `parent-child` dependency type
 - Child beads work on the same branch as their parent
-
+  
 ### Managing Bead Dependencies
 
 **Command syntax:** `bd dep add <dependent-task> <prerequisite-task>`
@@ -474,6 +335,9 @@ Promoting Stacked PR (after base PR merges):
 Example: If B must be done after A completes, use `bd dep add B A` (not `bd dep add A B`).
 
 Verify with `bd show <task-id>` - dependent tasks show "Depends on", prerequisites show "Blocks".
+
+NOTE: This is not for parent-child dependencies, these are blocks dependencies. 
+**IMPORTANT** If you are asked to add a bead as a child or with phrasing that implies a parent-child relationship, ensure you add the dependency of type parent-child. The default is a blocks type.
 
 ### During Development
 
@@ -485,8 +349,8 @@ Verify with `bd show <task-id>` - dependent tasks show "Depends on", prerequisit
 
 **CRITICAL: Before requesting review, you MUST:**
 1. **Write tests for ALL code changes** - No exceptions
-2. **Run unit tests** - `mvn test` must pass with 0 failures
-3. **Run integration tests** - `mvn verify` must pass (requires credentials in `.env.integration-test`)
+2. **Run unit tests** - `make format && make check-test` must pass with 0 failures
+3. **Run integration tests** - `make verify` must pass (requires credentials in `.env.integration-test`)
    - If credentials unavailable, verify integration tests pass in CI/CD
 4. **Verify new tests are included** - Ensure your tests ran and passed
 

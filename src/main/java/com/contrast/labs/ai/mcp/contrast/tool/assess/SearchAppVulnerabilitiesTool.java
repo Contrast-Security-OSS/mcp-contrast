@@ -80,7 +80,7 @@ public class SearchAppVulnerabilitiesTool
             - Combined: {"developer":["Ellen","Sam"],"branch":"main"}
           - useLatestSession=true: Filter to the most recent session only
 
-          Note: useLatestSession and sessionMetadataFilters cannot be combined.
+          Note: useLatestSession and sessionMetadataFilters are mutually exclusive.
 
           Notes:
           - If useLatestSession=true and no sessions exist, returns all vulnerabilities
