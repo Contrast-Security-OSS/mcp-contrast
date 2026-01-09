@@ -19,6 +19,7 @@ import com.contrastsecurity.models.TraceFilterBody;
 import com.contrastsecurity.models.TraceMetadataFilter;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Extended TraceFilterBody that provides helper methods for building filters with session
@@ -29,6 +30,16 @@ import java.util.Objects;
  * class accepts the already-resolved filters.
  */
 public class ExtendedTraceFilterBody extends TraceFilterBody {
+
+  private Set<String> status;
+
+  public Set<String> getStatus() {
+    return status;
+  }
+
+  public void setStatus(Set<String> status) {
+    this.status = status;
+  }
 
   /**
    * Creates an ExtendedTraceFilterBody from a base filter body with session parameters.
