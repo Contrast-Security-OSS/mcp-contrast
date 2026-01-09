@@ -18,6 +18,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.assess;
 import com.contrast.labs.ai.mcp.contrast.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.ExtendedTraceFilterBody;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.tool.assess.params.SearchAppVulnerabilitiesParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
@@ -245,8 +246,32 @@ public class SearchAppVulnerabilitiesTool
       }
     }
 
-    // Build TraceFilterBody with session parameters
-    var filterBody = params.toTraceFilterBodyWithSessionId(agentSessionId);
+    // Resolve session metadata field name to numeric ID - FAIL if not found
+    String resolvedFieldId = null;
+    if (StringUtils.hasText(params.getSessionMetadataName())) {
+      resolvedFieldId =
+          resolveSessionMetadataFieldId(sdk, orgId, appId, params.getSessionMetadataName());
+
+      if (resolvedFieldId == null) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Session metadata field '%s' not found for application '%s'. "
+                    + "Use get_session_metadata(appId) to discover available field names.",
+                params.getSessionMetadataName(), appId));
+      }
+      log.debug(
+          "Resolved session metadata field '{}' to ID '{}'",
+          params.getSessionMetadataName(),
+          resolvedFieldId);
+    }
+
+    // Build filter body using ExtendedTraceFilterBody - combines base filters with session params
+    var filterBody =
+        ExtendedTraceFilterBody.fromWithSession(
+            params.toTraceFilterBody(),
+            agentSessionId,
+            resolvedFieldId,
+            params.getSessionMetadataValue());
 
     // Build filter predicate for in-memory filtering (case-insensitive name/value matching)
     var filterPredicate =
@@ -486,5 +511,28 @@ public class SearchAppVulnerabilitiesTool
     }
 
     return predicate;
+  }
+
+  /**
+   * Resolves a session metadata field name to its numeric ID.
+   *
+   * @param sdk ContrastSDK instance
+   * @param orgId Organization ID
+   * @param appId Application ID
+   * @param fieldName Human-readable field name (e.g., "branch", "repo")
+   * @return The numeric ID as a string, or null if not found
+   * @throws Exception if API call fails
+   */
+  private String resolveSessionMetadataFieldId(
+      ContrastSDK sdk, String orgId, String appId, String fieldName) throws Exception {
+    var metadata = sdk.getSessionMetadataForApplication(orgId, appId, null);
+    if (metadata == null || metadata.getFilters() == null) {
+      return null;
+    }
+    return metadata.getFilters().stream()
+        .filter(group -> group.getLabel() != null && group.getLabel().equalsIgnoreCase(fieldName))
+        .findFirst()
+        .map(group -> group.getId())
+        .orElse(null);
   }
 }

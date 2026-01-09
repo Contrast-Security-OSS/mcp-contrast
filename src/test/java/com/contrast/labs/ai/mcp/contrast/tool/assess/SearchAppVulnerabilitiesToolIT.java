@@ -344,4 +344,114 @@ public class SearchAppVulnerabilitiesToolIT
         .anyMatch(e -> e.contains("sessionMetadataValue") && e.contains("sessionMetadataName"));
     log.info("Validation correctly rejects sessionMetadataValue without sessionMetadataName");
   }
+
+  @Test
+  void searchAppVulnerabilities_should_support_sessionMetadataName_filter() {
+    // This test verifies the fix for AIML-358: session metadata filtering 400 Bad Request
+    // The bug was that the SDK was sending string field names instead of numeric IDs
+
+    var appsResponse = searchApplicationsTool.searchApplications(1, 10, null, null, null, null);
+
+    if (!appsResponse.isSuccess() || appsResponse.items().isEmpty()) {
+      log.warn("No applications found in org - skipping test");
+      return;
+    }
+
+    // Try to find an app with session metadata
+    String appIdWithMetadata = null;
+    String metadataFieldName = null;
+
+    for (var app : appsResponse.items()) {
+      // First check if app has vulnerabilities to test with
+      var vulnCheck =
+          searchAppVulnerabilitiesTool.searchAppVulnerabilities(
+              app.appID(), 1, 1, null, null, null, null, null, null, null, null, null, null);
+
+      if (vulnCheck.isSuccess() && !vulnCheck.items().isEmpty()) {
+        var vuln = vulnCheck.items().get(0);
+        // Check if this vuln has session metadata
+        if (vuln.sessionMetadata() != null && !vuln.sessionMetadata().isEmpty()) {
+          var sessionMeta = vuln.sessionMetadata().get(0);
+          if (sessionMeta.getMetadata() != null && !sessionMeta.getMetadata().isEmpty()) {
+            appIdWithMetadata = app.appID();
+            metadataFieldName = sessionMeta.getMetadata().get(0).getDisplayLabel();
+            log.info("Found app {} with session metadata field: {}", app.name(), metadataFieldName);
+            break;
+          }
+        }
+      }
+    }
+
+    if (appIdWithMetadata == null || metadataFieldName == null) {
+      log.warn("No apps with session metadata found - skipping test");
+      return;
+    }
+
+    // Now test the session metadata filter - this should NOT return 400 Bad Request
+    log.info(
+        "Testing sessionMetadataName filter with field '{}' on app {}",
+        metadataFieldName,
+        appIdWithMetadata);
+
+    var response =
+        searchAppVulnerabilitiesTool.searchAppVulnerabilities(
+            appIdWithMetadata,
+            1,
+            50,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            metadataFieldName, // sessionMetadataName
+            null, // sessionMetadataValue (any value)
+            null);
+
+    // Key assertion: the call should succeed (not return 400 Bad Request)
+    assertThat(response.isSuccess())
+        .as("Session metadata filter should succeed (no 400 error). Errors: %s", response.errors())
+        .isTrue();
+
+    log.info(
+        "SUCCESS: search_app_vulnerabilities with sessionMetadataName='{}' returned {} results",
+        metadataFieldName,
+        response.items().size());
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_return_error_for_invalid_sessionMetadataName() {
+    var appsResponse = searchApplicationsTool.searchApplications(1, 1, null, null, null, null);
+
+    if (!appsResponse.isSuccess() || appsResponse.items().isEmpty()) {
+      log.warn("No applications found in org - skipping test");
+      return;
+    }
+
+    var appId = appsResponse.items().get(0).appID();
+
+    // Use a field name that definitely doesn't exist
+    var response =
+        searchAppVulnerabilitiesTool.searchAppVulnerabilities(
+            appId,
+            1,
+            10,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "nonexistent_field_xyz_12345", // sessionMetadataName that doesn't exist
+            null,
+            null);
+
+    // Should return an error, not a 400 Bad Request
+    assertThat(response.isSuccess()).isFalse();
+    assertThat(response.errors()).anyMatch(e -> e.contains("not found") || e.contains("Invalid"));
+
+    log.info("Correctly returns error for invalid sessionMetadataName: {}", response.errors());
+  }
 }

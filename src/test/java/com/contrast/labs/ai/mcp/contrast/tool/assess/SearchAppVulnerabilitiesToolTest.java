@@ -73,6 +73,28 @@ class SearchAppVulnerabilitiesToolTest {
         .thenReturn(new ByteArrayInputStream(jsonResponse.getBytes(StandardCharsets.UTF_8)));
   }
 
+  /**
+   * Mocks the session metadata API to return a response with a single field.
+   *
+   * @param fieldLabel The human-readable field label (e.g., "branch")
+   * @param fieldId The numeric field ID (e.g., "87")
+   */
+  private void mockSessionMetadataWithField(String fieldLabel, String fieldId) throws Exception {
+    var metadataJson =
+        """
+        {
+          "filters": [
+            {"label": "%s", "id": "%s", "values": []}
+          ]
+        }
+        """
+            .formatted(fieldLabel, fieldId);
+    when(sdk.getSessionMetadataForApplication(eq(ORG_ID), eq(APP_ID), any()))
+        .thenReturn(
+            com.contrastsecurity.sdk.internal.GsonFactory.create()
+                .fromJson(metadataJson, com.contrastsecurity.models.MetadataFilterResponse.class));
+  }
+
   // -- Validation tests --
 
   @Test
@@ -177,6 +199,8 @@ class SearchAppVulnerabilitiesToolTest {
 
   @Test
   void searchAppVulnerabilities_should_accept_sessionMetadataName() throws Exception {
+    // Mock session metadata to resolve field name
+    mockSessionMetadataWithField("branch", "87");
     mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
 
     var result =
@@ -188,8 +212,37 @@ class SearchAppVulnerabilitiesToolTest {
 
   @Test
   void searchAppVulnerabilities_should_accept_sessionMetadataName_and_value() throws Exception {
+    // Mock session metadata to resolve field name
+    mockSessionMetadataWithField("branch", "87");
     mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
 
+    var result =
+        tool.searchAppVulnerabilities(
+            APP_ID, 1, 10, null, null, null, null, null, null, null, "branch", "main", null);
+
+    assertThat(result.isSuccess()).isTrue();
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_return_error_when_field_name_not_found() throws Exception {
+    // Mock session metadata with different field - "branch" not found
+    mockSessionMetadataWithField("commit", "88");
+
+    var result =
+        tool.searchAppVulnerabilities(
+            APP_ID, 1, 10, null, null, null, null, null, null, null, "branch", "main", null);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).anyMatch(e -> e.contains("branch") && e.contains("not found"));
+  }
+
+  @Test
+  void searchAppVulnerabilities_should_resolve_field_name_case_insensitively() throws Exception {
+    // Mock session metadata with "Branch" (different case)
+    mockSessionMetadataWithField("Branch", "87");
+    mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
+
+    // Request with "branch" (lowercase) should work
     var result =
         tool.searchAppVulnerabilities(
             APP_ID, 1, 10, null, null, null, null, null, null, null, "branch", "main", null);
@@ -237,7 +290,8 @@ class SearchAppVulnerabilitiesToolTest {
   }
 
   @Test
-  void searchAppVulnerabilities_should_pass_sessionMetadataName_filter_to_sdk() throws Exception {
+  void searchAppVulnerabilities_should_pass_resolved_field_id_to_sdk() throws Exception {
+    mockSessionMetadataWithField("branch", "87");
     mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
 
     tool.searchAppVulnerabilities(
@@ -245,14 +299,13 @@ class SearchAppVulnerabilitiesToolTest {
 
     var bodyCaptor = ArgumentCaptor.forClass(String.class);
     verify(sdk).makeRequestWithBody(eq(HttpMethod.POST), anyString(), bodyCaptor.capture(), any());
-    // Session metadata filtering includes the metadata field in request
-    // Note: The actual serialization format depends on implementation
-    assertThat(bodyCaptor.getValue()).isNotEmpty();
+    // The request body should contain the resolved numeric field ID, not the string name
+    assertThat(bodyCaptor.getValue()).contains("\"fieldID\":\"87\"");
   }
 
   @Test
-  void searchAppVulnerabilities_should_pass_sessionMetadataName_and_value_to_sdk()
-      throws Exception {
+  void searchAppVulnerabilities_should_pass_resolved_field_id_and_value_to_sdk() throws Exception {
+    mockSessionMetadataWithField("branch", "87");
     mockSdkWithTracesResponse(TracesJsonFixture.emptyTraces());
 
     tool.searchAppVulnerabilities(
@@ -260,8 +313,9 @@ class SearchAppVulnerabilitiesToolTest {
 
     var bodyCaptor = ArgumentCaptor.forClass(String.class);
     verify(sdk).makeRequestWithBody(eq(HttpMethod.POST), anyString(), bodyCaptor.capture(), any());
-    // Should make a request - actual filtering verified by integration tests
-    assertThat(bodyCaptor.getValue()).isNotEmpty();
+    // The request body should contain both the resolved numeric field ID and the value
+    assertThat(bodyCaptor.getValue()).contains("\"fieldID\":\"87\"");
+    assertThat(bodyCaptor.getValue()).contains("main");
   }
 
   @Test
