@@ -54,7 +54,7 @@ public class MetadataJsonFilterSpec {
     try {
       Map<String, Object> rawMap =
           GSON.fromJson(value, new TypeToken<Map<String, Object>>() {}.getType());
-      if (rawMap == null) {
+      if (rawMap == null || rawMap.isEmpty()) {
         return null;
       }
 

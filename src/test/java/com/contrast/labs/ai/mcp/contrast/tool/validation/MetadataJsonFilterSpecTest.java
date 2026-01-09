@@ -55,6 +55,13 @@ class MetadataJsonFilterSpecTest {
   }
 
   @Test
+  void get_should_return_null_for_empty_json_object() {
+    var ctx = new ToolValidationContext();
+    assertThat(ctx.metadataJsonFilterParam("{}", "test").get()).isNull();
+    assertThat(ctx.isValid()).isTrue();
+  }
+
+  @Test
   void get_should_add_error_for_invalid_json() {
     var ctx = new ToolValidationContext();
     assertThat(ctx.metadataJsonFilterParam("not json", "test").get()).isNull();
