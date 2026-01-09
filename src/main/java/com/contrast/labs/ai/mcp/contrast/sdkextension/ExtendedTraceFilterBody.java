@@ -17,6 +17,8 @@ package com.contrast.labs.ai.mcp.contrast.sdkextension;
 
 import com.contrastsecurity.models.TraceFilterBody;
 import java.util.Set;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Extended TraceFilterBody that adds fields not present in the SDK's base class.
@@ -24,15 +26,9 @@ import java.util.Set;
  * <p>The SDK's TraceFilterBody lacks the 'status' field that TeamServer's API supports. This class
  * adds it. The base class already has agentSessionId and metadataFilters fields.
  */
+@Getter
+@Setter
 public class ExtendedTraceFilterBody extends TraceFilterBody {
 
   private Set<String> status;
-
-  public Set<String> getStatus() {
-    return status;
-  }
-
-  public void setStatus(Set<String> status) {
-    this.status = status;
-  }
 }
