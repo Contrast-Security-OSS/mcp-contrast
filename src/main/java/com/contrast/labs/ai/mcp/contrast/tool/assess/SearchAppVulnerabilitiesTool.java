@@ -125,7 +125,7 @@ public class SearchAppVulnerabilitiesTool
                   "JSON object for session metadata filters. Format: {\"fieldName\":\"value\"} or"
                       + " {\"fieldName\":[\"val1\",\"val2\"]}. Multiple fields use AND logic."
                       + " Multiple values within a field use OR logic. Field names are"
-                      + " case-insensitive.",
+                      + " case-insensitive, but values are case-sensitive.",
               required = false)
           String sessionMetadataFilters,
       @ToolParam(description = "Filter to latest session only", required = false)
