@@ -23,9 +23,9 @@ import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.http.ServerEnvironment;
 import java.util.Date;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.util.StringUtils;
 
 /**
@@ -154,7 +154,7 @@ public class SearchAppVulnerabilitiesParams extends BaseToolParams {
       body.setSeverities(severities.stream().toList());
     }
     if (statuses != null) {
-      body.setStatus(new HashSet<>(statuses));
+      body.setStatus(Set.copyOf(statuses));
     }
     if (vulnTypes != null) {
       body.setVulnTypes(vulnTypes);
