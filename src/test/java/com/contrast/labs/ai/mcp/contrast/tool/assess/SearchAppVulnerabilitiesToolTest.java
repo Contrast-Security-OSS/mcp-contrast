@@ -60,7 +60,6 @@ class SearchAppVulnerabilitiesToolTest {
 
     tool = new SearchAppVulnerabilitiesTool(mapper);
     ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
-    ReflectionTestUtils.setField(tool, "maxTracesForSessionFiltering", 50000);
   }
 
   /**
