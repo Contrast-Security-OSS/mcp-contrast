@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.http.ServerEnvironment;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class SearchAppVulnerabilitiesParamsTest {
@@ -31,7 +32,7 @@ class SearchAppVulnerabilitiesParamsTest {
   void of_should_require_appId() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            null, null, null, null, null, null, null, null, null, null, null);
+            null, null, null, null, null, null, null, null, null, null);
 
     assertThat(params.isValid()).isFalse();
     assertThat(params.errors()).contains("appId is required");
@@ -40,8 +41,7 @@ class SearchAppVulnerabilitiesParamsTest {
   @Test
   void of_should_reject_empty_appId() {
     var params =
-        SearchAppVulnerabilitiesParams.of(
-            "", null, null, null, null, null, null, null, null, null, null);
+        SearchAppVulnerabilitiesParams.of("", null, null, null, null, null, null, null, null, null);
 
     assertThat(params.isValid()).isFalse();
     assertThat(params.errors()).contains("appId is required");
@@ -51,7 +51,7 @@ class SearchAppVulnerabilitiesParamsTest {
   void of_should_reject_whitespace_appId() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            "   ", null, null, null, null, null, null, null, null, null, null);
+            "   ", null, null, null, null, null, null, null, null, null);
 
     assertThat(params.isValid()).isFalse();
     assertThat(params.errors()).contains("appId is required");
@@ -61,7 +61,7 @@ class SearchAppVulnerabilitiesParamsTest {
   void of_should_accept_valid_appId() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, null, null, null);
+            VALID_APP_ID, null, null, null, null, null, null, null, null, null);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.appId()).isEqualTo(VALID_APP_ID);
@@ -73,7 +73,7 @@ class SearchAppVulnerabilitiesParamsTest {
   void of_should_parse_valid_severities() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, "CRITICAL,HIGH", null, null, null, null, null, null, null, null, null);
+            VALID_APP_ID, "CRITICAL,HIGH", null, null, null, null, null, null, null, null);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.getSeverities())
@@ -84,7 +84,7 @@ class SearchAppVulnerabilitiesParamsTest {
   void of_should_reject_invalid_severity() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, "INVALID", null, null, null, null, null, null, null, null, null);
+            VALID_APP_ID, "INVALID", null, null, null, null, null, null, null, null);
 
     assertThat(params.isValid()).isFalse();
     assertThat(params.errors())
@@ -97,7 +97,7 @@ class SearchAppVulnerabilitiesParamsTest {
   void of_should_apply_default_statuses_with_warning() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, null, null, null);
+            VALID_APP_ID, null, null, null, null, null, null, null, null, null);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.getStatuses()).containsExactly("Reported", "Suspicious", "Confirmed");
@@ -108,7 +108,7 @@ class SearchAppVulnerabilitiesParamsTest {
   void of_should_parse_explicit_statuses() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, "Reported,Fixed", null, null, null, null, null, null, null, null);
+            VALID_APP_ID, null, "Reported,Fixed", null, null, null, null, null, null, null);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.getStatuses()).containsExactly("Reported", "Fixed");
@@ -118,7 +118,7 @@ class SearchAppVulnerabilitiesParamsTest {
   void of_should_reject_invalid_status() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, "Invalid", null, null, null, null, null, null, null, null);
+            VALID_APP_ID, null, "Invalid", null, null, null, null, null, null, null);
 
     assertThat(params.isValid()).isFalse();
     assertThat(params.errors())
@@ -131,46 +131,94 @@ class SearchAppVulnerabilitiesParamsTest {
   void of_should_parse_valid_environments() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, "PRODUCTION,QA", null, null, null, null, null, null);
+            VALID_APP_ID, null, null, null, "PRODUCTION,QA", null, null, null, null, null);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.getEnvironments())
         .containsExactlyInAnyOrder(ServerEnvironment.PRODUCTION, ServerEnvironment.QA);
   }
 
-  // -- Session metadata validation tests --
+  // -- sessionMetadataFilters tests --
 
   @Test
-  void of_should_accept_sessionMetadataName_only() {
+  void of_should_parse_valid_sessionMetadataFilters() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, "branch", null, null);
+            VALID_APP_ID, null, null, null, null, null, null, null, "{\"branch\":\"main\"}", null);
 
     assertThat(params.isValid()).isTrue();
-    assertThat(params.getSessionMetadataName()).isEqualTo("branch");
-    assertThat(params.getSessionMetadataValue()).isNull();
+    assertThat(params.getSessionMetadataFilters()).containsEntry("branch", "main");
   }
 
   @Test
-  void of_should_accept_sessionMetadataName_and_value() {
+  void of_should_parse_sessionMetadataFilters_with_multiple_fields() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, "branch", "main", null);
+            VALID_APP_ID,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "{\"developer\":\"Ellen\",\"commit\":\"100\"}",
+            null);
 
     assertThat(params.isValid()).isTrue();
-    assertThat(params.getSessionMetadataName()).isEqualTo("branch");
-    assertThat(params.getSessionMetadataValue()).isEqualTo("main");
+    assertThat(params.getSessionMetadataFilters())
+        .containsEntry("developer", "Ellen")
+        .containsEntry("commit", "100");
   }
 
   @Test
-  void of_should_reject_sessionMetadataValue_without_name() {
+  void of_should_parse_sessionMetadataFilters_with_array_values() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, null, "main", null);
+            VALID_APP_ID,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "{\"developer\":[\"Ellen\",\"Sam\"]}",
+            null);
+
+    assertThat(params.isValid()).isTrue();
+    @SuppressWarnings("unchecked")
+    var developers = (List<String>) params.getSessionMetadataFilters().get("developer");
+    assertThat(developers).containsExactly("Ellen", "Sam");
+  }
+
+  @Test
+  void of_should_reject_invalid_json_for_sessionMetadataFilters() {
+    var params =
+        SearchAppVulnerabilitiesParams.of(
+            VALID_APP_ID, null, null, null, null, null, null, null, "not valid json", null);
 
     assertThat(params.isValid()).isFalse();
-    assertThat(params.errors())
-        .anyMatch(e -> e.contains("sessionMetadataValue requires sessionMetadataName"));
+    assertThat(params.errors()).anyMatch(e -> e.contains("Invalid JSON"));
+  }
+
+  @Test
+  void of_should_reject_complex_objects_in_sessionMetadataFilters() {
+    var params =
+        SearchAppVulnerabilitiesParams.of(
+            VALID_APP_ID,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            "{\"nested\":{\"a\":\"b\"}}",
+            null);
+
+    assertThat(params.isValid()).isFalse();
+    assertThat(params.errors()).anyMatch(e -> e.contains("expected string or array"));
   }
 
   // -- useLatestSession tests --
@@ -179,7 +227,7 @@ class SearchAppVulnerabilitiesParamsTest {
   void of_should_accept_useLatestSession_true() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, null, null, true);
+            VALID_APP_ID, null, null, null, null, null, null, null, null, true);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.getUseLatestSession()).isTrue();
@@ -189,10 +237,25 @@ class SearchAppVulnerabilitiesParamsTest {
   void of_should_accept_useLatestSession_false() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, null, null, false);
+            VALID_APP_ID, null, null, null, null, null, null, null, null, false);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.getUseLatestSession()).isFalse();
+  }
+
+  @Test
+  void of_should_reject_useLatestSession_with_sessionMetadataFilters() {
+    var params =
+        SearchAppVulnerabilitiesParams.of(
+            VALID_APP_ID, null, null, null, null, null, null, null, "{\"branch\":\"main\"}", true);
+
+    assertThat(params.isValid()).isFalse();
+    assertThat(params.errors())
+        .anyMatch(
+            e ->
+                e.contains("useLatestSession")
+                    && e.contains("sessionMetadataFilters")
+                    && e.contains("mutually exclusive"));
   }
 
   // -- needsSessionFiltering tests --
@@ -201,16 +264,16 @@ class SearchAppVulnerabilitiesParamsTest {
   void needsSessionFiltering_should_return_true_when_useLatestSession() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, null, null, true);
+            VALID_APP_ID, null, null, null, null, null, null, null, null, true);
 
     assertThat(params.needsSessionFiltering()).isTrue();
   }
 
   @Test
-  void needsSessionFiltering_should_return_true_when_sessionMetadataName_set() {
+  void needsSessionFiltering_should_return_true_when_sessionMetadataFilters_set() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, "branch", null, null);
+            VALID_APP_ID, null, null, null, null, null, null, null, "{\"branch\":\"main\"}", null);
 
     assertThat(params.needsSessionFiltering()).isTrue();
   }
@@ -219,7 +282,7 @@ class SearchAppVulnerabilitiesParamsTest {
   void needsSessionFiltering_should_return_false_when_no_session_params() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, null, null, null);
+            VALID_APP_ID, null, null, null, null, null, null, null, null, null);
 
     assertThat(params.needsSessionFiltering()).isFalse();
   }
@@ -238,7 +301,6 @@ class SearchAppVulnerabilitiesParamsTest {
             "2025-01-01",
             "2025-01-31",
             "reviewed",
-            null,
             null,
             null);
 
@@ -260,75 +322,12 @@ class SearchAppVulnerabilitiesParamsTest {
   void toTraceFilterBody_empty_should_return_all_vulnerabilities() {
     var params =
         SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, null, null, null);
+            VALID_APP_ID, null, null, null, null, null, null, null, null, null);
 
     var body = params.toTraceFilterBody();
 
     // With no filters and tracked/untracked both false, API returns ALL vulnerabilities
     assertThat(body.isTracked()).isFalse();
     assertThat(body.isUntracked()).isFalse();
-  }
-
-  // -- toTraceFilterBody with session filtering tests --
-
-  @Test
-  void toTraceFilterBody_should_set_agentSessionId_when_provided() {
-    var params =
-        SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, null, null, null);
-
-    var body = params.toTraceFilterBodyWithSessionId("session-abc-123");
-
-    assertThat(body.getAgentSessionId()).isEqualTo("session-abc-123");
-  }
-
-  @Test
-  void toTraceFilterBody_should_not_set_agentSessionId_when_null() {
-    var params =
-        SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, null, null, null);
-
-    var body = params.toTraceFilterBodyWithSessionId(null);
-
-    assertThat(body.getAgentSessionId()).isNull();
-  }
-
-  @Test
-  void toTraceFilterBody_should_set_metadataFilters_when_sessionMetadataName_provided() {
-    var params =
-        SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, "branch", "main", null);
-
-    var body = params.toTraceFilterBodyWithSessionId(null);
-
-    assertThat(body.getMetadataFilters()).hasSize(1);
-    assertThat(body.getMetadataFilters().get(0).getFieldID()).isEqualTo("branch");
-    assertThat(body.getMetadataFilters().get(0).getValues()).containsExactly("main");
-  }
-
-  @Test
-  void toTraceFilterBody_should_set_metadataFilters_with_empty_values_when_no_value() {
-    var params =
-        SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, "branch", null, null);
-
-    var body = params.toTraceFilterBodyWithSessionId(null);
-
-    assertThat(body.getMetadataFilters()).hasSize(1);
-    assertThat(body.getMetadataFilters().get(0).getFieldID()).isEqualTo("branch");
-    assertThat(body.getMetadataFilters().get(0).getValues()).isEmpty();
-  }
-
-  @Test
-  void toTraceFilterBody_should_combine_agentSessionId_and_metadataFilters() {
-    var params =
-        SearchAppVulnerabilitiesParams.of(
-            VALID_APP_ID, null, null, null, null, null, null, null, "branch", "main", null);
-
-    var body = params.toTraceFilterBodyWithSessionId("session-xyz");
-
-    assertThat(body.getAgentSessionId()).isEqualTo("session-xyz");
-    assertThat(body.getMetadataFilters()).hasSize(1);
-    assertThat(body.getMetadataFilters().get(0).getFieldID()).isEqualTo("branch");
   }
 }
