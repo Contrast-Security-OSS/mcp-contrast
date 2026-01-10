@@ -45,4 +45,10 @@ public class Route {
 
   @SerializedName("critical_vulnerabilities")
   private int criticalVulnerabilities;
+
+  @SerializedName("observations")
+  private List<Observation> observations;
+
+  @SerializedName("total_observations")
+  private Long totalObservations;
 }
