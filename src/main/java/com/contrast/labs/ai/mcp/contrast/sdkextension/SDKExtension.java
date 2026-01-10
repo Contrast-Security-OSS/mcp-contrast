@@ -21,6 +21,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksFilterBody;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationsResponse;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteDetailsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;
@@ -216,8 +217,10 @@ public class SDKExtension {
     // Always use POST with expand=observations to get observations inline (eliminates N+1)
     var url = urlBuilder.getRouteCoverageWithMetadataUrl(organizationId, appId);
 
-    // Use empty object for unfiltered requests, otherwise serialize metadata
-    var body = metadata == null ? "{}" : gson.toJson(metadata);
+    // Use empty request for unfiltered requests (serializes to {"metadata": []})
+    var request =
+        metadata == null ? new RouteCoverageBySessionIDAndMetadataRequestExtended() : metadata;
+    var body = gson.toJson(request);
 
     try (InputStream is =
             contrastSDK.makeRequestWithBody(HttpMethod.POST, url, body, MediaType.JSON);
