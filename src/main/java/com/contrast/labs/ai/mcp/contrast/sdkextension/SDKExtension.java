@@ -199,10 +199,13 @@ public class SDKExtension {
   /**
    * Retrieves route coverage information for an application.
    *
+   * <p>Always uses POST endpoint with expand=observations to ensure observations are included,
+   * eliminating N+1 queries for route details.
+   *
    * @param organizationId The organization ID
    * @param appId The application ID
-   * @param metadata Optional metadata request for filtering (can be null)
-   * @return RouteCoverageResponse containing route coverage information
+   * @param metadata Optional metadata request for filtering (can be null for unfiltered)
+   * @return RouteCoverageResponse containing route coverage information with observations
    * @throws IOException If an I/O error occurs
    * @throws UnauthorizedException If the request is not authorized
    */
@@ -210,29 +213,16 @@ public class SDKExtension {
       String organizationId, String appId, RouteCoverageBySessionIDAndMetadataRequest metadata)
       throws IOException, UnauthorizedException {
 
-    InputStream is = null;
+    // Always use POST with expand=observations to get observations inline (eliminates N+1)
+    var url = urlBuilder.getRouteCoverageWithMetadataUrl(organizationId, appId);
 
-    try {
-      if (metadata == null) {
-        is =
-            contrastSDK.makeRequest(
-                HttpMethod.GET, urlBuilder.getRouteCoverageUrl(organizationId, appId));
-      } else {
-        is =
-            contrastSDK.makeRequestWithBody(
-                HttpMethod.POST,
-                urlBuilder.getRouteCoverageWithMetadataUrl(organizationId, appId),
-                gson.toJson(metadata),
-                MediaType.JSON);
-      }
+    // Use empty object for unfiltered requests, otherwise serialize metadata
+    var body = metadata == null ? "{}" : gson.toJson(metadata);
 
-      try (Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-        return gson.fromJson(reader, RouteCoverageResponse.class);
-      }
-    } finally {
-      if (is != null) {
-        is.close();
-      }
+    try (InputStream is =
+            contrastSDK.makeRequestWithBody(HttpMethod.POST, url, body, MediaType.JSON);
+        Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+      return gson.fromJson(reader, RouteCoverageResponse.class);
     }
   }
 
