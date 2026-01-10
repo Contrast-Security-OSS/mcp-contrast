@@ -44,26 +44,24 @@ class SDKExtensionTest {
   }
 
   @Test
-  void getRouteCoverage_should_use_post_with_empty_body_when_no_metadata() throws Exception {
+  void getRouteCoverage_should_use_get_with_expand_observations_when_no_metadata()
+      throws Exception {
     var emptyResponse =
         """
         {"success": true, "routes": []}
         """;
-    when(sdk.makeRequestWithBody(any(), any(), any(), any()))
+    when(sdk.makeRequest(any(), any()))
         .thenReturn(new ByteArrayInputStream(emptyResponse.getBytes(StandardCharsets.UTF_8)));
 
     var result = sdkExtension.getRouteCoverage("org-123", "app-456", null);
 
     assertThat(result.isSuccess()).isTrue();
 
-    // Verify POST is used (not GET), with expand=observations in URL
-    // Empty request serializes to {"metadata":[]} not {}
+    // Verify GET is used with expand=observations in URL
     verify(sdk)
-        .makeRequestWithBody(
-            eq(HttpMethod.POST),
-            argThat(url -> url.contains("/route/filter") && url.contains("expand=observations")),
-            argThat(body -> body.contains("metadata")),
-            eq(MediaType.JSON));
+        .makeRequest(
+            eq(HttpMethod.GET),
+            argThat(url -> url.contains("/route?") && url.contains("expand=observations")));
   }
 
   @Test
