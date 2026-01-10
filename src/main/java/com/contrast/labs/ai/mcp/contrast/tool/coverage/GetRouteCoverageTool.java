@@ -16,7 +16,6 @@
 package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
@@ -159,14 +158,8 @@ public class GetRouteCoverageTool
 
     log.debug("Found {} routes for application", response.getRoutes().size());
 
-    // Fetch route details for each route (N+1 API call pattern)
-    log.debug("Retrieving route details for each route");
-    for (Route route : response.getRoutes()) {
-      log.trace("Fetching details for route: {}", route.getSignature());
-      var routeDetailsResponse =
-          sdkExtension.getRouteDetails(orgId, params.appId(), route.getRouteHash());
-      route.setRouteDetailsResponse(routeDetailsResponse);
-    }
+    // Observations are now included inline via POST endpoint with expand=observations
+    // No need for N+1 queries to fetch route details separately
 
     log.info(
         "Successfully retrieved route coverage for application ID: {} ({} routes)",

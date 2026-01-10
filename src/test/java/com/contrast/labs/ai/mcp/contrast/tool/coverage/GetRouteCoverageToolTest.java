@@ -23,20 +23,20 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Observation;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteDetailsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.AgentSession;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
 import com.contrastsecurity.sdk.ContrastSDK;
 import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -111,7 +111,6 @@ class GetRouteCoverageToolTest {
   @Test
   void getRouteCoverage_should_return_data_when_unfiltered() throws Exception {
     var mockResponse = createMockRouteCoverageResponse(2);
-    var routeDetails = createMockRouteDetailsResponse();
 
     try (var mockedConstruction =
         mockConstruction(
@@ -119,8 +118,6 @@ class GetRouteCoverageToolTest {
             (mock, context) -> {
               when(mock.getRouteCoverage(eq(ORG_ID), eq(VALID_APP_ID), isNull()))
                   .thenReturn(mockResponse);
-              when(mock.getRouteDetails(eq(ORG_ID), eq(VALID_APP_ID), anyString()))
-                  .thenReturn(routeDetails);
             })) {
 
       var result = tool.getRouteCoverage(VALID_APP_ID, null, null, null);
@@ -130,9 +127,10 @@ class GetRouteCoverageToolTest {
       assertThat(result.data()).isNotNull();
       assertThat(result.data().getRoutes()).hasSize(2);
 
+      // Observations are included inline - no N+1 calls to getRouteDetails
       var constructedMock = mockedConstruction.constructed().get(0);
       verify(constructedMock).getRouteCoverage(eq(ORG_ID), eq(VALID_APP_ID), isNull());
-      verify(constructedMock, times(2)).getRouteDetails(eq(ORG_ID), eq(VALID_APP_ID), anyString());
+      verify(constructedMock, never()).getRouteDetails(anyString(), anyString(), anyString());
     }
   }
 
@@ -164,7 +162,6 @@ class GetRouteCoverageToolTest {
   @Test
   void getRouteCoverage_should_filter_by_session_metadata() throws Exception {
     var mockResponse = createMockRouteCoverageResponse(1);
-    var routeDetails = createMockRouteDetailsResponse();
 
     try (var mockedConstruction =
         mockConstruction(
@@ -175,8 +172,6 @@ class GetRouteCoverageToolTest {
                       eq(VALID_APP_ID),
                       any(RouteCoverageBySessionIDAndMetadataRequestExtended.class)))
                   .thenReturn(mockResponse);
-              when(mock.getRouteDetails(eq(ORG_ID), eq(VALID_APP_ID), anyString()))
-                  .thenReturn(routeDetails);
             })) {
 
       var result = tool.getRouteCoverage(VALID_APP_ID, METADATA_NAME, METADATA_VALUE, null);
@@ -204,7 +199,6 @@ class GetRouteCoverageToolTest {
   void getRouteCoverage_should_filter_by_latest_session() throws Exception {
     var sessionResponse = createMockSessionMetadataResponse();
     var mockResponse = createMockRouteCoverageResponse(1);
-    var routeDetails = createMockRouteDetailsResponse();
 
     try (var mockedConstruction =
         mockConstruction(
@@ -217,8 +211,6 @@ class GetRouteCoverageToolTest {
                       eq(VALID_APP_ID),
                       any(RouteCoverageBySessionIDAndMetadataRequestExtended.class)))
                   .thenReturn(mockResponse);
-              when(mock.getRouteDetails(eq(ORG_ID), eq(VALID_APP_ID), anyString()))
-                  .thenReturn(routeDetails);
             })) {
 
       var result = tool.getRouteCoverage(VALID_APP_ID, null, null, true);
@@ -320,7 +312,6 @@ class GetRouteCoverageToolTest {
   void getRouteCoverage_should_add_warning_when_precedence_applies() throws Exception {
     var sessionResponse = createMockSessionMetadataResponse();
     var mockResponse = createMockRouteCoverageResponse(1);
-    var routeDetails = createMockRouteDetailsResponse();
 
     try (var mockedConstruction =
         mockConstruction(
@@ -333,8 +324,6 @@ class GetRouteCoverageToolTest {
                       eq(VALID_APP_ID),
                       any(RouteCoverageBySessionIDAndMetadataRequestExtended.class)))
                   .thenReturn(mockResponse);
-              when(mock.getRouteDetails(eq(ORG_ID), eq(VALID_APP_ID), anyString()))
-                  .thenReturn(routeDetails);
             })) {
 
       var result = tool.getRouteCoverage(VALID_APP_ID, METADATA_NAME, METADATA_VALUE, true);
@@ -344,12 +333,11 @@ class GetRouteCoverageToolTest {
     }
   }
 
-  // ========== Route details fetching ==========
+  // ========== Observations are included inline ==========
 
   @Test
-  void getRouteCoverage_should_fetch_route_details_for_each_route() throws Exception {
+  void getRouteCoverage_should_return_observations_inline() throws Exception {
     var mockResponse = createMockRouteCoverageResponse(3);
-    var routeDetails = createMockRouteDetailsResponse();
 
     try (var mockedConstruction =
         mockConstruction(
@@ -357,8 +345,6 @@ class GetRouteCoverageToolTest {
             (mock, context) -> {
               when(mock.getRouteCoverage(eq(ORG_ID), eq(VALID_APP_ID), isNull()))
                   .thenReturn(mockResponse);
-              when(mock.getRouteDetails(eq(ORG_ID), eq(VALID_APP_ID), anyString()))
-                  .thenReturn(routeDetails);
             })) {
 
       var result = tool.getRouteCoverage(VALID_APP_ID, null, null, null);
@@ -366,13 +352,16 @@ class GetRouteCoverageToolTest {
       assertThat(result.isSuccess()).isTrue();
       assertThat(result.data().getRoutes()).hasSize(3);
 
-      // Verify route details were fetched for each route
+      // Verify observations are included inline (from expand=observations)
       for (var route : result.data().getRoutes()) {
-        assertThat(route.getRouteDetailsResponse()).isNotNull();
+        assertThat(route.getObservations()).isNotNull();
+        assertThat(route.getObservations()).hasSize(1);
+        assertThat(route.getTotalObservations()).isEqualTo(1L);
       }
 
+      // Verify N+1 calls to getRouteDetails are NOT made
       var constructedMock = mockedConstruction.constructed().get(0);
-      verify(constructedMock, times(3)).getRouteDetails(eq(ORG_ID), eq(VALID_APP_ID), anyString());
+      verify(constructedMock, never()).getRouteDetails(anyString(), anyString(), anyString());
     }
   }
 
@@ -388,16 +377,18 @@ class GetRouteCoverageToolTest {
       route.setSignature("GET /api/endpoint" + i);
       route.setRouteHash(ROUTE_HASH + "-" + i);
       route.setExercised(i % 2 == 0 ? 1L : 0L);
+
+      // Include observations inline (simulating expand=observations response)
+      var observation = new Observation();
+      observation.setVerb("GET");
+      observation.setUrl("/api/endpoint" + i);
+      route.setObservations(List.of(observation));
+      route.setTotalObservations(1L);
+
       routes.add(route);
     }
 
     response.setRoutes(routes);
-    return response;
-  }
-
-  private RouteDetailsResponse createMockRouteDetailsResponse() {
-    var response = new RouteDetailsResponse();
-    response.setSuccess(true);
     return response;
   }
 
