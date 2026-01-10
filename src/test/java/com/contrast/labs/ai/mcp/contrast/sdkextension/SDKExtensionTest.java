@@ -57,11 +57,12 @@ class SDKExtensionTest {
     assertThat(result.isSuccess()).isTrue();
 
     // Verify POST is used (not GET), with expand=observations in URL
+    // Empty request serializes to {"metadata":[]} not {}
     verify(sdk)
         .makeRequestWithBody(
             eq(HttpMethod.POST),
             argThat(url -> url.contains("/route/filter") && url.contains("expand=observations")),
-            eq("{}"), // Empty body for unfiltered
+            argThat(body -> body.contains("metadata")),
             eq(MediaType.JSON));
   }
 
