@@ -65,6 +65,15 @@ class MetadataJsonFilterSpecTest {
   }
 
   @Test
+  void get_should_add_error_for_empty_array_value() {
+    var ctx = new ToolValidationContext();
+    var result = ctx.metadataJsonFilterParam("{\"field\":[]}", "test").get();
+    assertThat(result).isNull();
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors()).anyMatch(e -> e.contains("field") && e.contains("empty array"));
+  }
+
+  @Test
   void get_should_add_error_for_invalid_json() {
     var ctx = new ToolValidationContext();
     assertThat(ctx.metadataJsonFilterParam("not json", "test").get()).isNull();
