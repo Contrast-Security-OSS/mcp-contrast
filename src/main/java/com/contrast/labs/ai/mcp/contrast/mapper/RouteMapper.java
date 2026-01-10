@@ -25,8 +25,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Mapper for transforming Route objects into lightweight RouteLight representations. Eliminates
- * redundant fields (app, servers, routeDetailsResponse, routeHashString) while preserving essential
- * route coverage data.
+ * redundant fields (app, servers, routeHashString) while preserving essential route coverage data.
  */
 @Component
 public class RouteMapper {
@@ -54,7 +53,8 @@ public class RouteMapper {
   }
 
   /**
-   * Transform full RouteCoverageResponse to lightweight version with aggregate statistics.
+   * Transform full RouteCoverageResponse to lightweight version with aggregate statistics. Uses
+   * single-pass computation for efficiency with large route lists.
    *
    * @param response Full route coverage response from SDK
    * @return Lightweight response with RouteLight objects and computed aggregates
@@ -64,16 +64,25 @@ public class RouteMapper {
 
     var lightRoutes = routes.stream().map(this::toRouteLight).toList();
 
+    // Single-pass computation for all aggregates
+    int exercisedCount = 0;
+    int discoveredCount = 0;
+    int totalVulnerabilities = 0;
+    int totalCriticalVulnerabilities = 0;
+
+    for (var route : routes) {
+      if ("EXERCISED".equalsIgnoreCase(route.getStatus())) {
+        exercisedCount++;
+      } else if ("DISCOVERED".equalsIgnoreCase(route.getStatus())) {
+        discoveredCount++;
+      }
+      totalVulnerabilities += route.getVulnerabilities();
+      totalCriticalVulnerabilities += route.getCriticalVulnerabilities();
+    }
+
     int totalRoutes = routes.size();
-    int exercisedCount =
-        (int) routes.stream().filter(r -> "EXERCISED".equalsIgnoreCase(r.getStatus())).count();
-    int discoveredCount =
-        (int) routes.stream().filter(r -> "DISCOVERED".equalsIgnoreCase(r.getStatus())).count();
     double coveragePercent =
         totalRoutes > 0 ? Math.round((exercisedCount * 100.0) / totalRoutes * 100.0) / 100.0 : 0.0;
-    int totalVulnerabilities = routes.stream().mapToInt(Route::getVulnerabilities).sum();
-    int totalCriticalVulnerabilities =
-        routes.stream().mapToInt(Route::getCriticalVulnerabilities).sum();
 
     return new RouteCoverageResponseLight(
         response.isSuccess(),

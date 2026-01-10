@@ -130,10 +130,9 @@ class GetRouteCoverageToolTest {
       assertThat(result.data()).isNotNull();
       assertThat(result.data().routes()).hasSize(2);
 
-      // Observations are included inline - no N+1 calls to getRouteDetails
+      // Observations are included inline via expand=observations
       var constructedMock = mockedConstruction.constructed().get(0);
       verify(constructedMock).getRouteCoverage(eq(ORG_ID), eq(VALID_APP_ID), isNull());
-      verify(constructedMock, never()).getRouteDetails(anyString(), anyString(), anyString());
     }
   }
 
@@ -154,9 +153,6 @@ class GetRouteCoverageToolTest {
       assertThat(result.isSuccess()).isTrue();
       assertThat(result.data()).isNotNull();
       assertThat(result.data().routes()).isEmpty();
-
-      var constructedMock = mockedConstruction.constructed().get(0);
-      verify(constructedMock, never()).getRouteDetails(anyString(), anyString(), anyString());
     }
   }
 
@@ -361,10 +357,6 @@ class GetRouteCoverageToolTest {
         assertThat(route.observations()).hasSize(1);
         assertThat(route.totalObservations()).isEqualTo(1L);
       }
-
-      // Verify N+1 calls to getRouteDetails are NOT made
-      var constructedMock = mockedConstruction.constructed().get(0);
-      verify(constructedMock, never()).getRouteDetails(anyString(), anyString(), anyString());
     }
   }
 

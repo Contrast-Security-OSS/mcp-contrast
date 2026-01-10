@@ -22,7 +22,6 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksFilterBody
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteDetailsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
@@ -176,27 +175,6 @@ public class SDKExtension {
   }
 
   /**
-   * Retrieves the detailed observations for a specific route.
-   *
-   * @param organizationId The organization ID
-   * @param applicationId The application ID
-   * @param routeHash The unique hash identifying the route
-   * @return RouteDetailsResponse containing observations for the route
-   * @throws IOException If an I/O error occurs
-   * @throws UnauthorizedException If the request is not authorized
-   */
-  public RouteDetailsResponse getRouteDetails(
-      String organizationId, String applicationId, String routeHash)
-      throws IOException, UnauthorizedException {
-    var url = getRouteDetailsUrl(organizationId, applicationId, routeHash);
-
-    try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
-        Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-      return gson.fromJson(reader, RouteDetailsResponse.class);
-    }
-  }
-
-  /**
    * Retrieves route coverage information for an application.
    *
    * <p>Uses GET with expand=observations for unfiltered requests, POST for filtered requests. Both
@@ -231,13 +209,6 @@ public class SDKExtension {
         Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
       return gson.fromJson(reader, RouteCoverageResponse.class);
     }
-  }
-
-  /** Builds URL for retrieving route details observations */
-  private String getRouteDetailsUrl(String organizationId, String applicationId, String routeHash) {
-    return String.format(
-        "/ng/%s/applications/%s/route/%s/observations?expand=skip_links,session_metadata",
-        organizationId, applicationId, routeHash);
   }
 
   /**
