@@ -21,7 +21,6 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksFilterBody;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationsResponse;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteDetailsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;
@@ -200,8 +199,8 @@ public class SDKExtension {
   /**
    * Retrieves route coverage information for an application.
    *
-   * <p>Always uses POST endpoint with expand=observations to ensure observations are included,
-   * eliminating N+1 queries for route details.
+   * <p>Uses GET with expand=observations for unfiltered requests, POST for filtered requests. Both
+   * include observations inline, eliminating N+1 queries for route details.
    *
    * @param organizationId The organization ID
    * @param appId The application ID
@@ -214,16 +213,21 @@ public class SDKExtension {
       String organizationId, String appId, RouteCoverageBySessionIDAndMetadataRequest metadata)
       throws IOException, UnauthorizedException {
 
-    // Always use POST with expand=observations to get observations inline (eliminates N+1)
-    var url = urlBuilder.getRouteCoverageWithMetadataUrl(organizationId, appId);
+    InputStream is;
 
-    // Use empty request for unfiltered requests (serializes to {"metadata": []})
-    var request =
-        metadata == null ? new RouteCoverageBySessionIDAndMetadataRequestExtended() : metadata;
-    var body = gson.toJson(request);
+    if (metadata == null) {
+      // GET for unfiltered - add expand=observations to include observations inline
+      var url = urlBuilder.getRouteCoverageUrl(organizationId, appId) + "&expand=observations";
+      is = contrastSDK.makeRequest(HttpMethod.GET, url);
+    } else {
+      // POST for filtered - URL already includes expand=observations
+      var url = urlBuilder.getRouteCoverageWithMetadataUrl(organizationId, appId);
+      is =
+          contrastSDK.makeRequestWithBody(
+              HttpMethod.POST, url, gson.toJson(metadata), MediaType.JSON);
+    }
 
-    try (InputStream is =
-            contrastSDK.makeRequestWithBody(HttpMethod.POST, url, body, MediaType.JSON);
+    try (is;
         Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
       return gson.fromJson(reader, RouteCoverageResponse.class);
     }
