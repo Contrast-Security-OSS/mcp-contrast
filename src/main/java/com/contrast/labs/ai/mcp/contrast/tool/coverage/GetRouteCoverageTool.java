@@ -15,9 +15,10 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 
+import com.contrast.labs.ai.mcp.contrast.data.RouteCoverageResponseLight;
+import com.contrast.labs.ai.mcp.contrast.mapper.RouteMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.coverage.params.RouteCoverageParams;
@@ -38,7 +39,9 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Slf4j
 public class GetRouteCoverageTool
-    extends BaseSingleTool<RouteCoverageParams, RouteCoverageResponse> {
+    extends BaseSingleTool<RouteCoverageParams, RouteCoverageResponseLight> {
+
+  private final RouteMapper routeMapper;
 
   @Tool(
       name = "get_route_coverage",
@@ -71,7 +74,7 @@ public class GetRouteCoverageTool
           - search_applications: Find application IDs by name or tag
           - get_session_metadata: View available session metadata fields
           """)
-  public SingleToolResponse<RouteCoverageResponse> getRouteCoverage(
+  public SingleToolResponse<RouteCoverageResponseLight> getRouteCoverage(
       @ToolParam(description = "Application ID (use search_applications to find)") String appId,
       @ToolParam(
               description =
@@ -98,7 +101,7 @@ public class GetRouteCoverageTool
   }
 
   @Override
-  protected RouteCoverageResponse doExecute(RouteCoverageParams params, List<String> warnings)
+  protected RouteCoverageResponseLight doExecute(RouteCoverageParams params, List<String> warnings)
       throws Exception {
     var sdk = getContrastSDK();
     var orgId = getOrgId();
@@ -166,6 +169,7 @@ public class GetRouteCoverageTool
         params.appId(),
         response.getRoutes().size());
 
-    return response;
+    // Transform to light response to reduce payload size for AI agents
+    return routeMapper.toResponseLight(response);
   }
 }

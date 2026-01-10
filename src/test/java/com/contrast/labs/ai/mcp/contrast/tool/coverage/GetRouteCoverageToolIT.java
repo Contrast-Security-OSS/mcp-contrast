@@ -18,7 +18,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
+import com.contrast.labs.ai.mcp.contrast.data.RouteLight;
 import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper.RouteCoverageTestData;
@@ -204,29 +204,23 @@ public class GetRouteCoverageToolIT
     assertThat(result.isSuccess()).as("Response should indicate success").isTrue();
     assertThat(result.found()).as("Should find routes").isTrue();
     assertThat(result.data()).as("Data should not be null").isNotNull();
-    assertThat(result.data().getRoutes()).as("Routes should not be null").isNotNull();
-    assertThat(result.data().getRoutes().size() > 0).as("Should have at least 1 route").isTrue();
+    assertThat(result.data().routes()).as("Routes should not be null").isNotNull();
+    assertThat(result.data().routes().size() > 0).as("Should have at least 1 route").isTrue();
 
     log.info(
         "✓ Retrieved {} routes for application: {}",
-        result.data().getRoutes().size(),
+        result.data().routes().size(),
         testData.appName);
 
-    // Count exercised vs discovered routes
-    long exercisedCount =
-        result.data().getRoutes().stream().filter(route -> route.getExercised() > 0).count();
-    long discoveredCount = result.data().getRoutes().size() - exercisedCount;
+    // Light response includes aggregate statistics
+    log.info("  Exercised routes: {}", result.data().exercisedCount());
+    log.info("  Discovered routes: {}", result.data().discoveredCount());
+    log.info("  Coverage percent: {}%", result.data().coveragePercent());
 
-    log.info("  Exercised routes: {}", exercisedCount);
-    log.info("  Discovered routes: {}", discoveredCount);
-
-    // Verify all routes have details
-    for (Route route : result.data().getRoutes()) {
-      assertThat(route.getSignature()).as("Route signature should not be null").isNotNull();
-      assertThat(route.getRouteHash()).as("Route hash should not be null").isNotNull();
-      assertThat(route.getRouteDetailsResponse())
-          .as("Route details should be populated")
-          .isNotNull();
+    // Verify all routes have essential fields in light format
+    for (RouteLight route : result.data().routes()) {
+      assertThat(route.signature()).as("Route signature should not be null").isNotNull();
+      assertThat(route.routeHash()).as("Route hash should not be null").isNotNull();
     }
   }
 
@@ -248,21 +242,21 @@ public class GetRouteCoverageToolIT
     assertThat(result).as("Response should not be null").isNotNull();
     assertThat(result.isSuccess()).as("Response should indicate success").isTrue();
     assertThat(result.data()).as("Data should not be null").isNotNull();
-    assertThat(result.data().getRoutes()).as("Routes should not be null").isNotNull();
+    assertThat(result.data().routes()).as("Routes should not be null").isNotNull();
 
     log.info(
         "✓ Retrieved {} routes for application: {}",
-        result.data().getRoutes().size(),
+        result.data().routes().size(),
         testData.appName);
     log.info(
         "  Filtered by session metadata: {}={}",
         testData.sessionMetadataName,
         testData.sessionMetadataValue);
 
-    // Verify route details are populated
-    for (Route route : result.data().getRoutes()) {
-      assertThat(route.getRouteDetailsResponse())
-          .as("Route details should be populated for filtered routes")
+    // Verify routes have essential fields in light format
+    for (RouteLight route : result.data().routes()) {
+      assertThat(route.signature())
+          .as("Route signature should be present for filtered routes")
           .isNotNull();
     }
   }
@@ -285,24 +279,21 @@ public class GetRouteCoverageToolIT
         .as("Response should indicate success. Application should have session metadata.")
         .isTrue();
     assertThat(result.data()).as("Data should not be null").isNotNull();
-    assertThat(result.data().getRoutes())
+    assertThat(result.data().routes())
         .as("Routes should not be null when success is true")
         .isNotNull();
 
-    log.info("✓ Retrieved {} routes from latest session", result.data().getRoutes().size());
+    log.info("✓ Retrieved {} routes from latest session", result.data().routes().size());
     log.info("  Application: {}", testData.appName);
 
-    // Count exercised vs discovered
-    long exercisedCount =
-        result.data().getRoutes().stream().filter(route -> route.getExercised() > 0).count();
+    // Light response includes aggregate statistics
+    log.info("  Exercised: {}", result.data().exercisedCount());
+    log.info("  Discovered: {}", result.data().discoveredCount());
 
-    log.info("  Exercised: {}", exercisedCount);
-    log.info("  Discovered: {}", (result.data().getRoutes().size() - exercisedCount));
-
-    // Verify all routes have details
-    for (Route route : result.data().getRoutes()) {
-      assertThat(route.getRouteDetailsResponse())
-          .as("Route details should be populated for latest session")
+    // Verify all routes have essential fields in light format
+    for (RouteLight route : result.data().routes()) {
+      assertThat(route.signature())
+          .as("Route signature should be present for latest session")
           .isNotNull();
     }
   }
@@ -320,11 +311,11 @@ public class GetRouteCoverageToolIT
     assertThat(result.isSuccess()).as("Response should be successful").isTrue();
 
     log.info("✓ Response successful: {}", result.isSuccess());
-    log.info("✓ Routes returned: {}", result.data().getRoutes().size());
+    log.info("✓ Routes returned: {}", result.data().routes().size());
 
     // Should return routes (assuming the app has route coverage)
     if (testData.hasRouteCoverage) {
-      assertThat(result.data().getRoutes().size() > 0)
+      assertThat(result.data().routes().size() > 0)
           .as(
               "Empty strings should return all routes (unfiltered query) when app has route"
                   + " coverage")
@@ -368,54 +359,50 @@ public class GetRouteCoverageToolIT
     log.info("✓ API handled non-existent metadata gracefully");
     log.info(
         "  Routes returned: {} (expected 0 for non-existent metadata)",
-        result.data().getRoutes().size());
+        result.data().routes().size());
 
     // With non-existent metadata, we expect 0 routes
-    assertThat(result.data().getRoutes().size())
+    assertThat(result.data().routes().size())
         .as("Non-existent metadata should return 0 routes")
         .isEqualTo(0);
   }
 
-  // ========== Route details validation ==========
+  // ========== Route structure validation ==========
 
   @Test
-  void getRouteCoverage_should_populate_route_details_for_all_routes() {
-    log.info("\n=== Integration Test: Route details structure validation ===");
+  void getRouteCoverage_should_populate_route_fields_for_all_routes() {
+    log.info("\n=== Integration Test: Route light structure validation ===");
 
     var result = getRouteCoverageTool.getRouteCoverage(testData.appId, null, null, null);
 
     assertThat(result).as("Response should not be null").isNotNull();
     assertThat(result.isSuccess()).as("Response should indicate success").isTrue();
-    assertThat(result.data().getRoutes().size() > 0)
+    assertThat(result.data().routes().size() > 0)
         .as("Should have at least 1 route to validate")
         .isTrue();
 
-    log.info("✓ Validating structure of {} routes", result.data().getRoutes().size());
+    log.info("✓ Validating structure of {} routes", result.data().routes().size());
 
-    // Validate structure of each route and its details
-    for (Route route : result.data().getRoutes()) {
+    // Validate structure of each route in light format
+    for (RouteLight route : result.data().routes()) {
       // Route itself should have key fields
-      assertThat(route.getSignature())
+      assertThat(route.signature())
           .as("Route signature should be present")
           .isNotNull()
           .isNotEmpty();
-      assertThat(route.getRouteHash()).as("Route hash should be present").isNotNull().isNotEmpty();
+      assertThat(route.routeHash()).as("Route hash should be present").isNotNull().isNotEmpty();
 
-      // exercised field should be set (can be 0 for discovered routes)
-      assertThat(route.getExercised())
-          .as("Route exercised count should be set (can be 0)")
-          .isNotNull();
-
-      // Route details should be populated
-      assertThat(route.getRouteDetailsResponse())
-          .as("Route details response should be populated")
-          .isNotNull();
-      assertThat(route.getRouteDetailsResponse().isSuccess())
-          .as("Route details should be successfully fetched")
-          .isTrue();
+      // status field should be set
+      assertThat(route.status()).as("Route status should be present").isNotNull();
     }
 
-    log.info("✓ All {} routes have valid structure and details", result.data().getRoutes().size());
+    // Verify aggregate statistics are computed
+    assertThat(result.data().totalRoutes()).as("Total routes should be set").isGreaterThan(0);
+    assertThat(result.data().exercisedCount() + result.data().discoveredCount())
+        .as("Exercised + discovered should equal total")
+        .isEqualTo(result.data().totalRoutes());
+
+    log.info("✓ All {} routes have valid light structure", result.data().routes().size());
   }
 
   // ========== Comparison test ==========
@@ -447,14 +434,13 @@ public class GetRouteCoverageToolIT
     assertThat(latestSessionResult.isSuccess()).as("Latest session query should succeed").isTrue();
 
     log.info("✓ All filter types work correctly:");
-    log.info("  Unfiltered routes:        {}", unfilteredResult.data().getRoutes().size());
-    log.info("  Session metadata routes:  {}", sessionMetadataResult.data().getRoutes().size());
-    log.info("  Latest session routes:    {}", latestSessionResult.data().getRoutes().size());
+    log.info("  Unfiltered routes:        {}", unfilteredResult.data().routes().size());
+    log.info("  Session metadata routes:  {}", sessionMetadataResult.data().routes().size());
+    log.info("  Latest session routes:    {}", latestSessionResult.data().routes().size());
 
     // Verify unfiltered should have >= filtered results
     assertThat(
-            unfilteredResult.data().getRoutes().size()
-                >= sessionMetadataResult.data().getRoutes().size())
+            unfilteredResult.data().routes().size() >= sessionMetadataResult.data().routes().size())
         .as("Unfiltered query should return same or more routes than filtered query")
         .isTrue();
   }

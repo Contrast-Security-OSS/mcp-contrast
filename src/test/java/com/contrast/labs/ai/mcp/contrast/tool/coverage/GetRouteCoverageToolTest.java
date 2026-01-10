@@ -27,6 +27,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
+import com.contrast.labs.ai.mcp.contrast.mapper.RouteMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Observation;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
@@ -55,17 +56,19 @@ class GetRouteCoverageToolTest {
   private ContrastSDKFactory sdkFactory;
   private ContrastSDK sdk;
   private SDKExtension sdkExtension;
+  private RouteMapper routeMapper;
 
   @BeforeEach
   void setUp() {
     sdk = mock();
     sdkFactory = mock();
     sdkExtension = mock();
+    routeMapper = new RouteMapper();
 
     when(sdkFactory.getSDK()).thenReturn(sdk);
     when(sdkFactory.getOrgId()).thenReturn(ORG_ID);
 
-    tool = new GetRouteCoverageTool();
+    tool = new GetRouteCoverageTool(routeMapper);
     ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
   }
 
@@ -125,7 +128,7 @@ class GetRouteCoverageToolTest {
       assertThat(result.isSuccess()).isTrue();
       assertThat(result.found()).isTrue();
       assertThat(result.data()).isNotNull();
-      assertThat(result.data().getRoutes()).hasSize(2);
+      assertThat(result.data().routes()).hasSize(2);
 
       // Observations are included inline - no N+1 calls to getRouteDetails
       var constructedMock = mockedConstruction.constructed().get(0);
@@ -150,7 +153,7 @@ class GetRouteCoverageToolTest {
 
       assertThat(result.isSuccess()).isTrue();
       assertThat(result.data()).isNotNull();
-      assertThat(result.data().getRoutes()).isEmpty();
+      assertThat(result.data().routes()).isEmpty();
 
       var constructedMock = mockedConstruction.constructed().get(0);
       verify(constructedMock, never()).getRouteDetails(anyString(), anyString(), anyString());
@@ -178,7 +181,7 @@ class GetRouteCoverageToolTest {
 
       assertThat(result.isSuccess()).isTrue();
       assertThat(result.data()).isNotNull();
-      assertThat(result.data().getRoutes()).hasSize(1);
+      assertThat(result.data().routes()).hasSize(1);
 
       var constructedMock = mockedConstruction.constructed().get(0);
       var captor =
@@ -217,7 +220,7 @@ class GetRouteCoverageToolTest {
 
       assertThat(result.isSuccess()).isTrue();
       assertThat(result.data()).isNotNull();
-      assertThat(result.data().getRoutes()).hasSize(1);
+      assertThat(result.data().routes()).hasSize(1);
 
       var constructedMock = mockedConstruction.constructed().get(0);
       verify(constructedMock).getLatestSessionMetadata(eq(ORG_ID), eq(VALID_APP_ID));
@@ -302,7 +305,7 @@ class GetRouteCoverageToolTest {
 
       assertThat(result.isSuccess()).isTrue();
       assertThat(result.data()).isNotNull();
-      assertThat(result.data().getRoutes()).isEmpty();
+      assertThat(result.data().routes()).isEmpty();
     }
   }
 
@@ -350,18 +353,64 @@ class GetRouteCoverageToolTest {
       var result = tool.getRouteCoverage(VALID_APP_ID, null, null, null);
 
       assertThat(result.isSuccess()).isTrue();
-      assertThat(result.data().getRoutes()).hasSize(3);
+      assertThat(result.data().routes()).hasSize(3);
 
       // Verify observations are included inline (from expand=observations)
-      for (var route : result.data().getRoutes()) {
-        assertThat(route.getObservations()).isNotNull();
-        assertThat(route.getObservations()).hasSize(1);
-        assertThat(route.getTotalObservations()).isEqualTo(1L);
+      for (var route : result.data().routes()) {
+        assertThat(route.observations()).isNotNull();
+        assertThat(route.observations()).hasSize(1);
+        assertThat(route.totalObservations()).isEqualTo(1L);
       }
 
       // Verify N+1 calls to getRouteDetails are NOT made
       var constructedMock = mockedConstruction.constructed().get(0);
       verify(constructedMock, never()).getRouteDetails(anyString(), anyString(), anyString());
+    }
+  }
+
+  // ========== Light response transformation tests ==========
+
+  @Test
+  void getRouteCoverage_should_return_light_response_with_aggregate_statistics() throws Exception {
+    var mockResponse = createMockRouteCoverageResponse(4);
+    // Set status on routes: 2 exercised (even indices), 2 discovered (odd indices)
+    mockResponse.getRoutes().get(0).setStatus("EXERCISED");
+    mockResponse.getRoutes().get(1).setStatus("DISCOVERED");
+    mockResponse.getRoutes().get(2).setStatus("EXERCISED");
+    mockResponse.getRoutes().get(3).setStatus("DISCOVERED");
+    // Add vulnerability counts
+    mockResponse.getRoutes().get(0).setVulnerabilities(2);
+    mockResponse.getRoutes().get(0).setCriticalVulnerabilities(1);
+    mockResponse.getRoutes().get(1).setVulnerabilities(3);
+    mockResponse.getRoutes().get(1).setCriticalVulnerabilities(2);
+
+    try (var mockedConstruction =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getRouteCoverage(eq(ORG_ID), eq(VALID_APP_ID), isNull()))
+                  .thenReturn(mockResponse);
+            })) {
+
+      var result = tool.getRouteCoverage(VALID_APP_ID, null, null, null);
+
+      assertThat(result.isSuccess()).isTrue();
+      var lightResponse = result.data();
+
+      // Verify aggregate statistics are computed
+      assertThat(lightResponse.totalRoutes()).isEqualTo(4);
+      assertThat(lightResponse.exercisedCount()).isEqualTo(2);
+      assertThat(lightResponse.discoveredCount()).isEqualTo(2);
+      assertThat(lightResponse.coveragePercent()).isEqualTo(50.0);
+      assertThat(lightResponse.totalVulnerabilities()).isEqualTo(5);
+      assertThat(lightResponse.totalCriticalVulnerabilities()).isEqualTo(3);
+
+      // Verify routes are transformed to light format
+      assertThat(lightResponse.routes()).hasSize(4);
+      var firstRoute = lightResponse.routes().get(0);
+      assertThat(firstRoute.signature()).isEqualTo("GET /api/endpoint0");
+      assertThat(firstRoute.routeHash()).isEqualTo(ROUTE_HASH + "-0");
+      assertThat(firstRoute.status()).isEqualTo("EXERCISED");
     }
   }
 
