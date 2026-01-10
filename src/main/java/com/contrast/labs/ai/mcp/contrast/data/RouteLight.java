@@ -16,6 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.data;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Observation;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -46,4 +47,10 @@ public record RouteLight(
     long discovered,
     int serversTotal,
     List<Observation> observations,
-    Long totalObservations) {}
+    Long totalObservations) {
+
+  /** Compact constructor ensures observations is never null. */
+  public RouteLight {
+    observations = observations != null ? observations : Collections.emptyList();
+  }
+}

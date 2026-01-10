@@ -180,4 +180,41 @@ class RouteMapperTest {
     assertThat(result.discoveredCount()).isZero();
     assertThat(result.coveragePercent()).isCloseTo(100.0, within(0.01));
   }
+
+  @Test
+  void toResponseLight_should_match_status_case_insensitively() {
+    var route1 = new Route();
+    route1.setStatus("exercised"); // lowercase
+    var route2 = new Route();
+    route2.setStatus("Discovered"); // mixed case
+
+    var response = new RouteCoverageResponse();
+    response.setSuccess(true);
+    response.setRoutes(List.of(route1, route2));
+
+    var result = mapper.toResponseLight(response);
+
+    assertThat(result.exercisedCount()).isEqualTo(1);
+    assertThat(result.discoveredCount()).isEqualTo(1);
+  }
+
+  @Test
+  void toResponseLight_should_round_coverage_percent_to_two_decimals() {
+    // 1 out of 3 exercised = 33.333...%
+    var exercised = new Route();
+    exercised.setStatus("EXERCISED");
+    var discovered1 = new Route();
+    discovered1.setStatus("DISCOVERED");
+    var discovered2 = new Route();
+    discovered2.setStatus("DISCOVERED");
+
+    var response = new RouteCoverageResponse();
+    response.setSuccess(true);
+    response.setRoutes(List.of(exercised, discovered1, discovered2));
+
+    var result = mapper.toResponseLight(response);
+
+    // Should be rounded to 33.33, not 33.333...
+    assertThat(result.coveragePercent()).isEqualTo(33.33);
+  }
 }

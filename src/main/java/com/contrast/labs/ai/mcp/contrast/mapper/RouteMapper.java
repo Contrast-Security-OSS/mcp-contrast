@@ -66,9 +66,11 @@ public class RouteMapper {
 
     int totalRoutes = routes.size();
     int exercisedCount =
-        (int) routes.stream().filter(r -> "EXERCISED".equals(r.getStatus())).count();
-    int discoveredCount = totalRoutes - exercisedCount;
-    double coveragePercent = totalRoutes > 0 ? (exercisedCount * 100.0) / totalRoutes : 0.0;
+        (int) routes.stream().filter(r -> "EXERCISED".equalsIgnoreCase(r.getStatus())).count();
+    int discoveredCount =
+        (int) routes.stream().filter(r -> "DISCOVERED".equalsIgnoreCase(r.getStatus())).count();
+    double coveragePercent =
+        totalRoutes > 0 ? Math.round((exercisedCount * 100.0) / totalRoutes * 100.0) / 100.0 : 0.0;
     int totalVulnerabilities = routes.stream().mapToInt(Route::getVulnerabilities).sum();
     int totalCriticalVulnerabilities =
         routes.stream().mapToInt(Route::getCriticalVulnerabilities).sum();

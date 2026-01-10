@@ -57,11 +57,11 @@ class RouteLightTest {
   }
 
   @Test
-  void should_handle_null_optional_fields() {
+  void should_convert_null_observations_to_empty_list() {
     var route =
         new RouteLight("signature", List.of(), "DISCOVERED", "hash", 0, 0, 0L, 0L, 0, null, null);
 
-    assertThat(route.observations()).isNull();
+    assertThat(route.observations()).isEmpty();
     assertThat(route.totalObservations()).isNull();
   }
 }

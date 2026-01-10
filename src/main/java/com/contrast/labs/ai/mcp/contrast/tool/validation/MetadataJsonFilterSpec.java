@@ -94,6 +94,11 @@ public class MetadataJsonFilterSpec {
     } else if (val instanceof Number n) {
       return List.of(formatNumber(n));
     } else if (val instanceof List<?> list) {
+      if (list.isEmpty()) {
+        invalidEntries.add(
+            String.format("'%s' (empty array - must have at least one value)", fieldName));
+        return null;
+      }
       var strings = new ArrayList<String>();
       for (Object item : list) {
         if (item instanceof String s) {
@@ -105,7 +110,7 @@ public class MetadataJsonFilterSpec {
           return null;
         }
       }
-      return strings.isEmpty() ? null : List.copyOf(strings);
+      return List.copyOf(strings);
     } else if (val != null) {
       invalidEntries.add(String.format("'%s' (expected string or array of strings)", fieldName));
     }
