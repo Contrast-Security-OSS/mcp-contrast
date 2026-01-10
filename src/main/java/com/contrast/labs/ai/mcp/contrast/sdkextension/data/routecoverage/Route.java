@@ -32,8 +32,6 @@ public class Route {
   private long discovered;
   private String status;
 
-  private RouteDetailsResponse routeDetailsResponse;
-
   @SerializedName("route_hash")
   private String routeHash;
 
