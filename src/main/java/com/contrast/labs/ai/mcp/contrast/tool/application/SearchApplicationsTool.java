@@ -16,7 +16,6 @@
 package com.contrast.labs.ai.mcp.contrast.tool.application;
 
 import com.contrast.labs.ai.mcp.contrast.FilterHelper;
-import com.contrast.labs.ai.mcp.contrast.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.data.ApplicationData;
 import com.contrast.labs.ai.mcp.contrast.data.Metadata;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
@@ -25,6 +24,7 @@ import com.contrast.labs.ai.mcp.contrast.tool.application.params.ApplicationFilt
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
 import java.util.List;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;

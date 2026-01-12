@@ -17,7 +17,6 @@ package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import static com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants.MAX_PAGE_SIZE;
 
-import com.contrast.labs.ai.mcp.contrast.PaginationParams;
 import com.contrastsecurity.exceptions.HttpResponseException;
 import com.contrastsecurity.exceptions.ResourceNotFoundException;
 import com.contrastsecurity.exceptions.UnauthorizedException;

@@ -15,13 +15,13 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.attack;
 
-import com.contrast.labs.ai.mcp.contrast.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.data.AttackSummary;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.tool.attack.params.AttackFilterParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.tool.annotation.Tool;
