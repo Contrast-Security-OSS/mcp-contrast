@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.contrast.labs.ai.mcp.contrast;
+package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import static com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants.DEFAULT_PAGE_SIZE;
 import static com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants.MAX_PAGE_SIZE;
