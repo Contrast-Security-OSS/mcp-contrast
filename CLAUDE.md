@@ -401,7 +401,9 @@ Human review is the bottleneck in AI-assisted development. Creating exceptional 
    - Manual testing performed
    - Edge cases covered
 
-**Goal**: Make reviewing effortless by providing all information the reviewer needs to understand and evaluate the changes with confidence and speed. The reviewer should not need to ask clarifying questions.
+**Goal**: Make reviewing effortless by providing all information the reviewer needs to understand and evaluate the changes with confidence and speed. The reviewer should not need to ask clarifying questions. 
+
+**IMPORTANT**: Ensure the text of the PR clearly explains all the changes and leads the developer through the logical progression of the chain of thought that produced it.
 
 ### Moving to Review
 
