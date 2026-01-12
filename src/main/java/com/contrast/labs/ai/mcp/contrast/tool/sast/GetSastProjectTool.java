@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.sast;
 
-import com.contrast.labs.ai.mcp.contrast.result.sast.ScanProject;
+import com.contrast.labs.ai.mcp.contrast.result.ScanProject;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.sast.params.GetSastProjectParams;
