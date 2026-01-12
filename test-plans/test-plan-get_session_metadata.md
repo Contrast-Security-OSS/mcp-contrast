@@ -471,7 +471,7 @@ Check MCP server logs (`/tmp/mcp-contrast.log`) for:
 
 ## References
 
-- **Tool Implementation**: `tool/applications/GetSessionMetadataTool.java`
-- **Params Class**: `tool/applications/params/GetSessionMetadataParams.java`
+- **Tool Implementation**: `tool/application/GetSessionMetadataTool.java`
+- **Params Class**: `tool/application/params/GetSessionMetadataParams.java`
 - **Related Tools**: `search_applications`, `search_app_vulnerabilities`, `get_route_coverage`
 - **Old Test Plan**: `test-plan-list_session_metadata_for_application.md` (root level)

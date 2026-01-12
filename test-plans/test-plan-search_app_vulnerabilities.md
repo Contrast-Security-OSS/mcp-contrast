@@ -866,6 +866,6 @@ Each test passes when:
 
 ## References
 
-- **Tool Implementation**: `tool/assess/SearchAppVulnerabilitiesTool.java`
+- **Tool Implementation**: `tool/vulnerability/SearchAppVulnerabilitiesTool.java`
 - **Related Tools**: `search_vulnerabilities`, `search_applications`, `get_session_metadata`, `get_vulnerability`
 - **Old Test Plan**: `test-plan-list_vulnerabilities.md`

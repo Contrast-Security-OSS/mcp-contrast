@@ -646,7 +646,7 @@ Check MCP server logs (`/tmp/mcp-contrast.log`) for:
 
 ## References
 
-- **Tool Implementation**: `tool/sca/ListApplicationsByCveTool.java`
-- **Params Class**: `tool/sca/params/ListApplicationsByCveParams.java`
+- **Tool Implementation**: `tool/library/ListApplicationsByCveTool.java`
+- **Params Class**: `tool/library/params/ListApplicationsByCveParams.java`
 - **Related Tools**: `list_application_libraries`, `search_applications`
 - **Old Test Plan**: `test-plan-list_applications_vulnerable_to_cve.md` (root level)
