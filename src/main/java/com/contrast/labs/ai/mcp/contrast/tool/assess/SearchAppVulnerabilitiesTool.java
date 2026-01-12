@@ -20,8 +20,8 @@ import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.tool.assess.params.SearchAppVulnerabilitiesParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
+import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.UnresolvedMetadataFilter;
 import com.contrastsecurity.http.TraceFilterForm.TraceExpandValue;
@@ -45,7 +45,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Slf4j
 public class SearchAppVulnerabilitiesTool
-    extends BasePaginatedTool<SearchAppVulnerabilitiesParams, VulnLight> {
+    extends PaginatedTool<SearchAppVulnerabilitiesParams, VulnLight> {
 
   private final VulnerabilityMapper vulnerabilityMapper;
 

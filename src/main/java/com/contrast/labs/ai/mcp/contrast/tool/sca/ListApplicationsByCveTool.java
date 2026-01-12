@@ -21,7 +21,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.App;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.sca.params.ListApplicationsByCveParams;
 import java.util.Collections;
@@ -40,8 +40,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @Slf4j
-public class ListApplicationsByCveTool
-    extends BaseSingleTool<ListApplicationsByCveParams, CveData> {
+public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveParams, CveData> {
 
   @Tool(
       name = "list_applications_by_cve",
@@ -83,7 +82,7 @@ public class ListApplicationsByCveTool
     var cveData = extendedSDK.getAppsForCVE(orgId, params.cveId());
 
     if (cveData == null) {
-      return null; // BaseSingleTool converts this to notFound response
+      return null; // SingleTool converts this to notFound response
     }
 
     // Handle null lists gracefully

@@ -42,7 +42,7 @@ import lombok.extern.slf4j.Slf4j;
  * @param <R> the result item type
  */
 @Slf4j
-public abstract class BaseSingleTool<P extends ToolParams, R> extends BaseContrastTool {
+public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
 
   /**
    * Template method - defines the mandatory processing pipeline for single-item retrieval.

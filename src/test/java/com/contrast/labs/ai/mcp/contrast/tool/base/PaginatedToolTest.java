@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class BasePaginatedToolTest {
+class PaginatedToolTest {
 
   private TestSearchTool tool;
 
@@ -260,8 +260,8 @@ class BasePaginatedToolTest {
     assertThat(result.durationMs()).isGreaterThanOrEqualTo(0);
   }
 
-  // Test implementation of BasePaginatedTool
-  private static class TestSearchTool extends BasePaginatedTool<TestParams, String> {
+  // Test implementation of PaginatedTool
+  private static class TestSearchTool extends PaginatedTool<TestParams, String> {
     private DoExecuteHandler handler;
 
     void setDoExecuteHandler(DoExecuteHandler handler) {

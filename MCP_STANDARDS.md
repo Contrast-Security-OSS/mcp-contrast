@@ -114,13 +114,13 @@ Tools returning analytical data (reports, coverage, metadata) may use `get_*` ev
 
 ## Tool-per-Class Architecture
 
-All MCP tools follow a **one-class-per-tool** pattern with shared base classes. Each tool is a standalone `@Service` class that extends either `BasePaginatedTool` (for paginated search/list operations) or `BaseSingleTool` (for single-item retrieval).
+All MCP tools follow a **one-class-per-tool** pattern with shared base classes. Each tool is a standalone `@Service` class that extends either `PaginatedTool` (for paginated search/list operations) or `SingleTool` (for single-item retrieval).
 
 ### Package Structure
 
 ```
 com.contrast.labs.ai.mcp.contrast.tool/
-├── base/                  # Shared base classes (BaseMcpTool, BaseGetTool, ToolParams)
+├── base/                  # Shared base classes (BaseTool, PaginatedTool, SingleTool, ToolParams)
 ├── validation/            # Shared validation utilities (ToolValidationContext)
 ├── assess/                # Vulnerability tools
 │   ├── SearchVulnerabilitiesTool.java
@@ -135,12 +135,12 @@ com.contrast.labs.ai.mcp.contrast.tool/
 
 ### Base Class Usage
 
-**`BasePaginatedTool<P extends ToolParams, R>`** - For paginated search/list tools:
+**`PaginatedTool<P extends ToolParams, R>`** - For paginated search/list tools:
 - Template method `executePipeline()` handles pagination, validation, exceptions
 - Subclasses implement `doExecute()` returning `ExecutionResult<R>`
 - Returns `PaginatedToolResponse<R>` with items, pagination metadata, warnings
 
-**`BaseSingleTool<P extends ToolParams, R>`** - For single-item get tools:
+**`SingleTool<P extends ToolParams, R>`** - For single-item get tools:
 - Template method `executePipeline()` handles validation, exceptions
 - Subclasses implement `doExecute()` returning item or null
 - Returns `SingleToolResponse<R>` with item, errors, warnings
@@ -178,7 +178,7 @@ Each tool requires corresponding test classes:
 ### Adding a New Tool
 
 1. Create tool class in appropriate domain package (e.g., `tool/assess/`)
-2. Extend `BasePaginatedTool` or `BaseSingleTool` with appropriate type parameters
+2. Extend `PaginatedTool` or `SingleTool` with appropriate type parameters
 3. Create corresponding `*Params` class extending `BaseToolParams`
 4. Implement `doExecute()` with tool-specific logic
 5. Add `@Tool` annotation with snake_case name following naming standards
@@ -228,7 +228,7 @@ public List<ToolCallback> tools(
 - [ ] @Tool description clear and concise
 - [ ] Required vs optional documented
 - [ ] No redundant words
-- [ ] Extends BasePaginatedTool or BaseSingleTool
+- [ ] Extends PaginatedTool or SingleTool
 - [ ] Has corresponding Params class
 - [ ] Registered in McpContrastApplication.tools()
 - [ ] Unit and integration tests present

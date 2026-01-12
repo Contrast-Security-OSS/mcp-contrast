@@ -46,7 +46,7 @@ import lombok.extern.slf4j.Slf4j;
  * @param <R> the result item type
  */
 @Slf4j
-public abstract class BasePaginatedTool<P extends ToolParams, R> extends BaseContrastTool {
+public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
 
   /**
    * Returns the maximum page size for this tool. Default is 100. Override in subclasses to set a

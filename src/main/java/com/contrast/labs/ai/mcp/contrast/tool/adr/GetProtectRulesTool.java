@@ -18,7 +18,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.adr;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.tool.adr.params.GetProtectRulesParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import java.util.List;
 import java.util.Optional;
@@ -30,12 +30,12 @@ import org.springframework.stereotype.Service;
 
 /**
  * MCP tool for retrieving Protect rules for an application. Demonstrates the tool-per-class pattern
- * with BaseSingleTool for non-paginated single-item retrieval.
+ * with SingleTool for non-paginated single-item retrieval.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class GetProtectRulesTool extends BaseSingleTool<GetProtectRulesParams, ProtectData> {
+public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, ProtectData> {
 
   @Tool(
       name = "get_protect_rules",
@@ -77,7 +77,7 @@ public class GetProtectRulesTool extends BaseSingleTool<GetProtectRulesParams, P
 
     if (protectData == null) {
       log.debug("No protection data returned for application ID: {}", params.appId());
-      return null; // BaseSingleTool converts this to notFound response
+      return null; // SingleTool converts this to notFound response
     }
 
     var ruleCount = Optional.ofNullable(protectData.getRules()).map(List::size).orElse(0);

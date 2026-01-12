@@ -31,7 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  *   <li>HTTP error code mapping via {@link #mapHttpErrorCode(int)}
  * </ul>
  */
-public abstract class BaseContrastTool {
+public abstract class BaseTool {
 
   @Autowired protected ContrastSDKFactory sdkFactory;
 

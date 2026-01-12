@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class BaseSingleToolTest {
+class SingleToolTest {
 
   private TestGetTool tool;
 
@@ -206,8 +206,8 @@ class BaseSingleToolTest {
             "Authentication failed. Check API credentials.");
   }
 
-  // Test implementation of BaseSingleTool
-  private static class TestGetTool extends BaseSingleTool<TestParams, String> {
+  // Test implementation of SingleTool
+  private static class TestGetTool extends SingleTool<TestParams, String> {
     private DoExecuteHandler handler;
 
     void setDoExecuteHandler(DoExecuteHandler handler) {

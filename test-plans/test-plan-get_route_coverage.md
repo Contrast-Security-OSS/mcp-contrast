@@ -10,7 +10,7 @@ This test plan provides comprehensive testing guidance for the `get_route_covera
 - `test-plan-get_route_coverage.md` (original at root level)
 
 **Key Changes from Original Tool:**
-- **Follows tool-per-class pattern**: Uses `BaseSingleTool<RouteCoverageParams, RouteCoverageResponse>`
+- **Follows tool-per-class pattern**: Uses `SingleTool<RouteCoverageParams, RouteCoverageResponse>`
 - **Enhanced validation**: Uses `RouteCoverageParams` with paired parameter validation
 - **Clearer mutual exclusivity**: `useLatestSession` and session metadata filters documented as mutually exclusive
 - **Improved null handling**: Graceful handling of null API responses

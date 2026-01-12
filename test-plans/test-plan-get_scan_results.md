@@ -11,7 +11,7 @@ This test plan provides comprehensive testing guidance for the `get_scan_results
 
 **Key Changes from Original Tool:**
 - **Tool renamed**: `list_Scan_Results` → `get_scan_results`
-- **Follows tool-per-class pattern**: Uses `BaseSingleTool<GetSastResultsParams, String>`
+- **Follows tool-per-class pattern**: Uses `SingleTool<GetSastResultsParams, String>`
 - **Enhanced validation**: Uses `GetSastResultsParams` for parameter validation
 - **Deprecation warning**: Tool marked as deprecated due to large SARIF responses
 - **Better null handling**: Explicit checks for lastScanId and scan existence
