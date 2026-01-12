@@ -27,7 +27,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
-import com.contrast.labs.ai.mcp.contrast.mapper.RouteMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Observation;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.contrast.labs.ai.mcp.contrast.mapper;
+package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 
 import com.contrast.labs.ai.mcp.contrast.data.RouteCoverageResponseLight;
 import com.contrast.labs.ai.mcp.contrast.data.RouteLight;
