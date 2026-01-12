@@ -807,8 +807,8 @@ Check MCP server logs (`/tmp/mcp-contrast.log`) for:
 
 ## References
 
-- **Tool Implementation**: `tool/sca/ListApplicationLibrariesTool.java`
-- **Params Class**: `tool/sca/params/ListApplicationLibrariesParams.java`
+- **Tool Implementation**: `tool/library/ListApplicationLibrariesTool.java`
+- **Params Class**: `tool/library/params/ListApplicationLibrariesParams.java`
 - **Data Model**: `sdkextension/data/LibraryExtended.java`
 - **Related Tools**: `search_applications`, `list_applications_by_cve`
 - **Old Test Plan**: `test-plan-list_application_libraries.md` (root level)

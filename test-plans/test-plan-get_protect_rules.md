@@ -572,7 +572,7 @@ Check MCP server logs (`/tmp/mcp-contrast.log`) for:
 
 ## References
 
-- **Tool Implementation**: `tool/adr/GetProtectRulesTool.java`
-- **Params Class**: `tool/adr/params/GetProtectRulesParams.java`
+- **Tool Implementation**: `tool/attack/GetProtectRulesTool.java`
+- **Params Class**: `tool/attack/params/GetProtectRulesParams.java`
 - **Related Tools**: `search_applications`, `search_attacks`
 - **Old Test Plan**: `test-plan-get_ADR_Protect_Rules.md` (root level)

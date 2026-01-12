@@ -122,13 +122,13 @@ All MCP tools follow a **one-class-per-tool** pattern with shared base classes. 
 com.contrast.labs.ai.mcp.contrast.tool/
 ├── base/                  # Shared base classes (BaseTool, PaginatedTool, SingleTool, ToolParams)
 ├── validation/            # Shared validation utilities (ToolValidationContext)
-├── assess/                # Vulnerability tools
+├── vulnerability/         # Vulnerability tools
 │   ├── SearchVulnerabilitiesTool.java
 │   ├── GetVulnerabilityTool.java
-│   └── params/            # Parameter classes for assess tools
-├── applications/          # Application tools
-├── sca/                   # SCA (library) tools
-├── adr/                   # Attack detection tools
+│   └── params/            # Parameter classes for vulnerability tools
+├── application/           # Application tools
+├── library/               # Library (SCA) tools
+├── attack/                # Attack detection tools
 ├── sast/                  # SAST scan tools
 └── coverage/              # Route coverage tools
 ```
@@ -177,7 +177,7 @@ Each tool requires corresponding test classes:
 
 ### Adding a New Tool
 
-1. Create tool class in appropriate domain package (e.g., `tool/assess/`)
+1. Create tool class in appropriate domain package (e.g., `tool/vulnerability/`)
 2. Extend `PaginatedTool` or `SingleTool` with appropriate type parameters
 3. Create corresponding `*Params` class extending `BaseToolParams`
 4. Implement `doExecute()` with tool-specific logic
