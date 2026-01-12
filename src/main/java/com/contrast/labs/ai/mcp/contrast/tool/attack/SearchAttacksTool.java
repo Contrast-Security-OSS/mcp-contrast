@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.attack;
 
-import com.contrast.labs.ai.mcp.contrast.data.AttackSummary;
+import com.contrast.labs.ai.mcp.contrast.result.AttackSummary;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.tool.attack.params.AttackFilterParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
