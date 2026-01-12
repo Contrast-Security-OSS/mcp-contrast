@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension;
 
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibrariesExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;
@@ -71,9 +72,9 @@ public class SDKHelper {
    * @param offset Starting index (0-based)
    * @return LibrariesExtended containing the page of libraries and total count
    */
-  public static com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibrariesExtended
-      getLibraryPage(String appId, String orgId, SDKExtension extendedSDK, int limit, int offset)
-          throws IOException {
+  public static LibrariesExtended getLibraryPage(
+      String appId, String orgId, SDKExtension extendedSDK, int limit, int offset)
+      throws IOException {
 
     // API enforces max limit of 50
     int effectiveLimit = Math.min(limit, 50);
