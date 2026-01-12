@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.contrast.labs.ai.mcp.contrast.data.sast;
+package com.contrast.labs.ai.mcp.contrast.result.sast;
 
 import com.contrastsecurity.sdk.scan.Project;
 import java.time.Instant;

@@ -1,4 +1,4 @@
-package com.contrast.labs.ai.mcp.contrast.data;
+package com.contrast.labs.ai.mcp.contrast.result;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;

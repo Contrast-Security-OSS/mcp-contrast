@@ -15,8 +15,8 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.application;
 
-import com.contrast.labs.ai.mcp.contrast.data.ApplicationData;
-import com.contrast.labs.ai.mcp.contrast.data.Metadata;
+import com.contrast.labs.ai.mcp.contrast.result.ApplicationData;
+import com.contrast.labs.ai.mcp.contrast.result.Metadata;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.tool.application.params.ApplicationFilterParams;

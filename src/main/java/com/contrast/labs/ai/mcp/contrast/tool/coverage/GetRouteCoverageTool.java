@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 
-import com.contrast.labs.ai.mcp.contrast.data.RouteCoverageResponseLight;
+import com.contrast.labs.ai.mcp.contrast.result.RouteCoverageResponseLight;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;

@@ -18,7 +18,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
-import com.contrast.labs.ai.mcp.contrast.data.RouteLight;
+import com.contrast.labs.ai.mcp.contrast.result.RouteLight;
 import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper.RouteCoverageTestData;
