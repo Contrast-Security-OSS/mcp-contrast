@@ -12,7 +12,7 @@ This test plan provides comprehensive testing guidance for the `list_application
 **Changes from Original:**
 - **Tool name unchanged**: `list_application_libraries`
 - **Parameter unchanged**: `appId` (was `appID`, now camelCase)
-- **Architecture changed**: Now uses tool-per-class pattern with `BasePaginatedTool`
+- **Architecture changed**: Now uses tool-per-class pattern with `PaginatedTool`
 - **Pagination added**: Supports `page` and `pageSize` parameters
 - **Pagination changed**: Now uses server-side pagination (API enforces max 50)
 - **Workflow**: Use `search_applications(name=...)` first to find appId

@@ -27,16 +27,16 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
-/** Unit tests for {@link BaseContrastTool}. */
-class BaseContrastToolTest {
+/** Unit tests for {@link BaseTool}. */
+class BaseToolTest {
 
-  private TestableContrastTool tool;
+  private TestableTool tool;
   private ContrastSDKFactory sdkFactory;
   private ContrastSDK sdk;
 
   @BeforeEach
   void setUp() {
-    tool = new TestableContrastTool();
+    tool = new TestableTool();
     sdkFactory = mock();
     sdk = mock();
 
@@ -78,7 +78,7 @@ class BaseContrastToolTest {
   }
 
   /** Concrete implementation for testing abstract base class. */
-  private static class TestableContrastTool extends BaseContrastTool {
+  private static class TestableTool extends BaseTool {
     // Expose protected methods for testing
     @Override
     public ContrastSDK getContrastSDK() {

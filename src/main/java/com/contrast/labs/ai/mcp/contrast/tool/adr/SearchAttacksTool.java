@@ -19,8 +19,8 @@ import com.contrast.labs.ai.mcp.contrast.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.data.AttackSummary;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.tool.adr.params.AttackFilterParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
+import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -30,11 +30,11 @@ import org.springframework.stereotype.Service;
 
 /**
  * MCP tool for searching attacks across the organization. Demonstrates the tool-per-class pattern
- * with BasePaginatedTool.
+ * with PaginatedTool.
  */
 @Service
 @RequiredArgsConstructor
-public class SearchAttacksTool extends BasePaginatedTool<AttackFilterParams, AttackSummary> {
+public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackSummary> {
 
   @Tool(
       name = "search_attacks",

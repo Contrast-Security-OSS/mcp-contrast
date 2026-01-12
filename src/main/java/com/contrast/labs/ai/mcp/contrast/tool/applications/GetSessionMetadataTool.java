@@ -16,7 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.tool.applications;
 
 import com.contrast.labs.ai.mcp.contrast.tool.applications.params.GetSessionMetadataParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrastsecurity.models.MetadataFilterResponse;
 import java.util.List;
@@ -26,11 +26,11 @@ import org.springframework.stereotype.Service;
 
 /**
  * MCP tool for retrieving session metadata for an application. Demonstrates the tool-per-class
- * pattern with BaseSingleTool for non-paginated single-item retrieval.
+ * pattern with SingleTool for non-paginated single-item retrieval.
  */
 @Service
 public class GetSessionMetadataTool
-    extends BaseSingleTool<GetSessionMetadataParams, MetadataFilterResponse> {
+    extends SingleTool<GetSessionMetadataParams, MetadataFilterResponse> {
 
   @Tool(
       name = "get_session_metadata",

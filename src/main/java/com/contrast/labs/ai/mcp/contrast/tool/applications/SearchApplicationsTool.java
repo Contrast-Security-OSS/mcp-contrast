@@ -22,8 +22,8 @@ import com.contrast.labs.ai.mcp.contrast.data.Metadata;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.tool.applications.params.ApplicationFilterParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
+import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import java.util.List;
 import org.springframework.ai.tool.annotation.Tool;
@@ -32,11 +32,11 @@ import org.springframework.stereotype.Service;
 
 /**
  * MCP tool for searching applications in an organization. Demonstrates the tool-per-class pattern
- * with BasePaginatedTool and in-memory filtering.
+ * with PaginatedTool and in-memory filtering.
  */
 @Service
 public class SearchApplicationsTool
-    extends BasePaginatedTool<ApplicationFilterParams, ApplicationData> {
+    extends PaginatedTool<ApplicationFilterParams, ApplicationData> {
 
   @Tool(
       name = "search_applications",

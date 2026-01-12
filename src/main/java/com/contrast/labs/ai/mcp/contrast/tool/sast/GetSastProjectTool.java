@@ -16,7 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.tool.sast;
 
 import com.contrast.labs.ai.mcp.contrast.data.sast.ScanProject;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.sast.params.GetSastProjectParams;
 import java.util.List;
@@ -31,7 +31,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @Slf4j
-public class GetSastProjectTool extends BaseSingleTool<GetSastProjectParams, ScanProject> {
+public class GetSastProjectTool extends SingleTool<GetSastProjectParams, ScanProject> {
 
   @Tool(
       name = "get_scan_project",
@@ -74,7 +74,7 @@ public class GetSastProjectTool extends BaseSingleTool<GetSastProjectParams, Sca
 
     if (projectOptional.isEmpty()) {
       log.debug("Project not found: {}", params.projectName());
-      return null; // BaseSingleTool converts this to notFound response
+      return null; // SingleTool converts this to notFound response
     }
 
     var project = projectOptional.get();

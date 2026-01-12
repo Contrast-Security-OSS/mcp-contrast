@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.sast;
 
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.sast.params.GetSastResultsParams;
 import java.io.BufferedReader;
@@ -36,7 +36,7 @@ import org.springframework.stereotype.Service;
 @Deprecated
 @Service
 @Slf4j
-public class GetSastResultsTool extends BaseSingleTool<GetSastResultsParams, String> {
+public class GetSastResultsTool extends SingleTool<GetSastResultsParams, String> {
 
   @Tool(
       name = "get_scan_results",
@@ -86,7 +86,7 @@ public class GetSastResultsTool extends BaseSingleTool<GetSastResultsParams, Str
 
     if (projectOptional.isEmpty()) {
       log.debug("Project not found: {}", params.projectName());
-      return null; // BaseSingleTool converts this to notFound response
+      return null; // SingleTool converts this to notFound response
     }
 
     var project = projectOptional.get();

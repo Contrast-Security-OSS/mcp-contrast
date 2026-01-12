@@ -19,7 +19,7 @@ import com.contrast.labs.ai.mcp.contrast.data.RouteCoverageResponseLight;
 import com.contrast.labs.ai.mcp.contrast.mapper.RouteMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BaseSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.coverage.params.RouteCoverageParams;
 import com.contrastsecurity.models.RouteCoverageMetadataLabelValues;
@@ -33,13 +33,13 @@ import org.springframework.stereotype.Service;
 
 /**
  * MCP tool for retrieving route coverage data for an application. Demonstrates the tool-per-class
- * pattern with BaseSingleTool for non-paginated retrieval.
+ * pattern with SingleTool for non-paginated retrieval.
  */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class GetRouteCoverageTool
-    extends BaseSingleTool<RouteCoverageParams, RouteCoverageResponseLight> {
+    extends SingleTool<RouteCoverageParams, RouteCoverageResponseLight> {
 
   private final RouteMapper routeMapper;
 
@@ -117,12 +117,12 @@ public class GetRouteCoverageTool
 
       if (latest == null) {
         log.warn("No session metadata found for application ID: {}", params.appId());
-        return null; // BaseSingleTool converts this to notFound response
+        return null; // SingleTool converts this to notFound response
       }
 
       if (latest.getAgentSession() == null) {
         log.warn("No agent session found for application ID: {}", params.appId());
-        return null; // BaseSingleTool converts this to notFound response
+        return null; // SingleTool converts this to notFound response
       }
 
       request = new RouteCoverageBySessionIDAndMetadataRequestExtended();
@@ -151,7 +151,7 @@ public class GetRouteCoverageTool
     // Defensive null checks - API may return null on errors or permission issues
     if (response == null) {
       log.warn("Route coverage API returned null for app {}", params.appId());
-      return null; // BaseSingleTool converts this to notFound response
+      return null; // SingleTool converts this to notFound response
     }
 
     if (response.getRoutes() == null) {

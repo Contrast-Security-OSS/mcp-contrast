@@ -20,8 +20,8 @@ import com.contrast.labs.ai.mcp.contrast.data.VulnLight;
 import com.contrast.labs.ai.mcp.contrast.mapper.VulnerabilityMapper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.tool.assess.params.VulnerabilityFilterParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.BasePaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
+import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrastsecurity.http.TraceFilterForm.TraceExpandValue;
 import java.util.EnumSet;
@@ -33,12 +33,11 @@ import org.springframework.stereotype.Service;
 
 /**
  * MCP tool for searching vulnerabilities across all applications in an organization. Demonstrates
- * the tool-per-class pattern with BasePaginatedTool and ToolValidationContext.
+ * the tool-per-class pattern with PaginatedTool and ToolValidationContext.
  */
 @Service
 @RequiredArgsConstructor
-public class SearchVulnerabilitiesTool
-    extends BasePaginatedTool<VulnerabilityFilterParams, VulnLight> {
+public class SearchVulnerabilitiesTool extends PaginatedTool<VulnerabilityFilterParams, VulnLight> {
 
   private final VulnerabilityMapper vulnerabilityMapper;
 

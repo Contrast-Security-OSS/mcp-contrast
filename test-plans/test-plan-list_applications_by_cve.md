@@ -11,7 +11,7 @@ This test plan provides comprehensive testing guidance for the `list_application
 
 **Key Changes from Original Tool:**
 - **Tool renamed**: `list_applications_vulnerable_to_cve` → `list_applications_by_cve`
-- **Follows tool-per-class pattern**: Uses `BaseSingleTool<ListApplicationsByCveParams, CveData>`
+- **Follows tool-per-class pattern**: Uses `SingleTool<ListApplicationsByCveParams, CveData>`
 - **Enhanced validation**: Uses `ListApplicationsByCveParams` with CVE format validation
 - **Improved class usage enrichment**: Better null handling and warnings for enrichment failures
 

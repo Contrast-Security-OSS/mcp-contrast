@@ -11,7 +11,7 @@ This test plan provides comprehensive testing guidance for the `get_scan_project
 
 **Key Changes from Original Tool:**
 - **Tool renamed**: `list_Scan_Project` → `get_scan_project`
-- **Follows tool-per-class pattern**: Uses `BaseSingleTool<GetSastProjectParams, Project>`
+- **Follows tool-per-class pattern**: Uses `SingleTool<GetSastProjectParams, Project>`
 - **Enhanced validation**: Uses `GetSastProjectParams` for parameter validation
 - **SDK Project record**: Returns SDK `Project` record (immutable)
 
