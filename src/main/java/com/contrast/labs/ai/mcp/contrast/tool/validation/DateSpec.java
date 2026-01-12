@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.validation;
 
-import com.contrast.labs.ai.mcp.contrast.FilterHelper;
+import com.contrast.labs.ai.mcp.contrast.tool.base.FilterHelper;
 import java.util.Date;
 
 /**
