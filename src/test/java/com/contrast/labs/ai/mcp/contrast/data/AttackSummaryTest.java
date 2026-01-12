@@ -17,9 +17,9 @@ package com.contrast.labs.ai.mcp.contrast.data;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.contrast.labs.ai.mcp.contrast.FilterHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.Attack;
+import com.contrast.labs.ai.mcp.contrast.tool.base.FilterHelper;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
