@@ -52,6 +52,9 @@ test-plan-results/
 
 # MCP local config
 .mcp.json
+
+### Claude Code ###
+.claude/
 test-plans-archive/
 .tldr/
 .tldrignore
