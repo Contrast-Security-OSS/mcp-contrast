@@ -312,7 +312,7 @@ class ListApplicationsByCveToolTest {
             .withHash("matching-hash-789")
             .withVersion("1.0.0")
             .withClassCount(100)
-            .withClassedUsed(50)
+            .withClassesUsed(50)
             .build();
     libraries.add(lib);
 
