@@ -134,9 +134,9 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
           for (Library vulnLib : vulnerableLibs) {
             if (appLib.getHash().equals(vulnLib.getHash())) {
               // Only populate if the library is actually being used
-              if (appLib.getClassedUsed() > 0) {
+              if (appLib.getClassesUsed() > 0) {
                 app.setClassCount(appLib.getClassCount());
-                app.setClassUsage(appLib.getClassedUsed());
+                app.setClassUsage(appLib.getClassesUsed());
               }
               break;
             }

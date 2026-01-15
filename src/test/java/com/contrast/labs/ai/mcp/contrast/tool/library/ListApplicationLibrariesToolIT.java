@@ -140,15 +140,15 @@ class ListApplicationLibrariesToolIT
 
     // Check class usage is populated
     var libraries = result.items();
-    long activeLibs = libraries.stream().filter(lib -> lib.getClassedUsed() > 0).count();
-    long unusedLibs = libraries.stream().filter(lib -> lib.getClassedUsed() == 0).count();
+    long activeLibs = libraries.stream().filter(lib -> lib.getClassesUsed() > 0).count();
+    long unusedLibs = libraries.stream().filter(lib -> lib.getClassesUsed() == 0).count();
 
     log.info("Active libraries (classes used > 0): {}", activeLibs);
     log.info("Unused libraries (classes used = 0): {}", unusedLibs);
 
     // Verify class usage consistency
     for (var lib : libraries) {
-      assertThat(lib.getClassedUsed())
+      assertThat(lib.getClassesUsed())
           .as("Classes used should not exceed class count for " + lib.getFilename())
           .isLessThanOrEqualTo(lib.getClassCount());
     }

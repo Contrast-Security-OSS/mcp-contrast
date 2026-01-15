@@ -43,7 +43,7 @@ public class LibraryExtended {
   private int classCount;
 
   @SerializedName("classes_used")
-  private int classedUsed;
+  private int classesUsed;
 
   private String manifest;
 
