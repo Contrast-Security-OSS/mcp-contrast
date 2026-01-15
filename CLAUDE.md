@@ -245,6 +245,10 @@ This project is tracked in Jira under the **AIML** project. When creating Jira t
 
 **Access**: Use the Atlassian MCP server to read or write Jira tickets programmatically.
 
+**IMPORTANT**: When a jira ticket is created for a bead, you must do 2 things:
+1. Update the `external-ref` of the bead to be the jira ticket id
+2. Update the `title` of the bead to be prefixed with the jira ticket id.
+
 ----
 
 ## AI Development Workflow
@@ -299,10 +303,6 @@ Promoting Stacked PR (after base PR merges):
 
 **2. Update bead status and labels:**
    - Set bead status to `in_progress`
-   - **Record START timestamp for time tracking:**
-     ```bash
-     bd comments add <bead-id> "⏱️ START: $(date -u +%Y-%m-%dT%H:%M:%SZ) - [Brief description of what you're starting]"
-     ```
    - Record the branch name in the bead (so it's easily found later)
    - **If this is a stacked branch** (based on another PR branch):
      - Label the bead with `stacked-branch`
