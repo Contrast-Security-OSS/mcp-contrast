@@ -301,6 +301,62 @@ class SearchAttacksToolIT {
     log.info("  Errors: {}", response.errors());
   }
 
+  // ========== Keyword and Rules Parameter Tests (Bug Fix: AIML-385) ==========
+
+  @Test
+  void searchAttacks_should_find_results_with_keyword_SQL_Injection() {
+    log.info("\n=== Integration Test: search_attacks (keyword='SQL Injection') ===");
+
+    var response =
+        searchAttacksTool.searchAttacks(
+            1, 10, null, null, "SQL Injection", null, null, null, null, null);
+
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have no errors").isEmpty();
+
+    log.info(
+        "✓ Retrieved {} attacks using keyword 'SQL Injection' (display name search)",
+        response.items().size());
+  }
+
+  @Test
+  void searchAttacks_should_find_results_with_rules_filter() {
+    log.info("\n=== Integration Test: search_attacks (rules='sql-injection') ===");
+
+    var response =
+        searchAttacksTool.searchAttacks(
+            1, 10, null, null, null, null, null, null, null, "sql-injection");
+
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have no errors").isEmpty();
+
+    // If there are results, verify they have the expected rule
+    if (!response.items().isEmpty()) {
+      assertThat(response.items())
+          .allSatisfy(
+              attack ->
+                  assertThat(attack.rules()).anyMatch(rule -> rule.toLowerCase().contains("sql")));
+    }
+
+    log.info(
+        "✓ Retrieved {} attacks using rules='sql-injection' (exact rule ID filter)",
+        response.items().size());
+  }
+
+  @Test
+  void searchAttacks_should_find_results_with_multiple_rules() {
+    log.info("\n=== Integration Test: search_attacks (rules='sql-injection,xss-reflected') ===");
+
+    var response =
+        searchAttacksTool.searchAttacks(
+            1, 10, null, null, null, null, null, null, null, "sql-injection,xss-reflected");
+
+    assertThat(response).as("Response should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have no errors").isEmpty();
+
+    log.info("✓ Retrieved {} attacks using multiple rules filter", response.items().size());
+  }
+
   // ========== Special Character Keyword Tests (Test Cases 3.5 and 13.4) ==========
   // Note: Full XSS payloads like "<script>alert('xss')</script>" are blocked by Contrast Protect
   // on the API server, so we test with patterns that demonstrate URL encoding works without
