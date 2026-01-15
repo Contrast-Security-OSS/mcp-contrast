@@ -17,7 +17,8 @@ package com.contrast.labs.ai.mcp.contrast.tool.application;
 
 import com.contrast.labs.ai.mcp.contrast.result.ApplicationData;
 import com.contrast.labs.ai.mcp.contrast.result.Metadata;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetadataFilter;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.tool.application.params.ApplicationFilterParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
@@ -25,15 +26,20 @@ import com.contrast.labs.ai.mcp.contrast.tool.base.FilterHelper;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
+import com.contrast.labs.ai.mcp.contrast.tool.validation.UnresolvedMetadataFilter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
 
 /**
- * MCP tool for searching applications in an organization. Demonstrates the tool-per-class pattern
- * with PaginatedTool and in-memory filtering.
+ * MCP tool for searching applications in an organization. Uses server-side filtering via the POST
+ * /applications/filter endpoint for optimal performance.
  */
+@Slf4j
 @Service
 public class SearchApplicationsTool
     extends PaginatedTool<ApplicationFilterParams, ApplicationData> {
@@ -45,13 +51,12 @@ public class SearchApplicationsTool
           Search applications with optional filters. Returns all applications if no filters specified.
 
           Filtering behavior:
-          - name: Partial, case-insensitive matching (finds "app" in "MyApp")
+          - name: Server-side text search on displayName, contextPath, tags, and metadata values
           - tag: Exact, case-sensitive matching (CASE-SENSITIVE - 'Production' != 'production')
-          - metadataName + metadataValue: Exact, case-insensitive matching for both
-          - metadataName only: Returns apps with that metadata field (any value)
-
-          Note: Application data is cached for 5 minutes. If you recently created/modified
-          applications in TeamServer and don't see changes, wait 5 minutes and retry.
+          - metadataFilters: JSON object for metadata field filtering
+            - Format: {"fieldName":"value"} or {"fieldName":["value1","value2"]}
+            - Multiple fields use AND logic, multiple values use OR logic
+            - Field names are case-insensitive
 
           Related tools:
           - get_session_metadata: Get session metadata for an application
@@ -62,22 +67,22 @@ public class SearchApplicationsTool
       @ToolParam(description = "Items per page (max 100), default: 50", required = false)
           Integer pageSize,
       @ToolParam(
-              description = "Application name filter (partial, case-insensitive)",
+              description = "Text search filter (searches name, contextPath, tags, metadata)",
               required = false)
           String name,
       @ToolParam(
               description = "Tag filter (CASE-SENSITIVE - 'Production' != 'production')",
               required = false)
           String tag,
-      @ToolParam(description = "Metadata field name (case-insensitive)", required = false)
-          String metadataName,
       @ToolParam(
-              description = "Metadata field value (case-insensitive, requires metadataName)",
+              description =
+                  "JSON object for metadata filters. Format: {\"field\":\"value\"} or"
+                      + " {\"field\":[\"v1\",\"v2\"]}",
               required = false)
-          String metadataValue) {
+          String metadataFilters) {
 
     return executePipeline(
-        page, pageSize, () -> ApplicationFilterParams.of(name, tag, metadataName, metadataValue));
+        page, pageSize, () -> ApplicationFilterParams.of(name, tag, metadataFilters));
   }
 
   @Override
@@ -87,24 +92,95 @@ public class SearchApplicationsTool
 
     var sdk = getContrastSDK();
     var orgId = getOrgId();
+    var sdkExtension = new SDKExtension(sdk);
 
-    // Get all applications (cached for 5 minutes)
-    var applications = SDKHelper.getApplicationsWithCache(orgId, sdk);
+    // Resolve metadata field names to IDs if metadata filters provided
+    List<AppMetadataFilter> resolvedMetadataFilters = null;
+    if (params.getMetadataFilters() != null && !params.getMetadataFilters().isEmpty()) {
+      resolvedMetadataFilters =
+          resolveAppMetadataFilters(sdkExtension, orgId, params.getMetadataFilters());
+    }
 
-    // Apply filters in memory
-    var filteredApps =
-        applications.stream().filter(params::matches).map(this::toApplicationData).toList();
+    // Convert single tag to array for API
+    String[] filterTags = params.getTag() != null ? new String[] {params.getTag()} : null;
 
-    // Apply pagination to filtered results
-    int startIndex = pagination.offset();
-    int endIndex = Math.min(startIndex + pagination.pageSize(), filteredApps.size());
+    // Call server-side filter endpoint
+    var response =
+        sdkExtension.getApplicationsFiltered(
+            orgId,
+            params.getName(),
+            filterTags,
+            resolvedMetadataFilters,
+            pagination.limit(),
+            pagination.offset());
 
-    var pagedApps =
-        (startIndex < filteredApps.size())
-            ? filteredApps.subList(startIndex, endIndex)
-            : List.<ApplicationData>of();
+    if (response == null || response.getApplications() == null) {
+      warnings.add("API returned no application data.");
+      return ExecutionResult.empty();
+    }
 
-    return ExecutionResult.of(pagedApps, filteredApps.size());
+    var applications = response.getApplications().stream().map(this::toApplicationData).toList();
+
+    return ExecutionResult.of(applications, response.getCount());
+  }
+
+  /**
+   * Resolves user-provided metadata field names to numeric field IDs.
+   *
+   * @param sdkExtension SDK extension instance
+   * @param orgId Organization ID
+   * @param filters List of unresolved metadata filters with field names
+   * @return List of resolved metadata filters with numeric field IDs
+   * @throws Exception if any field name cannot be resolved
+   */
+  private List<AppMetadataFilter> resolveAppMetadataFilters(
+      SDKExtension sdkExtension, String orgId, List<UnresolvedMetadataFilter> filters)
+      throws Exception {
+
+    var fieldNameToId = buildAppMetadataFieldMapping(sdkExtension, orgId);
+
+    var notFoundFields =
+        filters.stream()
+            .map(UnresolvedMetadataFilter::fieldName)
+            .filter(name -> !fieldNameToId.containsKey(name.toLowerCase()))
+            .toList();
+
+    if (!notFoundFields.isEmpty()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Metadata field(s) not found: %s. Available fields can be discovered via the Contrast"
+                  + " UI.",
+              String.join(", ", notFoundFields)));
+    }
+
+    return filters.stream()
+        .map(
+            f -> {
+              var fieldId = fieldNameToId.get(f.fieldName().toLowerCase());
+              log.debug("Resolved app metadata field '{}' to ID '{}'", f.fieldName(), fieldId);
+              return new AppMetadataFilter(fieldId, f.values().toArray(new String[0]));
+            })
+        .toList();
+  }
+
+  /**
+   * Builds a case-insensitive mapping from field names to their numeric IDs.
+   *
+   * @param sdkExtension SDK extension instance
+   * @param orgId Organization ID
+   * @return Map of lowercase field names to field IDs
+   */
+  private Map<String, Long> buildAppMetadataFieldMapping(SDKExtension sdkExtension, String orgId)
+      throws Exception {
+
+    var fields = sdkExtension.getApplicationMetadataFields(orgId);
+    var mapping = new HashMap<String, Long>();
+    for (var field : fields) {
+      if (field.getDisplayLabel() != null) {
+        mapping.put(field.getDisplayLabel().toLowerCase(), field.getFieldId());
+      }
+    }
+    return mapping;
   }
 
   /**

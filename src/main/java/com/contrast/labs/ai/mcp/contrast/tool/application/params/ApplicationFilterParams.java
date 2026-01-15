@@ -15,31 +15,30 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.application.params;
 
-import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
+import com.contrast.labs.ai.mcp.contrast.tool.validation.UnresolvedMetadataFilter;
+import java.util.List;
 import org.springframework.util.StringUtils;
 
 /**
  * Filter parameters for SearchApplicationsTool. All filters are optional and combined with AND
- * logic.
+ * logic on the server side.
  *
  * <p>Usage:
  *
  * <pre>{@code
- * var params = ApplicationFilterParams.of("myapp", "Production", "env", "prod");
+ * var params = ApplicationFilterParams.of("myapp", "Production", "{\"env\":\"prod\"}");
  * if (!params.isValid()) {
  *   // Handle errors
  * }
- * boolean matches = params.matches(application);
  * }</pre>
  */
 public class ApplicationFilterParams extends BaseToolParams {
 
   private String name;
   private String tag;
-  private String metadataName;
-  private String metadataValue;
+  private List<UnresolvedMetadataFilter> metadataFilters;
 
   /** Private constructor - use static factory method {@link #of}. */
   private ApplicationFilterParams() {}
@@ -47,14 +46,12 @@ public class ApplicationFilterParams extends BaseToolParams {
   /**
    * Parse and validate application filter parameters.
    *
-   * @param name Application name filter (partial, case-insensitive)
+   * @param name Application name filter (server-side text search)
    * @param tag Tag filter (exact, case-sensitive)
-   * @param metadataName Metadata field name filter (case-insensitive)
-   * @param metadataValue Metadata field value filter (case-insensitive, requires metadataName)
+   * @param metadataFiltersJson JSON object for metadata filtering
    * @return ApplicationFilterParams with validation state
    */
-  public static ApplicationFilterParams of(
-      String name, String tag, String metadataName, String metadataValue) {
+  public static ApplicationFilterParams of(String name, String tag, String metadataFiltersJson) {
 
     var params = new ApplicationFilterParams();
     var ctx = new ToolValidationContext();
@@ -62,86 +59,11 @@ public class ApplicationFilterParams extends BaseToolParams {
     // Store raw values - all filters are optional
     params.name = StringUtils.hasText(name) ? name : null;
     params.tag = StringUtils.hasText(tag) ? tag : null;
-    params.metadataName = StringUtils.hasText(metadataName) ? metadataName : null;
-    params.metadataValue = StringUtils.hasText(metadataValue) ? metadataValue : null;
-
-    // Cross-field validation: metadataValue requires metadataName
-    ctx.requireIfPresent(metadataValue, "metadataValue", metadataName, "metadataName");
+    params.metadataFilters =
+        ctx.metadataJsonFilterParam(metadataFiltersJson, "metadataFilters").get();
 
     params.setValidationResult(ctx);
     return params;
-  }
-
-  /**
-   * Tests if an application matches all specified filters. Filters are combined with AND logic.
-   *
-   * @param app the application to test
-   * @return true if application matches all filters, false otherwise
-   */
-  public boolean matches(Application app) {
-    return matchesNameFilter(app) && matchesTagFilter(app) && matchesMetadataFilter(app);
-  }
-
-  /**
-   * Check if application matches name filter (partial, case-insensitive).
-   *
-   * @param app the application to check
-   * @return true if matches or no filter specified
-   */
-  private boolean matchesNameFilter(Application app) {
-    if (name == null) {
-      return true;
-    }
-    return app.getName() != null && app.getName().toLowerCase().contains(name.toLowerCase());
-  }
-
-  /**
-   * Check if application matches tag filter (exact, case-sensitive).
-   *
-   * @param app the application to check
-   * @return true if matches or no filter specified
-   */
-  private boolean matchesTagFilter(Application app) {
-    if (tag == null) {
-      return true;
-    }
-    return app.getTags().contains(tag);
-  }
-
-  /**
-   * Check if application matches metadata filter (case-insensitive for both name and value).
-   *
-   * @param app the application to check
-   * @return true if matches or no filter specified
-   */
-  private boolean matchesMetadataFilter(Application app) {
-    if (metadataName == null) {
-      return true;
-    }
-
-    for (var metadata : app.getMetadataEntities()) {
-      if (metadata == null || metadata.getName() == null) {
-        continue;
-      }
-
-      boolean nameMatches = metadata.getName().equalsIgnoreCase(metadataName);
-
-      if (metadataValue != null) {
-        // Both name and value must match
-        if (nameMatches
-            && metadata.getValue() != null
-            && metadata.getValue().equalsIgnoreCase(metadataValue)) {
-          return true;
-        }
-      } else {
-        // Name only - any value is acceptable
-        if (nameMatches) {
-          return true;
-        }
-      }
-    }
-
-    return false;
   }
 
   public String getName() {
@@ -152,11 +74,7 @@ public class ApplicationFilterParams extends BaseToolParams {
     return tag;
   }
 
-  public String getMetadataName() {
-    return metadataName;
-  }
-
-  public String getMetadataValue() {
-    return metadataValue;
+  public List<UnresolvedMetadataFilter> getMetadataFilters() {
+    return metadataFilters;
   }
 }
