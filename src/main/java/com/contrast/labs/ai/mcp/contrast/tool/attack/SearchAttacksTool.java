@@ -51,7 +51,7 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
           - All attacks: No filters (returns all attack types)
           - Active attacks only: quickFilter="ACTIVE"
           - Exploited attacks: statusFilter="EXPLOITED"
-          - SQL injection attacks by keyword: keyword="SQL Injection" (searches display names)
+          - SQL injection attacks by keyword: keyword="SQL Injection" (searches multiple fields)
           - SQL injection attacks by rule: rules="sql-injection" (exact rule ID match)
           - Multiple rules: rules="sql-injection,xss-reflected"
           - Blocked attacks: statusFilter="BLOCKED"
@@ -62,8 +62,8 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
           - Manual SQL attacks: quickFilter="MANUAL", rules="sql-injection"
 
           Keyword vs Rules:
-          - keyword: Substring search against rule display names (e.g., "SQL Injection"),
-            source IPs, server names, application names, and notes
+          - keyword: Substring match (OR logic) across source IP, server name/hostname,
+            application name, rule name, attack UUID, forwarded IP/path, and attack tags
           - rules: Exact match against rule IDs (e.g., "sql-injection"). Use get_protect_rules
             to discover available rule IDs for an application.
 
@@ -100,9 +100,9 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
           String statusFilter,
       @ToolParam(
               description =
-                  "Keyword to search against rule display names (e.g., 'SQL Injection',"
-                      + " 'Cross-Site Scripting'), source IPs, server names, application names, or"
-                      + " notes. For exact rule ID filtering, use the 'rules' parameter instead.",
+                  "Keyword to match against source IP, server name/hostname, application name,"
+                      + " rule name, attack UUID, forwarded IP/path, or attack tags (substring"
+                      + " match, OR logic across all fields)",
               required = false)
           String keyword,
       @ToolParam(description = "Include suppressed attacks when true", required = false)
