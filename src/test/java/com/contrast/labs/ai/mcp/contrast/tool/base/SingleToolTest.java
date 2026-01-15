@@ -105,7 +105,10 @@ class SingleToolTest {
     var result = tool.executePipeline(() -> TestParams.valid());
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly("Authentication failed. Check API credentials.");
+    assertThat(result.errors())
+        .containsExactly(
+            "Authentication failed or resource not found. Verify credentials and that the resource"
+                + " ID is correct.");
   }
 
   @Test
@@ -118,7 +121,10 @@ class SingleToolTest {
     var result = tool.executePipeline(() -> TestParams.valid());
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly("Authentication failed. Check API credentials.");
+    assertThat(result.errors())
+        .containsExactly(
+            "Authentication failed or resource not found. Verify credentials and that the resource"
+                + " ID is correct.");
   }
 
   @Test
@@ -198,12 +204,16 @@ class SingleToolTest {
     var result = tool.executePipeline(() -> TestParams.withWarning("Initial warning"));
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly("Authentication failed. Check API credentials.");
+    assertThat(result.errors())
+        .containsExactly(
+            "Authentication failed or resource not found. Verify credentials and that the resource"
+                + " ID is correct.");
     assertThat(result.warnings())
         .containsExactlyInAnyOrder(
             "Initial warning",
             "Warning added before exception",
-            "Authentication failed. Check API credentials.");
+            "Authentication failed or resource not found. Verify credentials and that the resource"
+                + " ID is correct.");
   }
 
   // Test implementation of SingleTool
