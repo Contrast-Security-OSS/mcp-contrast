@@ -100,7 +100,11 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
 
     } catch (UnauthorizedException e) {
       return handleException(
-          e, pagination, requestId, "Authentication failed. Check API credentials.");
+          e,
+          pagination,
+          requestId,
+          "Authentication failed or resource not found. Verify credentials and that the resource ID"
+              + " is correct.");
     } catch (ResourceNotFoundException e) {
       return handleException(e, pagination, requestId, "Resource not found: " + e.getMessage());
     } catch (HttpResponseException e) {
