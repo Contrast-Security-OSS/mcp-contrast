@@ -16,4 +16,7 @@ public class ApplicationsResponse {
 
   @SerializedName("applications")
   private List<Application> applications;
+
+  @SerializedName("count")
+  private Integer count;
 }
