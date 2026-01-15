@@ -23,12 +23,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetadataFilter;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
 import com.contrastsecurity.http.HttpMethod;
 import com.contrastsecurity.http.MediaType;
 import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -88,5 +90,75 @@ class SDKExtensionTest {
             argThat(url -> url.contains("/route/filter") && url.contains("expand=observations")),
             argThat(body -> body.contains("session-123")),
             eq(MediaType.JSON));
+  }
+
+  @Test
+  void getApplicationsFiltered_should_call_filter_endpoint_with_params() throws Exception {
+    var mockResponse =
+        """
+        {"applications": [{"name": "WebGoat", "app_id": "abc123"}], "count": 1}
+        """;
+
+    when(sdk.makeRequestWithBody(
+            eq(HttpMethod.POST),
+            argThat(url -> url.contains("/applications/filter")),
+            any(),
+            eq(MediaType.JSON)))
+        .thenReturn(new ByteArrayInputStream(mockResponse.getBytes(StandardCharsets.UTF_8)));
+
+    var result = sdkExtension.getApplicationsFiltered("org-123", "WebGoat", null, null, 50, 0);
+
+    assertThat(result.getApplications()).hasSize(1);
+    assertThat(result.getCount()).isEqualTo(1);
+
+    verify(sdk)
+        .makeRequestWithBody(
+            eq(HttpMethod.POST),
+            argThat(
+                url ->
+                    url.contains("/applications/filter")
+                        && url.contains("limit=50")
+                        && url.contains("offset=0")),
+            argThat(body -> body.contains("WebGoat")),
+            eq(MediaType.JSON));
+  }
+
+  @Test
+  void getApplicationsFiltered_should_include_metadata_filters_in_request() throws Exception {
+    var mockResponse =
+        """
+        {"applications": [], "count": 0}
+        """;
+
+    when(sdk.makeRequestWithBody(any(), any(), any(), any()))
+        .thenReturn(new ByteArrayInputStream(mockResponse.getBytes(StandardCharsets.UTF_8)));
+
+    var metadataFilters = List.of(new AppMetadataFilter(123L, new String[] {"prod"}));
+
+    sdkExtension.getApplicationsFiltered("org-123", null, null, metadataFilters, 50, 0);
+
+    verify(sdk)
+        .makeRequestWithBody(
+            eq(HttpMethod.POST),
+            argThat(url -> url.contains("/applications/filter")),
+            argThat(body -> body.contains("\"fieldID\":123") && body.contains("prod")),
+            eq(MediaType.JSON));
+  }
+
+  @Test
+  void getApplicationMetadataFields_should_return_field_definitions() throws Exception {
+    var mockResponse =
+        """
+        {"fields": [{"fieldId": 123, "displayLabel": "Environment", "agentLabel": "env"}]}
+        """;
+
+    when(sdk.makeRequest(eq(HttpMethod.GET), argThat(url -> url.contains("/metadata/fields"))))
+        .thenReturn(new ByteArrayInputStream(mockResponse.getBytes(StandardCharsets.UTF_8)));
+
+    var result = sdkExtension.getApplicationMetadataFields("org-123");
+
+    assertThat(result).hasSize(1);
+    assertThat(result.get(0).getDisplayLabel()).isEqualTo("Environment");
+    assertThat(result.get(0).getFieldId()).isEqualTo(123L);
   }
 }

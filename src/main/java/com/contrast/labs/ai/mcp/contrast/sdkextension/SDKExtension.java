@@ -20,6 +20,10 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibrariesExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksFilterBody;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksResponse;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetadataField;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetadataFieldsResponse;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetadataFilter;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationsFilterRequest;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;
@@ -250,6 +254,64 @@ public class SDKExtension {
           Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
         return this.gson.fromJson(reader, ApplicationsResponse.class);
       }
+    }
+  }
+
+  /**
+   * Retrieves applications using server-side filtering via POST /applications/filter.
+   *
+   * @param organizationId The organization ID
+   * @param filterText Optional text filter (searches name, contextPath, tags, metadata)
+   * @param filterTags Optional tag filters (exact match, case-sensitive)
+   * @param metadataFilters Optional metadata filters (resolved field IDs)
+   * @param limit Page size
+   * @param offset Pagination offset
+   * @return ApplicationsResponse with filtered applications
+   */
+  public ApplicationsResponse getApplicationsFiltered(
+      String organizationId,
+      String filterText,
+      String[] filterTags,
+      List<AppMetadataFilter> metadataFilters,
+      int limit,
+      int offset)
+      throws UnauthorizedException, IOException {
+
+    var url =
+        String.format(
+            "/ng/%s/applications/filter?expand=metadata,technologies,skip_links&limit=%d&offset=%d&sort=-appName",
+            organizationId, limit, offset);
+
+    var requestBody =
+        ApplicationsFilterRequest.builder()
+            .filterText(filterText)
+            .filterTags(filterTags)
+            .metadataFilters(metadataFilters)
+            .build();
+
+    try (InputStream is =
+            contrastSDK.makeRequestWithBody(
+                HttpMethod.POST, url, gson.toJson(requestBody), MediaType.JSON);
+        Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+      return gson.fromJson(reader, ApplicationsResponse.class);
+    }
+  }
+
+  /**
+   * Retrieves application metadata field definitions for an organization.
+   *
+   * @param organizationId The organization ID
+   * @return List of metadata field definitions with IDs and labels
+   */
+  public List<AppMetadataField> getApplicationMetadataFields(String organizationId)
+      throws UnauthorizedException, IOException {
+
+    var url = String.format("/ng/%s/metadata/fields", organizationId);
+
+    try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
+        Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+      var response = gson.fromJson(reader, AppMetadataFieldsResponse.class);
+      return response.getFields() != null ? response.getFields() : List.of();
     }
   }
 
