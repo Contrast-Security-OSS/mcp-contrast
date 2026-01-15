@@ -79,7 +79,10 @@ class PaginatedToolTest {
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly("Authentication failed. Check API credentials.");
+    assertThat(result.errors())
+        .containsExactly(
+            "Authentication failed or resource not found. Verify credentials and that the resource"
+                + " ID is correct.");
   }
 
   @Test
@@ -105,7 +108,10 @@ class PaginatedToolTest {
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly("Authentication failed. Check API credentials.");
+    assertThat(result.errors())
+        .containsExactly(
+            "Authentication failed or resource not found. Verify credentials and that the resource"
+                + " ID is correct.");
   }
 
   @Test

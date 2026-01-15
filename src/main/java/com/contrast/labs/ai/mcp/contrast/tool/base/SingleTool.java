@@ -87,7 +87,11 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
       return SingleToolResponse.notFound(e.getMessage(), warnings);
     } catch (UnauthorizedException e) {
       return handleException(
-          e, requestId, "Authentication failed. Check API credentials.", warnings);
+          e,
+          requestId,
+          "Authentication failed or resource not found. Verify credentials and that the resource ID"
+              + " is correct.",
+          warnings);
     } catch (HttpResponseException e) {
       return handleHttpResponseException(e, requestId, warnings);
     } catch (Exception e) {
