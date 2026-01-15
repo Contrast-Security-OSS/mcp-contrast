@@ -41,7 +41,7 @@ public class AnonymousLibraryExtendedBuilder {
   private String latestVersion = "1.1.0";
   private long libraryId = Math.abs(UUID.randomUUID().getLeastSignificantBits());
   private int classCount = 100;
-  private int classedUsed = 50;
+  private int classesUsed = 50;
   private long releaseDate = System.currentTimeMillis();
   private long latestReleaseDate = System.currentTimeMillis();
   private int totalVulnerabilities = 0;
@@ -132,8 +132,8 @@ public class AnonymousLibraryExtendedBuilder {
     return this;
   }
 
-  public AnonymousLibraryExtendedBuilder withClassedUsed(int classedUsed) {
-    this.classedUsed = classedUsed;
+  public AnonymousLibraryExtendedBuilder withClassedUsed(int classesUsed) {
+    this.classesUsed = classesUsed;
     return this;
   }
 
@@ -207,7 +207,7 @@ public class AnonymousLibraryExtendedBuilder {
     lenient().when(library.getLatestVersion()).thenReturn(latestVersion);
     lenient().when(library.getLibraryId()).thenReturn(libraryId);
     lenient().when(library.getClassCount()).thenReturn(classCount);
-    lenient().when(library.getClassedUsed()).thenReturn(classedUsed);
+    lenient().when(library.getClassesUsed()).thenReturn(classesUsed);
     lenient().when(library.getReleaseDate()).thenReturn(releaseDate);
     lenient().when(library.getLatestReleaseDate()).thenReturn(latestReleaseDate);
     lenient().when(library.getTotalVulnerabilities()).thenReturn(totalVulnerabilities);
