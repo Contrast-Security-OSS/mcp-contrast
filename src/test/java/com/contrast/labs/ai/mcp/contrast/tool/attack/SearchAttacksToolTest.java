@@ -76,7 +76,7 @@ class SearchAttacksToolTest {
                       eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
                   .thenReturn(mockResponse);
             })) {
-      var result = tool.searchAttacks(null, null, null, null, null, null, null, null, null);
+      var result = tool.searchAttacks(null, null, null, null, null, null, null, null, null, null);
 
       assertThat(result.items()).hasSize(3);
       assertThat(result.items().get(0).attackId()).isEqualTo("attack-uuid-0");
@@ -97,7 +97,7 @@ class SearchAttacksToolTest {
                       eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
                   .thenReturn(mockResponse);
             })) {
-      tool.searchAttacks(null, null, "ACTIVE", null, null, null, null, null, null);
+      tool.searchAttacks(null, null, "ACTIVE", null, null, null, null, null, null, null);
 
       var extension = mockedConstruction.constructed().get(0);
       var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
@@ -119,7 +119,7 @@ class SearchAttacksToolTest {
                       eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
                   .thenReturn(mockResponse);
             })) {
-      tool.searchAttacks(null, null, null, "EXPLOITED", null, null, null, null, null);
+      tool.searchAttacks(null, null, null, "EXPLOITED", null, null, null, null, null, null);
 
       var extension = mockedConstruction.constructed().get(0);
       var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
@@ -141,7 +141,7 @@ class SearchAttacksToolTest {
                       eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
                   .thenReturn(mockResponse);
             })) {
-      tool.searchAttacks(null, null, null, null, "SQL Injection", null, null, null, null);
+      tool.searchAttacks(null, null, null, null, "SQL Injection", null, null, null, null, null);
 
       var extension = mockedConstruction.constructed().get(0);
       var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
@@ -164,7 +164,7 @@ class SearchAttacksToolTest {
                       eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
                   .thenReturn(mockResponse);
             })) {
-      tool.searchAttacks(null, null, null, null, null, true, false, true, null);
+      tool.searchAttacks(null, null, null, null, null, true, false, true, null, null);
 
       var extension = mockedConstruction.constructed().get(0);
       var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
@@ -188,7 +188,7 @@ class SearchAttacksToolTest {
                       eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(25), eq(50), isNull()))
                   .thenReturn(mockResponse);
             })) {
-      var result = tool.searchAttacks(3, 25, null, null, null, null, null, null, null);
+      var result = tool.searchAttacks(3, 25, null, null, null, null, null, null, null, null);
 
       assertThat(result.page()).isEqualTo(3);
       assertThat(result.pageSize()).isEqualTo(25);
@@ -211,7 +211,7 @@ class SearchAttacksToolTest {
                       eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), eq("-status")))
                   .thenReturn(mockResponse);
             })) {
-      tool.searchAttacks(null, null, null, null, null, null, null, null, "-status");
+      tool.searchAttacks(null, null, null, null, null, null, null, null, "-status", null);
 
       var extension = mockedConstruction.constructed().get(0);
       verify(extension)
@@ -220,8 +220,33 @@ class SearchAttacksToolTest {
   }
 
   @Test
+  void searchAttacks_should_pass_rules_to_sdk() throws Exception {
+    var mockResponse = createMockAttacksResponse(1, 1);
+
+    try (var mockedConstruction =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getAttacks(
+                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+                  .thenReturn(mockResponse);
+            })) {
+      tool.searchAttacks(
+          null, null, null, null, null, null, null, null, null, "sql-injection,xss-reflected");
+
+      var extension = mockedConstruction.constructed().get(0);
+      var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
+      verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
+
+      assertThat(captor.getValue().getProtectionRules())
+          .containsExactlyInAnyOrder("sql-injection", "xss-reflected");
+    }
+  }
+
+  @Test
   void searchAttacks_should_return_validation_error_for_invalid_quickFilter() {
-    var result = tool.searchAttacks(null, null, "INVALID", null, null, null, null, null, null);
+    var result =
+        tool.searchAttacks(null, null, "INVALID", null, null, null, null, null, null, null);
 
     assertThat(result.items()).isEmpty();
     assertThat(result.errors()).anyMatch(e -> e.contains("Invalid quickFilter"));
@@ -229,7 +254,8 @@ class SearchAttacksToolTest {
 
   @Test
   void searchAttacks_should_return_validation_error_for_invalid_statusFilter() {
-    var result = tool.searchAttacks(null, null, null, "INVALID", null, null, null, null, null);
+    var result =
+        tool.searchAttacks(null, null, null, "INVALID", null, null, null, null, null, null);
 
     assertThat(result.items()).isEmpty();
     assertThat(result.errors()).anyMatch(e -> e.contains("Invalid statusFilter"));
@@ -237,7 +263,8 @@ class SearchAttacksToolTest {
 
   @Test
   void searchAttacks_should_return_validation_error_for_invalid_sort() {
-    var result = tool.searchAttacks(null, null, null, null, null, null, null, null, "severity");
+    var result =
+        tool.searchAttacks(null, null, null, null, null, null, null, null, "severity", null);
 
     assertThat(result.items()).isEmpty();
     assertThat(result.errors()).anyMatch(e -> e.contains("Invalid sort field"));
@@ -255,7 +282,7 @@ class SearchAttacksToolTest {
                       anyString(), any(AttacksFilterBody.class), anyInt(), anyInt(), any()))
                   .thenReturn(emptyResponse);
             })) {
-      var result = tool.searchAttacks(null, null, null, null, null, null, null, null, null);
+      var result = tool.searchAttacks(null, null, null, null, null, null, null, null, null, null);
 
       assertThat(result.items()).isEmpty();
       assertThat(result.warnings()).anyMatch(w -> w.contains("No results found"));
@@ -272,7 +299,7 @@ class SearchAttacksToolTest {
                       anyString(), any(AttacksFilterBody.class), anyInt(), anyInt(), any()))
                   .thenReturn(null);
             })) {
-      var result = tool.searchAttacks(null, null, null, null, null, null, null, null, null);
+      var result = tool.searchAttacks(null, null, null, null, null, null, null, null, null, null);
 
       assertThat(result.items()).isEmpty();
       assertThat(result.warnings()).anyMatch(w -> w.contains("API returned no attack data"));
@@ -291,7 +318,7 @@ class SearchAttacksToolTest {
                       anyString(), any(AttacksFilterBody.class), anyInt(), anyInt(), any()))
                   .thenReturn(mockResponse);
             })) {
-      var result = tool.searchAttacks(1, 50, null, null, null, null, null, null, null);
+      var result = tool.searchAttacks(1, 50, null, null, null, null, null, null, null, null);
 
       assertThat(result.hasMorePages()).isTrue();
       assertThat(result.totalItems()).isEqualTo(150);

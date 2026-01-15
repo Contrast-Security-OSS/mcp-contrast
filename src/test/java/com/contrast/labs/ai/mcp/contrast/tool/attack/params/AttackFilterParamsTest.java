@@ -28,7 +28,7 @@ class AttackFilterParamsTest {
 
   @Test
   void of_should_accept_null_filters_with_defaults() {
-    var params = AttackFilterParams.of(null, null, null, null, null, null, null);
+    var params = AttackFilterParams.of(null, null, null, null, null, null, null, null);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.errors()).isEmpty();
@@ -41,7 +41,7 @@ class AttackFilterParamsTest {
 
   @Test
   void of_should_accept_valid_quickFilter() {
-    var params = AttackFilterParams.of("ACTIVE", null, null, null, null, null, null);
+    var params = AttackFilterParams.of("ACTIVE", null, null, null, null, null, null, null);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.getQuickFilter()).isEqualTo("ACTIVE");
@@ -49,7 +49,7 @@ class AttackFilterParamsTest {
 
   @Test
   void of_should_normalize_quickFilter_to_uppercase() {
-    var params = AttackFilterParams.of("active", null, null, null, null, null, null);
+    var params = AttackFilterParams.of("active", null, null, null, null, null, null, null);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.getQuickFilter()).isEqualTo("ACTIVE");
@@ -58,7 +58,7 @@ class AttackFilterParamsTest {
   @Test
   void of_should_accept_all_valid_quickFilter_values() {
     for (String filter : AttackFilterParams.VALID_QUICK_FILTERS) {
-      var params = AttackFilterParams.of(filter, null, null, null, null, null, null);
+      var params = AttackFilterParams.of(filter, null, null, null, null, null, null, null);
       assertThat(params.isValid()).as("QuickFilter '%s' should be valid", filter).isTrue();
       assertThat(params.getQuickFilter()).isEqualTo(filter);
     }
@@ -66,7 +66,7 @@ class AttackFilterParamsTest {
 
   @Test
   void of_should_accept_valid_statusFilter() {
-    var params = AttackFilterParams.of(null, "EXPLOITED", null, null, null, null, null);
+    var params = AttackFilterParams.of(null, "EXPLOITED", null, null, null, null, null, null);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.getStatusFilters()).containsExactly("EXPLOITED");
@@ -74,7 +74,7 @@ class AttackFilterParamsTest {
 
   @Test
   void of_should_normalize_statusFilter_to_uppercase() {
-    var params = AttackFilterParams.of(null, "exploited", null, null, null, null, null);
+    var params = AttackFilterParams.of(null, "exploited", null, null, null, null, null, null);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.getStatusFilters()).containsExactly("EXPLOITED");
@@ -83,7 +83,7 @@ class AttackFilterParamsTest {
   @Test
   void of_should_accept_all_valid_statusFilter_values() {
     for (String status : AttackFilterParams.VALID_STATUS_FILTERS) {
-      var params = AttackFilterParams.of(null, status, null, null, null, null, null);
+      var params = AttackFilterParams.of(null, status, null, null, null, null, null, null);
       assertThat(params.isValid()).as("StatusFilter '%s' should be valid", status).isTrue();
       assertThat(params.getStatusFilters()).containsExactly(status);
     }
@@ -91,7 +91,7 @@ class AttackFilterParamsTest {
 
   @Test
   void of_should_accept_keyword() {
-    var params = AttackFilterParams.of(null, null, "sql injection", null, null, null, null);
+    var params = AttackFilterParams.of(null, null, "sql injection", null, null, null, null, null);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.getKeyword()).isEqualTo("sql injection");
@@ -99,7 +99,7 @@ class AttackFilterParamsTest {
 
   @Test
   void of_should_accept_boolean_filters() {
-    var params = AttackFilterParams.of(null, null, null, true, false, true, null);
+    var params = AttackFilterParams.of(null, null, null, true, false, true, null, null);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.getIncludeSuppressed()).isTrue();
@@ -116,7 +116,7 @@ class AttackFilterParamsTest {
     @Test
     void of_should_accept_all_valid_sort_fields() {
       for (String field : AttackFilterParams.VALID_SORT_FIELDS) {
-        var params = AttackFilterParams.of(null, null, null, null, null, null, field);
+        var params = AttackFilterParams.of(null, null, null, null, null, null, field, null);
         assertThat(params.isValid()).as("Sort field '%s' should be valid", field).isTrue();
         assertThat(params.getSort()).isEqualTo(field);
       }
@@ -126,7 +126,7 @@ class AttackFilterParamsTest {
     void of_should_accept_all_valid_sort_fields_with_descending_prefix() {
       for (String field : AttackFilterParams.VALID_SORT_FIELDS) {
         String descending = "-" + field;
-        var params = AttackFilterParams.of(null, null, null, null, null, null, descending);
+        var params = AttackFilterParams.of(null, null, null, null, null, null, descending, null);
         assertThat(params.isValid()).as("Sort field '%s' should be valid", descending).isTrue();
         assertThat(params.getSort()).isEqualTo(descending);
       }
@@ -134,7 +134,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_accept_startTime_ascending() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "startTime");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "startTime", null);
 
       assertThat(params.isValid()).isTrue();
       assertThat(params.getSort()).isEqualTo("startTime");
@@ -142,7 +142,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_accept_startTime_descending() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "-startTime");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "-startTime", null);
 
       assertThat(params.isValid()).isTrue();
       assertThat(params.getSort()).isEqualTo("-startTime");
@@ -150,7 +150,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_accept_endTime() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "endTime");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "endTime", null);
 
       assertThat(params.isValid()).isTrue();
       assertThat(params.getSort()).isEqualTo("endTime");
@@ -158,7 +158,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_accept_status() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "status");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "status", null);
 
       assertThat(params.isValid()).isTrue();
       assertThat(params.getSort()).isEqualTo("status");
@@ -166,7 +166,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_accept_sourceIP() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "sourceIP");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "sourceIP", null);
 
       assertThat(params.isValid()).isTrue();
       assertThat(params.getSort()).isEqualTo("sourceIP");
@@ -174,7 +174,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_accept_type() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "type");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "type", null);
 
       assertThat(params.isValid()).isTrue();
       assertThat(params.getSort()).isEqualTo("type");
@@ -182,7 +182,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_reject_severity_not_valid_sort_field() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "severity");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "severity", null);
 
       assertThat(params.isValid()).isFalse();
       assertThat(params.errors().get(0)).contains("Invalid sort field").contains("severity");
@@ -190,7 +190,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_reject_probes_not_valid_sort_field() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "probes");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "probes", null);
 
       assertThat(params.isValid()).isFalse();
       assertThat(params.errors()).anyMatch(e -> e.contains("Invalid sort field"));
@@ -198,7 +198,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_reject_invalid_field_with_descending_prefix() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "-invalidField");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "-invalidField", null);
 
       assertThat(params.isValid()).isFalse();
       assertThat(params.errors().get(0)).contains("Invalid sort field").contains("invalidField");
@@ -207,7 +207,7 @@ class AttackFilterParamsTest {
     @Test
     void of_should_be_case_sensitive_starttime_lowercase_invalid() {
       // API is case-sensitive - must match exact camelCase
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "starttime");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "starttime", null);
 
       assertThat(params.isValid()).isFalse();
       assertThat(params.errors()).anyMatch(e -> e.contains("Invalid sort field"));
@@ -215,7 +215,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_be_case_sensitive_STARTTIME_uppercase_invalid() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "STARTTIME");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "STARTTIME", null);
 
       assertThat(params.isValid()).isFalse();
       assertThat(params.errors()).anyMatch(e -> e.contains("Invalid sort field"));
@@ -223,7 +223,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_include_valid_fields_in_error_message() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "badField");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "badField", null);
 
       assertThat(params.isValid()).isFalse();
       assertThat(params.errors().get(0))
@@ -237,7 +237,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_list_valid_fields_in_alphabetical_order() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "badField");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "badField", null);
 
       assertThat(params.isValid()).isFalse();
       // Verify fields are in consistent alphabetical order for predictable UX
@@ -246,7 +246,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_handle_null_sort() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, null);
+      var params = AttackFilterParams.of(null, null, null, null, null, null, null, null);
 
       assertThat(params.isValid()).isTrue();
       assertThat(params.getSort()).isNull();
@@ -254,7 +254,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_handle_empty_sort() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "", null);
 
       assertThat(params.isValid()).isTrue();
       assertThat(params.getSort()).isNull();
@@ -262,7 +262,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_handle_whitespace_only_sort() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "   ");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "   ", null);
 
       assertThat(params.isValid()).isTrue();
       assertThat(params.getSort()).isNull();
@@ -270,7 +270,7 @@ class AttackFilterParamsTest {
 
     @Test
     void of_should_trim_whitespace_from_valid_sort() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, "  startTime  ");
+      var params = AttackFilterParams.of(null, null, null, null, null, null, "  startTime  ", null);
 
       assertThat(params.isValid()).isTrue();
       assertThat(params.getSort()).isEqualTo("startTime");
@@ -280,7 +280,7 @@ class AttackFilterParamsTest {
   @Test
   void of_should_accept_combined_valid_filters() {
     var params =
-        AttackFilterParams.of("EFFECTIVE", "EXPLOITED", "xss", true, true, false, "-status");
+        AttackFilterParams.of("EFFECTIVE", "EXPLOITED", "xss", true, true, false, "-status", null);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.getQuickFilter()).isEqualTo("EFFECTIVE");
@@ -296,7 +296,7 @@ class AttackFilterParamsTest {
 
   @Test
   void of_should_reject_invalid_quickFilter() {
-    var params = AttackFilterParams.of("INVALID", null, null, null, null, null, null);
+    var params = AttackFilterParams.of("INVALID", null, null, null, null, null, null, null);
 
     assertThat(params.isValid()).isFalse();
     assertThat(params.errors())
@@ -305,7 +305,7 @@ class AttackFilterParamsTest {
 
   @Test
   void of_should_reject_invalid_statusFilter() {
-    var params = AttackFilterParams.of(null, "INVALID_STATUS", null, null, null, null, null);
+    var params = AttackFilterParams.of(null, "INVALID_STATUS", null, null, null, null, null, null);
 
     assertThat(params.isValid()).isFalse();
     assertThat(params.errors())
@@ -315,7 +315,8 @@ class AttackFilterParamsTest {
   @Test
   void of_should_collect_multiple_errors() {
     var params =
-        AttackFilterParams.of("BAD_FILTER", "BAD_STATUS", null, null, null, null, "invalidField");
+        AttackFilterParams.of(
+            "BAD_FILTER", "BAD_STATUS", null, null, null, null, "invalidField", null);
 
     assertThat(params.isValid()).isFalse();
     assertThat(params.errors()).hasSize(3);
@@ -330,7 +331,7 @@ class AttackFilterParamsTest {
   @Test
   void toAttacksFilterBody_should_convert_all_filters() {
     var params =
-        AttackFilterParams.of("EFFECTIVE", "BLOCKED", "sql", false, true, false, "-status");
+        AttackFilterParams.of("EFFECTIVE", "BLOCKED", "sql", false, true, false, "-status", null);
 
     var filterBody = params.toAttacksFilterBody();
 
@@ -344,7 +345,7 @@ class AttackFilterParamsTest {
 
   @Test
   void toAttacksFilterBody_should_handle_null_filters() {
-    var params = AttackFilterParams.of(null, null, null, null, null, null, null);
+    var params = AttackFilterParams.of(null, null, null, null, null, null, null, null);
 
     var filterBody = params.toAttacksFilterBody();
 
@@ -361,7 +362,7 @@ class AttackFilterParamsTest {
 
     @Test
     void toAttacksFilterBody_should_preserve_spaces_in_keyword() {
-      var params = AttackFilterParams.of(null, null, "SQL Injection", null, null, null, null);
+      var params = AttackFilterParams.of(null, null, "SQL Injection", null, null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
@@ -371,7 +372,7 @@ class AttackFilterParamsTest {
 
     @Test
     void toAttacksFilterBody_should_preserve_specialCharacters() {
-      var params = AttackFilterParams.of(null, null, "<script>", null, null, null, null);
+      var params = AttackFilterParams.of(null, null, "<script>", null, null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
@@ -384,7 +385,7 @@ class AttackFilterParamsTest {
     void toAttacksFilterBody_should_preserve_angleBrackets() {
       var params =
           AttackFilterParams.of(
-              null, null, "<script>alert('xss')</script>", null, null, null, null);
+              null, null, "<script>alert('xss')</script>", null, null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
@@ -395,7 +396,7 @@ class AttackFilterParamsTest {
     @Test
     void toAttacksFilterBody_should_preserve_sqlInjectionPattern() {
       var params =
-          AttackFilterParams.of(null, null, "'; DROP TABLE users;--", null, null, null, null);
+          AttackFilterParams.of(null, null, "'; DROP TABLE users;--", null, null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
@@ -405,7 +406,8 @@ class AttackFilterParamsTest {
 
     @Test
     void toAttacksFilterBody_should_preserve_pathTraversalPattern() {
-      var params = AttackFilterParams.of(null, null, "../../../etc/passwd", null, null, null, null);
+      var params =
+          AttackFilterParams.of(null, null, "../../../etc/passwd", null, null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
@@ -415,7 +417,8 @@ class AttackFilterParamsTest {
 
     @Test
     void toAttacksFilterBody_should_preserve_emailAddress() {
-      var params = AttackFilterParams.of(null, null, "user@domain.com", null, null, null, null);
+      var params =
+          AttackFilterParams.of(null, null, "user@domain.com", null, null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
@@ -425,7 +428,7 @@ class AttackFilterParamsTest {
 
     @Test
     void toAttacksFilterBody_should_preserve_alphanumericKeyword() {
-      var params = AttackFilterParams.of(null, null, "sql-injection", null, null, null, null);
+      var params = AttackFilterParams.of(null, null, "sql-injection", null, null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
@@ -434,7 +437,8 @@ class AttackFilterParamsTest {
 
     @Test
     void toAttacksFilterBody_should_preserve_spaces() {
-      var params = AttackFilterParams.of(null, null, "SELECT * FROM users", null, null, null, null);
+      var params =
+          AttackFilterParams.of(null, null, "SELECT * FROM users", null, null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
@@ -444,7 +448,7 @@ class AttackFilterParamsTest {
 
     @Test
     void toAttacksFilterBody_should_handleNullKeyword() {
-      var params = AttackFilterParams.of(null, null, null, null, null, null, null);
+      var params = AttackFilterParams.of(null, null, null, null, null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
@@ -454,7 +458,7 @@ class AttackFilterParamsTest {
 
     @Test
     void toAttacksFilterBody_should_handleEmptyKeyword() {
-      var params = AttackFilterParams.of(null, null, "", null, null, null, null);
+      var params = AttackFilterParams.of(null, null, "", null, null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
@@ -463,7 +467,7 @@ class AttackFilterParamsTest {
 
     @Test
     void toAttacksFilterBody_should_preserve_unicodeCharacters() {
-      var params = AttackFilterParams.of(null, null, "攻撃", null, null, null, null);
+      var params = AttackFilterParams.of(null, null, "攻撃", null, null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
