@@ -85,7 +85,7 @@ public class GetSessionMetadataToolIT
 
   @Override
   protected TestData performDiscovery() throws IOException {
-    var response = searchApplicationsTool.searchApplications(1, 5, null, null, null, null);
+    var response = searchApplicationsTool.searchApplications(1, 5, null, null, null);
 
     var testData = new TestData();
     testData.hasApplications = response.isSuccess() && !response.items().isEmpty();
@@ -121,7 +121,7 @@ public class GetSessionMetadataToolIT
   @Test
   void getSessionMetadata_should_handle_valid_app_id() {
     // First discover an app ID
-    var appsResponse = searchApplicationsTool.searchApplications(1, 1, null, null, null, null);
+    var appsResponse = searchApplicationsTool.searchApplications(1, 1, null, null, null);
 
     if (appsResponse.isSuccess() && !appsResponse.items().isEmpty()) {
       var appId = appsResponse.items().get(0).appID();

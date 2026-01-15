@@ -17,21 +17,29 @@ package com.contrast.labs.ai.mcp.contrast.tool.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetadataField;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Metadata;
 import com.contrastsecurity.sdk.ContrastSDK;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
+import org.mockito.MockedConstruction;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class SearchApplicationsToolTest {
@@ -53,12 +61,11 @@ class SearchApplicationsToolTest {
   }
 
   @Test
-  void searchApplications_should_return_validation_error_for_metadata_value_without_name() {
-    var result = tool.searchApplications(1, 10, null, null, null, "someValue");
+  void searchApplications_should_return_validation_error_for_invalid_json_metadata() {
+    var result = tool.searchApplications(1, 10, null, null, "{invalid json}");
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors())
-        .anyMatch(e -> e.contains("metadataValue") && e.contains("metadataName"));
+    assertThat(result.errors()).anyMatch(e -> e.contains("Invalid JSON"));
     verifyNoInteractions(sdk);
   }
 
@@ -66,13 +73,18 @@ class SearchApplicationsToolTest {
   void searchApplications_should_return_all_applications_when_no_filters() throws Exception {
     var app1 = createApp("App1", "Active");
     var app2 = createApp("App2", "Inactive");
+    var response = createResponse(List.of(app1, app2), 2);
 
-    try (MockedStatic<SDKHelper> sdkHelper = mockStatic(SDKHelper.class)) {
-      sdkHelper
-          .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
-          .thenReturn(List.of(app1, app2));
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getApplicationsFiltered(
+                      anyString(), isNull(), isNull(), isNull(), anyInt(), anyInt()))
+                  .thenReturn(response);
+            })) {
 
-      var result = tool.searchApplications(1, 10, null, null, null, null);
+      var result = tool.searchApplications(1, 10, null, null, null);
 
       assertThat(result.isSuccess()).isTrue();
       assertThat(result.items()).hasSize(2);
@@ -81,52 +93,45 @@ class SearchApplicationsToolTest {
   }
 
   @Test
-  void searchApplications_should_filter_by_name_partial_case_insensitive() throws Exception {
+  void searchApplications_should_pass_name_filter_to_server() throws Exception {
     var app1 = createApp("MyProductionApp", "Active");
-    var app2 = createApp("TestApp", "Active");
+    var response = createResponse(List.of(app1), 1);
 
-    try (MockedStatic<SDKHelper> sdkHelper = mockStatic(SDKHelper.class)) {
-      sdkHelper
-          .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
-          .thenReturn(List.of(app1, app2));
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getApplicationsFiltered(
+                      anyString(), eq("prod"), isNull(), isNull(), anyInt(), anyInt()))
+                  .thenReturn(response);
+            })) {
 
-      var result = tool.searchApplications(1, 10, "prod", null, null, null);
+      var result = tool.searchApplications(1, 10, "prod", null, null);
 
       assertThat(result.isSuccess()).isTrue();
       assertThat(result.items()).hasSize(1);
-      assertThat(result.items().get(0).name()).isEqualTo("MyProductionApp");
+
+      var mockExtension = mocked.constructed().get(0);
+      verify(mockExtension)
+          .getApplicationsFiltered(anyString(), eq("prod"), isNull(), isNull(), anyInt(), anyInt());
     }
   }
 
   @Test
-  void searchApplications_should_filter_by_tag_case_sensitive() throws Exception {
+  void searchApplications_should_pass_tag_filter_to_server() throws Exception {
     var app1 = createAppWithTags("App1", List.of("Production", "Critical"));
-    var app2 = createAppWithTags("App2", List.of("production", "Normal"));
+    var response = createResponse(List.of(app1), 1);
 
-    try (MockedStatic<SDKHelper> sdkHelper = mockStatic(SDKHelper.class)) {
-      sdkHelper
-          .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
-          .thenReturn(List.of(app1, app2));
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getApplicationsFiltered(
+                      anyString(), isNull(), any(String[].class), isNull(), anyInt(), anyInt()))
+                  .thenReturn(response);
+            })) {
 
-      var result = tool.searchApplications(1, 10, null, "Production", null, null);
-
-      assertThat(result.isSuccess()).isTrue();
-      assertThat(result.items()).hasSize(1);
-      assertThat(result.items().get(0).name()).isEqualTo("App1");
-    }
-  }
-
-  @Test
-  void searchApplications_should_filter_by_metadata_name_only() throws Exception {
-    var app1 = createAppWithMetadata("App1", "environment", "prod");
-    var app2 = createAppWithMetadata("App2", "team", "backend");
-
-    try (MockedStatic<SDKHelper> sdkHelper = mockStatic(SDKHelper.class)) {
-      sdkHelper
-          .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
-          .thenReturn(List.of(app1, app2));
-
-      var result = tool.searchApplications(1, 10, null, null, "environment", null);
+      var result = tool.searchApplications(1, 10, null, "Production", null);
 
       assertThat(result.isSuccess()).isTrue();
       assertThat(result.items()).hasSize(1);
@@ -135,33 +140,78 @@ class SearchApplicationsToolTest {
   }
 
   @Test
-  void searchApplications_should_filter_by_metadata_name_and_value() throws Exception {
+  void searchApplications_should_resolve_metadata_filters_and_pass_to_server() throws Exception {
     var app1 = createAppWithMetadata("App1", "environment", "production");
-    var app2 = createAppWithMetadata("App2", "environment", "development");
+    var response = createResponse(List.of(app1), 1);
+    var metadataField = new AppMetadataField();
+    metadataField.setFieldId(123L);
+    metadataField.setDisplayLabel("environment");
 
-    try (MockedStatic<SDKHelper> sdkHelper = mockStatic(SDKHelper.class)) {
-      sdkHelper
-          .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
-          .thenReturn(List.of(app1, app2));
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getApplicationMetadataFields(anyString()))
+                  .thenReturn(List.of(metadataField));
+              when(mock.getApplicationsFiltered(
+                      anyString(), isNull(), isNull(), anyList(), anyInt(), anyInt()))
+                  .thenReturn(response);
+            })) {
 
-      var result = tool.searchApplications(1, 10, null, null, "environment", "production");
+      var result = tool.searchApplications(1, 10, null, null, "{\"environment\":\"production\"}");
 
       assertThat(result.isSuccess()).isTrue();
       assertThat(result.items()).hasSize(1);
       assertThat(result.items().get(0).name()).isEqualTo("App1");
+
+      var mockExtension = mocked.constructed().get(0);
+      verify(mockExtension).getApplicationMetadataFields(anyString());
+      verify(mockExtension)
+          .getApplicationsFiltered(anyString(), isNull(), isNull(), anyList(), anyInt(), anyInt());
+    }
+  }
+
+  @Test
+  void searchApplications_should_return_error_for_unknown_metadata_field() throws Exception {
+    var metadataField = new AppMetadataField();
+    metadataField.setFieldId(123L);
+    metadataField.setDisplayLabel("environment");
+
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getApplicationMetadataFields(anyString()))
+                  .thenReturn(List.of(metadataField));
+            })) {
+
+      var result = tool.searchApplications(1, 10, null, null, "{\"unknownField\":\"value\"}");
+
+      assertThat(result.isSuccess()).isFalse();
+      assertThat(result.errors())
+          .anyMatch(e -> e.contains("unknownField") && e.contains("not found"));
+
+      var mockExtension = mocked.constructed().get(0);
+      verify(mockExtension).getApplicationMetadataFields(anyString());
+      verify(mockExtension, never())
+          .getApplicationsFiltered(anyString(), any(), any(), anyList(), anyInt(), anyInt());
     }
   }
 
   @Test
   void searchApplications_should_return_empty_when_no_match() throws Exception {
-    var app1 = createApp("TestApp", "Active");
+    var response = createResponse(List.of(), 0);
 
-    try (MockedStatic<SDKHelper> sdkHelper = mockStatic(SDKHelper.class)) {
-      sdkHelper
-          .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
-          .thenReturn(List.of(app1));
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getApplicationsFiltered(
+                      anyString(), eq("nonexistent"), isNull(), isNull(), anyInt(), anyInt()))
+                  .thenReturn(response);
+            })) {
 
-      var result = tool.searchApplications(1, 10, "nonexistent", null, null, null);
+      var result = tool.searchApplications(1, 10, "nonexistent", null, null);
 
       assertThat(result.isSuccess()).isTrue();
       assertThat(result.items()).isEmpty();
@@ -171,46 +221,74 @@ class SearchApplicationsToolTest {
   }
 
   @Test
-  void searchApplications_should_paginate_results() throws Exception {
-    var apps =
-        List.of(
-            createApp("App1", "Active"),
-            createApp("App2", "Active"),
-            createApp("App3", "Active"),
-            createApp("App4", "Active"),
-            createApp("App5", "Active"));
+  void searchApplications_should_use_server_pagination() throws Exception {
+    var app1 = createApp("App3", "Active");
+    var app2 = createApp("App4", "Active");
+    var response = createResponse(List.of(app1, app2), 5);
 
-    try (MockedStatic<SDKHelper> sdkHelper = mockStatic(SDKHelper.class)) {
-      sdkHelper.when(() -> SDKHelper.getApplicationsWithCache(anyString(), any())).thenReturn(apps);
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getApplicationsFiltered(
+                      anyString(), isNull(), isNull(), isNull(), eq(2), eq(2)))
+                  .thenReturn(response);
+            })) {
 
-      // Request page 2 with page size 2
-      var result = tool.searchApplications(2, 2, null, null, null, null);
+      // Request page 2 with page size 2 (offset should be 2)
+      var result = tool.searchApplications(2, 2, null, null, null);
 
       assertThat(result.isSuccess()).isTrue();
       assertThat(result.items()).hasSize(2);
-      assertThat(result.items().get(0).name()).isEqualTo("App3");
-      assertThat(result.items().get(1).name()).isEqualTo("App4");
       assertThat(result.totalItems()).isEqualTo(5);
       assertThat(result.hasMorePages()).isTrue();
+
+      var mockExtension = mocked.constructed().get(0);
+      verify(mockExtension)
+          .getApplicationsFiltered(anyString(), isNull(), isNull(), isNull(), eq(2), eq(2));
     }
   }
 
   @Test
   void searchApplications_should_include_metadata_in_response() throws Exception {
     var app = createAppWithMetadata("App1", "environment", "production");
+    var response = createResponse(List.of(app), 1);
 
-    try (MockedStatic<SDKHelper> sdkHelper = mockStatic(SDKHelper.class)) {
-      sdkHelper
-          .when(() -> SDKHelper.getApplicationsWithCache(anyString(), any()))
-          .thenReturn(List.of(app));
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getApplicationsFiltered(
+                      anyString(), isNull(), isNull(), isNull(), anyInt(), anyInt()))
+                  .thenReturn(response);
+            })) {
 
-      var result = tool.searchApplications(1, 10, null, null, null, null);
+      var result = tool.searchApplications(1, 10, null, null, null);
 
       assertThat(result.isSuccess()).isTrue();
       assertThat(result.items()).hasSize(1);
       assertThat(result.items().get(0).metadata()).isNotEmpty();
       assertThat(result.items().get(0).metadata().get(0).name()).isEqualTo("environment");
       assertThat(result.items().get(0).metadata().get(0).value()).isEqualTo("production");
+    }
+  }
+
+  @Test
+  void searchApplications_should_handle_null_response() throws Exception {
+    try (MockedConstruction<SDKExtension> mocked =
+        mockConstruction(
+            SDKExtension.class,
+            (mock, context) -> {
+              when(mock.getApplicationsFiltered(
+                      anyString(), isNull(), isNull(), isNull(), anyInt(), anyInt()))
+                  .thenReturn(null);
+            })) {
+
+      var result = tool.searchApplications(1, 10, null, null, null);
+
+      assertThat(result.isSuccess()).isTrue();
+      assertThat(result.items()).isEmpty();
+      assertThat(result.warnings()).anyMatch(w -> w.contains("API returned no application data"));
     }
   }
 
@@ -239,5 +317,12 @@ class SearchApplicationsToolTest {
     metadata.setValue(metaValue);
     app.setMetadataEntities(List.of(metadata));
     return app;
+  }
+
+  private ApplicationsResponse createResponse(List<Application> apps, int count) {
+    var response = new ApplicationsResponse();
+    response.setApplications(apps);
+    response.setCount(count);
+    return response;
   }
 }

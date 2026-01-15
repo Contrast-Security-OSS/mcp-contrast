@@ -89,7 +89,7 @@ public class SearchApplicationsToolIT
 
   @Override
   protected TestData performDiscovery() throws IOException {
-    var response = searchApplicationsTool.searchApplications(1, 5, null, null, null, null);
+    var response = searchApplicationsTool.searchApplications(1, 5, null, null, null);
 
     var testData = new TestData();
     testData.hasApplications = response.isSuccess() && !response.items().isEmpty();
@@ -110,7 +110,7 @@ public class SearchApplicationsToolIT
 
   @Test
   void searchApplications_should_return_valid_response() {
-    var response = searchApplicationsTool.searchApplications(1, 10, null, null, null, null);
+    var response = searchApplicationsTool.searchApplications(1, 10, null, null, null);
 
     assertThat(response).isNotNull();
     assertThat(response.isSuccess()).isTrue();
@@ -121,7 +121,7 @@ public class SearchApplicationsToolIT
 
   @Test
   void searchApplications_should_include_application_details() {
-    var response = searchApplicationsTool.searchApplications(1, 10, null, null, null, null);
+    var response = searchApplicationsTool.searchApplications(1, 10, null, null, null);
 
     assertThat(response.isSuccess()).isTrue();
 
@@ -137,7 +137,7 @@ public class SearchApplicationsToolIT
   @Test
   void searchApplications_should_filter_by_name() {
     // First get an app to search for
-    var allApps = searchApplicationsTool.searchApplications(1, 1, null, null, null, null);
+    var allApps = searchApplicationsTool.searchApplications(1, 1, null, null, null);
 
     if (allApps.isSuccess() && !allApps.items().isEmpty()) {
       var appName = allApps.items().get(0).name();
@@ -145,7 +145,7 @@ public class SearchApplicationsToolIT
       // Search for it by partial name (first 3 chars)
       var partialName = appName.substring(0, Math.min(3, appName.length()));
       var filteredResponse =
-          searchApplicationsTool.searchApplications(1, 50, partialName, null, null, null);
+          searchApplicationsTool.searchApplications(1, 50, partialName, null, null);
 
       assertThat(filteredResponse.isSuccess()).isTrue();
       // The original app should be in the filtered results
@@ -157,13 +157,13 @@ public class SearchApplicationsToolIT
   @Test
   void searchApplications_should_handle_pagination() {
     // First page with small page size
-    var page1 = searchApplicationsTool.searchApplications(1, 2, null, null, null, null);
+    var page1 = searchApplicationsTool.searchApplications(1, 2, null, null, null);
 
     assertThat(page1.isSuccess()).isTrue();
 
     // If there are more pages, fetch page 2
     if (page1.hasMorePages()) {
-      var page2 = searchApplicationsTool.searchApplications(2, 2, null, null, null, null);
+      var page2 = searchApplicationsTool.searchApplications(2, 2, null, null, null);
 
       assertThat(page2.isSuccess()).isTrue();
       assertThat(page2.page()).isEqualTo(2);
@@ -172,7 +172,7 @@ public class SearchApplicationsToolIT
 
   @Test
   void searchApplications_should_return_total_count() {
-    var response = searchApplicationsTool.searchApplications(1, 10, null, null, null, null);
+    var response = searchApplicationsTool.searchApplications(1, 10, null, null, null);
 
     assertThat(response.isSuccess()).isTrue();
     assertThat(response.totalItems()).isNotNull();
@@ -180,11 +180,10 @@ public class SearchApplicationsToolIT
   }
 
   @Test
-  void searchApplications_should_reject_metadata_value_without_name() {
-    var response = searchApplicationsTool.searchApplications(1, 10, null, null, null, "someValue");
+  void searchApplications_should_reject_invalid_metadata_json() {
+    var response = searchApplicationsTool.searchApplications(1, 10, null, null, "{invalid json}");
 
     assertThat(response.isSuccess()).isFalse();
-    assertThat(response.errors())
-        .anyMatch(e -> e.contains("metadataValue") && e.contains("metadataName"));
+    assertThat(response.errors()).anyMatch(e -> e.contains("Invalid JSON"));
   }
 }
