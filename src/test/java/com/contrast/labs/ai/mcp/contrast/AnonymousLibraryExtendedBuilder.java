@@ -132,7 +132,7 @@ public class AnonymousLibraryExtendedBuilder {
     return this;
   }
 
-  public AnonymousLibraryExtendedBuilder withClassedUsed(int classesUsed) {
+  public AnonymousLibraryExtendedBuilder withClassesUsed(int classesUsed) {
     this.classesUsed = classesUsed;
     return this;
   }

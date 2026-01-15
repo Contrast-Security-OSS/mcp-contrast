@@ -282,7 +282,7 @@ class ListApplicationLibrariesToolTest {
               .withVersion("1.0." + i)
               .withHash("hash-" + i)
               .withClassCount(100)
-              .withClassedUsed(50)
+              .withClassesUsed(50)
               .build();
       libraries.add(lib);
     }
