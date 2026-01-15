@@ -63,6 +63,7 @@ public class AttackFilterParams extends BaseToolParams {
   private Boolean includeBotBlockers;
   private Boolean includeIpBlacklist;
   private String sort;
+  private List<String> rules;
 
   /** Private constructor - use static factory method {@link #of}. */
   private AttackFilterParams() {}
@@ -77,6 +78,7 @@ public class AttackFilterParams extends BaseToolParams {
    * @param includeBotBlockers Include bot blocker attacks
    * @param includeIpBlacklist Include IP blacklist attacks
    * @param sort Sort field (e.g., "startTime", "-startTime" for descending)
+   * @param rules Comma-separated list of rule IDs (e.g., "sql-injection,xss-reflected")
    * @return AttackFilterParams with validation state
    */
   public static AttackFilterParams of(
@@ -86,7 +88,8 @@ public class AttackFilterParams extends BaseToolParams {
       Boolean includeSuppressed,
       Boolean includeBotBlockers,
       Boolean includeIpBlacklist,
-      String sort) {
+      String sort,
+      String rules) {
 
     var params = new AttackFilterParams();
     var ctx = new ToolValidationContext();
@@ -142,6 +145,9 @@ public class AttackFilterParams extends BaseToolParams {
       }
     }
 
+    // Parse rules (comma-separated list of rule IDs)
+    params.rules = ctx.stringListParam(rules, "rules").get();
+
     params.setValidationResult(ctx);
     return params;
   }
@@ -171,6 +177,9 @@ public class AttackFilterParams extends BaseToolParams {
     }
     if (includeIpBlacklist != null) {
       builder.includeIpBlacklist(includeIpBlacklist);
+    }
+    if (rules != null && !rules.isEmpty()) {
+      rules.forEach(builder::protectionRule);
     }
 
     return builder.build();
