@@ -356,79 +356,90 @@ class AttackFilterParamsTest {
   // ========== Keyword Encoding Tests ==========
 
   @Nested
-  @DisplayName("toAttacksFilterBody keyword encoding")
+  @DisplayName("toAttacksFilterBody keyword handling")
   class KeywordEncodingTests {
 
     @Test
-    void toAttacksFilterBody_should_urlEncode_specialCharacters() {
+    void toAttacksFilterBody_should_preserve_spaces_in_keyword() {
+      var params = AttackFilterParams.of(null, null, "SQL Injection", null, null, null, null);
+
+      var filterBody = params.toAttacksFilterBody();
+
+      // Spaces should be preserved, not URL-encoded to +
+      assertThat(filterBody.getKeyword()).isEqualTo("SQL Injection");
+    }
+
+    @Test
+    void toAttacksFilterBody_should_preserve_specialCharacters() {
       var params = AttackFilterParams.of(null, null, "<script>", null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
-      assertThat(filterBody.getKeyword()).isEqualTo("%3Cscript%3E");
+      // Special characters should be preserved (not URL encoded)
+      // The keyword is sent in a JSON POST body, not a URL query string
+      assertThat(filterBody.getKeyword()).isEqualTo("<script>");
     }
 
     @Test
-    void toAttacksFilterBody_should_encode_angleBrackets() {
+    void toAttacksFilterBody_should_preserve_angleBrackets() {
       var params =
           AttackFilterParams.of(
               null, null, "<script>alert('xss')</script>", null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
-      // < = %3C, > = %3E, ' = %27
-      assertThat(filterBody.getKeyword()).contains("%3C").contains("%3E");
+      // Keywords are preserved as-is (sent in JSON body, not URL)
+      assertThat(filterBody.getKeyword()).isEqualTo("<script>alert('xss')</script>");
     }
 
     @Test
-    void toAttacksFilterBody_should_encode_sqlInjectionPattern() {
+    void toAttacksFilterBody_should_preserve_sqlInjectionPattern() {
       var params =
           AttackFilterParams.of(null, null, "'; DROP TABLE users;--", null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
-      // ; = %3B, ' = %27, space = +
-      assertThat(filterBody.getKeyword()).contains("%27").contains("%3B");
+      // Keywords are preserved as-is (sent in JSON body, not URL)
+      assertThat(filterBody.getKeyword()).isEqualTo("'; DROP TABLE users;--");
     }
 
     @Test
-    void toAttacksFilterBody_should_encode_pathTraversalPattern() {
+    void toAttacksFilterBody_should_preserve_pathTraversalPattern() {
       var params = AttackFilterParams.of(null, null, "../../../etc/passwd", null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
-      // / = %2F
-      assertThat(filterBody.getKeyword()).contains("%2F");
+      // Keywords are preserved as-is (sent in JSON body, not URL)
+      assertThat(filterBody.getKeyword()).isEqualTo("../../../etc/passwd");
     }
 
     @Test
-    void toAttacksFilterBody_should_encode_emailAddress() {
+    void toAttacksFilterBody_should_preserve_emailAddress() {
       var params = AttackFilterParams.of(null, null, "user@domain.com", null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
-      // @ = %40
-      assertThat(filterBody.getKeyword()).isEqualTo("user%40domain.com");
+      // Keywords are preserved as-is (sent in JSON body, not URL)
+      assertThat(filterBody.getKeyword()).isEqualTo("user@domain.com");
     }
 
     @Test
-    void toAttacksFilterBody_should_notEncode_alphanumericKeyword() {
+    void toAttacksFilterBody_should_preserve_alphanumericKeyword() {
       var params = AttackFilterParams.of(null, null, "sql-injection", null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
-      // Alphanumeric characters and hyphens pass through unchanged
       assertThat(filterBody.getKeyword()).isEqualTo("sql-injection");
     }
 
     @Test
-    void toAttacksFilterBody_should_encode_spaces() {
+    void toAttacksFilterBody_should_preserve_spaces() {
       var params = AttackFilterParams.of(null, null, "SELECT * FROM users", null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
-      // Space = + in form URL encoding, * is not encoded by URLEncoder
-      assertThat(filterBody.getKeyword()).isEqualTo("SELECT+*+FROM+users");
+      // Spaces are preserved (sent in JSON body, not URL)
+      assertThat(filterBody.getKeyword()).isEqualTo("SELECT * FROM users");
     }
 
     @Test
@@ -451,14 +462,13 @@ class AttackFilterParamsTest {
     }
 
     @Test
-    void toAttacksFilterBody_should_encode_unicodeCharacters() {
+    void toAttacksFilterBody_should_preserve_unicodeCharacters() {
       var params = AttackFilterParams.of(null, null, "攻撃", null, null, null, null);
 
       var filterBody = params.toAttacksFilterBody();
 
-      // UTF-8 encoded
-      assertThat(filterBody.getKeyword()).doesNotContain("攻撃");
-      assertThat(filterBody.getKeyword()).contains("%");
+      // Unicode characters are preserved (sent in JSON body, not URL)
+      assertThat(filterBody.getKeyword()).isEqualTo("攻撃");
     }
   }
 }
