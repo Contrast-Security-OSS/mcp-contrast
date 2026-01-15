@@ -46,6 +46,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -61,7 +62,10 @@ public class SDKExtension {
   public SDKExtension(ContrastSDK contrastSDK) {
     this.contrastSDK = contrastSDK;
     this.urlBuilder = UrlBuilder.getInstance();
-    this.gson = GsonFactory.create();
+    this.gson =
+        GsonFactory.builder()
+            .registerTypeAdapter(Date.class, new DateAsEpochTypeAdapter().nullSafe())
+            .create();
   }
 
   public LibrariesExtended getLibrariesWithFilter(
