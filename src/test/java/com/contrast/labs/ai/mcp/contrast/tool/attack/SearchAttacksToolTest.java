@@ -141,14 +141,14 @@ class SearchAttacksToolTest {
                       eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
                   .thenReturn(mockResponse);
             })) {
-      tool.searchAttacks(null, null, null, null, "sql injection", null, null, null, null);
+      tool.searchAttacks(null, null, null, null, "SQL Injection", null, null, null, null);
 
       var extension = mockedConstruction.constructed().get(0);
       var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
       verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
 
-      // Keyword is URL-encoded: space becomes +
-      assertThat(captor.getValue().getKeyword()).isEqualTo("sql+injection");
+      // Keyword is passed through unchanged (no URL encoding)
+      assertThat(captor.getValue().getKeyword()).isEqualTo("SQL Injection");
     }
   }
 
