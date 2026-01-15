@@ -42,7 +42,7 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
           """
           Retrieves attacks from Contrast ADR (Attack Detection and Response) with optional filtering
           and sorting. Supports filtering by attack categorization (quickFilter), outcome status
-          (statusFilter), keywords, and other criteria.
+          (statusFilter), keywords, rules, and other criteria.
 
           Returns a paginated list of attack summaries with key information including rule names,
           status, severity, affected applications, source IP, and probe counts.
@@ -51,13 +51,21 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
           - All attacks: No filters (returns all attack types)
           - Active attacks only: quickFilter="ACTIVE"
           - Exploited attacks: statusFilter="EXPLOITED"
-          - SQL injection attacks: keyword="sql"
+          - SQL injection attacks by keyword: keyword="SQL Injection" (searches display names)
+          - SQL injection attacks by rule: rules="sql-injection" (exact rule ID match)
+          - Multiple rules: rules="sql-injection,xss-reflected"
           - Blocked attacks: statusFilter="BLOCKED"
           - Production attacks: quickFilter="PRODUCTION"
 
           Filter combinations:
           - Effective exploits: quickFilter="EFFECTIVE", statusFilter="EXPLOITED"
-          - Manual SQL attacks: quickFilter="MANUAL", keyword="sql"
+          - Manual SQL attacks: quickFilter="MANUAL", rules="sql-injection"
+
+          Keyword vs Rules:
+          - keyword: Substring search against rule display names (e.g., "SQL Injection"),
+            source IPs, server names, application names, and notes
+          - rules: Exact match against rule IDs (e.g., "sql-injection"). Use get_protect_rules
+            to discover available rule IDs for an application.
 
           Response fields:
           - attackId: Unique identifier for the attack
@@ -91,7 +99,10 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
               required = false)
           String statusFilter,
       @ToolParam(
-              description = "Keyword to match against rule names, sources, or notes",
+              description =
+                  "Keyword to search against rule display names (e.g., 'SQL Injection',"
+                      + " 'Cross-Site Scripting'), source IPs, server names, application names, or"
+                      + " notes. For exact rule ID filtering, use the 'rules' parameter instead.",
               required = false)
           String keyword,
       @ToolParam(description = "Include suppressed attacks when true", required = false)
