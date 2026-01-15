@@ -57,9 +57,6 @@ public class SDKHelper {
   private static final Cache<String, List<LibraryObservation>> libraryObservationsCache =
       CacheBuilder.newBuilder().maximumSize(500000).expireAfterWrite(10, TimeUnit.MINUTES).build();
 
-  private static final Cache<String, List<Application>> applicationsCache =
-      CacheBuilder.newBuilder().maximumSize(500000).expireAfterWrite(5, TimeUnit.MINUTES).build();
-
   /**
    * Retrieves a single page of libraries for an application with server-side pagination. Unlike
    * {@link #getLibsForID}, this method does NOT cache results and returns only the requested page
@@ -255,59 +252,31 @@ public class SDKHelper {
     return builder.build();
   }
 
+  /**
+   * Retrieves an application by its name using server-side filtering.
+   *
+   * @param appName The application name to search for
+   * @param orgId The organization ID
+   * @param contrastSDK The Contrast SDK instance
+   * @return Optional containing the application if found
+   * @throws IOException If an I/O error occurs
+   */
   public static Optional<Application> getApplicationByName(
       String appName, String orgId, ContrastSDK contrastSDK) throws IOException {
     log.debug("Searching for application by name: {}", appName);
-    for (Application app : getApplicationsWithCache(orgId, contrastSDK)) {
-      if (app.getName().equalsIgnoreCase(appName)) {
-        log.info("Found application - ID: {}, Name: {}", app.getAppId(), app.getName());
-        return Optional.of(app);
-      }
+    var sdkExtension = new SDKExtension(contrastSDK);
+
+    // Use server-side filter with exact name
+    var response = sdkExtension.getApplicationsFiltered(orgId, appName, null, null, 100, 0);
+
+    if (response == null || response.getApplications() == null) {
+      return Optional.empty();
     }
 
-    log.warn("No application found with name: {}, clearing cache and retrying", appName);
-    clearApplicationsCache();
-    for (Application app : getApplicationsWithCache(orgId, contrastSDK)) {
-      if (app.getName().equalsIgnoreCase(appName)) {
-        log.info(
-            "Found application after cache clear - ID: {}, Name: {}",
-            app.getAppId(),
-            app.getName());
-        return Optional.of(app);
-      }
-    }
-    return Optional.empty();
-  }
-
-  /**
-   * Retrieves all applications from Contrast with caching.
-   *
-   * @param orgId The organization ID
-   * @param contrastSDK The Contrast SDK instance
-   * @return List of applications
-   * @throws IOException If an I/O error occurs
-   */
-  public static List<Application> getApplicationsWithCache(String orgId, ContrastSDK contrastSDK)
-      throws IOException {
-    // Generate cache key based on organization ID
-    var cacheKey = String.format("applications:%s", orgId);
-
-    // Check cache for existing result
-    var cachedApplications = applicationsCache.getIfPresent(cacheKey);
-    if (cachedApplications != null) {
-      log.info("Cache hit for applications in org: {}", orgId);
-      return cachedApplications;
-    }
-
-    log.info("Cache miss for applications in org: {}, fetching from API", orgId);
-    var applications = new SDKExtension(contrastSDK).getApplications(orgId).getApplications();
-    log.info(
-        "Successfully retrieved {} applications from organization: {}", applications.size(), orgId);
-
-    // Store result in cache
-    applicationsCache.put(cacheKey, applications);
-
-    return applications;
+    // Find exact case-insensitive match from filtered results
+    return response.getApplications().stream()
+        .filter(app -> app.getName().equalsIgnoreCase(appName))
+        .findFirst();
   }
 
   /**
@@ -337,19 +306,6 @@ public class SDKHelper {
   }
 
   /**
-   * Clears the applications cache.
-   *
-   * @return The number of entries cleared
-   */
-  public static long clearApplicationsCache() {
-    long size = applicationsCache.size();
-    applicationsCache.invalidateAll();
-    applicationsCache.cleanUp();
-    log.info("Cleared {} entries from applications cache", size);
-    return size;
-  }
-
-  /**
    * Clears all caches maintained by the SDKHelper.
    *
    * @return Total number of entries cleared across all caches
@@ -357,9 +313,8 @@ public class SDKHelper {
   public static long clearAllCaches() {
     long libraryEntries = clearLibraryCache();
     long observationsEntries = clearLibraryObservationsCache();
-    long applicationsEntries = clearApplicationsCache();
 
-    long totalCleared = libraryEntries + observationsEntries + applicationsEntries;
+    long totalCleared = libraryEntries + observationsEntries;
     log.info("Cleared a total of {} entries from all caches", totalCleared);
 
     return totalCleared;
