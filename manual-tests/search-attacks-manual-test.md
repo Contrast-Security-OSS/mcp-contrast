@@ -876,6 +876,99 @@ use contrast mcp to search for attacks with page size 500
 
 ---
 
+## Additional Keyword Field Tests
+
+These tests verify keyword search works across all documented fields (source IP, server name/hostname, application name, rule name, attack UUID, forwarded IP/path, attack tags).
+
+### Test 61: Keyword filter by application name (thib prefix)
+**Purpose:** Verify keyword filter matches application names.
+
+**Prompt:**
+```
+use contrast mcp to search for attacks with keyword thib
+```
+
+**Expected Result:** ~8 attacks from thib-contrast-cargo-cats-* applications
+- Should include apps: frontgateservice, dataservice, docservice, labelservice, imageservice
+- Confirms keyword searches application name field
+
+---
+
+### Test 62: Keyword filter by application name (webhookservice)
+**Purpose:** Verify keyword filter matches specific application name component.
+
+**Prompt:**
+```
+use contrast mcp to search for attacks with keyword webhookservice
+```
+
+**Expected Result:** 1 attack
+- Attack ID: 65ab87d9-22cf-4dcf-82fd-f16c690e6197
+- Status: BLOCKED
+- Rules: Command Injection
+- App: Harshaa-MSSentinel-Incident-Event-Data-contrast-cargo-cats-webhookservice
+
+---
+
+### Test 63: Keyword filter by application name (docservice)
+**Purpose:** Verify keyword filter matches docservice applications (XXE attacks).
+
+**Prompt:**
+```
+use contrast mcp to search for attacks with keyword docservice
+```
+
+**Expected Result:** 3 attacks with XXE rule
+- Attack IDs: 1d9b1c5d, 17323c1d, 05fb6a0a
+- All target thib-contrast-cargo-cats-docservice (Python)
+
+---
+
+### Test 64: Keyword filter by partial attack UUID
+**Purpose:** Verify keyword filter matches partial attack UUID.
+
+**Prompt:**
+```
+use contrast mcp to search for attacks with keyword 8edd3316
+```
+
+**Expected Result:** 1-2 attacks containing "8edd3316" in UUID
+- Primary match: 8edd3316-4692-42c6-b9dd-56cb6eb8057c
+- 44 probes, 7 rules, MEDIUM severity
+- Confirms keyword searches attack UUID field
+
+---
+
+### Test 65: Keyword filter by partial UUID (BLOCKED attack)
+**Purpose:** Verify keyword filter matches UUID of the only BLOCKED attack.
+
+**Prompt:**
+```
+use contrast mcp to search for attacks with keyword 65ab87d9
+```
+
+**Expected Result:** 1 attack
+- Attack ID: 65ab87d9-22cf-4dcf-82fd-f16c690e6197
+- Status: BLOCKED
+- Source: 10.1.10.74
+- Rules: Command Injection
+
+---
+
+### Test 66: Keyword filter by full attack UUID
+**Purpose:** Verify keyword filter matches full attack UUID.
+
+**Prompt:**
+```
+use contrast mcp to search for attacks with keyword 8edd3316-4692-42c6-b9dd-56cb6eb8057c
+```
+
+**Expected Result:** 1-2 attacks
+- Exact match: 8edd3316-4692-42c6-b9dd-56cb6eb8057c
+- 44 probes, EXPLOITED status
+
+---
+
 ## Summary
 
 | Test # | Category | Filter Type | Expected Behavior |
@@ -940,3 +1033,9 @@ use contrast mcp to search for attacks with page size 500
 | 58 | Error | Negative page | Error or default |
 | 59 | Error | Zero pageSize | Error or default |
 | 60 | Error | Excessive pageSize | Capped or error |
+| 61 | Keyword | Application name (thib) | ~8 attacks from thib-* apps |
+| 62 | Keyword | Application name (webhookservice) | 1 BLOCKED attack |
+| 63 | Keyword | Application name (docservice) | 3 XXE attacks |
+| 64 | Keyword | Partial attack UUID | 1-2 attacks matching UUID |
+| 65 | Keyword | Partial UUID (BLOCKED) | 1 BLOCKED attack |
+| 66 | Keyword | Full attack UUID | 1-2 attacks exact match |
