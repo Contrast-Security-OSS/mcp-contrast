@@ -106,7 +106,15 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
                       + " endTime, type. Use '-' prefix for descending order (e.g., '-startTime')."
                       + " Default: -startTime",
               required = false)
-          String sort) {
+          String sort,
+      @ToolParam(
+              description =
+                  "Comma-separated list of rule IDs to filter by (e.g.,"
+                      + " 'sql-injection,xss-reflected'). Use get_protect_rules to discover"
+                      + " available rule IDs for an application. This filters by exact rule match,"
+                      + " unlike keyword which does substring search.",
+              required = false)
+          String rules) {
 
     return executePipeline(
         page,
@@ -119,7 +127,8 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
                 includeSuppressed,
                 includeBotBlockers,
                 includeIpBlacklist,
-                sort));
+                sort,
+                rules));
   }
 
   @Override
