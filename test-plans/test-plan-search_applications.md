@@ -23,7 +23,7 @@ This test plan provides comprehensive testing guidance for the `search_applicati
 | `page` | Integer | No | 1 | Page number (1-based) |
 | `pageSize` | Integer | No | 50 | Items per page (max 100) |
 | `name` | String | No | null | Application name filter (partial, **case-INSENSITIVE**) |
-| `tag` | String | No | null | Tag filter (exact, **CASE-SENSITIVE**) |
+| `tag` | String | No | null | Tag filter (exact, **case-insensitive**) |
 | `metadataName` | String | No | null | Metadata field name (case-insensitive) |
 | `metadataValue` | String | No | null | Metadata field value (case-insensitive, requires metadataName) |
 
@@ -295,9 +295,9 @@ Metadata {
 
 ---
 
-### Test Case 3.2: Tag Filter - CASE-SENSITIVE Verification (CRITICAL)
+### Test Case 3.2: Tag Filter - Case-Insensitive Verification
 
-**Objective:** Verify tag matching is case-sensitive (unlike name filter).
+**Objective:** Verify tag matching is case-insensitive (same as name filter).
 
 **Prerequisites:**
 - Application with tag "Production" (capital P)
@@ -306,14 +306,14 @@ Metadata {
 1. Call `search_applications` with `tag="Production"` (exact case)
 2. Verify application is returned
 3. Call `search_applications` with `tag="production"` (lowercase)
-4. Verify application is **NOT** returned (case mismatch)
+4. Verify application **IS** returned (case-insensitive)
 5. Call `search_applications` with `tag="PRODUCTION"` (uppercase)
-6. Verify application is **NOT** returned (case mismatch)
+6. Verify application **IS** returned (case-insensitive)
 
 **Expected Results:**
-- **Tag matching is CASE-SENSITIVE**
-- "Production" ≠ "production" ≠ "PRODUCTION"
-- Only exact case matches are returned
+- **Tag matching is case-insensitive**
+- "Production" = "production" = "PRODUCTION"
+- All case variations match the same applications
 
 ---
 
