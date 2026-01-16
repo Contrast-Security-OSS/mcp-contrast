@@ -139,6 +139,38 @@ public class MetadataJsonFilterSpec {
     return null;
   }
 
+  private List<String> parseListValues(
+      List<?> list, String fieldName, List<String> invalidEntries) {
+    if (list.isEmpty()) {
+      invalidEntries.add(
+          String.format("'%s' (empty array - must have at least one value)", fieldName));
+      return null;
+    }
+    var strings = new ArrayList<String>();
+    for (Object item : list) {
+      if (item == null) {
+        invalidEntries.add(
+            String.format("'%s' (contains empty value - all values must be non-empty)", fieldName));
+        return null;
+      }
+      if (item instanceof String s) {
+        if (s.isBlank()) {
+          invalidEntries.add(
+              String.format(
+                  "'%s' (contains empty value - all values must be non-empty)", fieldName));
+          return null;
+        }
+        strings.add(s);
+      } else if (item instanceof Number n) {
+        strings.add(formatNumber(n));
+      } else {
+        invalidEntries.add(String.format("'%s' (array contains non-string values)", fieldName));
+        return null;
+      }
+    }
+    return List.copyOf(strings);
+  }
+
   /**
    * Formats a number as a string, using integer format when possible. Gson parses all JSON numbers
    * as doubles, so 42 becomes 42.0. This method converts back to integer format when the value is a
