@@ -21,16 +21,15 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
+import com.contrast.labs.ai.mcp.contrast.config.SDKExtensionFactory;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.Attack;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksFilterBody;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksResponse;
-import com.contrastsecurity.sdk.ContrastSDK;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,8 +50,8 @@ class SearchAttacksToolTest {
   private SearchAttacksTool tool;
 
   @Mock private ContrastSDKFactory sdkFactory;
-
-  @Mock private ContrastSDK sdk;
+  @Mock private SDKExtensionFactory sdkExtensionFactory;
+  @Mock private SDKExtension sdkExtension;
 
   private static final String TEST_ORG_ID = "test-org-123";
 
@@ -60,187 +59,133 @@ class SearchAttacksToolTest {
   void setUp() {
     tool = new SearchAttacksTool();
     ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
-    when(sdkFactory.getSDK()).thenReturn(sdk);
+    ReflectionTestUtils.setField(tool, "sdkExtensionFactory", sdkExtensionFactory);
     when(sdkFactory.getOrgId()).thenReturn(TEST_ORG_ID);
+    when(sdkExtensionFactory.getSDKExtension()).thenReturn(sdkExtension);
   }
 
   @Test
   void searchAttacks_should_return_attacks_with_no_filters() throws Exception {
     var mockResponse = createMockAttacksResponse(3, 3);
+    when(sdkExtension.getAttacks(
+            eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+        .thenReturn(mockResponse);
 
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAttacks(
-                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                  .thenReturn(mockResponse);
-            })) {
-      var result = tool.searchAttacks(null, null, null, null, null, null, null, null, null, null);
+    var result = tool.searchAttacks(null, null, null, null, null, null, null, null, null, null);
 
-      assertThat(result.items()).hasSize(3);
-      assertThat(result.items().get(0).attackId()).isEqualTo("attack-uuid-0");
-      assertThat(result.page()).isEqualTo(1);
-      assertThat(result.pageSize()).isEqualTo(50);
-    }
+    assertThat(result.items()).hasSize(3);
+    assertThat(result.items().get(0).attackId()).isEqualTo("attack-uuid-0");
+    assertThat(result.page()).isEqualTo(1);
+    assertThat(result.pageSize()).isEqualTo(50);
   }
 
   @Test
   void searchAttacks_should_pass_quickFilter_to_sdk() throws Exception {
     var mockResponse = createMockAttacksResponse(2, 2);
+    when(sdkExtension.getAttacks(
+            eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+        .thenReturn(mockResponse);
 
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAttacks(
-                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                  .thenReturn(mockResponse);
-            })) {
-      tool.searchAttacks(null, null, "ACTIVE", null, null, null, null, null, null, null);
+    tool.searchAttacks(null, null, "ACTIVE", null, null, null, null, null, null, null);
 
-      var extension = mockedConstruction.constructed().get(0);
-      var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
-      verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
+    var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
+    verify(sdkExtension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
 
-      assertThat(captor.getValue().getQuickFilter()).isEqualTo("ACTIVE");
-    }
+    assertThat(captor.getValue().getQuickFilter()).isEqualTo("ACTIVE");
   }
 
   @Test
   void searchAttacks_should_pass_statusFilter_to_sdk() throws Exception {
     var mockResponse = createMockAttacksResponse(1, 1);
+    when(sdkExtension.getAttacks(
+            eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+        .thenReturn(mockResponse);
 
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAttacks(
-                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                  .thenReturn(mockResponse);
-            })) {
-      tool.searchAttacks(null, null, null, "EXPLOITED", null, null, null, null, null, null);
+    tool.searchAttacks(null, null, null, "EXPLOITED", null, null, null, null, null, null);
 
-      var extension = mockedConstruction.constructed().get(0);
-      var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
-      verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
+    var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
+    verify(sdkExtension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
 
-      assertThat(captor.getValue().getStatusFilter()).containsExactly("EXPLOITED");
-    }
+    assertThat(captor.getValue().getStatusFilter()).containsExactly("EXPLOITED");
   }
 
   @Test
   void searchAttacks_should_pass_keyword_to_sdk() throws Exception {
     var mockResponse = createMockAttacksResponse(1, 1);
+    when(sdkExtension.getAttacks(
+            eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+        .thenReturn(mockResponse);
 
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAttacks(
-                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                  .thenReturn(mockResponse);
-            })) {
-      tool.searchAttacks(null, null, null, null, "SQL Injection", null, null, null, null, null);
+    tool.searchAttacks(null, null, null, null, "SQL Injection", null, null, null, null, null);
 
-      var extension = mockedConstruction.constructed().get(0);
-      var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
-      verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
+    var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
+    verify(sdkExtension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
 
-      // Keyword is passed through unchanged (no URL encoding)
-      assertThat(captor.getValue().getKeyword()).isEqualTo("SQL Injection");
-    }
+    // Keyword is passed through unchanged (no URL encoding)
+    assertThat(captor.getValue().getKeyword()).isEqualTo("SQL Injection");
   }
 
   @Test
   void searchAttacks_should_pass_boolean_filters_to_sdk() throws Exception {
     var mockResponse = createMockAttacksResponse(1, 1);
+    when(sdkExtension.getAttacks(
+            eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+        .thenReturn(mockResponse);
 
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAttacks(
-                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                  .thenReturn(mockResponse);
-            })) {
-      tool.searchAttacks(null, null, null, null, null, true, false, true, null, null);
+    tool.searchAttacks(null, null, null, null, null, true, false, true, null, null);
 
-      var extension = mockedConstruction.constructed().get(0);
-      var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
-      verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
+    var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
+    verify(sdkExtension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
 
-      assertThat(captor.getValue().isIncludeSuppressed()).isTrue();
-      assertThat(captor.getValue().isIncludeBotBlockers()).isFalse();
-      assertThat(captor.getValue().isIncludeIpBlacklist()).isTrue();
-    }
+    assertThat(captor.getValue().isIncludeSuppressed()).isTrue();
+    assertThat(captor.getValue().isIncludeBotBlockers()).isFalse();
+    assertThat(captor.getValue().isIncludeIpBlacklist()).isTrue();
   }
 
   @Test
   void searchAttacks_should_pass_pagination_to_sdk() throws Exception {
     var mockResponse = createMockAttacksResponse(25, 100);
+    when(sdkExtension.getAttacks(
+            eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(25), eq(50), isNull()))
+        .thenReturn(mockResponse);
 
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAttacks(
-                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(25), eq(50), isNull()))
-                  .thenReturn(mockResponse);
-            })) {
-      var result = tool.searchAttacks(3, 25, null, null, null, null, null, null, null, null);
+    var result = tool.searchAttacks(3, 25, null, null, null, null, null, null, null, null);
 
-      assertThat(result.page()).isEqualTo(3);
-      assertThat(result.pageSize()).isEqualTo(25);
+    assertThat(result.page()).isEqualTo(3);
+    assertThat(result.pageSize()).isEqualTo(25);
 
-      var extension = mockedConstruction.constructed().get(0);
-      verify(extension)
-          .getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(25), eq(50), isNull());
-    }
+    verify(sdkExtension)
+        .getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(25), eq(50), isNull());
   }
 
   @Test
   void searchAttacks_should_pass_sort_to_sdk() throws Exception {
     var mockResponse = createMockAttacksResponse(1, 1);
+    when(sdkExtension.getAttacks(
+            eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), eq("-status")))
+        .thenReturn(mockResponse);
 
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAttacks(
-                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), eq("-status")))
-                  .thenReturn(mockResponse);
-            })) {
-      tool.searchAttacks(null, null, null, null, null, null, null, null, "-status", null);
+    tool.searchAttacks(null, null, null, null, null, null, null, null, "-status", null);
 
-      var extension = mockedConstruction.constructed().get(0);
-      verify(extension)
-          .getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), eq("-status"));
-    }
+    verify(sdkExtension)
+        .getAttacks(eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), eq("-status"));
   }
 
   @Test
   void searchAttacks_should_pass_rules_to_sdk() throws Exception {
     var mockResponse = createMockAttacksResponse(1, 1);
+    when(sdkExtension.getAttacks(
+            eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
+        .thenReturn(mockResponse);
 
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAttacks(
-                      eq(TEST_ORG_ID), any(AttacksFilterBody.class), eq(50), eq(0), isNull()))
-                  .thenReturn(mockResponse);
-            })) {
-      tool.searchAttacks(
-          null, null, null, null, null, null, null, null, null, "sql-injection,xss-reflected");
+    tool.searchAttacks(
+        null, null, null, null, null, null, null, null, null, "sql-injection,xss-reflected");
 
-      var extension = mockedConstruction.constructed().get(0);
-      var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
-      verify(extension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
+    var captor = ArgumentCaptor.forClass(AttacksFilterBody.class);
+    verify(sdkExtension).getAttacks(eq(TEST_ORG_ID), captor.capture(), eq(50), eq(0), isNull());
 
-      assertThat(captor.getValue().getProtectionRules())
-          .containsExactlyInAnyOrder("sql-injection", "xss-reflected");
-    }
+    assertThat(captor.getValue().getProtectionRules())
+        .containsExactlyInAnyOrder("sql-injection", "xss-reflected");
   }
 
   @Test
@@ -273,56 +218,39 @@ class SearchAttacksToolTest {
   @Test
   void searchAttacks_should_handle_empty_results() throws Exception {
     var emptyResponse = createMockAttacksResponse(0, 0);
+    when(sdkExtension.getAttacks(
+            anyString(), any(AttacksFilterBody.class), anyInt(), anyInt(), any()))
+        .thenReturn(emptyResponse);
 
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAttacks(
-                      anyString(), any(AttacksFilterBody.class), anyInt(), anyInt(), any()))
-                  .thenReturn(emptyResponse);
-            })) {
-      var result = tool.searchAttacks(null, null, null, null, null, null, null, null, null, null);
+    var result = tool.searchAttacks(null, null, null, null, null, null, null, null, null, null);
 
-      assertThat(result.items()).isEmpty();
-      assertThat(result.warnings()).anyMatch(w -> w.contains("No results found"));
-    }
+    assertThat(result.items()).isEmpty();
+    assertThat(result.warnings()).anyMatch(w -> w.contains("No results found"));
   }
 
   @Test
   void searchAttacks_should_handle_null_response() throws Exception {
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAttacks(
-                      anyString(), any(AttacksFilterBody.class), anyInt(), anyInt(), any()))
-                  .thenReturn(null);
-            })) {
-      var result = tool.searchAttacks(null, null, null, null, null, null, null, null, null, null);
+    when(sdkExtension.getAttacks(
+            anyString(), any(AttacksFilterBody.class), anyInt(), anyInt(), any()))
+        .thenReturn(null);
 
-      assertThat(result.items()).isEmpty();
-      assertThat(result.warnings()).anyMatch(w -> w.contains("API returned no attack data"));
-    }
+    var result = tool.searchAttacks(null, null, null, null, null, null, null, null, null, null);
+
+    assertThat(result.items()).isEmpty();
+    assertThat(result.warnings()).anyMatch(w -> w.contains("API returned no attack data"));
   }
 
   @Test
   void searchAttacks_should_calculate_hasMorePages_correctly() throws Exception {
     var mockResponse = createMockAttacksResponse(50, 150);
+    when(sdkExtension.getAttacks(
+            anyString(), any(AttacksFilterBody.class), anyInt(), anyInt(), any()))
+        .thenReturn(mockResponse);
 
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAttacks(
-                      anyString(), any(AttacksFilterBody.class), anyInt(), anyInt(), any()))
-                  .thenReturn(mockResponse);
-            })) {
-      var result = tool.searchAttacks(1, 50, null, null, null, null, null, null, null, null);
+    var result = tool.searchAttacks(1, 50, null, null, null, null, null, null, null, null);
 
-      assertThat(result.hasMorePages()).isTrue();
-      assertThat(result.totalItems()).isEqualTo(150);
-    }
+    assertThat(result.hasMorePages()).isTrue();
+    assertThat(result.totalItems()).isEqualTo(150);
   }
 
   // ========== Helper Methods ==========

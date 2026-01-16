@@ -17,14 +17,13 @@ package com.contrast.labs.ai.mcp.contrast.tool.attack;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
+import com.contrast.labs.ai.mcp.contrast.config.SDKExtensionFactory;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Rule;
-import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
 import java.util.ArrayList;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,8 +43,8 @@ class GetProtectRulesToolTest {
   private GetProtectRulesTool tool;
 
   @Mock private ContrastSDKFactory sdkFactory;
-
-  @Mock private ContrastSDK sdk;
+  @Mock private SDKExtensionFactory sdkExtensionFactory;
+  @Mock private SDKExtension sdkExtension;
 
   private static final String TEST_ORG_ID = "test-org-123";
   private static final String TEST_APP_ID = "test-app-456";
@@ -54,50 +53,39 @@ class GetProtectRulesToolTest {
   void setUp() {
     tool = new GetProtectRulesTool();
     ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
-    when(sdkFactory.getSDK()).thenReturn(sdk);
+    ReflectionTestUtils.setField(tool, "sdkExtensionFactory", sdkExtensionFactory);
     when(sdkFactory.getOrgId()).thenReturn(TEST_ORG_ID);
+    when(sdkExtensionFactory.getSDKExtension()).thenReturn(sdkExtension);
   }
 
   @Test
   void getProtectRules_should_return_rules_for_valid_appId() throws Exception {
     var mockProtectData = createMockProtectData(3);
+    when(sdkExtension.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+        .thenReturn(mockProtectData);
 
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
-                  .thenReturn(mockProtectData);
-            })) {
-      var result = tool.getProtectRules(TEST_APP_ID);
+    var result = tool.getProtectRules(TEST_APP_ID);
 
-      assertThat(result.isSuccess()).isTrue();
-      assertThat(result.found()).isTrue();
-      assertThat(result.data()).isNotNull();
-      assertThat(result.data().getRules()).hasSize(3);
-    }
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.found()).isTrue();
+    assertThat(result.data()).isNotNull();
+    assertThat(result.data().getRules()).hasSize(3);
   }
 
   @Test
   void getProtectRules_should_return_rule_details() throws Exception {
     var mockProtectData = createMockProtectDataWithRules();
+    when(sdkExtension.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+        .thenReturn(mockProtectData);
 
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
-                  .thenReturn(mockProtectData);
-            })) {
-      var result = tool.getProtectRules(TEST_APP_ID);
+    var result = tool.getProtectRules(TEST_APP_ID);
 
-      assertThat(result.isSuccess()).isTrue();
-      assertThat(result.data().getRules()).isNotEmpty();
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.data().getRules()).isNotEmpty();
 
-      var firstRule = result.data().getRules().get(0);
-      assertThat(firstRule.getName()).isEqualTo("sql-injection");
-      assertThat(firstRule.getProduction()).isEqualTo("block");
-    }
+    var firstRule = result.data().getRules().get(0);
+    assertThat(firstRule.getName()).isEqualTo("sql-injection");
+    assertThat(firstRule.getProduction()).isEqualTo("block");
   }
 
   @Test
@@ -118,53 +106,37 @@ class GetProtectRulesToolTest {
 
   @Test
   void getProtectRules_should_return_notFound_when_protectData_is_null() throws Exception {
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID))).thenReturn(null);
-            })) {
-      var result = tool.getProtectRules(TEST_APP_ID);
+    when(sdkExtension.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID))).thenReturn(null);
 
-      assertThat(result.found()).isFalse();
-      assertThat(result.data()).isNull();
-    }
+    var result = tool.getProtectRules(TEST_APP_ID);
+
+    assertThat(result.found()).isFalse();
+    assertThat(result.data()).isNull();
   }
 
   @Test
   void getProtectRules_should_warn_when_no_rules_configured() throws Exception {
     var emptyProtectData = new ProtectData();
     emptyProtectData.setRules(new ArrayList<>());
+    when(sdkExtension.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+        .thenReturn(emptyProtectData);
 
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
-                  .thenReturn(emptyProtectData);
-            })) {
-      var result = tool.getProtectRules(TEST_APP_ID);
+    var result = tool.getProtectRules(TEST_APP_ID);
 
-      assertThat(result.isSuccess()).isTrue();
-      assertThat(result.data().getRules()).isEmpty();
-      assertThat(result.warnings()).anyMatch(w -> w.contains("no rules are configured"));
-    }
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.data().getRules()).isEmpty();
+    assertThat(result.warnings()).anyMatch(w -> w.contains("no rules are configured"));
   }
 
   @Test
   void getProtectRules_should_handle_sdk_exception() throws Exception {
-    try (var mockedConstruction =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
-                  .thenThrow(new IOException("Network error"));
-            })) {
-      var result = tool.getProtectRules(TEST_APP_ID);
+    when(sdkExtension.getProtectConfig(eq(TEST_ORG_ID), eq(TEST_APP_ID)))
+        .thenThrow(new IOException("Network error"));
 
-      assertThat(result.isSuccess()).isFalse();
-      assertThat(result.errors()).anyMatch(e -> e.contains("Internal error"));
-    }
+    var result = tool.getProtectRules(TEST_APP_ID);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).anyMatch(e -> e.contains("Internal error"));
   }
 
   // ========== Helper Methods ==========

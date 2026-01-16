@@ -73,9 +73,8 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
   @Override
   protected CveData doExecute(ListApplicationsByCveParams params, List<String> warnings)
       throws Exception {
-    var sdk = getContrastSDK();
     var orgId = getOrgId();
-    var extendedSDK = new SDKExtension(sdk);
+    var extendedSDK = getSDKExtension();
 
     log.debug("Retrieving applications vulnerable to CVE: {}", params.cveId());
 

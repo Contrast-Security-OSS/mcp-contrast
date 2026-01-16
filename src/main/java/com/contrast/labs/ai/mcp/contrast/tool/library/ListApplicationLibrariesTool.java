@@ -15,7 +15,6 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.library;
 
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
@@ -88,9 +87,8 @@ public class ListApplicationLibrariesTool
   protected ExecutionResult<LibraryExtended> doExecute(
       PaginationParams pagination, ListApplicationLibrariesParams params, List<String> warnings)
       throws Exception {
-    var sdk = getContrastSDK();
     var orgId = getOrgId();
-    var extendedSDK = new SDKExtension(sdk);
+    var extendedSDK = getSDKExtension();
 
     log.debug("Retrieving libraries for application: {}", params.appId());
 

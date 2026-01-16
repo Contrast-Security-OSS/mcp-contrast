@@ -15,7 +15,6 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.attack;
 
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.tool.attack.params.GetProtectRulesParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
@@ -68,8 +67,7 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
   @Override
   protected ProtectData doExecute(GetProtectRulesParams params, List<String> warnings)
       throws Exception {
-    var sdk = getContrastSDK();
-    var extendedSDK = new SDKExtension(sdk);
+    var extendedSDK = getSDKExtension();
 
     log.debug("Retrieving protection configuration for application ID: {}", params.appId());
 

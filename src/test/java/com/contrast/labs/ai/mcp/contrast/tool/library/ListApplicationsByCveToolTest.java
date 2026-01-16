@@ -16,16 +16,15 @@
 package com.contrast.labs.ai.mcp.contrast.tool.library;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.AnonymousLibraryExtendedBuilder;
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
+import com.contrast.labs.ai.mcp.contrast.config.SDKExtensionFactory;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.App;
@@ -33,17 +32,22 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrastsecurity.exceptions.ResourceNotFoundException;
-import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedConstruction;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ListApplicationsByCveToolTest {
 
   private static final String TEST_ORG_ID = "test-org-123";
@@ -51,22 +55,21 @@ class ListApplicationsByCveToolTest {
   private static final String TEST_APP_ID = "test-app-456";
 
   private ListApplicationsByCveTool tool;
-  private ContrastSDKFactory sdkFactory;
-  private ContrastSDK sdk;
+
+  @Mock private ContrastSDKFactory sdkFactory;
+  @Mock private SDKExtensionFactory sdkExtensionFactory;
+  @Mock private SDKExtension sdkExtension;
 
   private MockedStatic<SDKHelper> mockedSDKHelper;
-  private MockedConstruction<SDKExtension> mockedSDKExtension;
 
   @BeforeEach
   void setUp() {
-    sdk = mock();
-    sdkFactory = mock();
-
-    when(sdkFactory.getSDK()).thenReturn(sdk);
     when(sdkFactory.getOrgId()).thenReturn(TEST_ORG_ID);
+    when(sdkExtensionFactory.getSDKExtension()).thenReturn(sdkExtension);
 
     tool = new ListApplicationsByCveTool();
     ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
+    ReflectionTestUtils.setField(tool, "sdkExtensionFactory", sdkExtensionFactory);
 
     // Mock SDKHelper static methods
     mockedSDKHelper = mockStatic(SDKHelper.class);
@@ -77,9 +80,6 @@ class ListApplicationsByCveToolTest {
     if (mockedSDKHelper != null) {
       mockedSDKHelper.close();
     }
-    if (mockedSDKExtension != null) {
-      mockedSDKExtension.close();
-    }
   }
 
   @Test
@@ -88,7 +88,7 @@ class ListApplicationsByCveToolTest {
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).anyMatch(e -> e.contains("cveId") && e.contains("required"));
-    verifyNoInteractions(sdk);
+    verifyNoInteractions(sdkExtension);
   }
 
   @Test
@@ -97,7 +97,7 @@ class ListApplicationsByCveToolTest {
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).anyMatch(e -> e.contains("cveId") && e.contains("CVE format"));
-    verifyNoInteractions(sdk);
+    verifyNoInteractions(sdkExtension);
   }
 
   @Test
@@ -105,17 +105,10 @@ class ListApplicationsByCveToolTest {
     var mockCveData = createMockCveDataWithApps();
     var mockLibraries = createMockLibrariesWithMatchingHash();
 
-    // Set up mocked SDKExtension
-    mockedSDKExtension =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(mockCveData);
-            });
+    when(sdkExtension.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(mockCveData);
 
     mockedSDKHelper
-        .when(
-            () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
+        .when(() -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension)))
         .thenReturn(mockLibraries);
 
     var result = tool.listApplicationsByCve(TEST_CVE_ID);
@@ -129,12 +122,7 @@ class ListApplicationsByCveToolTest {
 
   @Test
   void listApplicationsByCve_should_return_not_found_for_null_response() throws IOException {
-    mockedSDKExtension =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(null);
-            });
+    when(sdkExtension.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(null);
 
     var result = tool.listApplicationsByCve(TEST_CVE_ID);
 
@@ -149,12 +137,7 @@ class ListApplicationsByCveToolTest {
     emptyCveData.setApps(new ArrayList<>());
     emptyCveData.setLibraries(new ArrayList<>());
 
-    mockedSDKExtension =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(emptyCveData);
-            });
+    when(sdkExtension.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(emptyCveData);
 
     var result = tool.listApplicationsByCve(TEST_CVE_ID);
 
@@ -170,12 +153,7 @@ class ListApplicationsByCveToolTest {
     cveData.setApps(null);
     cveData.setLibraries(new ArrayList<>());
 
-    mockedSDKExtension =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(cveData);
-            });
+    when(sdkExtension.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(cveData);
 
     var result = tool.listApplicationsByCve(TEST_CVE_ID);
 
@@ -198,16 +176,10 @@ class ListApplicationsByCveToolTest {
 
     var mockLibraries = createMockLibrariesWithMatchingHash();
 
-    mockedSDKExtension =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(cveData);
-            });
+    when(sdkExtension.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(cveData);
 
     mockedSDKHelper
-        .when(
-            () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
+        .when(() -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension)))
         .thenReturn(mockLibraries);
 
     var result = tool.listApplicationsByCve(TEST_CVE_ID);
@@ -220,13 +192,8 @@ class ListApplicationsByCveToolTest {
 
   @Test
   void listApplicationsByCve_should_handle_api_exception() throws IOException {
-    mockedSDKExtension =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAppsForCVE(any(), any()))
-                  .thenThrow(new IOException("CVE lookup failed"));
-            });
+    when(sdkExtension.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID)))
+        .thenThrow(new IOException("CVE lookup failed"));
 
     var result = tool.listApplicationsByCve(TEST_CVE_ID);
 
@@ -236,15 +203,10 @@ class ListApplicationsByCveToolTest {
 
   @Test
   void listApplicationsByCve_should_return_not_found_for_unknown_cve() throws IOException {
-    mockedSDKExtension =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAppsForCVE(any(), any()))
-                  .thenThrow(
-                      new ResourceNotFoundException(
-                          "CVE not found", "GET", "/api/cve/CVE-2020-99999", "Not Found"));
-            });
+    when(sdkExtension.getAppsForCVE(eq(TEST_ORG_ID), eq("CVE-2020-99999")))
+        .thenThrow(
+            new ResourceNotFoundException(
+                "CVE not found", "GET", "/api/cve/CVE-2020-99999", "Not Found"));
 
     var result = tool.listApplicationsByCve("CVE-2020-99999");
 
@@ -259,16 +221,10 @@ class ListApplicationsByCveToolTest {
     var mockCveData = createMockCveDataWithApps();
     var mockLibraries = createMockLibrariesWithMatchingHash();
 
-    mockedSDKExtension =
-        mockConstruction(
-            SDKExtension.class,
-            (mock, context) -> {
-              when(mock.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(mockCveData);
-            });
+    when(sdkExtension.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(mockCveData);
 
     mockedSDKHelper
-        .when(
-            () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class)))
+        .when(() -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension)))
         .thenReturn(mockLibraries);
 
     var result = tool.listApplicationsByCve(TEST_CVE_ID);

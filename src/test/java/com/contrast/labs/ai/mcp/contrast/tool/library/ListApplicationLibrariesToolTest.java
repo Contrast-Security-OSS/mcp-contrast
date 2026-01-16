@@ -16,68 +16,65 @@
 package com.contrast.labs.ai.mcp.contrast.tool.library;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.AnonymousLibraryExtendedBuilder;
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
+import com.contrast.labs.ai.mcp.contrast.config.SDKExtensionFactory;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibrariesExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
-import com.contrastsecurity.sdk.ContrastSDK;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedConstruction;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class ListApplicationLibrariesToolTest {
 
   private static final String TEST_ORG_ID = "test-org-123";
   private static final String TEST_APP_ID = "test-app-456";
 
   private ListApplicationLibrariesTool tool;
-  private ContrastSDKFactory sdkFactory;
-  private ContrastSDK sdk;
+
+  @Mock private ContrastSDKFactory sdkFactory;
+  @Mock private SDKExtensionFactory sdkExtensionFactory;
+  @Mock private SDKExtension sdkExtension;
 
   private MockedStatic<SDKHelper> mockedSDKHelper;
-  private MockedConstruction<SDKExtension> mockedSDKExtension;
 
   @BeforeEach
   void setUp() {
-    sdk = mock();
-    sdkFactory = mock();
-
-    when(sdkFactory.getSDK()).thenReturn(sdk);
     when(sdkFactory.getOrgId()).thenReturn(TEST_ORG_ID);
+    when(sdkExtensionFactory.getSDKExtension()).thenReturn(sdkExtension);
 
     tool = new ListApplicationLibrariesTool();
     ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
+    ReflectionTestUtils.setField(tool, "sdkExtensionFactory", sdkExtensionFactory);
 
     // Mock SDKHelper static methods
     mockedSDKHelper = mockStatic(SDKHelper.class);
-
-    // Mock SDKExtension constructor
-    mockedSDKExtension = org.mockito.Mockito.mockConstruction(SDKExtension.class);
   }
 
   @AfterEach
   void tearDown() {
     if (mockedSDKHelper != null) {
       mockedSDKHelper.close();
-    }
-    if (mockedSDKExtension != null) {
-      mockedSDKExtension.close();
     }
   }
 
@@ -87,7 +84,7 @@ class ListApplicationLibrariesToolTest {
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).anyMatch(e -> e.contains("appId") && e.contains("required"));
-    verifyNoInteractions(sdk);
+    verifyNoInteractions(sdkExtension);
   }
 
   @Test
@@ -96,7 +93,7 @@ class ListApplicationLibrariesToolTest {
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).anyMatch(e -> e.contains("appId") && e.contains("required"));
-    verifyNoInteractions(sdk);
+    verifyNoInteractions(sdkExtension);
   }
 
   @Test
@@ -107,7 +104,7 @@ class ListApplicationLibrariesToolTest {
         .when(
             () ->
                 SDKHelper.getLibraryPage(
-                    eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class), anyInt(), anyInt()))
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension), anyInt(), anyInt()))
         .thenReturn(mockResponse);
 
     var result = tool.listApplicationLibraries(null, null, TEST_APP_ID);
@@ -126,7 +123,7 @@ class ListApplicationLibrariesToolTest {
         .when(
             () ->
                 SDKHelper.getLibraryPage(
-                    eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class), anyInt(), anyInt()))
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension), anyInt(), anyInt()))
         .thenReturn(mockResponse);
 
     var result = tool.listApplicationLibraries(null, null, TEST_APP_ID);
@@ -146,7 +143,7 @@ class ListApplicationLibrariesToolTest {
         .when(
             () ->
                 SDKHelper.getLibraryPage(
-                    eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class), anyInt(), anyInt()))
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension), anyInt(), anyInt()))
         .thenReturn(mockResponse);
 
     var result = tool.listApplicationLibraries(null, null, TEST_APP_ID);
@@ -161,7 +158,8 @@ class ListApplicationLibrariesToolTest {
     mockedSDKHelper
         .when(
             () ->
-                SDKHelper.getLibraryPage(any(), any(), any(SDKExtension.class), anyInt(), anyInt()))
+                SDKHelper.getLibraryPage(
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension), anyInt(), anyInt()))
         .thenThrow(new IOException("SDK connection failed"));
 
     var result = tool.listApplicationLibraries(null, null, TEST_APP_ID);
@@ -179,7 +177,7 @@ class ListApplicationLibrariesToolTest {
         .when(
             () ->
                 SDKHelper.getLibraryPage(
-                    eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class), eq(3), eq(0)))
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension), eq(3), eq(0)))
         .thenReturn(mockResponse);
 
     var result = tool.listApplicationLibraries(1, 3, TEST_APP_ID);
@@ -201,7 +199,7 @@ class ListApplicationLibrariesToolTest {
         .when(
             () ->
                 SDKHelper.getLibraryPage(
-                    eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class), eq(3), eq(3)))
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension), eq(3), eq(3)))
         .thenReturn(mockResponse);
 
     var result = tool.listApplicationLibraries(2, 3, TEST_APP_ID);
@@ -221,7 +219,7 @@ class ListApplicationLibrariesToolTest {
         .when(
             () ->
                 SDKHelper.getLibraryPage(
-                    eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class), eq(3), eq(9)))
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension), eq(3), eq(9)))
         .thenReturn(mockResponse);
 
     var result = tool.listApplicationLibraries(4, 3, TEST_APP_ID);
@@ -239,7 +237,7 @@ class ListApplicationLibrariesToolTest {
         .when(
             () ->
                 SDKHelper.getLibraryPage(
-                    eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class), eq(50), eq(450)))
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension), eq(50), eq(450)))
         .thenReturn(mockResponse);
 
     var result = tool.listApplicationLibraries(10, 50, TEST_APP_ID);
@@ -260,7 +258,7 @@ class ListApplicationLibrariesToolTest {
         .when(
             () ->
                 SDKHelper.getLibraryPage(
-                    eq(TEST_APP_ID), eq(TEST_ORG_ID), any(SDKExtension.class), eq(50), eq(0)))
+                    eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension), eq(50), eq(0)))
         .thenReturn(mockResponse);
 
     // Request pageSize 100, should be capped to 50 with warning

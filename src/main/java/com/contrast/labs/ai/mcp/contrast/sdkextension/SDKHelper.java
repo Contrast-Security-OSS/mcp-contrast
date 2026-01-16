@@ -257,14 +257,13 @@ public class SDKHelper {
    *
    * @param appName The application name to search for
    * @param orgId The organization ID
-   * @param contrastSDK The Contrast SDK instance
+   * @param sdkExtension The SDKExtension instance
    * @return Optional containing the application if found
    * @throws IOException If an I/O error occurs
    */
   public static Optional<Application> getApplicationByName(
-      String appName, String orgId, ContrastSDK contrastSDK) throws IOException {
+      String appName, String orgId, SDKExtension sdkExtension) throws IOException {
     log.debug("Searching for application by name: {}", appName);
-    var sdkExtension = new SDKExtension(contrastSDK);
 
     // Use server-side filter with exact name
     var response = sdkExtension.getApplicationsFiltered(orgId, appName, null, null, 100, 0);
