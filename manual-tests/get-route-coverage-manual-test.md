@@ -139,15 +139,17 @@ use contrast mcp to get the route coverage for the DemoRouteSession app filtered
 
 ---
 
-### Test 8: Session metadata value case sensitivity
-**Purpose:** Verify that session metadata values are case-sensitive.
+### Test 8: Session metadata value case insensitivity
+**Purpose:** Verify that session metadata values are case-insensitive.
 
 **Prompt:**
 ```
 use contrast mcp to get the route coverage for the DemoRouteSession app filtered by developer ellen
 ```
 
-**Expected Result:** 0 routes returned (empty list) - values are case-sensitive, "ellen" != "Ellen"
+**Expected Result:** 2 routes returned (same as Test 2) - values are case-insensitive, "ellen" matches "Ellen"
+- Test.acmeDummy.login(String)
+- Test.bearKing.create(String)
 
 ---
 
@@ -353,7 +355,7 @@ use contrast mcp to get the route coverage statistics for the DemoRouteSession a
 | 5 | Session Metadata | commit=200 | 2 |
 | 6 | Session Metadata | repo=TS | 2 |
 | 7 | Session Metadata | developer=John (non-matching) | 0 |
-| 8 | Session Metadata | developer=ellen (case) | 0 |
+| 8 | Session Metadata | developer=ellen (case-insensitive) | 2 |
 | 9 | Session Metadata | DEVELOPER=Ellen (field case) | 2 |
 | 10 | Latest Session | useLatestSession=true | 2 |
 | 11 | Precedence | latest + metadata | 2 |
