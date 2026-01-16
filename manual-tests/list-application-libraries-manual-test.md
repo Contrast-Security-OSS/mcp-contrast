@@ -15,6 +15,7 @@ The `list_application_libraries` tool retrieves all third-party libraries used b
 - `classCount` - Total classes in the library
 - `classesUsed` - Classes actually loaded by the application
 - `totalVulnerabilities` - Total CVE count
+- `criticalVulnerabilities` - CRITICAL severity CVE count only
 - `highVulnerabilities` - HIGH severity CVE count only (does not include CRITICAL)
 - `vulnerabilities` - List of CVE details
 - `grade` - Security grade (A, B, C, D, F)
@@ -48,11 +49,11 @@ The `list_application_libraries` tool retrieves all third-party libraries used b
 
 ### Sample Vulnerable Libraries (from spring-petclinic-live-example)
 
-| Filename | CVE Count | High CVEs | Key CVEs |
-|----------|-----------|-----------|----------|
-| tomcat-embed-core-10.1.12.jar | 16 | 9 | CVE-2024-50379, CVE-2025-24813, CVE-2024-56337 |
-| spring-security-core-6.1.3.jar | 3 | 2 | CVE-2024-22257, CVE-2024-22234 |
-| spring-security-crypto-6.1.3.jar | 1 | 1 | CVE-2025-22228 |
+| Filename | CVE Count | Critical CVEs | High CVEs | Key CVEs |
+|----------|-----------|---------------|-----------|----------|
+| tomcat-embed-core-10.1.12.jar | 16 | 7 | 9 | CVE-2024-50379, CVE-2025-24813, CVE-2024-56337 |
+| spring-security-core-6.1.3.jar | 3 | 1 | 2 | CVE-2024-22257, CVE-2024-22234 |
+| spring-security-crypto-6.1.3.jar | 1 | 0 | 1 | CVE-2025-22228 |
 
 ---
 
@@ -137,8 +138,9 @@ use contrast mcp to list libraries for application 7949c260-6ae9-477f-970a-60d8f
   - CVE-2025-24813 (CRITICAL)
   - CVE-2024-56337 (CRITICAL)
   - Multiple HIGH severity CVEs
+- `criticalVulnerabilities` counts CRITICAL severity CVEs only
 - `highVulnerabilities` counts only HIGH severity CVEs (not CRITICAL)
-- To get total high-impact CVEs, add CRITICAL count from vulnerability details to `highVulnerabilities`
+- `totalVulnerabilities` = `criticalVulnerabilities` + `highVulnerabilities` + other severities
 
 ---
 
@@ -646,6 +648,7 @@ use contrast mcp to list libraries for application 1d5cdd44-19b9-44df-88b1-ad02c
       "classesUsed": 384,
       "grade": "F",
       "totalVulnerabilities": 6,
+      "criticalVulnerabilities": 1,
       "highVulnerabilities": 5,
       "vulnerabilities": [
         {
