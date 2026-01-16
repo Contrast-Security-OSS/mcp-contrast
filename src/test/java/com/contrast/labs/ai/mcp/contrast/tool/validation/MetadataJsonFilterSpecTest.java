@@ -182,4 +182,37 @@ class MetadataJsonFilterSpecTest {
     ctx.mutuallyExclusive(false, "paramA", false, "paramB", "They conflict");
     assertThat(ctx.isValid()).isTrue();
   }
+
+  @Test
+  void get_should_add_error_for_empty_string_value() {
+    var ctx = new ToolValidationContext();
+    var result = ctx.metadataJsonFilterParam("{\"freeform\":\"\"}", "metadataFilters").get();
+
+    assertThat(result).isNull();
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors())
+        .anyMatch(e -> e.contains("freeform") && e.contains("empty") && e.contains("value"));
+  }
+
+  @Test
+  void get_should_add_error_for_null_value() {
+    var ctx = new ToolValidationContext();
+    var result = ctx.metadataJsonFilterParam("{\"freeform\":null}", "metadataFilters").get();
+
+    assertThat(result).isNull();
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors())
+        .anyMatch(e -> e.contains("freeform") && e.contains("empty") && e.contains("value"));
+  }
+
+  @Test
+  void get_should_add_error_for_whitespace_only_value() {
+    var ctx = new ToolValidationContext();
+    var result = ctx.metadataJsonFilterParam("{\"freeform\":\"   \"}", "metadataFilters").get();
+
+    assertThat(result).isNull();
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors())
+        .anyMatch(e -> e.contains("freeform") && e.contains("empty") && e.contains("value"));
+  }
 }
