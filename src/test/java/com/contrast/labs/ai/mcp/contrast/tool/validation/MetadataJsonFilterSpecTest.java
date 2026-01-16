@@ -215,4 +215,40 @@ class MetadataJsonFilterSpecTest {
     assertThat(ctx.errors())
         .anyMatch(e -> e.contains("freeform") && e.contains("empty") && e.contains("value"));
   }
+
+  @Test
+  void get_should_add_error_for_empty_string_in_array() {
+    var ctx = new ToolValidationContext();
+    var result =
+        ctx.metadataJsonFilterParam("{\"field\":[\"valid\",\"\"]}", "metadataFilters").get();
+
+    assertThat(result).isNull();
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors())
+        .anyMatch(e -> e.contains("field") && e.contains("empty") && e.contains("value"));
+  }
+
+  @Test
+  void get_should_add_error_for_null_in_array() {
+    var ctx = new ToolValidationContext();
+    var result =
+        ctx.metadataJsonFilterParam("{\"field\":[\"valid\",null]}", "metadataFilters").get();
+
+    assertThat(result).isNull();
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors())
+        .anyMatch(e -> e.contains("field") && e.contains("empty") && e.contains("value"));
+  }
+
+  @Test
+  void get_should_add_error_for_whitespace_only_in_array() {
+    var ctx = new ToolValidationContext();
+    var result =
+        ctx.metadataJsonFilterParam("{\"field\":[\"valid\",\"  \"]}", "metadataFilters").get();
+
+    assertThat(result).isNull();
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors())
+        .anyMatch(e -> e.contains("field") && e.contains("empty") && e.contains("value"));
+  }
 }
