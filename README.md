@@ -18,6 +18,51 @@ The Contrast MCP Server allows you to connect Contrast Security to your AI codin
 >
 > **POTENTIALLY SAFE:** Enterprise services with contractual privacy guarantees (e.g., Google Cloud AI, AWS Bedrock, Azure OpenAI).
 
+## What's New
+
+See [CHANGELOG.md](CHANGELOG.md) for the complete release history, including breaking changes and new features.
+
+## Available Tools
+
+The Contrast MCP Server provides 13 tools for security analysis and vulnerability management:
+
+### Applications
+| Tool | Description |
+|------|-------------|
+| `search_applications` | Search applications by name, tag, or metadata filters |
+| `get_session_metadata` | Get session metadata fields available for an application |
+
+### Vulnerabilities
+| Tool | Description |
+|------|-------------|
+| `search_vulnerabilities` | Search vulnerabilities across all applications (org-level) |
+| `search_app_vulnerabilities` | Search vulnerabilities within a specific application with session filtering |
+| `get_vulnerability` | Get detailed vulnerability info including stack trace and remediation guidance |
+| `list_vulnerability_types` | List all available vulnerability types for filtering |
+
+### Libraries (SCA)
+| Tool | Description |
+|------|-------------|
+| `list_application_libraries` | List libraries used by an application with vulnerability counts |
+| `list_applications_by_cve` | Find applications affected by a specific CVE |
+
+### Protection (ADR/Protect)
+| Tool | Description |
+|------|-------------|
+| `search_attacks` | Search attack events with filtering by status, type, and rules |
+| `get_protect_rules` | Get protection rules configured for an application |
+
+### Coverage
+| Tool | Description |
+|------|-------------|
+| `get_route_coverage` | Get route coverage data showing exercised vs discovered routes |
+
+### SAST (Scan)
+| Tool | Description |
+|------|-------------|
+| `get_scan_project` | Get SAST project details and vulnerability counts |
+| `get_scan_results` | Get SAST scan results in SARIF format |
+
 ## Quick Start
 
 ### Prerequisites
