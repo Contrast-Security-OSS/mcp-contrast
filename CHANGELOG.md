@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This release represents a major overhaul of the MCP server, consolidating 27 inconsistently-named tools into 13 well-designed tools with consistent naming, fixing critical bugs that prevented core functionality from working, and adding significant new capabilities.
 
-### Breaking Changes
+### Major Changes
 
 **Tool Consolidation**: All tools now use `appId` instead of `app_name`. Use `search_applications` first to find application IDs.
 
