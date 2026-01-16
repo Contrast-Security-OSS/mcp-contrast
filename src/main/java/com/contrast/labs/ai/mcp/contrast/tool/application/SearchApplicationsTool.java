@@ -58,6 +58,7 @@ public class SearchApplicationsTool
             - Multiple fields use AND logic, multiple values use OR logic
             - Field names are case-insensitive
             - Values are case-insensitive
+            - Values must be non-empty (empty, null, or whitespace-only values are rejected)
 
           Related tools:
           - get_session_metadata: Get session metadata for an application
