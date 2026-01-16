@@ -269,7 +269,7 @@ use contrast mcp to search for applications with metadata freeform="david archer
 ```
 
 **Expected Result:** 1 application returned
-- Terracotta Bank (case-insensitive value matching)
+- Terracotta Bank (lowercase "david archer" matches stored "David Archer" due to case-insensitive matching)
 
 ---
 

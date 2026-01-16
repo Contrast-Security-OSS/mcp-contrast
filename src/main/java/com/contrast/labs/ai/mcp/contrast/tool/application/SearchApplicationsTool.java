@@ -57,6 +57,7 @@ public class SearchApplicationsTool
             - Format: {"fieldName":"value"} or {"fieldName":["value1","value2"]}
             - Multiple fields use AND logic, multiple values use OR logic
             - Field names are case-insensitive
+            - Values are case-insensitive
 
           Related tools:
           - get_session_metadata: Get session metadata for an application
