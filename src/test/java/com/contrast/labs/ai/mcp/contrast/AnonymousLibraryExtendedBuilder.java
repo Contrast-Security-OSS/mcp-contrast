@@ -45,8 +45,8 @@ public class AnonymousLibraryExtendedBuilder {
   private long releaseDate = System.currentTimeMillis();
   private long latestReleaseDate = System.currentTimeMillis();
   private int totalVulnerabilities = 0;
-  private int highVulnerabilities = 0;
   private int criticalVulnerabilities = 0;
+  private int highVulnerabilities = 0;
   private boolean custom = false;
   private double libScore = 75.0;
   private int monthsOutdated = 0;
@@ -153,13 +153,13 @@ public class AnonymousLibraryExtendedBuilder {
     return this;
   }
 
-  public AnonymousLibraryExtendedBuilder withHighVulnerabilities(int highVulnerabilities) {
-    this.highVulnerabilities = highVulnerabilities;
+  public AnonymousLibraryExtendedBuilder withCriticalVulnerabilities(int criticalVulnerabilities) {
+    this.criticalVulnerabilities = criticalVulnerabilities;
     return this;
   }
 
-  public AnonymousLibraryExtendedBuilder withCriticalVulnerabilities(int criticalVulnerabilities) {
-    this.criticalVulnerabilities = criticalVulnerabilities;
+  public AnonymousLibraryExtendedBuilder withHighVulnerabilities(int highVulnerabilities) {
+    this.highVulnerabilities = highVulnerabilities;
     return this;
   }
 
@@ -217,8 +217,8 @@ public class AnonymousLibraryExtendedBuilder {
     lenient().when(library.getReleaseDate()).thenReturn(releaseDate);
     lenient().when(library.getLatestReleaseDate()).thenReturn(latestReleaseDate);
     lenient().when(library.getTotalVulnerabilities()).thenReturn(totalVulnerabilities);
-    lenient().when(library.getHighVulnerabilities()).thenReturn(highVulnerabilities);
     lenient().when(library.getCriticalVulnerabilities()).thenReturn(criticalVulnerabilities);
+    lenient().when(library.getHighVulnerabilities()).thenReturn(highVulnerabilities);
     lenient().when(library.isCustom()).thenReturn(custom);
     lenient().when(library.getLibScore()).thenReturn(libScore);
     lenient().when(library.getMonthsOutdated()).thenReturn(monthsOutdated);
