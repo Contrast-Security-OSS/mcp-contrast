@@ -52,7 +52,7 @@ public class SearchApplicationsTool
 
           Filtering behavior:
           - name: Server-side text search on displayName, contextPath, tags, and metadata values
-          - tag: Exact, case-sensitive matching (CASE-SENSITIVE - 'Production' != 'production')
+          - tag: Exact, case-insensitive matching
           - metadataFilters: JSON object for metadata field filtering
             - Format: {"fieldName":"value"} or {"fieldName":["value1","value2"]}
             - Multiple fields use AND logic, multiple values use OR logic
@@ -70,9 +70,7 @@ public class SearchApplicationsTool
               description = "Text search filter (searches name, contextPath, tags, metadata)",
               required = false)
           String name,
-      @ToolParam(
-              description = "Tag filter (CASE-SENSITIVE - 'Production' != 'production')",
-              required = false)
+      @ToolParam(description = "Tag filter (exact match, case-insensitive)", required = false)
           String tag,
       @ToolParam(
               description =

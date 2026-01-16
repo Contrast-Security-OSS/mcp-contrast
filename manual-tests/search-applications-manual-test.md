@@ -45,12 +45,12 @@
 | Technologies | Spring MVC, ECS, JSP, Backbone, J2EE, Applet, jQuery, HTML5, Bootstrap |
 
 ### Shared Tags
-- `doing_a_thing`: Adam Webgoat Route Session Metadata Test, @contrast/cus-test-server (2 apps)
-- `app-test-tag`: Terracotta Bank + many other apps (21+ apps)
+- `doing_a_thing`: @contrast/cus-test-server (1 app)
+- `app-test-tag`: Terracotta Bank + other apps (11 apps)
 
 ### Apps with Metadata
-- `freeform` metadata field: 15 apps total
 - `freeform = David Archer`: Terracotta Bank only
+- Note: Filtering by metadata field name only (any value) is not supported
 
 ---
 
@@ -64,9 +64,8 @@
 use contrast mcp to search for applications named "Terracotta Bank"
 ```
 
-**Expected Result:** 3 applications returned (partial match)
+**Expected Result:** 2 applications returned (partial match)
 - Terracotta Bank
-- **Terracotta Bank (1) (2)
 - **Terracotta Bank (1)
 
 ---
@@ -79,7 +78,7 @@ use contrast mcp to search for applications named "Terracotta Bank"
 use contrast mcp to search for applications with "webgoat" in the name
 ```
 
-**Expected Result:** 88 applications returned (many webgoat variations)
+**Expected Result:** 118 applications returned (many webgoat variations)
 - Includes: webgoat-ty-test, WebGoat_service27, WebgoatStaging, etc.
 - hasMorePages: true (with default page size of 50)
 
@@ -93,7 +92,7 @@ use contrast mcp to search for applications with "webgoat" in the name
 use contrast mcp to search for applications named "WEBGOAT"
 ```
 
-**Expected Result:** Same 88 applications as Test 2
+**Expected Result:** Same 118 applications as Test 2
 - Case doesn't matter: "WEBGOAT" matches "webgoat", "WebGoat", "Webgoat"
 
 ---
@@ -131,9 +130,11 @@ use contrast mcp to search for applications named "NonExistentApp12345"
 use contrast mcp to search for applications with "Route" in the name
 ```
 
-**Expected Result:** Multiple applications including:
+**Expected Result:** 15+ applications including:
 - DemoRouteSession
-- Adam Webgoat Route Session Metadata Test
+- Multiple servlet-route-coverage-* applications
+- spring-petclinic-routes-test-*
+- Note: Also matches apps with "route" in tags/metadata
 
 ---
 
@@ -147,34 +148,35 @@ use contrast mcp to search for applications with "Route" in the name
 use contrast mcp to search for applications with tag "doing_a_thing"
 ```
 
-**Expected Result:** 2 applications returned
-- Adam Webgoat Route Session Metadata Test
+**Expected Result:** 1 application returned
 - @contrast/cus-test-server
 
 ---
 
-### Test 8: Tag filter case sensitivity (CRITICAL)
-**Purpose:** Verify tag filter is CASE-SENSITIVE.
+### Test 8: Tag filter case insensitivity
+**Purpose:** Verify tag filter is case-insensitive.
 
 **Prompt:**
 ```
 use contrast mcp to search for applications with tag "DOING_A_THING"
 ```
 
-**Expected Result:** 0 applications returned (empty list)
-- Tags are case-sensitive: "DOING_A_THING" != "doing_a_thing"
+**Expected Result:** 1 application returned
+- @contrast/cus-test-server
+- Tags are case-insensitive: "DOING_A_THING" matches "doing_a_thing"
 
 ---
 
-### Test 9: Tag filter case sensitivity (different case)
-**Purpose:** Verify tag case sensitivity with mixed case.
+### Test 9: Tag filter case insensitivity (mixed case)
+**Purpose:** Verify tag filter is case-insensitive with mixed case.
 
 **Prompt:**
 ```
 use contrast mcp to search for applications with tag "Doing_A_Thing"
 ```
 
-**Expected Result:** 0 applications returned (empty list)
+**Expected Result:** 1 application returned
+- @contrast/cus-test-server (matches "doing_a_thing")
 
 ---
 
@@ -186,8 +188,8 @@ use contrast mcp to search for applications with tag "Doing_A_Thing"
 use contrast mcp to search for applications with tag "app-test-tag"
 ```
 
-**Expected Result:** 21 applications returned
-- Includes: Terracotta Bank, java-dummy-app-401, and many others
+**Expected Result:** 11 applications returned
+- Includes: Terracotta Bank, java-dummy-app-40, java-dummy-app-4, and others
 
 ---
 
@@ -305,7 +307,7 @@ use contrast mcp to search for applications with "webgoat" in the name
 
 **Expected Result:**
 - 50 applications returned (first page)
-- totalItems: 88
+- totalItems: 118
 - hasMorePages: true
 - page: 1
 - pageSize: 50
@@ -322,9 +324,9 @@ use contrast mcp to search for applications with "webgoat" in the name, page siz
 
 **Expected Result:**
 - 5 applications returned
-- totalItems: 88
+- totalItems: 118
 - hasMorePages: true
-- First 5 apps (e.g., WebGoat_service27, WebGoat_service2, WebgoatStaging, WebgoatProtect, WebGoatInternDemo-Ian)
+- First 5 apps (e.g., WithCustomBuildpack, WebGoat_service27, WebGoat_service2, WebgoatStaging, WebgoatProtect)
 
 ---
 
@@ -369,7 +371,8 @@ use contrast mcp to search for applications with "webgoat" in the name and tag "
 ```
 
 **Expected Result:** 1 application returned
-- Adam Webgoat Route Session Metadata Test
+- @contrast/cus-test-server
+- Note: Name filter searches displayName, contextPath, tags, and metadata values
 
 ---
 
@@ -478,7 +481,7 @@ use contrast mcp to search for application "Terracotta Bank" and show its metada
 | Filter | Matching Type | Case Sensitivity |
 |--------|---------------|------------------|
 | name | Partial | Case-INSENSITIVE |
-| tag | Exact | Case-SENSITIVE |
+| tag | Exact | Case-INSENSITIVE |
 | metadataName | Exact | Case-INSENSITIVE |
 | metadataValue | Exact | Case-INSENSITIVE |
 
@@ -488,19 +491,19 @@ use contrast mcp to search for application "Terracotta Bank" and show its metada
 
 | Test # | Category | Filter | Expected Result |
 |--------|----------|--------|-----------------|
-| 1 | Name | exact match | 3 apps |
-| 2 | Name | partial match | 88 apps |
-| 3 | Name | case insensitive (upper) | 88 apps |
+| 1 | Name | exact match | 2 apps |
+| 2 | Name | partial match | 118 apps |
+| 3 | Name | case insensitive (upper) | 118 apps |
 | 4 | Name | case insensitive (lower) | 1 app |
 | 5 | Name | non-matching | 0 apps |
-| 6 | Name | partial middle | multiple apps |
-| 7 | Tag | exact match | 2 apps |
-| 8 | Tag | case sensitive (UPPER) | 0 apps |
-| 9 | Tag | case sensitive (Mixed) | 0 apps |
-| 10 | Tag | common tag | 21 apps |
+| 6 | Name | partial middle | 15+ apps |
+| 7 | Tag | exact match | 1 app |
+| 8 | Tag | case insensitive (UPPER) | 1 app |
+| 9 | Tag | case insensitive (Mixed) | 1 app |
+| 10 | Tag | common tag | 11 apps |
 | 11 | Tag | non-matching | 0 apps |
 | 12 | Tag | special characters | multiple apps |
-| 13 | Metadata | name only | 15 apps |
+| 13 | Metadata | name only | 0 apps (not supported) |
 | 14 | Metadata | name + value | 1 app |
 | 15 | Metadata | name case insensitive | 1 app |
 | 16 | Metadata | value case insensitive | 1 app |
