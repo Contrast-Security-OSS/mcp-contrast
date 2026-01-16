@@ -88,11 +88,9 @@ After the workflow completes:
 
 This project follows [Semantic Versioning](https://semver.org/) with the format `MAJOR.MINOR.PATCH`:
 
-- **MAJOR**: Incompatible API changes
+- **MAJOR**: Incompatible API changes (e.g., tool renames, parameter changes)
 - **MINOR**: Backwards-compatible functionality additions
 - **PATCH**: Backwards-compatible bug fixes
-
-For pre-1.0 releases, we use `0.0.X` versioning where X increments for each release.
 
 ### Controlling Version Numbers
 
