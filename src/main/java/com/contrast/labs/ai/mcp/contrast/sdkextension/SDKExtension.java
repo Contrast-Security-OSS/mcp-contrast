@@ -30,7 +30,6 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservatio
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
 import com.contrastsecurity.exceptions.UnauthorizedException;
-import com.contrastsecurity.http.FilterForm;
 import com.contrastsecurity.http.HttpMethod;
 import com.contrastsecurity.http.LibraryFilterForm;
 import com.contrastsecurity.http.MediaType;
@@ -41,6 +40,7 @@ import com.contrastsecurity.models.TraceFilterBody;
 import com.contrastsecurity.models.Traces;
 import com.contrastsecurity.sdk.ContrastSDK;
 import com.contrastsecurity.sdk.internal.GsonFactory;
+import com.contrastsecurity.sdk.internal.URIBuilder;
 import com.google.gson.Gson;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -106,8 +106,7 @@ public class SDKExtension {
 
   public CveData getAppsForCVE(String organizationId, String cveID) throws IOException {
     try (InputStream is =
-        contrastSDK.makeRequest(
-            HttpMethod.GET, getCVEDataURL(organizationId, cveID, new FilterForm())); ) {
+        contrastSDK.makeRequest(HttpMethod.GET, getCVEDataURL(organizationId, cveID)); ) {
 
       var reader = new InputStreamReader(is, StandardCharsets.UTF_8);
       return gson.fromJson(reader, CveData.class);
@@ -115,12 +114,16 @@ public class SDKExtension {
   }
 
   private String getProtectDataURL(String orgId, String appId) {
-    return String.format("/ng/%s/protection/policy/%s?expand=skip_links", orgId, appId);
+    return new URIBuilder()
+        .appendPathSegments("ng", orgId, "protection", "policy", appId)
+        .appendQueryParam("expand", "skip_links")
+        .toURIString();
   }
 
-  private String getCVEDataURL(String organizationId, String cve, FilterForm form) {
-    var formString = form == null ? "" : form.toString();
-    return String.format("/ng/organizations/%s/cves/%s", organizationId, cve);
+  private String getCVEDataURL(String organizationId, String cve) {
+    return new URIBuilder()
+        .appendPathSegments("ng", "organizations", organizationId, "cves", cve)
+        .toURIString();
   }
 
   /**
@@ -177,9 +180,22 @@ public class SDKExtension {
   /** Builds URL for retrieving library observations */
   private String getLibraryObservationsUrl(
       String organizationId, String applicationId, String libraryId, int offset, int limit) {
-    return String.format(
-        "/ng/organizations/%s/applications/%s/libraries/%s/reports/library-usage?offset=%d&limit=%d&sortBy=lastObservedTime&sortDirection=DESC",
-        organizationId, applicationId, libraryId, offset, limit);
+    return new URIBuilder()
+        .appendPathSegments(
+            "ng",
+            "organizations",
+            organizationId,
+            "applications",
+            applicationId,
+            "libraries",
+            libraryId,
+            "reports",
+            "library-usage")
+        .appendQueryParam("offset", String.valueOf(offset))
+        .appendQueryParam("limit", String.valueOf(limit))
+        .appendQueryParam("sortBy", "lastObservedTime")
+        .appendQueryParam("sortDirection", "DESC")
+        .toURIString();
   }
 
   /**
@@ -278,9 +294,13 @@ public class SDKExtension {
       throws UnauthorizedException, IOException {
 
     var url =
-        String.format(
-            "/ng/%s/applications/filter?expand=metadata,technologies,skip_links&limit=%d&offset=%d&sort=-appName",
-            organizationId, limit, offset);
+        new URIBuilder()
+            .appendPathSegments("ng", organizationId, "applications", "filter")
+            .appendQueryParam("expand", "metadata,technologies,skip_links")
+            .appendQueryParam("limit", String.valueOf(limit))
+            .appendQueryParam("offset", String.valueOf(offset))
+            .appendQueryParam("sort", "-appName")
+            .toURIString();
 
     var requestBody =
         ApplicationsFilterRequest.builder()
@@ -306,7 +326,10 @@ public class SDKExtension {
   public List<AppMetadataField> getApplicationMetadataFields(String organizationId)
       throws UnauthorizedException, IOException {
 
-    var url = String.format("/ng/%s/metadata/fields", organizationId);
+    var url =
+        new URIBuilder()
+            .appendPathSegments("ng", organizationId, "metadata", "fields")
+            .toURIString();
 
     try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
         Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
@@ -379,14 +402,17 @@ public class SDKExtension {
       EnumSet<TraceExpandValue> expand)
       throws IOException, UnauthorizedException {
 
-    var url =
-        String.format(
-            "/ng/%s/traces/%s/filter?limit=%d&offset=%d&sort=-lastTimeSeen%s",
-            organizationId, appId, limit, offset, toExpandString(expand));
+    var builder =
+        new URIBuilder()
+            .appendPathSegments("ng", organizationId, "traces", appId, "filter")
+            .appendQueryParam("limit", String.valueOf(limit))
+            .appendQueryParam("offset", String.valueOf(offset))
+            .appendQueryParam("sort", "-lastTimeSeen");
+    addExpandParam(builder, expand);
 
     try (InputStream is =
             contrastSDK.makeRequestWithBody(
-                HttpMethod.POST, url, gson.toJson(filters), MediaType.JSON);
+                HttpMethod.POST, builder.toURIString(), gson.toJson(filters), MediaType.JSON);
         Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
       return gson.fromJson(reader, Traces.class);
     }
@@ -414,14 +440,17 @@ public class SDKExtension {
       EnumSet<TraceExpandValue> expand)
       throws IOException, UnauthorizedException {
 
-    var url =
-        String.format(
-            "/ng/%s/orgtraces/filter?limit=%d&offset=%d&sort=-lastTimeSeen%s",
-            organizationId, limit, offset, toExpandString(expand));
+    var builder =
+        new URIBuilder()
+            .appendPathSegments("ng", organizationId, "orgtraces", "filter")
+            .appendQueryParam("limit", String.valueOf(limit))
+            .appendQueryParam("offset", String.valueOf(offset))
+            .appendQueryParam("sort", "-lastTimeSeen");
+    addExpandParam(builder, expand);
 
     try (InputStream is =
             contrastSDK.makeRequestWithBody(
-                HttpMethod.POST, url, gson.toJson(filters), MediaType.JSON);
+                HttpMethod.POST, builder.toURIString(), gson.toJson(filters), MediaType.JSON);
         Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
       return gson.fromJson(reader, Traces.class);
     }
@@ -431,8 +460,16 @@ public class SDKExtension {
       throws IOException, UnauthorizedException {
 
     var url =
-        String.format(
-            "/ng/organizations/%s/applications/%s/agent-sessions/latest", organizationId, appId);
+        new URIBuilder()
+            .appendPathSegments(
+                "ng",
+                "organizations",
+                organizationId,
+                "applications",
+                appId,
+                "agent-sessions",
+                "latest")
+            .toURIString();
     try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
         Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
       return this.gson.fromJson(
@@ -471,9 +508,13 @@ public class SDKExtension {
     if (filterBody == null) filterBody = AttacksFilterBody.builder().build();
 
     var url =
-        String.format(
-            "/ng/%s/attacks?expand=skip_links&limit=%d&offset=%d&sort=%s",
-            organizationId, limit, offset, sort);
+        new URIBuilder()
+            .appendPathSegments("ng", organizationId, "attacks")
+            .appendQueryParam("expand", "skip_links")
+            .appendQueryParam("limit", String.valueOf(limit))
+            .appendQueryParam("offset", String.valueOf(offset))
+            .appendQueryParam("sort", sort)
+            .toURIString();
 
     try (InputStream is =
             contrastSDK.makeRequestWithBody(
@@ -526,17 +567,17 @@ public class SDKExtension {
   }
 
   /**
-   * Converts an EnumSet of TraceExpandValue to a URL query parameter string.
+   * Adds expand query parameter to a URIBuilder if expand values are present.
    *
-   * @param expand the expand values to convert
-   * @return query parameter string (e.g., "&expand=session_metadata,application") or empty string
+   * @param builder the URIBuilder to add the expand parameter to
+   * @param expand the expand values to add
    */
-  private String toExpandString(EnumSet<TraceExpandValue> expand) {
+  private void addExpandParam(URIBuilder builder, EnumSet<TraceExpandValue> expand) {
     if (expand == null || expand.isEmpty()) {
-      return "";
+      return;
     }
     var expandStr =
         expand.stream().map(TraceExpandValue::toString).collect(Collectors.joining(","));
-    return "&expand=" + expandStr;
+    builder.appendQueryParam("expand", expandStr);
   }
 }
