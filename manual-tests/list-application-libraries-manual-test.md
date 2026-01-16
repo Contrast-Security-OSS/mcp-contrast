@@ -15,7 +15,7 @@ The `list_application_libraries` tool retrieves all third-party libraries used b
 - `classCount` - Total classes in the library
 - `classesUsed` - Classes actually loaded by the application
 - `totalVulnerabilities` - Total CVE count
-- `highVulnerabilities` - CRITICAL + HIGH CVE count
+- `highVulnerabilities` - HIGH severity CVE count only (does not include CRITICAL)
 - `vulnerabilities` - List of CVE details
 - `grade` - Security grade (A, B, C, D, F)
 - `monthsOutdated` - Months since latest version
@@ -35,14 +35,16 @@ The `list_application_libraries` tool retrieves all third-party libraries used b
 
 ### Sample Libraries (from webgoat-t1)
 
+> **Note:** `monthsOutdated` values increase over time. Values shown are approximate as of test creation.
+
 | Filename | Version | Grade | Vulns | High Vulns | Classes Used | Months Outdated |
 |----------|---------|-------|-------|------------|--------------|-----------------|
-| tomcat-embed-core-10.1.39.jar | 10.1.39 | F | 6 | 5 | 384 | 8 |
-| spring-web-6.2.5.jar | 6.2.5 | F | 1 | 0 | 294 | 8 |
-| thymeleaf-3.1.2.release.jar | 3.1.2.RELEASE | B | 0 | 0 | 377 | 16 |
+| tomcat-embed-core-10.1.39.jar | 10.1.39 | F | 6 | 5 | 384 | ~8 |
+| spring-web-6.2.5.jar | 6.2.5 | F | 1 | 0 | 294 | ~8 |
+| thymeleaf-3.1.2.release.jar | 3.1.2.RELEASE | B | 0 | 0 | 377 | >12 |
 | unbescape-1.1.6.release.jar | 1.1.6.RELEASE | A | 0 | 0 | 7 | 0 |
-| xstream-1.4.5.jar | 1.4.5 | F | 0 | 0 | 0 | 110 |
-| wiremock-standalone-3.12.1.jar | 3.12.1 | F | 0 | 0 | 0 | 5 |
+| xstream-1.4.5.jar | 1.4.5 | F | 0 | 0 | 0 | >100 |
+| wiremock-standalone-3.12.1.jar | 3.12.1 | F | 0 | 0 | 0 | ~5 |
 
 ### Sample Vulnerable Libraries (from spring-petclinic-live-example)
 
@@ -121,7 +123,7 @@ use contrast mcp to list libraries for application 7949c260-6ae9-477f-970a-60d8f
 ---
 
 ### Test 5: Verify vulnerability severity distribution
-**Purpose:** Confirm high vulnerability count matches CRITICAL + HIGH CVEs.
+**Purpose:** Confirm `highVulnerabilities` counts HIGH severity CVEs only (not CRITICAL).
 
 **Prompt:**
 ```
@@ -135,7 +137,8 @@ use contrast mcp to list libraries for application 7949c260-6ae9-477f-970a-60d8f
   - CVE-2025-24813 (CRITICAL)
   - CVE-2024-56337 (CRITICAL)
   - Multiple HIGH severity CVEs
-- `highVulnerabilities` count equals sum of CRITICAL + HIGH
+- `highVulnerabilities` counts only HIGH severity CVEs (not CRITICAL)
+- To get total high-impact CVEs, add CRITICAL count from vulnerability details to `highVulnerabilities`
 
 ---
 
@@ -229,9 +232,9 @@ use contrast mcp to list libraries for application 1d5cdd44-19b9-44df-88b1-ad02c
 ```
 
 **Expected Result:**
-- tomcat-embed-core-10.1.39.jar: `grade: "F"`, `monthsOutdated: 8`
-- xstream-1.4.5.jar: `grade: "F"`, `monthsOutdated: 110`
-- spring-webmvc-6.2.5.jar: `grade: "F"`, `monthsOutdated: 8`
+- tomcat-embed-core-10.1.39.jar: `grade: "F"`, `monthsOutdated` > 0
+- xstream-1.4.5.jar: `grade: "F"`, `monthsOutdated` > 100 (severely outdated)
+- spring-webmvc-6.2.5.jar: `grade: "F"`, `monthsOutdated` > 0
 - Grade F indicates significant outdatedness or security concerns
 
 ---
@@ -262,9 +265,11 @@ use contrast mcp to list libraries for application 1d5cdd44-19b9-44df-88b1-ad02c
 ```
 
 **Expected Result:**
-- xstream-1.4.5.jar: `monthsOutdated: 110`, `latestVersion: "1.4.20"`
-- xmlpull-1.1.3.1.jar: `monthsOutdated: 43`
-- thymeleaf-3.1.2.release.jar: `monthsOutdated: 16`
+- xstream-1.4.5.jar: `monthsOutdated` > 100, `latestVersion` newer than "1.4.5"
+- xmlpull-1.1.3.1.jar: `monthsOutdated` > 40
+- thymeleaf-3.1.2.release.jar: `monthsOutdated` > 12
+
+> **Note:** Exact `monthsOutdated` values increase over time as libraries age.
 
 ---
 
@@ -292,9 +297,11 @@ use contrast mcp to list libraries for application 1d5cdd44-19b9-44df-88b1-ad02c
 ```
 
 **Expected Result:**
-- xstream-1.4.5.jar: `version: "1.4.5"`, `latestVersion: "1.4.20"`
-- txw2-4.0.5.jar: `version: "4.0.5"`, `latestVersion: "4.0.6"`
+- xstream-1.4.5.jar: `version: "1.4.5"`, `latestVersion` > "1.4.5" (e.g., "1.4.21")
+- txw2-4.0.5.jar: `version: "4.0.5"`, `latestVersion` > "4.0.5"
 - When `monthsOutdated > 0`, version should differ from latestVersion
+
+> **Note:** `latestVersion` values change as new library versions are released.
 
 ---
 
@@ -577,9 +584,11 @@ use contrast mcp to list libraries for application 1d5cdd44-19b9-44df-88b1-ad02c
 ```
 
 **Expected Result:**
-- xstream-1.4.5.jar: upgrade from 1.4.5 to 1.4.20 (110 months behind)
-- thymeleaf-3.1.2.release.jar: upgrade from 3.1.2.RELEASE to 3.1.3.RELEASE (16 months)
+- xstream-1.4.5.jar: upgrade from 1.4.5 to latest (>100 months behind)
+- thymeleaf-3.1.2.release.jar: upgrade from 3.1.2.RELEASE to latest (>12 months behind)
 - Prioritize based on vulnerability impact and class usage
+
+> **Note:** Exact `monthsOutdated` values and `latestVersion` change over time.
 
 ---
 
@@ -591,7 +600,7 @@ use contrast mcp to list libraries for application 1d5cdd44-19b9-44df-88b1-ad02c
 | 2 | Basic | Name workflow | search → list integration |
 | 3 | Basic | Smaller app | Single page result |
 | 4 | Vulnerability | Find CVEs | Vuln counts accurate |
-| 5 | Vulnerability | Severity check | HIGH = CRITICAL + HIGH |
+| 5 | Vulnerability | Severity check | HIGH only (not CRITICAL) |
 | 6 | Vulnerability | High risk | Used + vulnerable |
 | 7 | Class Usage | Zero usage | Transitive deps |
 | 8 | Class Usage | Active usage | Used libraries |
