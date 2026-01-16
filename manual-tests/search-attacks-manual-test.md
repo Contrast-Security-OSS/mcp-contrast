@@ -16,23 +16,43 @@ The `search_attacks` tool retrieves attacks from Contrast ADR (Attack Detection 
 
 ---
 
-## Known Test Data
+## Pre-Test Setup (REQUIRED)
 
-The organization has 11 total attacks across multiple applications. Below are representative samples:
+**Attack data has a 30-day rolling window.** Before executing tests, you MUST run a baseline query to establish current data state.
 
-| Attack ID | Status | Source IP | Severity | Probes | Rules | App Name |
-|-----------|--------|-----------|----------|--------|-------|----------|
-| 8edd3316-4692-42c6-b9dd-56cb6eb8057c | EXPLOITED | 10.1.1.122 | MEDIUM | 44 | Command Injection, XSS, JNDI, Log4Shell, Path Traversal, SQLi, Deserialization | thib-...-frontgateservice |
-| 5ff46e79-1327-4239-ae14-d22708c3d5ce | EXPLOITED | 10.1.1.72 | MEDIUM | 22 | Command Injection, XSS, JNDI, Log4Shell, Path Traversal, SQLi, Deserialization | thib-...-frontgateservice |
-| 32983644-9e46-4cd8-aa28-bc24a5e92f62 | EXPLOITED | 10.1.1.128 | LOW | 15 | XSS, Path Traversal, SQL Injection | thib-...-dataservice, imageservice, labelservice |
-| 518c2a79-c346-4171-a9bb-d5ebfaea44ac | EXPLOITED | 10.1.1.75 | LOW | 9 | XSS, Path Traversal, SQL Injection | thib-...-dataservice, labelservice, imageservice |
-| 1d841151-1584-44c2-b02c-987ff561bde1 | EXPLOITED | 10.1.10.78 | MEDIUM | 6 | Untrusted Deserialization | Harshaa-...-frontgateservice |
-| 70958c6a-e622-4017-a5b0-ea046184e0dc | EXPLOITED | 10.1.10.174 | LOW | 2 | SQL Injection | Harshaa-...-dataservice |
-| 17323c1d-bc65-4d7c-b50a-c8aa6daf140e | EXPLOITED | 10.1.1.128 | LOW | 2 | XXE | thib-...-docservice |
-| 65ab87d9-22cf-4dcf-82fd-f16c690e6197 | BLOCKED | 10.1.10.74 | MEDIUM | 2 | Command Injection | Harshaa-...-webhookservice |
-| 4f7833b8-28d4-488e-b78a-d7bcd36a4c26 | PROBED | 10.1.10.177 | LOW | 1 | SQL Injection | Harshaa-...-frontgateservice |
-| 05fb6a0a-222a-46d5-8cf6-571a5620a6c2 | EXPLOITED | 10.1.1.75 | LOW | 1 | XXE | thib-...-docservice |
-| 86096285-1537-4d07-b2a3-5e25e903d568 | EXPLOITED | 10.1.9.199 | LOW | 1 | XXE | Harshaa-...-docservice |
+### Step 1: Run Baseline Query
+
+```
+search_attacks(quickFilter="ALL", pageSize=100)
+```
+
+### Step 2: Derive Expected Values
+
+From the baseline results, compute and record:
+
+| Metric | How to Derive |
+|--------|---------------|
+| `TOTAL_ATTACKS` | `totalItems` from response |
+| `EXPLOITED_COUNT` | Count attacks where `status == "EXPLOITED"` |
+| `BLOCKED_COUNT` | Count attacks where `status == "BLOCKED"` |
+| `PROBED_COUNT` | Count attacks where `status == "PROBED"` |
+| `EFFECTIVE_COUNT` | `TOTAL_ATTACKS - PROBED_COUNT` |
+| `SQL_INJECTION_COUNT` | Count attacks with "SQL Injection" in rules |
+| `COMMAND_INJECTION_COUNT` | Count attacks with "Command Injection" in rules |
+| `XXE_COUNT` | Count attacks with "XXE" or "XML External Entity" in rules |
+| `LOG4SHELL_COUNT` | Count attacks with "Log4" in rules |
+| `DESERIALIZATION_COUNT` | Count attacks with "Deserialization" in rules |
+| `PATH_TRAVERSAL_COUNT` | Count attacks with "Path Traversal" in rules |
+| `XSS_COUNT` | Count attacks with "Cross-Site Scripting" in rules |
+| `OLDEST_ATTACK` | Attack with earliest `startTime` |
+| `NEWEST_ATTACK` | Attack with latest `startTime` |
+| `UNIQUE_SOURCE_IPS` | Map of source IP -> list of attack IDs |
+| `MULTI_APP_ATTACKS` | Attacks with >1 application in `applications` array |
+| `HIGH_PROBE_ATTACK` | Attack with highest `probes` count |
+
+### Step 3: Execute Tests
+
+Use the derived values as expected results for all tests below. Tests reference these values using `{METRIC_NAME}` notation.
 
 ---
 
@@ -46,9 +66,10 @@ The organization has 11 total attacks across multiple applications. Below are re
 use contrast mcp to search for attacks with status EXPLOITED
 ```
 
-**Expected Result:** 9 attacks returned, all with status "EXPLOITED"
-- Should include attacks from sources: 10.1.1.122, 10.1.1.72, 10.1.1.128, 10.1.1.75, etc.
-- Should NOT include the BLOCKED attack (65ab87d9) or PROBED attack (4f7833b8)
+**Expected Result:**
+- Count equals `{EXPLOITED_COUNT}` from baseline
+- All returned attacks have `status: "EXPLOITED"`
+- Should NOT include any BLOCKED or PROBED attacks
 
 ---
 
@@ -60,11 +81,10 @@ use contrast mcp to search for attacks with status EXPLOITED
 use contrast mcp to search for attacks with status BLOCKED
 ```
 
-**Expected Result:** 1 attack returned
-- Attack ID: 65ab87d9-22cf-4dcf-82fd-f16c690e6197
-- Source: 10.1.10.74
-- Rules: Command Injection
-- App: Harshaa-MSSentinel-Incident-Event-Data-contrast-cargo-cats-webhookservice
+**Expected Result:**
+- Count equals `{BLOCKED_COUNT}` from baseline
+- All returned attacks have `status: "BLOCKED"`
+- Attack IDs match those identified in baseline with BLOCKED status
 
 ---
 
@@ -76,16 +96,15 @@ use contrast mcp to search for attacks with status BLOCKED
 use contrast mcp to search for attacks with status PROBED
 ```
 
-**Expected Result:** 1 attack returned
-- Attack ID: 4f7833b8-28d4-488e-b78a-d7bcd36a4c26
-- Source: 10.1.10.177
-- Rules: SQL Injection
-- App: Harshaa-MSSentinel-Incident-Event-Data-contrast-cargo-cats-frontgateservice
+**Expected Result:**
+- Count equals `{PROBED_COUNT}` from baseline
+- All returned attacks have `status: "PROBED"`
+- Attack IDs match those identified in baseline with PROBED status
 
 ---
 
 ### Test 4: Status filter case sensitivity
-**Purpose:** Verify status filter is case-sensitive (should use uppercase).
+**Purpose:** Verify status filter is case-insensitive.
 
 **Prompt:**
 ```
@@ -121,9 +140,10 @@ use contrast mcp to search for attacks with status BLOCKED_PERIMETER
 use contrast mcp to search for attacks with quick filter EFFECTIVE
 ```
 
-**Expected Result:** 10 attacks returned (excludes PROBED-only attacks)
+**Expected Result:**
+- Count equals `{EFFECTIVE_COUNT}` (= `{TOTAL_ATTACKS}` - `{PROBED_COUNT}`)
 - Should include all EXPLOITED and BLOCKED attacks
-- Should NOT include attack 4f7833b8 (PROBED status)
+- Should NOT include any PROBED-status attacks
 - No "No quickFilter applied" warning
 
 ---
@@ -136,7 +156,8 @@ use contrast mcp to search for attacks with quick filter EFFECTIVE
 use contrast mcp to search for attacks with quick filter ALL
 ```
 
-**Expected Result:** 11 attacks returned
+**Expected Result:**
+- Count equals `{TOTAL_ATTACKS}` from baseline
 - Should include all statuses: EXPLOITED, BLOCKED, PROBED
 - No "No quickFilter applied" warning
 
@@ -150,9 +171,11 @@ use contrast mcp to search for attacks with quick filter ALL
 use contrast mcp to search for all attacks
 ```
 
-**Expected Result:** 11 attacks returned with warnings:
-- "No quickFilter applied - showing all attack types"
-- "Excluding suppressed attacks by default..."
+**Expected Result:**
+- Count equals `{TOTAL_ATTACKS}` from baseline
+- Warnings present:
+  - "No quickFilter applied - showing all attack types"
+  - "Excluding suppressed attacks by default..."
 
 ---
 
@@ -166,6 +189,7 @@ use contrast mcp to search for attacks with quick filter ACTIVE
 
 **Expected Result:** Attacks that are currently active/ongoing
 - Results depend on attack timing relative to current time
+- Count may be 0 if no attacks are currently active
 
 ---
 
@@ -177,7 +201,8 @@ use contrast mcp to search for attacks with quick filter ACTIVE
 use contrast mcp to search for attacks with quick filter MANUAL
 ```
 
-**Expected Result:** Human-initiated attacks only (if any exist)
+**Expected Result:** Human-initiated attacks only
+- Verify all returned attacks are categorized as manual (not automated)
 
 ---
 
@@ -189,7 +214,8 @@ use contrast mcp to search for attacks with quick filter MANUAL
 use contrast mcp to search for attacks with quick filter AUTOMATED
 ```
 
-**Expected Result:** Bot/automated attacks only (if any exist)
+**Expected Result:** Bot/automated attacks only
+- Verify all returned attacks are categorized as automated
 
 ---
 
@@ -215,8 +241,9 @@ use contrast mcp to search for attacks with quick filter PRODUCTION
 use contrast mcp to search for attacks with keyword sql
 ```
 
-**Expected Result:** 6 attacks returned containing "SQL Injection" rule
-- Includes: 70958c6a, 4f7833b8, 32983644, 8edd3316, 518c2a79, 5ff46e79
+**Expected Result:**
+- Count equals `{SQL_INJECTION_COUNT}` from baseline
+- All returned attacks have "SQL Injection" in their rules array
 
 ---
 
@@ -228,8 +255,9 @@ use contrast mcp to search for attacks with keyword sql
 use contrast mcp to search for attacks with keyword Command
 ```
 
-**Expected Result:** 3 attacks returned containing "Command Injection" rule
-- Includes: 8edd3316, 65ab87d9, 5ff46e79
+**Expected Result:**
+- Count equals `{COMMAND_INJECTION_COUNT}` from baseline
+- All returned attacks have "Command Injection" in their rules array
 
 ---
 
@@ -241,8 +269,9 @@ use contrast mcp to search for attacks with keyword Command
 use contrast mcp to search for attacks with keyword Deserialization
 ```
 
-**Expected Result:** 3 attacks returned
-- Includes: 8edd3316, 1d841151, 5ff46e79 (all with Untrusted Deserialization rule)
+**Expected Result:**
+- Count equals `{DESERIALIZATION_COUNT}` from baseline
+- All returned attacks have "Untrusted Deserialization" in their rules array
 
 ---
 
@@ -251,13 +280,12 @@ use contrast mcp to search for attacks with keyword Deserialization
 
 **Prompt:**
 ```
-use contrast mcp to search for attacks with keyword 10.1.1.122
+use contrast mcp to search for attacks with keyword {ANY_SOURCE_IP_WITH_ONE_ATTACK}
 ```
 
-**Expected Result:** 1 attack returned
-- Attack ID: 8edd3316-4692-42c6-b9dd-56cb6eb8057c
-- Source: 10.1.1.122
-- 44 probes, MEDIUM severity
+**Expected Result:**
+- Returns attack(s) matching that source IP from baseline
+- Verify source field matches the searched IP
 
 ---
 
@@ -269,8 +297,9 @@ use contrast mcp to search for attacks with keyword 10.1.1.122
 use contrast mcp to search for attacks with keyword 10.1.1
 ```
 
-**Expected Result:** Multiple attacks from 10.1.1.x subnet
-- Should include: 10.1.1.122, 10.1.1.72, 10.1.1.128, 10.1.1.75
+**Expected Result:**
+- Returns all attacks from baseline where source IP starts with "10.1.1"
+- Note: Also matches IPs like "10.1.10.x" since "10.1.1" is a substring
 
 ---
 
@@ -296,7 +325,7 @@ use contrast mcp to search for attacks with keyword SQL
 ```
 
 **Expected Result:** Should match same as "sql" if case-insensitive
-- 6 attacks with SQL Injection rule
+- Count equals `{SQL_INJECTION_COUNT}` from baseline
 
 ---
 
@@ -311,7 +340,8 @@ use contrast mcp to search for attacks with page size 5
 ```
 
 **Expected Result:** 5 most recent attacks first
-- First result should be most recent attack (70958c6a or 4f7833b8 from 2026-01-12)
+- First result should be `{NEWEST_ATTACK}` from baseline
+- Attacks ordered by startTime descending
 
 ---
 
@@ -324,7 +354,7 @@ use contrast mcp to search for attacks sorted by startTime ascending
 ```
 
 **Expected Result:** Oldest attacks first
-- First result should be oldest attack (86096285 from 2025-12-16)
+- First result should be `{OLDEST_ATTACK}` from baseline
 
 ---
 
@@ -336,8 +366,8 @@ use contrast mcp to search for attacks sorted by startTime ascending
 use contrast mcp to search for attacks sorted by sourceIP
 ```
 
-**Expected Result:** Attacks sorted by source IP
-- Should start with 10.1.1.x addresses before 10.1.10.x addresses
+**Expected Result:** Attacks sorted by source IP lexicographically
+- Lower IP addresses first (e.g., 10.1.1.x before 10.1.10.x)
 
 ---
 
@@ -350,7 +380,7 @@ use contrast mcp to search for attacks sorted by sourceIP descending (use -sourc
 ```
 
 **Expected Result:** Attacks sorted by source IP descending
-- Should start with higher IP addresses (10.1.10.x before 10.1.1.x)
+- Higher IP addresses first (e.g., 10.1.10.x before 10.1.1.x)
 
 ---
 
@@ -363,7 +393,7 @@ use contrast mcp to search for attacks sorted by status
 ```
 
 **Expected Result:** Attacks grouped by status
-- BLOCKED, EXPLOITED, PROBED (alphabetical or by severity)
+- Verify attacks are sorted/grouped by their status field
 
 ---
 
@@ -377,9 +407,10 @@ use contrast mcp to search for attacks sorted by status
 use contrast mcp to search for attacks with page size 5
 ```
 
-**Expected Result:** 5 attacks returned
-- `hasMorePages: true`
-- `totalItems: 11`
+**Expected Result:**
+- Exactly 5 attacks returned
+- `totalItems` equals `{TOTAL_ATTACKS}` from baseline
+- `hasMorePages: true` (if `{TOTAL_ATTACKS}` > 5)
 
 ---
 
@@ -391,8 +422,9 @@ use contrast mcp to search for attacks with page size 5
 use contrast mcp to search for attacks with page size 5 and page 2
 ```
 
-**Expected Result:** 5 different attacks (page 2 of results)
-- Should not overlap with page 1 results
+**Expected Result:**
+- Up to 5 attacks returned (different from page 1)
+- Attack IDs should not overlap with page 1 results
 
 ---
 
@@ -404,8 +436,9 @@ use contrast mcp to search for attacks with page size 5 and page 2
 use contrast mcp to search for attacks with page size 5 and page 3
 ```
 
-**Expected Result:** 1 attack returned (11 total, pages 1-2 had 10)
-- `hasMorePages: false`
+**Expected Result:**
+- Returns `{TOTAL_ATTACKS} - 10` attacks (remaining after pages 1-2)
+- `hasMorePages: false` (if this is the last page)
 
 ---
 
@@ -414,7 +447,7 @@ use contrast mcp to search for attacks with page size 5 and page 3
 
 **Prompt:**
 ```
-use contrast mcp to search for attacks with page size 5 and page 10
+use contrast mcp to search for attacks with page size 5 and page 100
 ```
 
 **Expected Result:** 0 attacks returned (empty list)
@@ -430,7 +463,8 @@ use contrast mcp to search for attacks with page size 5 and page 10
 use contrast mcp to search for attacks with page size 100
 ```
 
-**Expected Result:** All 11 attacks returned
+**Expected Result:**
+- All `{TOTAL_ATTACKS}` returned (if <= 100)
 - `hasMorePages: false`
 
 ---
@@ -445,7 +479,8 @@ use contrast mcp to search for attacks with page size 100
 use contrast mcp to search for attacks with quick filter EFFECTIVE and status EXPLOITED
 ```
 
-**Expected Result:** 9 EXPLOITED attacks (EFFECTIVE excludes PROBED)
+**Expected Result:**
+- Count equals `{EXPLOITED_COUNT}` from baseline
 - Same as EXPLOITED filter since EFFECTIVE already excludes PROBED
 
 ---
@@ -458,9 +493,9 @@ use contrast mcp to search for attacks with quick filter EFFECTIVE and status EX
 use contrast mcp to search for attacks with status EXPLOITED and keyword sql
 ```
 
-**Expected Result:** EXPLOITED attacks with SQL Injection rule
-- Should include: 70958c6a, 32983644, 8edd3316, 518c2a79, 5ff46e79
-- Should NOT include: 4f7833b8 (PROBED status)
+**Expected Result:**
+- Count equals attacks from baseline with BOTH `status: "EXPLOITED"` AND "SQL Injection" in rules
+- Should NOT include any PROBED or BLOCKED attacks
 
 ---
 
@@ -472,8 +507,9 @@ use contrast mcp to search for attacks with status EXPLOITED and keyword sql
 use contrast mcp to search for attacks with keyword Command sorted by sourceIP
 ```
 
-**Expected Result:** 3 Command Injection attacks sorted by source IP
-- Sorted order by IP: 10.1.1.72, 10.1.1.122, 10.1.10.74
+**Expected Result:**
+- Count equals `{COMMAND_INJECTION_COUNT}` from baseline
+- Results sorted by source IP ascending
 
 ---
 
@@ -485,9 +521,10 @@ use contrast mcp to search for attacks with keyword Command sorted by sourceIP
 use contrast mcp to search for attacks with status EXPLOITED, page size 3, page 1
 ```
 
-**Expected Result:** 3 EXPLOITED attacks (page 1 of 3 pages)
-- `totalItems: 9`
-- `hasMorePages: true`
+**Expected Result:**
+- 3 EXPLOITED attacks returned
+- `totalItems` equals `{EXPLOITED_COUNT}` from baseline
+- `hasMorePages: true` (if `{EXPLOITED_COUNT}` > 3)
 
 ---
 
@@ -499,8 +536,9 @@ use contrast mcp to search for attacks with status EXPLOITED, page size 3, page 
 use contrast mcp to search for attacks with quick filter EFFECTIVE, keyword sql, page size 3
 ```
 
-**Expected Result:** SQL-related effective attacks, paginated
-- Returns attacks with SQL rules, excluding PROBED status
+**Expected Result:**
+- Up to 3 attacks with SQL Injection rule, excluding PROBED status
+- Verify count matches baseline-derived intersection
 
 ---
 
@@ -514,7 +552,8 @@ use contrast mcp to search for attacks with quick filter EFFECTIVE, keyword sql,
 use contrast mcp to search for attacks including suppressed attacks
 ```
 
-**Expected Result:** All attacks including any suppressed ones
+**Expected Result:**
+- All attacks including any suppressed ones
 - No "Excluding suppressed attacks" warning
 
 ---
@@ -565,9 +604,11 @@ use contrast mcp to search for attacks including suppressed, bot blockers, and b
 use contrast mcp to search for attacks
 ```
 
-**Expected Result:** 11 attacks with warnings:
-- "No quickFilter applied - showing all attack types"
-- "Excluding suppressed attacks by default. To see all attacks including suppressed, set includeSuppressed=true."
+**Expected Result:**
+- Count equals `{TOTAL_ATTACKS}` from baseline
+- Warnings present:
+  - "No quickFilter applied - showing all attack types"
+  - "Excluding suppressed attacks by default..."
 
 ---
 
@@ -579,9 +620,9 @@ use contrast mcp to search for attacks
 use contrast mcp to search for attacks with keyword Path
 ```
 
-**Expected Result:** Attacks with "Path Traversal" rule
-- Attack 32983644 should show 3 applications: dataservice, imageservice, labelservice
-- Attack 518c2a79 should show 3 applications: dataservice, labelservice, imageservice
+**Expected Result:**
+- Returns attacks with "Path Traversal" rule
+- For any `{MULTI_APP_ATTACKS}` from baseline, verify applications array contains all affected apps
 
 ---
 
@@ -590,12 +631,12 @@ use contrast mcp to search for attacks with keyword Path
 
 **Prompt:**
 ```
-use contrast mcp to search for attacks with keyword 10.1.1.122
+use contrast mcp to search for attacks with keyword {SOURCE_IP_OF_ATTACK_WITH_MOST_RULES}
 ```
 
-**Expected Result:** Attack 8edd3316 with 7 rules:
-- Command Injection, Cross-Site Scripting, JNDI Injection
-- Log4Shell CVE-2021-45046, Path Traversal, SQL Injection, Untrusted Deserialization
+**Expected Result:**
+- Returns attack(s) from that IP
+- Verify all rules from baseline are present in the response
 
 ---
 
@@ -604,12 +645,12 @@ use contrast mcp to search for attacks with keyword 10.1.1.122
 
 **Prompt:**
 ```
-use contrast mcp to search for attacks with keyword 10.1.10.177
+use contrast mcp to search for attacks with keyword {SOURCE_IP_OF_ATTACK_WITH_1_PROBE}
 ```
 
-**Expected Result:** Attack 4f7833b8 with 1 probe
-- Status: PROBED
-- Rules: SQL Injection
+**Expected Result:**
+- Returns the attack with 1 probe
+- Verify `probes: 1` in response
 
 ---
 
@@ -618,11 +659,12 @@ use contrast mcp to search for attacks with keyword 10.1.10.177
 
 **Prompt:**
 ```
-use contrast mcp to search for attacks with keyword 10.1.1.122
+use contrast mcp to search for attacks with keyword {SOURCE_IP_OF_HIGH_PROBE_ATTACK}
 ```
 
-**Expected Result:** Attack 8edd3316 with 44 probes
-- Highest probe count in the dataset
+**Expected Result:**
+- Returns `{HIGH_PROBE_ATTACK}` from baseline
+- Verify probe count matches baseline
 
 ---
 
@@ -637,7 +679,7 @@ use contrast mcp to search for attacks with page size 1
 ```
 
 **Expected Result:** Attack with attackId in UUID format
-- Example: "8edd3316-4692-42c6-b9dd-56cb6eb8057c"
+- Pattern: `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
 
 ---
 
@@ -686,10 +728,10 @@ use contrast mcp to search for attacks with page size 5
 **Expected Result:** Response includes:
 - `page: 1`
 - `pageSize: 5`
-- `totalItems: 11`
-- `hasMorePages: true`
+- `totalItems` equals `{TOTAL_ATTACKS}` from baseline
+- `hasMorePages: true` (if `{TOTAL_ATTACKS}` > 5)
 - `success: true`
-- `durationMs` - Query duration
+- `durationMs` - Query duration in milliseconds
 
 ---
 
@@ -700,12 +742,12 @@ use contrast mcp to search for attacks with page size 5
 
 **Prompt:**
 ```
-use contrast mcp to search for attacks with keyword 10.1.1.128
+use contrast mcp to search for attacks with keyword {SOURCE_IP_WITH_MULTI_APP_ATTACKS}
 ```
 
-**Expected Result:** 2 attacks from source 10.1.1.128:
-1. Attack 32983644 - affects 3 apps (dataservice, imageservice, labelservice)
-2. Attack 17323c1d - affects 1 app (docservice)
+**Expected Result:**
+- Returns attacks from that source IP
+- For multi-app attacks, verify applications array contains all affected apps from baseline
 
 ---
 
@@ -717,11 +759,8 @@ use contrast mcp to search for attacks with keyword 10.1.1.128
 use contrast mcp to search for attacks with quick filter EFFECTIVE
 ```
 
-**Expected Result:** Attacks affecting applications in multiple languages:
-- Java: frontgateservice, dataservice
-- Python: docservice, webhookservice
-- .NET Core: imageservice
-- Node: labelservice
+**Expected Result:** Attacks affecting applications in multiple languages
+- Verify languages from baseline are represented (e.g., Java, Python, .NET Core, Node)
 
 ---
 
@@ -735,7 +774,8 @@ use contrast mcp to search for attacks with quick filter EFFECTIVE
 use contrast mcp to search for attacks with keyword "SQL Injection"
 ```
 
-**Expected Result:** 6 attacks with SQL Injection rule
+**Expected Result:**
+- Count equals `{SQL_INJECTION_COUNT}` from baseline
 
 ---
 
@@ -747,7 +787,8 @@ use contrast mcp to search for attacks with keyword "SQL Injection"
 use contrast mcp to search for attacks with keyword "Command Injection"
 ```
 
-**Expected Result:** 3 attacks with Command Injection rule
+**Expected Result:**
+- Count equals `{COMMAND_INJECTION_COUNT}` from baseline
 
 ---
 
@@ -759,8 +800,9 @@ use contrast mcp to search for attacks with keyword "Command Injection"
 use contrast mcp to search for attacks with keyword XML
 ```
 
-**Expected Result:** 3 attacks with XXE rule
-- Attack IDs: 17323c1d, 05fb6a0a, 86096285
+**Expected Result:**
+- Count equals `{XXE_COUNT}` from baseline
+- All returned attacks have XXE-related rules
 
 ---
 
@@ -772,8 +814,8 @@ use contrast mcp to search for attacks with keyword XML
 use contrast mcp to search for attacks with keyword Log4
 ```
 
-**Expected Result:** 2 attacks with Log4Shell rule
-- Attack IDs: 8edd3316, 5ff46e79
+**Expected Result:**
+- Count equals `{LOG4SHELL_COUNT}` from baseline
 
 ---
 
@@ -785,8 +827,8 @@ use contrast mcp to search for attacks with keyword Log4
 use contrast mcp to search for attacks with keyword Deserialization
 ```
 
-**Expected Result:** 3 attacks with Deserialization rule
-- Includes: 8edd3316, 1d841151, 5ff46e79
+**Expected Result:**
+- Count equals `{DESERIALIZATION_COUNT}` from baseline
 
 ---
 
@@ -800,9 +842,10 @@ use contrast mcp to search for attacks with keyword Deserialization
 use contrast mcp to search for attacks with quick filter INVALID_FILTER
 ```
 
-**Expected Result:** Either:
-- Error message indicating invalid quickFilter value, OR
-- Treated as no filter applied
+**Expected Result:**
+- `success: false`
+- Error message indicating invalid quickFilter value
+- Lists valid values: ACTIVE, AUTOMATED, ALL, MANUAL, PRODUCTION, EFFECTIVE
 
 ---
 
@@ -814,9 +857,10 @@ use contrast mcp to search for attacks with quick filter INVALID_FILTER
 use contrast mcp to search for attacks with status INVALID_STATUS
 ```
 
-**Expected Result:** Either:
-- Error message indicating invalid statusFilter value, OR
-- Returns 0 results
+**Expected Result:**
+- `success: false`
+- Error message indicating invalid statusFilter value
+- Lists valid values: EXPLOITED, PROBED, BLOCKED, etc.
 
 ---
 
@@ -828,9 +872,10 @@ use contrast mcp to search for attacks with status INVALID_STATUS
 use contrast mcp to search for attacks sorted by invalidField
 ```
 
-**Expected Result:** Either:
-- Error message indicating invalid sort field, OR
-- Falls back to default sort (-startTime)
+**Expected Result:**
+- `success: false`
+- Error message indicating invalid sort field
+- Lists valid fields: sourceIP, status, startTime, endTime, type
 
 ---
 
@@ -842,9 +887,10 @@ use contrast mcp to search for attacks sorted by invalidField
 use contrast mcp to search for attacks with page -1
 ```
 
-**Expected Result:** Either:
-- Error message, OR
+**Expected Result:**
+- Warning: "Invalid page number -1, using page 1"
 - Defaults to page 1
+- Returns valid results
 
 ---
 
@@ -856,9 +902,10 @@ use contrast mcp to search for attacks with page -1
 use contrast mcp to search for attacks with page size 0
 ```
 
-**Expected Result:** Either:
-- Error message, OR
-- Defaults to page size 50
+**Expected Result:**
+- Warning: "Invalid pageSize 0, using default 50"
+- Defaults to pageSize 50
+- Returns valid results
 
 ---
 
@@ -870,9 +917,10 @@ use contrast mcp to search for attacks with page size 0
 use contrast mcp to search for attacks with page size 500
 ```
 
-**Expected Result:** Either:
-- Capped at maximum (100), OR
-- Error message about maximum page size
+**Expected Result:**
+- Warning: "Requested pageSize 500 exceeds maximum 100, capped to 100"
+- pageSize capped at 100
+- Returns valid results
 
 ---
 
@@ -880,47 +928,45 @@ use contrast mcp to search for attacks with page size 500
 
 These tests verify keyword search works across all documented fields (source IP, server name/hostname, application name, rule name, attack UUID, forwarded IP/path, attack tags).
 
-### Test 61: Keyword filter by application name (thib prefix)
+### Test 61: Keyword filter by application name prefix
 **Purpose:** Verify keyword filter matches application names.
 
 **Prompt:**
 ```
-use contrast mcp to search for attacks with keyword thib
+use contrast mcp to search for attacks with keyword {COMMON_APP_NAME_PREFIX}
 ```
 
-**Expected Result:** ~8 attacks from thib-contrast-cargo-cats-* applications
-- Should include apps: frontgateservice, dataservice, docservice, labelservice, imageservice
-- Confirms keyword searches application name field
+**Expected Result:**
+- Returns attacks from applications matching that prefix
+- Count matches baseline count of attacks with that app name prefix
 
 ---
 
-### Test 62: Keyword filter by application name (webhookservice)
+### Test 62: Keyword filter by specific application name
 **Purpose:** Verify keyword filter matches specific application name component.
 
 **Prompt:**
 ```
-use contrast mcp to search for attacks with keyword webhookservice
+use contrast mcp to search for attacks with keyword {UNIQUE_APP_NAME_COMPONENT}
 ```
 
-**Expected Result:** 1 attack
-- Attack ID: 65ab87d9-22cf-4dcf-82fd-f16c690e6197
-- Status: BLOCKED
-- Rules: Command Injection
-- App: Harshaa-MSSentinel-Incident-Event-Data-contrast-cargo-cats-webhookservice
+**Expected Result:**
+- Returns attack(s) targeting that specific application
+- Count matches baseline
 
 ---
 
-### Test 63: Keyword filter by application name (docservice)
-**Purpose:** Verify keyword filter matches docservice applications (XXE attacks).
+### Test 63: Keyword filter by application service name
+**Purpose:** Verify keyword filter matches service-specific applications.
 
 **Prompt:**
 ```
 use contrast mcp to search for attacks with keyword docservice
 ```
 
-**Expected Result:** 3 attacks with XXE rule
-- Attack IDs: 1d9b1c5d, 17323c1d, 05fb6a0a
-- All target thib-contrast-cargo-cats-docservice (Python)
+**Expected Result:**
+- Returns attacks targeting docservice applications
+- Count matches baseline count of docservice attacks
 
 ---
 
@@ -929,29 +975,26 @@ use contrast mcp to search for attacks with keyword docservice
 
 **Prompt:**
 ```
-use contrast mcp to search for attacks with keyword 8edd3316
+use contrast mcp to search for attacks with keyword {FIRST_8_CHARS_OF_ANY_ATTACK_ID}
 ```
 
-**Expected Result:** 1-2 attacks containing "8edd3316" in UUID
-- Primary match: 8edd3316-4692-42c6-b9dd-56cb6eb8057c
-- 44 probes, 7 rules, MEDIUM severity
+**Expected Result:**
+- Returns 1+ attacks containing that UUID prefix
 - Confirms keyword searches attack UUID field
 
 ---
 
-### Test 65: Keyword filter by partial UUID (BLOCKED attack)
-**Purpose:** Verify keyword filter matches UUID of the only BLOCKED attack.
+### Test 65: Keyword filter by partial UUID (specific status)
+**Purpose:** Verify keyword filter matches UUID of attack with specific status.
 
 **Prompt:**
 ```
-use contrast mcp to search for attacks with keyword 65ab87d9
+use contrast mcp to search for attacks with keyword {FIRST_8_CHARS_OF_BLOCKED_ATTACK_ID}
 ```
 
-**Expected Result:** 1 attack
-- Attack ID: 65ab87d9-22cf-4dcf-82fd-f16c690e6197
-- Status: BLOCKED
-- Source: 10.1.10.74
-- Rules: Command Injection
+**Expected Result:**
+- Returns the BLOCKED attack from baseline
+- Verify status and other fields match
 
 ---
 
@@ -960,12 +1003,12 @@ use contrast mcp to search for attacks with keyword 65ab87d9
 
 **Prompt:**
 ```
-use contrast mcp to search for attacks with keyword 8edd3316-4692-42c6-b9dd-56cb6eb8057c
+use contrast mcp to search for attacks with keyword {FULL_ATTACK_UUID}
 ```
 
-**Expected Result:** 1-2 attacks
-- Exact match: 8edd3316-4692-42c6-b9dd-56cb6eb8057c
-- 44 probes, EXPLOITED status
+**Expected Result:**
+- Returns exactly 1 attack with that UUID
+- Verify all fields match baseline
 
 ---
 
@@ -973,23 +1016,23 @@ use contrast mcp to search for attacks with keyword 8edd3316-4692-42c6-b9dd-56cb
 
 | Test # | Category | Filter Type | Expected Behavior |
 |--------|----------|-------------|-------------------|
-| 1 | Status | EXPLOITED | Returns 9 exploited attacks |
-| 2 | Status | BLOCKED | Returns 1 blocked attack |
-| 3 | Status | PROBED | Returns 1 probed attack |
-| 4 | Status | Case sensitivity | Tests uppercase requirement |
+| 1 | Status | EXPLOITED | Returns `{EXPLOITED_COUNT}` attacks |
+| 2 | Status | BLOCKED | Returns `{BLOCKED_COUNT}` attacks |
+| 3 | Status | PROBED | Returns `{PROBED_COUNT}` attacks |
+| 4 | Status | Case sensitivity | Tests case handling |
 | 5 | Status | Non-matching | Returns 0 (BLOCKED_PERIMETER) |
-| 6 | QuickFilter | EFFECTIVE | Excludes PROBED-only attacks |
-| 7 | QuickFilter | ALL | Returns all 11 attacks |
-| 8 | QuickFilter | Default | Shows "No quickFilter" warning |
+| 6 | QuickFilter | EFFECTIVE | Returns `{EFFECTIVE_COUNT}` attacks |
+| 7 | QuickFilter | ALL | Returns `{TOTAL_ATTACKS}` attacks |
+| 8 | QuickFilter | Default | Shows warnings, returns all |
 | 9 | QuickFilter | ACTIVE | Returns ongoing attacks |
 | 10 | QuickFilter | MANUAL | Returns human-initiated attacks |
 | 11 | QuickFilter | AUTOMATED | Returns bot attacks |
 | 12 | QuickFilter | PRODUCTION | Returns production attacks |
-| 13 | Keyword | sql | 6 attacks with SQL Injection |
-| 14 | Keyword | Command | 3 attacks with Command Injection |
-| 15 | Keyword | Deserialization | 3 attacks with Deserialization |
-| 16 | Keyword | Source IP (full) | 1 attack from 10.1.1.122 |
-| 17 | Keyword | Source IP (partial) | Multiple from 10.1.1.x |
+| 13 | Keyword | sql | Returns `{SQL_INJECTION_COUNT}` attacks |
+| 14 | Keyword | Command | Returns `{COMMAND_INJECTION_COUNT}` attacks |
+| 15 | Keyword | Deserialization | Returns `{DESERIALIZATION_COUNT}` attacks |
+| 16 | Keyword | Source IP (full) | Returns attacks from that IP |
+| 17 | Keyword | Source IP (partial) | Returns matching IP attacks |
 | 18 | Keyword | Non-matching | Returns 0 attacks |
 | 19 | Keyword | Case sensitivity | Tests SQL vs sql |
 | 20 | Sort | Default (-startTime) | Most recent first |
@@ -997,11 +1040,11 @@ use contrast mcp to search for attacks with keyword 8edd3316-4692-42c6-b9dd-56cb
 | 22 | Sort | sourceIP ascending | Sorted by IP |
 | 23 | Sort | -sourceIP descending | Reverse IP sort |
 | 24 | Sort | status | Grouped by status |
-| 25 | Pagination | pageSize=5 | 5 results, hasMorePages=true |
+| 25 | Pagination | pageSize=5 | 5 results, correct totalItems |
 | 26 | Pagination | page=2, pageSize=5 | Next 5 results |
-| 27 | Pagination | page=3, pageSize=5 | Last 1 result |
+| 27 | Pagination | page=3, pageSize=5 | Remaining results |
 | 28 | Pagination | Beyond results | Empty list |
-| 29 | Pagination | pageSize=100 | All 11 results |
+| 29 | Pagination | pageSize=100 | All results |
 | 30 | Combined | EFFECTIVE + EXPLOITED | AND logic |
 | 31 | Combined | EXPLOITED + keyword | AND logic |
 | 32 | Combined | Keyword + sort | Combined filter/sort |
@@ -1013,29 +1056,29 @@ use contrast mcp to search for attacks with keyword 8edd3316-4692-42c6-b9dd-56cb
 | 38 | Include | All flags | Maximum result set |
 | 39 | Edge Case | No filters | Default with warnings |
 | 40 | Edge Case | Multi-app attack | Shows all affected apps |
-| 41 | Edge Case | Many rules | Shows all 7 rules |
+| 41 | Edge Case | Many rules | Shows all rules |
 | 42 | Edge Case | Single probe | Includes minimal attacks |
-| 43 | Edge Case | High probes | Shows 44 probes |
+| 43 | Edge Case | High probes | Shows correct probe count |
 | 44 | Response | attackId format | UUID format |
 | 45 | Response | Timestamps | ISO + milliseconds |
 | 46 | Response | Application details | Complete app info |
 | 47 | Response | Pagination metadata | Accurate counts |
 | 48 | Cross-App | Multi-app attack | Lists all apps |
 | 49 | Cross-App | Language diversity | Multiple languages |
-| 50 | Rule Type | SQL Injection | 6 attacks |
-| 51 | Rule Type | Command Injection | 3 attacks |
-| 52 | Rule Type | XXE | 3 attacks |
-| 53 | Rule Type | Log4Shell | 2 attacks |
-| 54 | Rule Type | Deserialization | 3 attacks |
-| 55 | Error | Invalid quickFilter | Error or default |
-| 56 | Error | Invalid statusFilter | Error or empty |
-| 57 | Error | Invalid sort field | Error or default |
-| 58 | Error | Negative page | Error or default |
-| 59 | Error | Zero pageSize | Error or default |
-| 60 | Error | Excessive pageSize | Capped or error |
-| 61 | Keyword | Application name (thib) | ~8 attacks from thib-* apps |
-| 62 | Keyword | Application name (webhookservice) | 1 BLOCKED attack |
-| 63 | Keyword | Application name (docservice) | 3 XXE attacks |
-| 64 | Keyword | Partial attack UUID | 1-2 attacks matching UUID |
-| 65 | Keyword | Partial UUID (BLOCKED) | 1 BLOCKED attack |
-| 66 | Keyword | Full attack UUID | 1-2 attacks exact match |
+| 50 | Rule Type | SQL Injection | Returns `{SQL_INJECTION_COUNT}` attacks |
+| 51 | Rule Type | Command Injection | Returns `{COMMAND_INJECTION_COUNT}` attacks |
+| 52 | Rule Type | XXE | Returns `{XXE_COUNT}` attacks |
+| 53 | Rule Type | Log4Shell | Returns `{LOG4SHELL_COUNT}` attacks |
+| 54 | Rule Type | Deserialization | Returns `{DESERIALIZATION_COUNT}` attacks |
+| 55 | Error | Invalid quickFilter | Error with valid options |
+| 56 | Error | Invalid statusFilter | Error with valid options |
+| 57 | Error | Invalid sort field | Error with valid fields |
+| 58 | Error | Negative page | Warning, defaults to page 1 |
+| 59 | Error | Zero pageSize | Warning, defaults to 50 |
+| 60 | Error | Excessive pageSize | Warning, capped to 100 |
+| 61 | Keyword | Application name prefix | Matches app name |
+| 62 | Keyword | Specific app component | Matches specific app |
+| 63 | Keyword | Service name | Matches service apps |
+| 64 | Keyword | Partial attack UUID | Matches UUID substring |
+| 65 | Keyword | Partial UUID (specific) | Matches specific attack |
+| 66 | Keyword | Full attack UUID | Exact match |
