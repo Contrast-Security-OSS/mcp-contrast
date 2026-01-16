@@ -16,7 +16,6 @@
 package com.contrast.labs.ai.mcp.contrast.tool.attack;
 
 import com.contrast.labs.ai.mcp.contrast.result.AttackSummary;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.tool.attack.params.AttackFilterParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
@@ -147,8 +146,7 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
       PaginationParams pagination, AttackFilterParams params, List<String> warnings)
       throws Exception {
 
-    var sdk = getContrastSDK();
-    var extendedSDK = new SDKExtension(sdk);
+    var extendedSDK = getSDKExtension();
 
     var filterBody = params.toAttacksFilterBody();
     var attacksResponse =

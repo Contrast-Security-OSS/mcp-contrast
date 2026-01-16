@@ -90,9 +90,8 @@ public class SearchApplicationsTool
       PaginationParams pagination, ApplicationFilterParams params, List<String> warnings)
       throws Exception {
 
-    var sdk = getContrastSDK();
     var orgId = getOrgId();
-    var sdkExtension = new SDKExtension(sdk);
+    var sdkExtension = getSDKExtension();
 
     // Resolve metadata field names to IDs if metadata filters provided
     List<AppMetadataFilter> resolvedMetadataFilters = null;

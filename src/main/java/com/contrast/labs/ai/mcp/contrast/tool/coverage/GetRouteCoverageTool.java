@@ -16,7 +16,6 @@
 package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 
 import com.contrast.labs.ai.mcp.contrast.result.RouteCoverageResponseLight;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
@@ -102,9 +101,8 @@ public class GetRouteCoverageTool
   @Override
   protected RouteCoverageResponseLight doExecute(RouteCoverageParams params, List<String> warnings)
       throws Exception {
-    var sdk = getContrastSDK();
     var orgId = getOrgId();
-    var sdkExtension = new SDKExtension(sdk);
+    var sdkExtension = getSDKExtension();
 
     // Build request based on parameters
     RouteCoverageBySessionIDAndMetadataRequestExtended request = null;

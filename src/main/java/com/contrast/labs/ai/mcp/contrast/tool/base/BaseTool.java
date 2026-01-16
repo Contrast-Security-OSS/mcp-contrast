@@ -16,6 +16,8 @@
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
+import com.contrast.labs.ai.mcp.contrast.config.SDKExtensionFactory;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -27,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  * <ul>
  *   <li>ContrastSDK instance via {@link #getContrastSDK()}
+ *   <li>SDKExtension instance via {@link #getSDKExtension()}
  *   <li>Organization ID via {@link #getOrgId()}
  *   <li>HTTP error code mapping via {@link #mapHttpErrorCode(int)}
  * </ul>
@@ -34,6 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public abstract class BaseTool {
 
   @Autowired protected ContrastSDKFactory sdkFactory;
+  @Autowired protected SDKExtensionFactory sdkExtensionFactory;
 
   /**
    * Returns the cached ContrastSDK instance from the factory.
@@ -51,6 +55,15 @@ public abstract class BaseTool {
    */
   protected String getOrgId() {
     return sdkFactory.getOrgId();
+  }
+
+  /**
+   * Returns the cached SDKExtension instance from the factory.
+   *
+   * @return cached SDKExtension
+   */
+  protected SDKExtension getSDKExtension() {
+    return sdkExtensionFactory.getSDKExtension();
   }
 
   /**
