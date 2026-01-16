@@ -70,6 +70,15 @@ class SearchApplicationsToolTest {
   }
 
   @Test
+  void searchApplications_should_return_validation_error_for_empty_metadata_value() {
+    var result = tool.searchApplications(1, 10, null, null, "{\"freeform\":\"\"}");
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).anyMatch(e -> e.contains("freeform") && e.contains("empty"));
+    verifyNoInteractions(sdk);
+  }
+
+  @Test
   void searchApplications_should_return_all_applications_when_no_filters() throws Exception {
     var app1 = createApp("App1", "Active");
     var app2 = createApp("App2", "Inactive");
