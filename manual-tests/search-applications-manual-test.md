@@ -219,16 +219,18 @@ use contrast mcp to search for applications with tag "悪いアプリケーシ�
 
 ## Metadata Filter Tests
 
-### Test 13: Metadata name only (any value)
-**Purpose:** Verify filtering by metadata field name returns all apps with that field.
+### Test 13: Metadata name only (any value) - NOT SUPPORTED
+**Purpose:** Verify that filtering by metadata field name only (without a value) is not supported.
 
 **Prompt:**
 ```
 use contrast mcp to search for applications that have metadata field "freeform"
 ```
 
-**Expected Result:** 15 applications returned
-- Includes: Terracotta Bank, utsav-webgoat-2, terracotta, sup5249.war, etc.
+**Expected Result:** Error or validation failure
+- Filtering by metadata field name only (any value) is not supported
+- Must provide at least one value to filter by
+- Use `metadataFilters={"freeform":"some_value"}` instead
 
 ---
 
