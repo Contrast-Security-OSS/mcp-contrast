@@ -26,29 +26,94 @@ The `search_attacks` tool retrieves attacks from Contrast ADR (Attack Detection 
 search_attacks(quickFilter="ALL", pageSize=100)
 ```
 
-### Step 2: Derive Expected Values
+### Step 2: Derive Expected Values Using Code
 
-From the baseline results, compute and record:
+**CRITICAL: Do NOT manually count values by visually inspecting the JSON response.**
+Manual counting is error-prone, especially for nested arrays like `rules`. You MUST use
+`jq` or equivalent code to compute all baseline metrics programmatically.
 
-| Metric | How to Derive |
-|--------|---------------|
-| `TOTAL_ATTACKS` | `totalItems` from response |
-| `EXPLOITED_COUNT` | Count attacks where `status == "EXPLOITED"` |
-| `BLOCKED_COUNT` | Count attacks where `status == "BLOCKED"` |
-| `PROBED_COUNT` | Count attacks where `status == "PROBED"` |
-| `EFFECTIVE_COUNT` | `TOTAL_ATTACKS - PROBED_COUNT` |
-| `SQL_INJECTION_COUNT` | Count attacks with "SQL Injection" in rules |
-| `COMMAND_INJECTION_COUNT` | Count attacks with "Command Injection" in rules |
-| `XXE_COUNT` | Count attacks with "XXE" or "XML External Entity" in rules |
-| `LOG4SHELL_COUNT` | Count attacks with "Log4" in rules |
-| `DESERIALIZATION_COUNT` | Count attacks with "Deserialization" in rules |
-| `PATH_TRAVERSAL_COUNT` | Count attacks with "Path Traversal" in rules |
-| `XSS_COUNT` | Count attacks with "Cross-Site Scripting" in rules |
-| `OLDEST_ATTACK` | Attack with earliest `startTime` |
-| `NEWEST_ATTACK` | Attack with latest `startTime` |
-| `UNIQUE_SOURCE_IPS` | Map of source IP -> list of attack IDs |
-| `MULTI_APP_ATTACKS` | Attacks with >1 application in `applications` array |
-| `HIGH_PROBE_ATTACK` | Attack with highest `probes` count |
+Save the baseline JSON response to a variable (e.g., `$BASELINE`), then compute each metric:
+
+#### Status Counts
+```bash
+# TOTAL_ATTACKS - from response metadata
+echo "$BASELINE" | jq '.totalItems'
+
+# EXPLOITED_COUNT
+echo "$BASELINE" | jq '[.items[] | select(.status == "EXPLOITED")] | length'
+
+# BLOCKED_COUNT
+echo "$BASELINE" | jq '[.items[] | select(.status == "BLOCKED")] | length'
+
+# PROBED_COUNT
+echo "$BASELINE" | jq '[.items[] | select(.status == "PROBED")] | length'
+
+# EFFECTIVE_COUNT (TOTAL - PROBED)
+echo "$BASELINE" | jq '[.items[] | select(.status != "PROBED")] | length'
+```
+
+#### Rule-Based Counts
+```bash
+# SQL_INJECTION_COUNT - attacks with "SQL Injection" in rules array
+echo "$BASELINE" | jq '[.items[] | select(.rules[] | contains("SQL Injection"))] | unique_by(.attackId) | length'
+
+# COMMAND_INJECTION_COUNT
+echo "$BASELINE" | jq '[.items[] | select(.rules[] | contains("Command Injection"))] | unique_by(.attackId) | length'
+
+# XXE_COUNT - matches "XML External Entity" in rules
+echo "$BASELINE" | jq '[.items[] | select(.rules[] | contains("XML External Entity"))] | unique_by(.attackId) | length'
+
+# LOG4SHELL_COUNT - matches "Log4" in rules
+echo "$BASELINE" | jq '[.items[] | select(.rules[] | contains("Log4"))] | unique_by(.attackId) | length'
+
+# DESERIALIZATION_COUNT
+echo "$BASELINE" | jq '[.items[] | select(.rules[] | contains("Deserialization"))] | unique_by(.attackId) | length'
+
+# PATH_TRAVERSAL_COUNT
+echo "$BASELINE" | jq '[.items[] | select(.rules[] | contains("Path Traversal"))] | unique_by(.attackId) | length'
+
+# XSS_COUNT
+echo "$BASELINE" | jq '[.items[] | select(.rules[] | contains("Cross-Site Scripting"))] | unique_by(.attackId) | length'
+```
+
+#### Temporal and Aggregate Metrics
+```bash
+# OLDEST_ATTACK - attack with earliest startTimeMs
+echo "$BASELINE" | jq '.items | min_by(.startTimeMs) | {attackId, startTime, source}'
+
+# NEWEST_ATTACK - attack with latest startTimeMs
+echo "$BASELINE" | jq '.items | max_by(.startTimeMs) | {attackId, startTime, source}'
+
+# HIGH_PROBE_ATTACK - attack with highest probe count
+echo "$BASELINE" | jq '.items | max_by(.probes) | {attackId, probes, source}'
+
+# MULTI_APP_ATTACKS - attacks affecting more than 1 application
+echo "$BASELINE" | jq '[.items[] | select((.applications | length) > 1)] | length'
+
+# UNIQUE_SOURCE_IPS - map of source IP to attack IDs
+echo "$BASELINE" | jq 'reduce .items[] as $item ({}; .[$item.source] += [$item.attackId])'
+```
+
+#### Quick Reference Table
+
+| Metric | jq Command |
+|--------|------------|
+| `TOTAL_ATTACKS` | `.totalItems` |
+| `EXPLOITED_COUNT` | `[.items[] \| select(.status == "EXPLOITED")] \| length` |
+| `BLOCKED_COUNT` | `[.items[] \| select(.status == "BLOCKED")] \| length` |
+| `PROBED_COUNT` | `[.items[] \| select(.status == "PROBED")] \| length` |
+| `EFFECTIVE_COUNT` | `[.items[] \| select(.status != "PROBED")] \| length` |
+| `SQL_INJECTION_COUNT` | `[.items[] \| select(.rules[] \| contains("SQL Injection"))] \| unique_by(.attackId) \| length` |
+| `COMMAND_INJECTION_COUNT` | `[.items[] \| select(.rules[] \| contains("Command Injection"))] \| unique_by(.attackId) \| length` |
+| `XXE_COUNT` | `[.items[] \| select(.rules[] \| contains("XML External Entity"))] \| unique_by(.attackId) \| length` |
+| `LOG4SHELL_COUNT` | `[.items[] \| select(.rules[] \| contains("Log4"))] \| unique_by(.attackId) \| length` |
+| `DESERIALIZATION_COUNT` | `[.items[] \| select(.rules[] \| contains("Deserialization"))] \| unique_by(.attackId) \| length` |
+| `PATH_TRAVERSAL_COUNT` | `[.items[] \| select(.rules[] \| contains("Path Traversal"))] \| unique_by(.attackId) \| length` |
+| `XSS_COUNT` | `[.items[] \| select(.rules[] \| contains("Cross-Site Scripting"))] \| unique_by(.attackId) \| length` |
+| `OLDEST_ATTACK` | `.items \| min_by(.startTimeMs) \| .attackId` |
+| `NEWEST_ATTACK` | `.items \| max_by(.startTimeMs) \| .attackId` |
+| `HIGH_PROBE_ATTACK` | `.items \| max_by(.probes) \| .attackId` |
+| `MULTI_APP_ATTACKS` | `[.items[] \| select((.applications \| length) > 1)] \| length` |
 
 ### Step 3: Execute Tests
 
