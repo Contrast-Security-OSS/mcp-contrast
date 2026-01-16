@@ -28,7 +28,7 @@ search_attacks(quickFilter="ALL", pageSize=100)
 
 ### Step 2: Derive Expected Values Using Code
 
-**CRITICAL: Do NOT manually count values by visually inspecting the JSON response.**
+**CRITICAL--THIS IS EXTREMELY IMPORTANT!!!: Do NOT manually count values by visually inspecting the JSON response.**
 Manual counting is error-prone, especially for nested arrays like `rules`. You MUST use
 `jq` or equivalent code to compute all baseline metrics programmatically.
 
@@ -114,6 +114,53 @@ echo "$BASELINE" | jq 'reduce .items[] as $item ({}; .[$item.source] += [$item.a
 | `NEWEST_ATTACK` | `.items \| max_by(.startTimeMs) \| .attackId` |
 | `HIGH_PROBE_ATTACK` | `.items \| max_by(.probes) \| .attackId` |
 | `MULTI_APP_ATTACKS` | `[.items[] \| select((.applications \| length) > 1)] \| length` |
+
+### Complete Baseline Script
+
+Save the baseline JSON to a file, then run this script to compute all metrics at once:
+
+```bash
+#!/bin/bash
+# Usage: ./compute_baseline.sh baseline_attacks.json
+
+BASELINE=$(cat "${1:-baseline_attacks.json}")
+
+echo "=== STATUS COUNTS ==="
+echo "TOTAL_ATTACKS: $(echo "$BASELINE" | jq '.totalItems')"
+echo "EXPLOITED_COUNT: $(echo "$BASELINE" | jq '[.items[] | select(.status == "EXPLOITED")] | length')"
+echo "BLOCKED_COUNT: $(echo "$BASELINE" | jq '[.items[] | select(.status == "BLOCKED")] | length')"
+echo "PROBED_COUNT: $(echo "$BASELINE" | jq '[.items[] | select(.status == "PROBED")] | length')"
+echo "EFFECTIVE_COUNT: $(echo "$BASELINE" | jq '[.items[] | select(.status != "PROBED")] | length')"
+
+echo ""
+echo "=== RULE-BASED COUNTS ==="
+echo "SQL_INJECTION_COUNT: $(echo "$BASELINE" | jq '[.items[] | select(.rules[] | contains("SQL Injection"))] | unique_by(.attackId) | length')"
+echo "COMMAND_INJECTION_COUNT: $(echo "$BASELINE" | jq '[.items[] | select(.rules[] | contains("Command Injection"))] | unique_by(.attackId) | length')"
+echo "XXE_COUNT: $(echo "$BASELINE" | jq '[.items[] | select(.rules[] | contains("XML External Entity"))] | unique_by(.attackId) | length')"
+echo "LOG4SHELL_COUNT: $(echo "$BASELINE" | jq '[.items[] | select(.rules[] | contains("Log4"))] | unique_by(.attackId) | length')"
+echo "DESERIALIZATION_COUNT: $(echo "$BASELINE" | jq '[.items[] | select(.rules[] | contains("Deserialization"))] | unique_by(.attackId) | length')"
+echo "PATH_TRAVERSAL_COUNT: $(echo "$BASELINE" | jq '[.items[] | select(.rules[] | contains("Path Traversal"))] | unique_by(.attackId) | length')"
+echo "XSS_COUNT: $(echo "$BASELINE" | jq '[.items[] | select(.rules[] | contains("Cross-Site Scripting"))] | unique_by(.attackId) | length')"
+
+echo ""
+echo "=== TEMPORAL AND AGGREGATE METRICS ==="
+echo "OLDEST_ATTACK: $(echo "$BASELINE" | jq '.items | min_by(.startTimeMs) | {attackId, startTime, source}')"
+echo "NEWEST_ATTACK: $(echo "$BASELINE" | jq '.items | max_by(.startTimeMs) | {attackId, startTime, source}')"
+echo "HIGH_PROBE_ATTACK: $(echo "$BASELINE" | jq '.items | max_by(.probes) | {attackId, probes, source}')"
+echo "MULTI_APP_ATTACKS: $(echo "$BASELINE" | jq '[.items[] | select((.applications | length) > 1)] | length')"
+
+echo ""
+echo "=== UNIQUE SOURCE IPS ==="
+echo "$BASELINE" | jq 'reduce .items[] as $item ({}; .[$item.source] += [$item.attackId])'
+
+echo ""
+echo "=== ATTACKS WITH 1 PROBE ==="
+echo "$BASELINE" | jq '[.items[] | select(.probes == 1)] | .[] | {attackId, source, probes}'
+
+echo ""
+echo "=== ATTACK WITH MOST RULES ==="
+echo "$BASELINE" | jq '.items | max_by(.rules | length) | {attackId, source, rules_count: (.rules | length), rules}'
+```
 
 ### Step 3: Execute Tests
 
