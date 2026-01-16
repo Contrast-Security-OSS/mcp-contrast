@@ -465,7 +465,7 @@ use contrast mcp to get the protect rules for the Java app 03c0a8d2-a6e6-46aa-b6
 
 **Prompt:**
 ```
-use contrast mcp to get the protect rules for application 03c0a8d2-a6e6-46aa-b602-f242811d10bf and find rules where the mode differs between development, QA, and production
+use contrast mcp to get the protect rules for application d112a86c-c664-4773-a323-40e327540b8a and find rules where the mode differs between development, QA, and production
 ```
 
 **Expected Result:**
