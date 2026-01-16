@@ -73,4 +73,12 @@ class LibraryExtendedTest {
 
     assertThat(library.getTotalVulnerabilities()).isEqualTo(4);
   }
+
+  @Test
+  void criticalVulnerabilities_should_be_settable_and_gettable() {
+    var library = new LibraryExtended();
+    library.setCriticalVulnerabilities(5);
+
+    assertThat(library.getCriticalVulnerabilities()).isEqualTo(5);
+  }
 }
