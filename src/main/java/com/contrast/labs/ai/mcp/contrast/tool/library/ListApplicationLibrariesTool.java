@@ -62,6 +62,9 @@ public class ListApplicationLibrariesTool
           - hash: Unique library hash for identification
           - classCount: Total classes in the library
           - classesUsed: Number of classes actually loaded by the application
+          - totalVulnerabilities: Total CVE count
+          - criticalVulnerabilities: CRITICAL severity CVE count
+          - highVulnerabilities: HIGH severity CVE count (not CRITICAL)
           - vulnerabilities: Known CVEs affecting this library version
           - grade: Library security grade (A-F)
 
