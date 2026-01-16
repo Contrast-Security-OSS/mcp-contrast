@@ -89,7 +89,17 @@ public class MetadataJsonFilterSpec {
   }
 
   private List<String> parseValues(Object val, String fieldName, List<String> invalidEntries) {
+    if (val == null) {
+      invalidEntries.add(
+          String.format("'%s' (empty value - must provide a non-empty value)", fieldName));
+      return null;
+    }
     if (val instanceof String s) {
+      if (s.isBlank()) {
+        invalidEntries.add(
+            String.format("'%s' (empty value - must provide a non-empty value)", fieldName));
+        return null;
+      }
       return List.of(s);
     } else if (val instanceof Number n) {
       return List.of(formatNumber(n));
@@ -101,17 +111,29 @@ public class MetadataJsonFilterSpec {
       }
       var strings = new ArrayList<String>();
       for (Object item : list) {
+        if (item == null) {
+          invalidEntries.add(
+              String.format(
+                  "'%s' (contains empty value - all values must be non-empty)", fieldName));
+          return null;
+        }
         if (item instanceof String s) {
+          if (s.isBlank()) {
+            invalidEntries.add(
+                String.format(
+                    "'%s' (contains empty value - all values must be non-empty)", fieldName));
+            return null;
+          }
           strings.add(s);
         } else if (item instanceof Number n) {
           strings.add(formatNumber(n));
-        } else if (item != null) {
+        } else {
           invalidEntries.add(String.format("'%s' (array contains non-string values)", fieldName));
           return null;
         }
       }
       return List.copyOf(strings);
-    } else if (val != null) {
+    } else {
       invalidEntries.add(String.format("'%s' (expected string or array of strings)", fieldName));
     }
     return null;
