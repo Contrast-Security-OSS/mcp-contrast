@@ -55,7 +55,8 @@ LibraryExtended {
     int classCount,               // Total classes in library
     int classesUsed,              // Classes actually loaded by app
     int totalVulnerabilities,     // Total CVE count
-    int highVulnerabilities,      // CRITICAL + HIGH CVE count
+    int criticalVulnerabilities,  // CRITICAL severity CVE count only
+    int highVulnerabilities,      // HIGH severity CVE count only (not CRITICAL)
     List<LibraryVulnerabilityExtended> vulns,  // CVE details
     String grade,                 // Security grade (A, B, C, D, F)
     double libScore,              // Numeric library score
@@ -228,11 +229,12 @@ LibraryExtended {
 
 **Test Steps:**
 1. Find library with vulnerabilities
-2. Count HIGH/CRITICAL in `vulns` list
-3. Compare to `highVulnerabilities` field
+2. Count CRITICAL and HIGH separately in `vulns` list
+3. Compare to `criticalVulnerabilities` and `highVulnerabilities` fields
 
 **Expected Results:**
-- `highVulnerabilities` = count of CRITICAL + HIGH
+- `criticalVulnerabilities` = count of CRITICAL severity only
+- `highVulnerabilities` = count of HIGH severity only (not CRITICAL)
 - Severity codes: CRITICAL, HIGH, MEDIUM, LOW
 - Counts are accurate
 
@@ -245,10 +247,10 @@ LibraryExtended {
 **Test Steps:**
 1. Find libraries where:
    - `classesUsed > 0` AND
-   - `highVulnerabilities > 0`
+   - (`criticalVulnerabilities > 0` OR `highVulnerabilities > 0`)
 
 **Expected Results:**
-- These are highest risk (used + critical CVEs)
+- These are highest risk (used + CRITICAL/HIGH CVEs)
 - Should be prioritized for upgrade
 - Can calculate risk score from these fields
 
@@ -722,6 +724,7 @@ The `list_application_libraries` tool passes testing if:
       "classCount": 1250,
       "classesUsed": 345,
       "totalVulnerabilities": 2,
+      "criticalVulnerabilities": 0,
       "highVulnerabilities": 1,
       "vulns": [
         {"severityCode": "HIGH"},
@@ -744,6 +747,7 @@ The `list_application_libraries` tool passes testing if:
       "classCount": 450,
       "classesUsed": 0,
       "totalVulnerabilities": 0,
+      "criticalVulnerabilities": 0,
       "highVulnerabilities": 0,
       "vulns": [],
       "grade": "A",

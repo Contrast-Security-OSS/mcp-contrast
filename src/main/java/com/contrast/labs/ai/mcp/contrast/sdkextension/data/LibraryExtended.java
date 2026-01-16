@@ -82,11 +82,11 @@ public class LibraryExtended {
   @SerializedName("total_vulnerabilities")
   private int totalVulnerabilities;
 
-  @SerializedName("high_vulnerabilities")
-  private int highVulnerabilities;
-
   @SerializedName("critical_vulnerabilities")
   private int criticalVulnerabilities;
+
+  @SerializedName("high_vulnerabilities")
+  private int highVulnerabilities;
 
   /**
    * Gets the total number of vulnerabilities.
