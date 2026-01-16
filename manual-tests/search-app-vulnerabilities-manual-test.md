@@ -220,16 +220,15 @@ use contrast mcp to get the vulnerabilities from the DemoRouteSession app with s
 
 ---
 
-### Test 16: Session metadata value case insensitivity
-**Purpose:** Verify that session metadata values are case-insensitive.
+### Test 16: Session metadata value case sensitivity
+**Purpose:** Verify that session metadata values are case-sensitive.
 
 **Prompt:**
 ```
 use contrast mcp to get the vulnerabilities from the DemoRouteSession app with session metadata of developer=ellen
 ```
 
-**Expected Result:** 1 vulnerability returned (same as Test 15) - values are case-insensitive, "ellen" matches "Ellen"
-- 0VOL-VW0M-Y0C1-Q97K (sql-injection)
+**Expected Result:** 0 vulnerabilities returned - values are case-sensitive, "ellen" does NOT match "Ellen"
 
 ---
 
@@ -534,7 +533,7 @@ use contrast mcp to get the vulnerabilities from the DemoRouteSession app with v
 | 13 | VulnType | sql-injection,log-injection | 2 |
 | 14 | VulnType | xss-reflected | 0 |
 | 15 | Session Metadata | developer=John | 0 |
-| 16 | Session Metadata | developer=ellen (case-insensitive) | 1 |
+| 16 | Session Metadata | developer=ellen (case-sensitive) | 0 |
 | 17 | Session Metadata | DEVELOPER=Ellen | 1 |
 | 18 | Session Metadata | commit=[100,200] | 2 |
 | 19 | Session Metadata | developer=Ellen,commit=200 | 0 |
