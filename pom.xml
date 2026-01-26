@@ -32,7 +32,7 @@
 		<guava.version>33.4.7-jre</guava.version>
 		<contrast.sdk.version>3.6.0</contrast.sdk.version>
 		<mockito-inline.version>5.2.0</mockito-inline.version>
-		<assertj.version>3.27.6</assertj.version>
+		<assertj.version>3.27.7</assertj.version>
 		<maven-failsafe-plugin.version>3.5.3</maven-failsafe-plugin.version>
 		<spotless-maven-plugin.version>2.43.0</spotless-maven-plugin.version>
 		<google-java-format.version>1.26.0</google-java-format.version>
