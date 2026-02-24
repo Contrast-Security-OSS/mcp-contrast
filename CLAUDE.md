@@ -342,6 +342,10 @@ Never use `$()` substitution to pass multi-line comment text — use `-f` instea
 - `needs-human-review` - Bead requires human approval before AI can start work
 - `human-reviewed` - Bead has been reviewed and approved by human, AI may proceed when ready
 
+## Helper Scripts
+
+- **`scripts/br-set-design <bead-id> <file-path>`** — Copy plan file into bead design field. Always use this instead of `br update --design` (CLI misparses `--` in markdown).
+
 ## Project Management
 
 ### Jira Issue Tracking
