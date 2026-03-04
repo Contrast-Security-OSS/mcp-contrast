@@ -174,7 +174,12 @@ class SearchApplicationsToolTest {
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors())
-        .anyMatch(e -> e.contains("unknownField") && e.contains("not found"));
+        .singleElement()
+        .satisfies(
+            error -> {
+              assertThat(error).startsWith("An internal error occurred (ref: ");
+              assertThat(error).doesNotContain("unknownField");
+            });
 
     verify(sdkExtension).getApplicationMetadataFields(anyString());
     verify(sdkExtension, never())

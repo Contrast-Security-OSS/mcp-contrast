@@ -198,7 +198,7 @@ class ListApplicationsByCveToolTest {
     var result = tool.listApplicationsByCve(TEST_CVE_ID);
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).anyMatch(e -> e.contains("Internal error"));
+    assertThat(result.errors()).anyMatch(e -> e.startsWith("An internal error occurred (ref: "));
   }
 
   @Test

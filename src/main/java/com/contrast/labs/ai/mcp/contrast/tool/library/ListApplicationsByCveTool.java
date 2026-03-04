@@ -142,12 +142,12 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
           }
         }
       } catch (Exception e) {
-        log.debug("Could not fetch library data for app {}: {}", app.getAppId(), e.getMessage());
-        warnings.add(
-            "Could not fetch class usage data for application '"
-                + app.getName()
-                + "': "
-                + e.getMessage());
+        log.atWarn()
+            .addKeyValue("appId", app.getAppId())
+            .setCause(e)
+            .setMessage("Could not fetch library data")
+            .log();
+        warnings.add("Could not fetch class usage data for application '" + app.getName() + "'");
       }
     }
   }

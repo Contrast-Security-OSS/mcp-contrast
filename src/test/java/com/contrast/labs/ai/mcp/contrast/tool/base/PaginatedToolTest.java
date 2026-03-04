@@ -95,7 +95,7 @@ class PaginatedToolTest {
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors().get(0)).startsWith("Resource not found:");
+    assertThat(result.errors()).containsExactly("Resource not found");
   }
 
   @Test
@@ -152,7 +152,30 @@ class PaginatedToolTest {
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly("Internal error: Unexpected failure");
+    assertThat(result.errors())
+        .singleElement()
+        .satisfies(error -> assertThat(error).startsWith("An internal error occurred (ref: "));
+  }
+
+  @Test
+  void executePipeline_should_not_expose_exception_message_in_error() {
+    tool.setDoExecuteHandler(
+        (pagination, params, warnings) -> {
+          throw new RuntimeException("sensitive: /api/ng/org-id/traces");
+        });
+
+    var result = tool.executePipeline(1, 10, () -> TestParams.valid());
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors())
+        .singleElement()
+        .satisfies(
+            error -> {
+              assertThat(error).startsWith("An internal error occurred (ref: ");
+              assertThat(error).doesNotContain("/api/ng/");
+              assertThat(error).doesNotContain("org-id");
+              assertThat(error).doesNotContain("traces");
+            });
   }
 
   @Test

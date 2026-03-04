@@ -86,7 +86,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
     } catch (ResourceNotFoundException e) {
       var duration = System.currentTimeMillis() - startTime;
       logNotFound(requestId, duration);
-      return SingleToolResponse.notFound(e.getMessage(), warnings);
+      return SingleToolResponse.notFound("Resource not found", warnings);
     } catch (UnauthorizedException e) {
       return handleException(
           e,
@@ -102,7 +102,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
           .setCause(e)
           .setMessage("Request failed unexpectedly")
           .log();
-      return SingleToolResponse.error("Internal error: " + e.getMessage());
+      return SingleToolResponse.error("An internal error occurred (ref: " + requestId + ")");
     }
   }
 

@@ -143,6 +143,6 @@ class GetSastProjectToolTest {
     var result = tool.getScanProject(TEST_PROJECT_NAME);
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).anyMatch(e -> e.contains("Internal error"));
+    assertThat(result.errors()).anyMatch(e -> e.startsWith("An internal error occurred (ref: "));
   }
 }

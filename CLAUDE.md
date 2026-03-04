@@ -87,7 +87,7 @@ tool/
 The application uses Spring Boot configuration with the following key properties:
 - `spring.ai.mcp.server.name=mcp-contrast`
 - `spring.main.web-application-type=none` (CLI application, not web server)
-- `contrast.api.protocol=https` (configurable for local development)
+- `contrast.api.protocol=https` (HTTPS only — server rejects HTTP at startup)
 
 Required environment variables/arguments:
 - `CONTRAST_HOST_NAME` - Contrast TeamServer URL

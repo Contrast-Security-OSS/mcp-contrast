@@ -104,6 +104,6 @@ class GetSessionMetadataToolTest {
     var result = tool.getSessionMetadata("app-123");
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).anyMatch(e -> e.contains("Internal error"));
+    assertThat(result.errors()).anyMatch(e -> e.startsWith("An internal error occurred (ref: "));
   }
 }
