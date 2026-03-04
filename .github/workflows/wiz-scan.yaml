@@ -15,9 +15,24 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
 
-      - name: Build and scan image using Wiz
-        uses: Contrast-Security-Inc/common-github-actions/run-wiz-scan-build-image@master
-        with:
+      - name: Build the Docker image
+        run: docker build . --tag contrast-mcp:dev
+
+      - name: Download Wiz CLI
+        run: curl -o wizcli https://downloads.wiz.io/v1/wizcli/latest/wizcli-linux-amd64 && chmod +x wizcli
+
+      - name: Authenticate to Wiz
+        run: ./wizcli auth --id "$WIZ_CLIENT_ID" --secret "$WIZ_CLIENT_SECRET"
+        env:
           WIZ_CLIENT_ID: ${{ secrets.WIZ_CLIENT_ID }}
           WIZ_CLIENT_SECRET: ${{ secrets.WIZ_CLIENT_SECRET }}
-          DOCKER_IMAGE: contrast-mcp:dev
+
+      - name: Run Wiz CLI container image scan
+        run: ./wizcli scan container-image contrast-mcp:dev --policies "Block-VM" --csv-output-file="mcp-contrast-wiz-report.zip" --by-policy-hits="BLOCK" --show-ignored-by-grace-period
+
+      - name: Capture Wiz Output
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: mcp-contrast-wiz-report
+          path: |
+            mcp-contrast-wiz-report.zip
