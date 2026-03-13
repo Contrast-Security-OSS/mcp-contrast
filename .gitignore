@@ -58,3 +58,8 @@ test-plan-results/
 test-plans-archive/
 .tldr/
 .tldrignore
+
+### Local tools ###
+.abacus/
+.cass/
+docs/brainstorms/
