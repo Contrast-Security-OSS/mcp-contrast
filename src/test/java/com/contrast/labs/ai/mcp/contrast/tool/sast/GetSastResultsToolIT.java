@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -47,6 +48,7 @@ import org.springframework.test.context.TestPropertySource;
 @Tag("integration")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @EnabledIfEnvironmentVariable(named = "CONTRAST_HOST_NAME", matches = ".+")
+@Disabled("SAST endpoint is broken and pending re-implementation — re-enable when fixed")
 class GetSastResultsToolIT {
 
   @Autowired private GetSastResultsTool getSastResultsTool;
