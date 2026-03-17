@@ -18,8 +18,8 @@ package com.contrast.labs.ai.mcp.contrast.tool.base;
 import com.contrastsecurity.exceptions.HttpResponseException;
 import com.contrastsecurity.exceptions.ResourceNotFoundException;
 import com.contrastsecurity.exceptions.UnauthorizedException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
@@ -61,8 +61,9 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
     // 1. Parse tool-specific params (collects all errors)
     var params = paramsSupplier.get();
 
-    // 2. MUTABLE warnings list - doExecute can ADD to this
-    var warnings = new ArrayList<>(params.warnings());
+    // 2. Collector accumulates warnings from all stages
+    var collector = WarningCollector.forContext(log, Map.of("requestId", requestId));
+    params.warnings().forEach(collector::warn);
 
     // 3. Single validation checkpoint - ALL errors collected
     if (!params.isValid()) {
@@ -72,30 +73,30 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
 
     // 4. Execute - doExecute returns item or null if not found
     try {
-      var result = doExecute(params, warnings);
+      var result = doExecute(params, collector);
       var duration = System.currentTimeMillis() - startTime;
 
       if (result == null) {
         logNotFound(requestId, duration);
-        return SingleToolResponse.notFound("Resource not found", warnings);
+        return SingleToolResponse.notFound("Resource not found", collector.snapshot());
       }
 
       logSuccess(requestId, duration);
-      return SingleToolResponse.success(result, warnings);
+      return SingleToolResponse.success(result, collector.snapshot());
 
     } catch (ResourceNotFoundException e) {
       var duration = System.currentTimeMillis() - startTime;
       logNotFound(requestId, duration);
-      return SingleToolResponse.notFound("Resource not found", warnings);
+      return SingleToolResponse.notFound("Resource not found", collector.snapshot());
     } catch (UnauthorizedException e) {
       return handleException(
           e,
           requestId,
           "Authentication failed or resource not found. Verify credentials and that the resource ID"
               + " is correct.",
-          warnings);
+          collector);
     } catch (HttpResponseException e) {
-      return handleHttpResponseException(e, requestId, warnings);
+      return handleHttpResponseException(e, requestId, collector);
     } catch (Exception e) {
       log.atError()
           .addKeyValue("requestId", requestId)
@@ -110,27 +111,27 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
    * Subclasses implement single-item retrieval logic.
    *
    * @param params validated tool-specific params
-   * @param warnings MUTABLE list - add execution-time warnings here
+   * @param collector warning accumulator - call {@link WarningCollector#warn}, {@link
+   *     WarningCollector#tryFetch}, or {@link WarningCollector#tryFetchNonNull} to record warnings
    * @return the item, or null if not found
    * @throws Exception any exception from SDK or processing
    */
-  protected abstract R doExecute(P params, List<String> warnings) throws Exception;
+  protected abstract R doExecute(P params, WarningCollector collector) throws Exception;
 
   private SingleToolResponse<R> handleException(
-      Exception e, String requestId, String userMessage, List<String> warnings) {
+      Exception e, String requestId, String userMessage, WarningCollector collector) {
     log.atWarn()
         .addKeyValue("requestId", requestId)
         .addKeyValue("exceptionType", e.getClass().getSimpleName())
         .setMessage("Request failed: {}")
         .addArgument(e.getMessage())
         .log();
-    var allWarnings = new ArrayList<>(warnings);
-    allWarnings.add(userMessage);
-    return new SingleToolResponse<>(null, List.of(userMessage), allWarnings, false);
+    collector.warn(userMessage);
+    return new SingleToolResponse<>(null, List.of(userMessage), collector.snapshot(), false);
   }
 
   private SingleToolResponse<R> handleHttpResponseException(
-      HttpResponseException e, String requestId, List<String> warnings) {
+      HttpResponseException e, String requestId, WarningCollector collector) {
 
     String errorMessage = mapHttpErrorCode(e.getCode());
 

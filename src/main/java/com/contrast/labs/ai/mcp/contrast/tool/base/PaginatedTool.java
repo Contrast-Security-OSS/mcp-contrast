@@ -20,8 +20,8 @@ import static com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConsta
 import com.contrastsecurity.exceptions.HttpResponseException;
 import com.contrastsecurity.exceptions.ResourceNotFoundException;
 import com.contrastsecurity.exceptions.UnauthorizedException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
@@ -80,10 +80,10 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
     // 2. Parse tool-specific params (collects all errors)
     var params = paramsSupplier.get();
 
-    // 3. MUTABLE warnings list - doExecute can ADD to this
-    var warnings = new ArrayList<String>();
-    warnings.addAll(pagination.warnings());
-    warnings.addAll(params.warnings());
+    // 3. Collector accumulates warnings from all stages
+    var collector = WarningCollector.forContext(log, Map.of("requestId", requestId));
+    pagination.warnings().forEach(collector::warn);
+    params.warnings().forEach(collector::warn);
 
     // 4. Single validation checkpoint - ALL errors collected
     if (!params.isValid()) {
@@ -92,13 +92,13 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
           pagination.page(), pagination.pageSize(), params.errors());
     }
 
-    // 5. Execute - doExecute returns intermediate result, can add warnings
+    // 5. Execute - doExecute returns intermediate result, can add warnings via collector
     try {
-      var result = doExecute(pagination, params, warnings);
+      var result = doExecute(pagination, params, collector);
       var duration = System.currentTimeMillis() - startTime;
 
       // 6. BASE CLASS builds final response - ensures consistency
-      return buildSuccessResponse(result, pagination, warnings, duration, requestId);
+      return buildSuccessResponse(result, pagination, collector, duration, requestId);
 
     } catch (UnauthorizedException e) {
       return handleException(
@@ -129,12 +129,13 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
    *
    * @param pagination validated pagination params
    * @param params validated tool-specific params
-   * @param warnings MUTABLE list - add execution-time warnings here
+   * @param collector warning accumulator - call {@link WarningCollector#warn}, {@link
+   *     WarningCollector#tryFetch}, or {@link WarningCollector#tryFetchNonNull} to record warnings
    * @return ExecutionResult with items and optional total count
    * @throws Exception any exception from SDK or processing
    */
   protected abstract ExecutionResult<R> doExecute(
-      PaginationParams pagination, P params, List<String> warnings) throws Exception;
+      PaginationParams pagination, P params, WarningCollector collector) throws Exception;
 
   private PaginatedToolResponse<R> handleException(
       Exception e, PaginationParams pagination, String requestId, String userMessage) {
@@ -165,12 +166,12 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
   private PaginatedToolResponse<R> buildSuccessResponse(
       ExecutionResult<R> result,
       PaginationParams pagination,
-      List<String> warnings,
+      WarningCollector collector,
       long duration,
       String requestId) {
 
     if (result.items().isEmpty() && result.totalItems() != null && result.totalItems() == 0) {
-      warnings.add("No results found matching the specified criteria.");
+      collector.warn("No results found matching the specified criteria.");
     }
 
     boolean hasMore = calculateHasMorePages(result, pagination);
@@ -183,7 +184,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
         pagination.pageSize(),
         result.totalItems(),
         hasMore,
-        warnings,
+        collector.snapshot(),
         duration);
   }
 

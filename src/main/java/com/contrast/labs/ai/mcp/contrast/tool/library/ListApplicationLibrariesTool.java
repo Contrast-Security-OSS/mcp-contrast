@@ -21,6 +21,7 @@ import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
+import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.library.params.ListApplicationLibrariesParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants;
 import java.util.List;
@@ -87,7 +88,9 @@ public class ListApplicationLibrariesTool
 
   @Override
   protected ExecutionResult<LibraryExtended> doExecute(
-      PaginationParams pagination, ListApplicationLibrariesParams params, List<String> warnings)
+      PaginationParams pagination,
+      ListApplicationLibrariesParams params,
+      WarningCollector collector)
       throws Exception {
     var orgId = getOrgId();
     var extendedSDK = getSDKExtension();
@@ -107,7 +110,7 @@ public class ListApplicationLibrariesTool
       // Only add warning if this is page 1 (no libraries exist at all)
       // For subsequent pages beyond results, empty is expected behavior
       if (pagination.offset() == 0 && total == 0) {
-        warnings.add(
+        collector.warn(
             "No libraries found for this application. "
                 + "The application may not have any third-party dependencies, "
                 + "or library data may not have been collected yet.");

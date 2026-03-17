@@ -265,8 +265,8 @@ class PaginatedToolTest {
   @Test
   void executePipeline_should_allow_doExecute_to_add_warnings() {
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) -> {
-          warnings.add("Session filtering applied");
+        (pagination, params, collector) -> {
+          collector.warn("Session filtering applied");
           return ExecutionResult.of(List.of("item"), 1);
         });
 
@@ -298,9 +298,10 @@ class PaginatedToolTest {
 
     @Override
     protected ExecutionResult<String> doExecute(
-        PaginationParams pagination, TestParams params, List<String> warnings) throws Exception {
+        PaginationParams pagination, TestParams params, WarningCollector collector)
+        throws Exception {
       if (handler != null) {
-        return handler.execute(pagination, params, warnings);
+        return handler.execute(pagination, params, collector);
       }
       return ExecutionResult.empty();
     }
@@ -308,7 +309,8 @@ class PaginatedToolTest {
     @FunctionalInterface
     interface DoExecuteHandler {
       ExecutionResult<String> execute(
-          PaginationParams pagination, TestParams params, List<String> warnings) throws Exception;
+          PaginationParams pagination, TestParams params, WarningCollector collector)
+          throws Exception;
     }
   }
 

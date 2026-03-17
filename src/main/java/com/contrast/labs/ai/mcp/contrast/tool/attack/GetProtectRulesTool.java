@@ -19,6 +19,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.tool.attack.params.GetProtectRulesParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -65,7 +66,7 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
   }
 
   @Override
-  protected ProtectData doExecute(GetProtectRulesParams params, List<String> warnings)
+  protected ProtectData doExecute(GetProtectRulesParams params, WarningCollector collector)
       throws Exception {
     var extendedSDK = getSDKExtension();
 
@@ -85,7 +86,7 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
         params.appId());
 
     if (ruleCount == 0) {
-      warnings.add("Application has Protect enabled but no rules are configured.");
+      collector.warn("Application has Protect enabled but no rules are configured.");
     }
 
     return protectData;

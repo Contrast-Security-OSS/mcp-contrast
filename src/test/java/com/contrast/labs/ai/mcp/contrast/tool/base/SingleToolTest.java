@@ -204,8 +204,8 @@ class SingleToolTest {
   @Test
   void executePipeline_should_allow_doExecute_to_add_warnings() {
     tool.setDoExecuteHandler(
-        (params, warnings) -> {
-          warnings.add("Partial data returned");
+        (params, collector) -> {
+          collector.warn("Partial data returned");
           return "result";
         });
 
@@ -218,8 +218,8 @@ class SingleToolTest {
   @Test
   void executePipeline_should_preserve_warnings_when_unauthorized_exception_occurs() {
     tool.setDoExecuteHandler(
-        (params, warnings) -> {
-          warnings.add("Warning added before exception");
+        (params, collector) -> {
+          collector.warn("Warning added before exception");
           throw new UnauthorizedException(
               "Invalid credentials", "GET", "/api/test", 401, "Unauthorized");
         });
@@ -248,16 +248,16 @@ class SingleToolTest {
     }
 
     @Override
-    protected String doExecute(TestParams params, List<String> warnings) throws Exception {
+    protected String doExecute(TestParams params, WarningCollector collector) throws Exception {
       if (handler != null) {
-        return handler.execute(params, warnings);
+        return handler.execute(params, collector);
       }
       return null;
     }
 
     @FunctionalInterface
     interface DoExecuteHandler {
-      String execute(TestParams params, List<String> warnings) throws Exception;
+      String execute(TestParams params, WarningCollector collector) throws Exception;
     }
   }
 

@@ -18,8 +18,8 @@ package com.contrast.labs.ai.mcp.contrast.tool.sast;
 import com.contrast.labs.ai.mcp.contrast.result.ScanProject;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.sast.params.GetSastProjectParams;
-import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -64,7 +64,7 @@ public class GetSastProjectTool extends SingleTool<GetSastProjectParams, ScanPro
   }
 
   @Override
-  protected ScanProject doExecute(GetSastProjectParams params, List<String> warnings)
+  protected ScanProject doExecute(GetSastProjectParams params, WarningCollector collector)
       throws Exception {
     var sdk = getContrastSDK();
     var orgId = getOrgId();

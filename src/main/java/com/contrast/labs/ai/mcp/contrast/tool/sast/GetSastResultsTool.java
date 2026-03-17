@@ -17,10 +17,10 @@ package com.contrast.labs.ai.mcp.contrast.tool.sast;
 
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.sast.params.GetSastResultsParams;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -69,12 +69,13 @@ public class GetSastResultsTool extends SingleTool<GetSastResultsParams, String>
   }
 
   @Override
-  protected String doExecute(GetSastResultsParams params, List<String> warnings) throws Exception {
+  protected String doExecute(GetSastResultsParams params, WarningCollector collector)
+      throws Exception {
     var sdk = getContrastSDK();
     var orgId = getOrgId();
 
     // Add deprecation warning at start - shown on every call regardless of success/failure
-    warnings.add(
+    collector.warn(
         "DEPRECATED: This tool returns raw SARIF which may be very large. "
             + "Consider using future paginated SAST search tools for better AI-friendly access.");
 
@@ -94,7 +95,7 @@ public class GetSastResultsTool extends SingleTool<GetSastResultsParams, String>
 
     // Check if project has any completed scans
     if (project.lastScanId() == null) {
-      warnings.add(
+      collector.warn(
           String.format(
               "No scan results available for project: %s. "
                   + "Project exists but has no completed scans.",
@@ -108,7 +109,7 @@ public class GetSastResultsTool extends SingleTool<GetSastResultsParams, String>
 
     var scan = scans.get(project.lastScanId());
     if (scan == null) {
-      warnings.add(
+      collector.warn(
           String.format(
               "No scan results available for project: %s. Scan ID %s not found.",
               params.projectName(), project.lastScanId()));
