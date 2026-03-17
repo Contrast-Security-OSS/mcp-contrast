@@ -112,10 +112,17 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<!-- Spotless touches file timestamps during apply, which causes Maven's
-					     incremental compiler to recompile files without re-running Lombok's
+					<!-- Declare Lombok as an explicit annotationProcessorPath so it runs
+					     correctly on incremental recompiles (e.g. after Spotless touches
+					     timestamps). Without this, incremental compilation skips Lombok's
 					     annotation processor, breaking @Slf4j log field generation. -->
-					<useIncrementalCompilation>false</useIncrementalCompilation>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>1.18.38</version>
+						</path>
+					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
 			<plugin>
