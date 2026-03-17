@@ -27,21 +27,21 @@ class WarningCollectorTest {
   private static final org.slf4j.Logger log = LoggerFactory.getLogger(WarningCollectorTest.class);
 
   @Test
-  void tryFetch_should_return_value_when_supplier_succeeds() {
+  void tryFetchRequired_should_return_value_when_supplier_succeeds() {
     var collector = WarningCollector.forContext(log, Map.of());
 
-    var result = collector.<String>tryFetch("Test data", () -> "value");
+    var result = collector.<String>tryFetchRequired("Test data", () -> "value");
 
     assertThat(result).contains("value");
     assertThat(collector.snapshot()).isEmpty();
   }
 
   @Test
-  void tryFetch_should_return_empty_and_record_warning_when_supplier_throws() {
+  void tryFetchRequired_should_return_empty_and_record_warning_when_supplier_throws() {
     var collector = WarningCollector.forContext(log, Map.of());
 
     var result =
-        collector.<String>tryFetch(
+        collector.<String>tryFetchRequired(
             "Recommendation data",
             () -> {
               throw new RuntimeException("API error");
@@ -53,10 +53,10 @@ class WarningCollectorTest {
   }
 
   @Test
-  void tryFetch_should_return_empty_and_record_warning_when_supplier_returns_null() {
+  void tryFetchRequired_should_return_empty_and_record_warning_when_supplier_returns_null() {
     var collector = WarningCollector.forContext(log, Map.of());
 
-    var result = collector.<String>tryFetch("Null data", () -> null);
+    var result = collector.<String>tryFetchRequired("Null data", () -> null);
 
     assertThat(result).isEmpty();
     assertThat(collector.snapshot()).hasSize(1);
@@ -64,31 +64,31 @@ class WarningCollectorTest {
   }
 
   @Test
-  void tryFetchNonNull_should_return_empty_without_warning_when_supplier_returns_null() {
+  void tryFetch_should_return_empty_without_warning_when_supplier_returns_null() {
     var collector = WarningCollector.forContext(log, Map.of());
 
-    var result = collector.<String>tryFetchNonNull("Optional data", () -> null);
+    var result = collector.<String>tryFetch("Optional data", () -> null);
 
     assertThat(result).isEmpty();
     assertThat(collector.snapshot()).isEmpty();
   }
 
   @Test
-  void tryFetchNonNull_should_return_value_when_supplier_returns_non_null() {
+  void tryFetch_should_return_value_when_supplier_returns_non_null() {
     var collector = WarningCollector.forContext(log, Map.of());
 
-    var result = collector.<String>tryFetchNonNull("Optional data", () -> "value");
+    var result = collector.<String>tryFetch("Optional data", () -> "value");
 
     assertThat(result).contains("value");
     assertThat(collector.snapshot()).isEmpty();
   }
 
   @Test
-  void tryFetchNonNull_should_return_empty_and_record_warning_when_supplier_throws() {
+  void tryFetch_should_return_empty_and_record_warning_when_supplier_throws() {
     var collector = WarningCollector.forContext(log, Map.of());
 
     var result =
-        collector.<String>tryFetchNonNull(
+        collector.<String>tryFetch(
             "Optional data",
             () -> {
               throw new RuntimeException("API error");
@@ -126,10 +126,10 @@ class WarningCollectorTest {
   }
 
   @Test
-  void tryFetch_should_indicate_retrieval_error_in_warning_when_supplier_throws() {
+  void tryFetchRequired_should_indicate_retrieval_error_in_warning_when_supplier_throws() {
     var collector = WarningCollector.forContext(log, Map.of());
 
-    collector.<String>tryFetch(
+    collector.<String>tryFetchRequired(
         "Recommendation data",
         () -> {
           throw new RuntimeException("403 Forbidden");
@@ -140,19 +140,19 @@ class WarningCollectorTest {
   }
 
   @Test
-  void tryFetch_should_not_indicate_error_in_warning_when_supplier_returns_null() {
+  void tryFetchRequired_should_not_indicate_error_in_warning_when_supplier_returns_null() {
     var collector = WarningCollector.forContext(log, Map.of());
 
-    collector.<String>tryFetch("Null data", () -> null);
+    collector.<String>tryFetchRequired("Null data", () -> null);
 
     assertThat(collector.snapshot().get(0)).isEqualTo("Null data not available");
   }
 
   @Test
-  void tryFetchNonNull_should_indicate_retrieval_error_in_warning_when_supplier_throws() {
+  void tryFetch_should_indicate_retrieval_error_in_warning_when_supplier_throws() {
     var collector = WarningCollector.forContext(log, Map.of());
 
-    collector.<String>tryFetchNonNull(
+    collector.<String>tryFetch(
         "HTTP request data",
         () -> {
           throw new RuntimeException("Connection timeout");
@@ -189,17 +189,17 @@ class WarningCollectorTest {
   void multiple_failed_fetches_should_accumulate_warnings_independently() {
     var collector = WarningCollector.forContext(log, Map.of());
 
-    collector.<String>tryFetch(
+    collector.<String>tryFetchRequired(
         "First data",
         () -> {
           throw new RuntimeException();
         });
-    collector.<String>tryFetch(
+    collector.<String>tryFetchRequired(
         "Second data",
         () -> {
           throw new RuntimeException();
         });
-    collector.<String>tryFetch(
+    collector.<String>tryFetchRequired(
         "Third data",
         () -> {
           throw new RuntimeException();
