@@ -20,18 +20,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.contrastsecurity.exceptions.HttpResponseException;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
-@Slf4j
 class WarningCollectorTest {
 
   private WarningCollector collector;
 
   @BeforeEach
   void setUp() {
-    collector = WarningCollector.forContext(log, Map.of());
+    collector =
+        WarningCollector.forContext(LoggerFactory.getLogger(WarningCollectorTest.class), Map.of());
   }
 
   @Test
