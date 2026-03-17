@@ -318,6 +318,14 @@ Never use `$()` substitution to pass multi-line comment text — use `-f` instea
 - `in_progress` → Actively working on task (SET THIS WHEN YOU START!)
 - `closed` → Task complete, tested, and merged
 
+### Adding Comments to Beads
+
+```bash
+br comments add <bead-id> "comment text"
+```
+
+Note: `br comment` (no s) does NOT work — the correct subcommand is `br comments add`.
+
 ### Human Review Required Label
 
 **IMPORTANT: Beads labeled `needs-human-review` require human approval before AI work begins.**
