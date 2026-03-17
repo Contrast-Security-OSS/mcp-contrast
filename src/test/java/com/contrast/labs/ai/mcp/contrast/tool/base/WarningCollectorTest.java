@@ -19,17 +19,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.LoggerFactory;
 
+@Slf4j
 class WarningCollectorTest {
 
-  private static final org.slf4j.Logger log = LoggerFactory.getLogger(WarningCollectorTest.class);
+  private WarningCollector collector;
+
+  @BeforeEach
+  void setUp() {
+    collector = WarningCollector.forContext(log, Map.of());
+  }
 
   @Test
   void tryFetchRequired_should_return_value_when_supplier_succeeds() {
-    var collector = WarningCollector.forContext(log, Map.of());
-
     var result = collector.<String>tryFetchRequired("Test data", () -> "value");
 
     assertThat(result).contains("value");
@@ -38,8 +43,6 @@ class WarningCollectorTest {
 
   @Test
   void tryFetchRequired_should_return_empty_and_record_warning_when_supplier_throws() {
-    var collector = WarningCollector.forContext(log, Map.of());
-
     var result =
         collector.<String>tryFetchRequired(
             "Recommendation data",
@@ -54,8 +57,6 @@ class WarningCollectorTest {
 
   @Test
   void tryFetchRequired_should_return_empty_and_record_warning_when_supplier_returns_null() {
-    var collector = WarningCollector.forContext(log, Map.of());
-
     var result = collector.<String>tryFetchRequired("Null data", () -> null);
 
     assertThat(result).isEmpty();
@@ -65,8 +66,6 @@ class WarningCollectorTest {
 
   @Test
   void tryFetch_should_return_empty_without_warning_when_supplier_returns_null() {
-    var collector = WarningCollector.forContext(log, Map.of());
-
     var result = collector.<String>tryFetch("Optional data", () -> null);
 
     assertThat(result).isEmpty();
@@ -75,8 +74,6 @@ class WarningCollectorTest {
 
   @Test
   void tryFetch_should_return_value_when_supplier_returns_non_null() {
-    var collector = WarningCollector.forContext(log, Map.of());
-
     var result = collector.<String>tryFetch("Optional data", () -> "value");
 
     assertThat(result).contains("value");
@@ -85,8 +82,6 @@ class WarningCollectorTest {
 
   @Test
   void tryFetch_should_return_empty_and_record_warning_when_supplier_throws() {
-    var collector = WarningCollector.forContext(log, Map.of());
-
     var result =
         collector.<String>tryFetch(
             "Optional data",
@@ -101,8 +96,6 @@ class WarningCollectorTest {
 
   @Test
   void tryRun_should_return_true_when_operation_succeeds() {
-    var collector = WarningCollector.forContext(log, Map.of());
-
     var success = collector.tryRun("Stack trace data", () -> {});
 
     assertThat(success).isTrue();
@@ -111,8 +104,6 @@ class WarningCollectorTest {
 
   @Test
   void tryRun_should_return_false_and_record_warning_when_operation_throws() {
-    var collector = WarningCollector.forContext(log, Map.of());
-
     var success =
         collector.tryRun(
             "Stack trace data",
@@ -127,8 +118,6 @@ class WarningCollectorTest {
 
   @Test
   void tryFetchRequired_should_indicate_retrieval_error_in_warning_when_supplier_throws() {
-    var collector = WarningCollector.forContext(log, Map.of());
-
     collector.<String>tryFetchRequired(
         "Recommendation data",
         () -> {
@@ -141,8 +130,6 @@ class WarningCollectorTest {
 
   @Test
   void tryFetchRequired_should_not_indicate_error_in_warning_when_supplier_returns_null() {
-    var collector = WarningCollector.forContext(log, Map.of());
-
     collector.<String>tryFetchRequired("Null data", () -> null);
 
     assertThat(collector.snapshot().get(0)).isEqualTo("Null data not available");
@@ -150,8 +137,6 @@ class WarningCollectorTest {
 
   @Test
   void tryFetch_should_indicate_retrieval_error_in_warning_when_supplier_throws() {
-    var collector = WarningCollector.forContext(log, Map.of());
-
     collector.<String>tryFetch(
         "HTTP request data",
         () -> {
@@ -164,8 +149,6 @@ class WarningCollectorTest {
 
   @Test
   void tryRun_should_indicate_retrieval_error_in_warning_when_operation_throws() {
-    var collector = WarningCollector.forContext(log, Map.of());
-
     collector.tryRun(
         "Stack trace data",
         () -> {
@@ -178,17 +161,26 @@ class WarningCollectorTest {
 
   @Test
   void warn_should_unconditionally_append_warning() {
-    var collector = WarningCollector.forContext(log, Map.of());
-
     collector.warn("Something happened");
 
     assertThat(collector.snapshot()).containsExactly("Something happened");
   }
 
   @Test
-  void multiple_failed_fetches_should_accumulate_warnings_independently() {
-    var collector = WarningCollector.forContext(log, Map.of());
+  void warn_should_throw_when_message_is_null() {
+    assertThatThrownBy(() -> collector.warn(null)).isInstanceOf(NullPointerException.class);
+  }
 
+  @Test
+  void warn_should_silently_skip_when_message_is_blank() {
+    collector.warn("");
+    collector.warn("   ");
+
+    assertThat(collector.snapshot()).isEmpty();
+  }
+
+  @Test
+  void multiple_failed_fetches_should_accumulate_warnings_independently() {
     collector.<String>tryFetchRequired(
         "First data",
         () -> {
@@ -210,7 +202,6 @@ class WarningCollectorTest {
 
   @Test
   void snapshot_should_return_immutable_copy() {
-    var collector = WarningCollector.forContext(log, Map.of());
     collector.warn("existing warning");
 
     var snapshot = collector.snapshot();

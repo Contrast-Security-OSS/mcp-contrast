@@ -32,6 +32,8 @@ make test VERBOSE=1
 make check VERBOSE=1
 ```
 
+**After a compilation failure**, stale `.class` files remain and cause "Unresolved compilation problems" on the next test run. Always run `mvn clean test-compile` (or `make clean && make test`) to recover before continuing.
+
 **Direct Maven commands** (verbose output, use make targets above for quiet output):
 - **Build**: `mvn clean install` or `./mvnw clean install`
 - **Test (unit)**: `mvn test`

@@ -40,7 +40,7 @@ class PaginatedToolTest {
     var capturedParams = new AtomicReference<TestParams>();
 
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) -> {
+        (pagination, params, collector) -> {
           capturedPagination.set(pagination);
           capturedParams.set(params);
           return ExecutionResult.of(List.of("item1", "item2"), 2);
@@ -57,7 +57,7 @@ class PaginatedToolTest {
   @Test
   void executePipeline_should_return_validation_error_when_params_invalid() {
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) -> {
+        (pagination, params, collector) -> {
           throw new RuntimeException("Should not be called");
         });
 
@@ -71,7 +71,7 @@ class PaginatedToolTest {
   @Test
   void executePipeline_should_handle_unauthorized_exception() {
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) -> {
+        (pagination, params, collector) -> {
           throw new UnauthorizedException(
               "Invalid credentials", "GET", "/api/test", 401, "Unauthorized");
         });
@@ -88,7 +88,7 @@ class PaginatedToolTest {
   @Test
   void executePipeline_should_handle_resource_not_found_exception() {
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) -> {
+        (pagination, params, collector) -> {
           throw new ResourceNotFoundException("App not found", "GET", "/api/apps/123", "Not Found");
         });
 
@@ -101,7 +101,7 @@ class PaginatedToolTest {
   @Test
   void executePipeline_should_handle_http_response_exception_403() {
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) -> {
+        (pagination, params, collector) -> {
           throw new UnauthorizedException("Forbidden", "GET", "/api/test", 403, "Forbidden");
         });
 
@@ -117,7 +117,7 @@ class PaginatedToolTest {
   @Test
   void executePipeline_should_handle_http_response_exception_429() {
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) -> {
+        (pagination, params, collector) -> {
           throw new HttpResponseException(
               "Rate limited", "GET", "/api/test", 429, "Too Many Requests");
         });
@@ -131,7 +131,7 @@ class PaginatedToolTest {
   @Test
   void executePipeline_should_handle_http_response_exception_500() {
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) -> {
+        (pagination, params, collector) -> {
           throw new HttpResponseException(
               "Server error", "GET", "/api/test", 500, "Internal Server Error");
         });
@@ -145,7 +145,7 @@ class PaginatedToolTest {
   @Test
   void executePipeline_should_handle_generic_exception() {
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) -> {
+        (pagination, params, collector) -> {
           throw new RuntimeException("Unexpected failure");
         });
 
@@ -181,7 +181,7 @@ class PaginatedToolTest {
   @Test
   void executePipeline_should_calculate_hasMorePages_with_known_total() {
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) ->
+        (pagination, params, collector) ->
             ExecutionResult.of(List.of("item1", "item2"), 100)); // 100 total items
 
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
@@ -194,7 +194,7 @@ class PaginatedToolTest {
   @Test
   void executePipeline_should_calculate_hasMorePages_false_on_last_page() {
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) ->
+        (pagination, params, collector) ->
             ExecutionResult.of(List.of("item1", "item2"), 2)); // 2 items total, 2 returned
 
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
@@ -207,7 +207,7 @@ class PaginatedToolTest {
   void executePipeline_should_calculate_hasMorePages_with_unknown_total() {
     // When total is unknown, assume more pages if we got a full page
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) ->
+        (pagination, params, collector) ->
             ExecutionResult.of(List.of("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")));
 
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
@@ -220,7 +220,7 @@ class PaginatedToolTest {
   @Test
   void executePipeline_should_calculate_hasMorePages_false_with_unknown_total_partial_page() {
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) -> ExecutionResult.of(List.of("1", "2", "3")));
+        (pagination, params, collector) -> ExecutionResult.of(List.of("1", "2", "3")));
 
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
 
@@ -231,7 +231,7 @@ class PaginatedToolTest {
 
   @Test
   void executePipeline_should_add_empty_results_warning() {
-    tool.setDoExecuteHandler((pagination, params, warnings) -> ExecutionResult.of(List.of(), 0));
+    tool.setDoExecuteHandler((pagination, params, collector) -> ExecutionResult.of(List.of(), 0));
 
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
 
@@ -243,7 +243,7 @@ class PaginatedToolTest {
   @Test
   void executePipeline_should_include_pagination_warnings() {
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) -> ExecutionResult.of(List.of("item"), 1));
+        (pagination, params, collector) -> ExecutionResult.of(List.of("item"), 1));
 
     var result = tool.executePipeline(-1, 10, () -> TestParams.valid()); // Invalid page
 
@@ -254,7 +254,7 @@ class PaginatedToolTest {
   @Test
   void executePipeline_should_include_params_warnings() {
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) -> ExecutionResult.of(List.of("item"), 1));
+        (pagination, params, collector) -> ExecutionResult.of(List.of("item"), 1));
 
     var result = tool.executePipeline(1, 10, () -> TestParams.withWarning("Deprecated parameter"));
 
@@ -279,7 +279,7 @@ class PaginatedToolTest {
   @Test
   void executePipeline_should_track_duration() {
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) -> ExecutionResult.of(List.of("item"), 1));
+        (pagination, params, collector) -> ExecutionResult.of(List.of("item"), 1));
 
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
 

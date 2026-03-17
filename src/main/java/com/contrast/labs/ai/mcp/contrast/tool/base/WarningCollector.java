@@ -18,6 +18,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.base;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.slf4j.Logger;
 
@@ -132,9 +133,15 @@ public final class WarningCollector {
     }
   }
 
-  /** Unconditionally appends {@code message} to the warning list. */
+  /**
+   * Appends {@code message} to the warning list. Throws if {@code message} is null; silently skips
+   * blank strings.
+   */
   public void warn(String message) {
-    warnings.add(message);
+    Objects.requireNonNull(message, "warning message must not be null");
+    if (!message.isBlank()) {
+      warnings.add(message);
+    }
   }
 
   /**
