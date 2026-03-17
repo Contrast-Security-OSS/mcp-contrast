@@ -482,7 +482,7 @@ NOTE: This is not for parent-child dependencies, these are blocks dependencies.
    - If credentials unavailable, verify integration tests pass in CI/CD
 4. **Verify new tests are included** - Ensure your tests ran and passed
 
-All code changes require corresponding test coverage. Do not move to review without tests.
+All code changes require corresponding test coverage. Do not create a PR until `make verify` passes. Do not move to review without tests.
 
 See INTEGRATION_TESTS.md for integration test setup and credentials.
 
