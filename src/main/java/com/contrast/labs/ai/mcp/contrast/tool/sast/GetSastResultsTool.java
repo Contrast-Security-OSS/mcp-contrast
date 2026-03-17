@@ -109,10 +109,7 @@ public class GetSastResultsTool extends SingleTool<GetSastResultsParams, String>
 
     var scan = scans.get(project.lastScanId());
     if (scan == null) {
-      collector.warn(
-          String.format(
-              "No scan results available for project: %s. Scan ID %s not found.",
-              params.projectName(), project.lastScanId()));
+      collector.warn("No scan results available for project: " + params.projectName());
       return null;
     }
     log.debug("Retrieved scan with id: {}", project.lastScanId());

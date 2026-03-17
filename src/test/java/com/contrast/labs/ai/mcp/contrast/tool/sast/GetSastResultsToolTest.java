@@ -181,7 +181,7 @@ class GetSastResultsToolTest {
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
     assertThat(result.warnings())
-        .anyMatch(w -> w.contains("Scan ID " + TEST_SCAN_ID + " not found"));
+        .anyMatch(w -> w.contains("No scan results available for project: " + TEST_PROJECT_NAME));
     assertThat(result.warnings()).anyMatch(w -> w.contains("DEPRECATED"));
   }
 
