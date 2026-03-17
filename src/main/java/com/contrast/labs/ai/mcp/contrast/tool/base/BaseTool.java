@@ -19,6 +19,8 @@ import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
 import com.contrast.labs.ai.mcp.contrast.config.SDKExtensionFactory;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrastsecurity.sdk.ContrastSDK;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -64,6 +66,16 @@ public abstract class BaseTool {
    */
   protected SDKExtension getSDKExtension() {
     return sdkExtensionFactory.getSDKExtension();
+  }
+
+  /**
+   * Returns the logger for the concrete subclass. Used by base classes to attribute log entries to
+   * the actual tool class rather than the base class.
+   *
+   * @return logger for the runtime class of this instance
+   */
+  protected Logger getLogger() {
+    return LoggerFactory.getLogger(getClass());
   }
 
   /**

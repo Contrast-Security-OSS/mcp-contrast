@@ -35,6 +35,11 @@ class PaginatedToolTest {
   }
 
   @Test
+  void getLogger_should_return_logger_attributed_to_subclass() {
+    assertThat(tool.getLogger().getName()).isEqualTo(TestSearchTool.class.getName());
+  }
+
+  @Test
   void executePipeline_should_call_doExecute_with_validated_params() {
     var capturedPagination = new AtomicReference<PaginationParams>();
     var capturedParams = new AtomicReference<TestParams>();
