@@ -127,30 +127,22 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
       WarningCollector collector) {
 
     for (App app : apps) {
-      try {
-        var appLibraries = SDKHelper.getLibsForID(app.getAppId(), orgId, extendedSDK);
-
-        for (LibraryExtended appLib : appLibraries) {
-          for (Library vulnLib : vulnerableLibs) {
-            if (appLib.getHash().equals(vulnLib.getHash())) {
-              // Only populate if the library is actually being used
-              if (appLib.getClassesUsed() > 0) {
-                app.setClassCount(appLib.getClassCount());
-                app.setClassUsage(appLib.getClassesUsed());
+      collector.tryRun(
+          "Class usage data for application '" + app.getName() + "'",
+          () -> {
+            var appLibraries = SDKHelper.getLibsForID(app.getAppId(), orgId, extendedSDK);
+            for (LibraryExtended appLib : appLibraries) {
+              for (Library vulnLib : vulnerableLibs) {
+                if (appLib.getHash().equals(vulnLib.getHash())) {
+                  if (appLib.getClassesUsed() > 0) {
+                    app.setClassCount(appLib.getClassCount());
+                    app.setClassUsage(appLib.getClassesUsed());
+                  }
+                  break;
+                }
               }
-              break;
             }
-          }
-        }
-      } catch (Exception e) {
-        log.atWarn()
-            .addKeyValue("appId", app.getAppId())
-            .setCause(e)
-            .setMessage("Could not fetch library data")
-            .log();
-        collector.warn(
-            "Could not fetch class usage data for application '" + app.getName() + "'");
-      }
+          });
     }
   }
 }

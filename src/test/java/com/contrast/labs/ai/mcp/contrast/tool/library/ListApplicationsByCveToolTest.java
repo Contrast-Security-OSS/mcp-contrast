@@ -235,6 +235,24 @@ class ListApplicationsByCveToolTest {
     assertThat(firstApp.getClassCount()).isGreaterThanOrEqualTo(0);
   }
 
+  @Test
+  void listApplicationsByCve_should_not_leak_exception_message_in_warning_when_enrichment_fails()
+      throws IOException {
+    var mockCveData = createMockCveDataWithApps();
+    var secretMessage = "secret internal path /api/ng/ORG_ID/APP_ID/libs";
+
+    when(sdkExtension.getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID))).thenReturn(mockCveData);
+    mockedSDKHelper
+        .when(() -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension)))
+        .thenThrow(new IOException(secretMessage));
+
+    var result = tool.listApplicationsByCve(TEST_CVE_ID);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.warnings()).anyMatch(w -> w.contains("(retrieval error)"));
+    assertThat(result.warnings()).noneMatch(w -> w.contains(secretMessage));
+  }
+
   private CveData createMockCveDataWithApps() {
     var cveData = new CveData();
 

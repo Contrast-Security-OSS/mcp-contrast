@@ -18,6 +18,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.base;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.contrastsecurity.exceptions.HttpResponseException;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -198,6 +199,44 @@ class WarningCollectorTest {
         });
 
     assertThat(collector.snapshot()).hasSize(3);
+  }
+
+  @Test
+  void tryFetchRequired_should_include_http_status_code_in_warning_when_http_exception_thrown() {
+    collector.<String>tryFetchRequired(
+        "Recommendation data",
+        () -> {
+          throw new HttpResponseException("Forbidden", "GET", "/api", 403, "Forbidden");
+        });
+
+    assertThat(collector.snapshot().get(0))
+        .isEqualTo("Recommendation data not available (retrieval error, HTTP 403)");
+  }
+
+  @Test
+  void tryFetch_should_include_http_status_code_in_warning_when_http_exception_thrown() {
+    collector.<String>tryFetch(
+        "Stack trace data",
+        () -> {
+          throw new HttpResponseException(
+              "Service Unavailable", "GET", "/api", 503, "Service Unavailable");
+        });
+
+    assertThat(collector.snapshot().get(0))
+        .isEqualTo("Stack trace data not available (retrieval error, HTTP 503)");
+  }
+
+  @Test
+  void tryRun_should_include_http_status_code_in_warning_when_http_exception_thrown() {
+    collector.tryRun(
+        "Class usage data",
+        () -> {
+          throw new HttpResponseException(
+              "Internal Server Error", "GET", "/api", 500, "Internal Server Error");
+        });
+
+    assertThat(collector.snapshot().get(0))
+        .isEqualTo("Class usage data not available (retrieval error, HTTP 500)");
   }
 
   @Test

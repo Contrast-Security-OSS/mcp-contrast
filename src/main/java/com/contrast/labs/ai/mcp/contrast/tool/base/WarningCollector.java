@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
+import com.contrastsecurity.exceptions.HttpResponseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -86,7 +87,7 @@ public final class WarningCollector {
       return Optional.of(result);
     } catch (Exception e) {
       logWarn(description, e);
-      warnings.add(description + " not available (retrieval error)");
+      warnings.add(description + retrievalErrorSuffix(e));
       return Optional.empty();
     }
   }
@@ -108,7 +109,7 @@ public final class WarningCollector {
       return Optional.ofNullable(fetch.get());
     } catch (Exception e) {
       logWarn(description, e);
-      warnings.add(description + " not available (retrieval error)");
+      warnings.add(description + retrievalErrorSuffix(e));
       return Optional.empty();
     }
   }
@@ -128,7 +129,7 @@ public final class WarningCollector {
       return true;
     } catch (Exception e) {
       logWarn(description, e);
-      warnings.add(description + " not available (retrieval error)");
+      warnings.add(description + retrievalErrorSuffix(e));
       return false;
     }
   }
@@ -150,6 +151,13 @@ public final class WarningCollector {
    */
   List<String> snapshot() {
     return List.copyOf(warnings);
+  }
+
+  private String retrievalErrorSuffix(Exception e) {
+    if (e instanceof HttpResponseException hre) {
+      return " not available (retrieval error, HTTP " + hre.getCode() + ")";
+    }
+    return " not available (retrieval error)";
   }
 
   private void logWarn(String description, Exception e) {
