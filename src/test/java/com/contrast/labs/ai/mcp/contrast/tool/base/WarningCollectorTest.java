@@ -22,7 +22,6 @@ import com.contrastsecurity.exceptions.HttpResponseException;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.LoggerFactory;
 
 class WarningCollectorTest {
 
@@ -30,8 +29,7 @@ class WarningCollectorTest {
 
   @BeforeEach
   void setUp() {
-    collector =
-        WarningCollector.forContext(LoggerFactory.getLogger(WarningCollectorTest.class), Map.of());
+    collector = WarningCollector.forContext(Map.of());
   }
 
   @Test

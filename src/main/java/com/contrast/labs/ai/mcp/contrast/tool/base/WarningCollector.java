@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import org.slf4j.Logger;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Accumulates warnings during MCP tool execution and encapsulates the try/catch/warn pattern for
@@ -33,6 +33,7 @@ import org.slf4j.Logger;
  *
  * <p>{@link #snapshot()} is package-private — only base classes call it when building the response.
  */
+@Slf4j
 public final class WarningCollector {
 
   /** Checked supplier that may throw any exception. */
@@ -47,21 +48,19 @@ public final class WarningCollector {
     void run() throws Exception;
   }
 
-  private final Logger log;
   private final Map<String, Object> context;
   private final List<String> warnings = new ArrayList<>();
 
-  private WarningCollector(Logger log, Map<String, Object> context) {
-    this.log = log;
+  private WarningCollector(Map<String, Object> context) {
     this.context = context;
   }
 
   /**
-   * Creates a new collector bound to the given logger and log context key/values. The context
-   * entries are added to every WARN log emitted by {@link #tryFetch}, and {@link #tryRun}.
+   * Creates a new collector bound to the given log context key/values. The context entries are
+   * added to every WARN log emitted by {@link #tryFetch} and {@link #tryRun}.
    */
-  public static WarningCollector forContext(Logger log, Map<String, Object> context) {
-    return new WarningCollector(log, context);
+  public static WarningCollector forContext(Map<String, Object> context) {
+    return new WarningCollector(context);
   }
 
   /**

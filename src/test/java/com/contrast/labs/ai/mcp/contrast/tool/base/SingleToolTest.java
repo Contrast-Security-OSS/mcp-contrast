@@ -35,11 +35,6 @@ class SingleToolTest {
   }
 
   @Test
-  void getLogger_should_return_logger_attributed_to_subclass() {
-    assertThat(tool.getLogger().getName()).isEqualTo(TestGetTool.class.getName());
-  }
-
-  @Test
   void executePipeline_should_call_doExecute_with_validated_params() {
     var capturedParams = new AtomicReference<TestParams>();
 

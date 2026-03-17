@@ -81,7 +81,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
     var params = paramsSupplier.get();
 
     // 3. Collector accumulates warnings from all stages
-    var collector = WarningCollector.forContext(getLogger(), Map.of("requestId", requestId));
+    var collector = WarningCollector.forContext(Map.of("requestId", requestId));
     pagination.warnings().forEach(collector::warn);
     params.warnings().forEach(collector::warn);
 

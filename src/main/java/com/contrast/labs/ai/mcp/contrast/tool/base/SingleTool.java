@@ -62,7 +62,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
     var params = paramsSupplier.get();
 
     // 2. Collector accumulates warnings from all stages
-    var collector = WarningCollector.forContext(getLogger(), Map.of("requestId", requestId));
+    var collector = WarningCollector.forContext(Map.of("requestId", requestId));
     params.warnings().forEach(collector::warn);
 
     // 3. Single validation checkpoint - ALL errors collected
