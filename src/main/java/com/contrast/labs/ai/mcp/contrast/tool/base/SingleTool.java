@@ -142,7 +142,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
         .addArgument(e.getMessage())
         .log();
 
-    return SingleToolResponse.error(errorMessage);
+    return new SingleToolResponse<>(null, List.of(errorMessage), collector.snapshot(), false);
   }
 
   private void logValidationError(String requestId, List<String> errors) {

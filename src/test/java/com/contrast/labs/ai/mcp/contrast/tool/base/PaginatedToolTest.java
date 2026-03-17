@@ -288,6 +288,23 @@ class PaginatedToolTest {
     assertThat(result.durationMs()).isGreaterThanOrEqualTo(0);
   }
 
+  @Test
+  void executePipeline_should_preserve_warnings_when_http_response_exception_occurs() {
+    tool.setDoExecuteHandler(
+        (pagination, params, collector) -> {
+          collector.warn("Warning added before exception");
+          throw new HttpResponseException(
+              "Rate limited", "GET", "/api/test", 429, "Too Many Requests");
+        });
+
+    var result = tool.executePipeline(1, 10, () -> TestParams.withWarning("Initial warning"));
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).containsExactly("Rate limit exceeded. Retry later.");
+    assertThat(result.warnings())
+        .containsExactlyInAnyOrder("Initial warning", "Warning added before exception");
+  }
+
   // Test implementation of PaginatedTool
   private static class TestSearchTool extends PaginatedTool<TestParams, String> {
     private DoExecuteHandler handler;

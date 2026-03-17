@@ -239,6 +239,23 @@ class SingleToolTest {
                 + " ID is correct.");
   }
 
+  @Test
+  void executePipeline_should_preserve_warnings_when_http_response_exception_occurs() {
+    tool.setDoExecuteHandler(
+        (params, collector) -> {
+          collector.warn("Warning added before exception");
+          throw new HttpResponseException(
+              "Rate limited", "GET", "/api/test", 429, "Too Many Requests");
+        });
+
+    var result = tool.executePipeline(() -> TestParams.withWarning("Initial warning"));
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).containsExactly("Rate limit exceeded. Retry later.");
+    assertThat(result.warnings())
+        .containsExactlyInAnyOrder("Initial warning", "Warning added before exception");
+  }
+
   // Test implementation of SingleTool
   private static class TestGetTool extends SingleTool<TestParams, String> {
     private DoExecuteHandler handler;

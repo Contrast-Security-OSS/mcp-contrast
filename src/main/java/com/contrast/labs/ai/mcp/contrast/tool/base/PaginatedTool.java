@@ -110,7 +110,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
     } catch (ResourceNotFoundException e) {
       return handleException(e, pagination, requestId, "Resource not found");
     } catch (HttpResponseException e) {
-      return handleHttpResponseException(e, pagination, requestId);
+      return handleHttpResponseException(e, pagination, requestId, collector);
     } catch (Exception e) {
       log.atError()
           .addKeyValue("requestId", requestId)
@@ -149,7 +149,10 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
   }
 
   private PaginatedToolResponse<R> handleHttpResponseException(
-      HttpResponseException e, PaginationParams pagination, String requestId) {
+      HttpResponseException e,
+      PaginationParams pagination,
+      String requestId,
+      WarningCollector collector) {
 
     String errorMessage = mapHttpErrorCode(e.getCode());
 
@@ -160,7 +163,15 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
         .addArgument(e.getMessage())
         .log();
 
-    return PaginatedToolResponse.error(pagination.page(), pagination.pageSize(), errorMessage);
+    return new PaginatedToolResponse<>(
+        List.of(),
+        pagination.page(),
+        pagination.pageSize(),
+        0,
+        false,
+        List.of(errorMessage),
+        collector.snapshot(),
+        null);
   }
 
   private PaginatedToolResponse<R> buildSuccessResponse(
