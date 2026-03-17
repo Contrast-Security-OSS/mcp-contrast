@@ -28,8 +28,8 @@ import org.slf4j.Logger;
  * optional data fetches.
  *
  * <p>Constructed once per request by the base classes and passed into {@code doExecute}. Tool
- * implementations use {@link #tryFetchRequired}, {@link #tryFetch}, and {@link #tryRun} for
- * optional enrichment fetches that should degrade gracefully on failure.
+ * implementations use {@link #tryFetch} and {@link #tryRun} for optional enrichment fetches that
+ * should degrade gracefully on failure.
  *
  * <p>{@link #snapshot()} is package-private — only base classes call it when building the response.
  */
@@ -58,38 +58,10 @@ public final class WarningCollector {
 
   /**
    * Creates a new collector bound to the given logger and log context key/values. The context
-   * entries are added to every WARN log emitted by {@link #tryFetchRequired}, {@link #tryFetch},
-   * and {@link #tryRun}.
+   * entries are added to every WARN log emitted by {@link #tryFetch}, and {@link #tryRun}.
    */
   public static WarningCollector forContext(Logger log, Map<String, Object> context) {
     return new WarningCollector(log, context);
-  }
-
-  /**
-   * Executes {@code fetch} and returns the result wrapped in an Optional.
-   *
-   * <p>On null result: records {@code description + " not available"} as a warning, returns empty.
-   * Use this when null indicates a missing required value that the caller should know about.
-   *
-   * <p>On exception: logs WARN, records {@code description + " not available (retrieval error)"} as
-   * a warning, returns empty. The {@code (retrieval error)} suffix signals to AI agents that the
-   * absence was caused by a fetch failure, not a legitimate absence of data. Exception details are
-   * logged server-side but excluded from the agent-visible warning to avoid leaking internal API
-   * information.
-   */
-  public <T> Optional<T> tryFetchRequired(String description, CheckedSupplier<T> fetch) {
-    try {
-      var result = fetch.get();
-      if (result == null) {
-        warnings.add(description + " not available");
-        return Optional.empty();
-      }
-      return Optional.of(result);
-    } catch (Exception e) {
-      logWarn(description, e);
-      warnings.add(description + retrievalErrorSuffix(e));
-      return Optional.empty();
-    }
   }
 
   /**

@@ -130,7 +130,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
    * @param pagination validated pagination params
    * @param params validated tool-specific params
    * @param collector warning accumulator - call {@link WarningCollector#warn}, {@link
-   *     WarningCollector#tryFetchRequired}, or {@link WarningCollector#tryFetch} to record warnings
+   *     WarningCollector#tryFetch}, or {@link WarningCollector#tryRun} to record warnings
    * @return ExecutionResult with items and optional total count
    * @throws Exception any exception from SDK or processing
    */

@@ -35,37 +35,6 @@ class WarningCollectorTest {
   }
 
   @Test
-  void tryFetchRequired_should_return_value_when_supplier_succeeds() {
-    var result = collector.<String>tryFetchRequired("Test data", () -> "value");
-
-    assertThat(result).contains("value");
-    assertThat(collector.snapshot()).isEmpty();
-  }
-
-  @Test
-  void tryFetchRequired_should_return_empty_and_record_warning_when_supplier_throws() {
-    var result =
-        collector.<String>tryFetchRequired(
-            "Recommendation data",
-            () -> {
-              throw new RuntimeException("API error");
-            });
-
-    assertThat(result).isEmpty();
-    assertThat(collector.snapshot()).hasSize(1);
-    assertThat(collector.snapshot().get(0)).contains("Recommendation data");
-  }
-
-  @Test
-  void tryFetchRequired_should_return_empty_and_record_warning_when_supplier_returns_null() {
-    var result = collector.<String>tryFetchRequired("Null data", () -> null);
-
-    assertThat(result).isEmpty();
-    assertThat(collector.snapshot()).hasSize(1);
-    assertThat(collector.snapshot().get(0)).contains("Null data");
-  }
-
-  @Test
   void tryFetch_should_return_empty_without_warning_when_supplier_returns_null() {
     var result = collector.<String>tryFetch("Optional data", () -> null);
 
@@ -118,25 +87,6 @@ class WarningCollectorTest {
   }
 
   @Test
-  void tryFetchRequired_should_indicate_retrieval_error_in_warning_when_supplier_throws() {
-    collector.<String>tryFetchRequired(
-        "Recommendation data",
-        () -> {
-          throw new RuntimeException("403 Forbidden");
-        });
-
-    assertThat(collector.snapshot().get(0))
-        .isEqualTo("Recommendation data not available (retrieval error)");
-  }
-
-  @Test
-  void tryFetchRequired_should_not_indicate_error_in_warning_when_supplier_returns_null() {
-    collector.<String>tryFetchRequired("Null data", () -> null);
-
-    assertThat(collector.snapshot().get(0)).isEqualTo("Null data not available");
-  }
-
-  @Test
   void tryFetch_should_indicate_retrieval_error_in_warning_when_supplier_throws() {
     collector.<String>tryFetch(
         "HTTP request data",
@@ -182,35 +132,23 @@ class WarningCollectorTest {
 
   @Test
   void multiple_failed_fetches_should_accumulate_warnings_independently() {
-    collector.<String>tryFetchRequired(
+    collector.<String>tryFetch(
         "First data",
         () -> {
           throw new RuntimeException();
         });
-    collector.<String>tryFetchRequired(
+    collector.<String>tryFetch(
         "Second data",
         () -> {
           throw new RuntimeException();
         });
-    collector.<String>tryFetchRequired(
+    collector.tryRun(
         "Third data",
         () -> {
           throw new RuntimeException();
         });
 
     assertThat(collector.snapshot()).hasSize(3);
-  }
-
-  @Test
-  void tryFetchRequired_should_include_http_status_code_in_warning_when_http_exception_thrown() {
-    collector.<String>tryFetchRequired(
-        "Recommendation data",
-        () -> {
-          throw new HttpResponseException("Forbidden", "GET", "/api", 403, "Forbidden");
-        });
-
-    assertThat(collector.snapshot().get(0))
-        .isEqualTo("Recommendation data not available (retrieval error, HTTP 403)");
   }
 
   @Test

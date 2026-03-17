@@ -112,7 +112,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
    *
    * @param params validated tool-specific params
    * @param collector warning accumulator - call {@link WarningCollector#warn}, {@link
-   *     WarningCollector#tryFetchRequired}, or {@link WarningCollector#tryFetch} to record warnings
+   *     WarningCollector#tryFetch}, or {@link WarningCollector#tryRun} to record warnings
    * @return the item, or null if not found
    * @throws Exception any exception from SDK or processing
    */
