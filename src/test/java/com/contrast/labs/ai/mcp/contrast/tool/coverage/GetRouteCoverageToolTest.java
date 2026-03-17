@@ -198,6 +198,7 @@ class GetRouteCoverageToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.found()).isFalse();
+    assertThat(result.warnings()).anyMatch(w -> w.contains("Session metadata not available"));
 
     verify(sdkExtension, never()).getRouteCoverage(anyString(), anyString(), any());
   }
@@ -214,6 +215,7 @@ class GetRouteCoverageToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.found()).isFalse();
+    assertThat(result.warnings()).anyMatch(w -> w.contains("Agent session not available"));
 
     verify(sdkExtension, never()).getRouteCoverage(anyString(), anyString(), any());
   }

@@ -114,11 +114,13 @@ public class GetRouteCoverageTool
 
       if (latest == null) {
         log.warn("No session metadata found for application ID: {}", params.appId());
+        collector.warn("Session metadata not available for this application");
         return null; // SingleTool converts this to notFound response
       }
 
       if (latest.getAgentSession() == null) {
         log.warn("No agent session found for application ID: {}", params.appId());
+        collector.warn("Agent session not available for this application");
         return null; // SingleTool converts this to notFound response
       }
 
