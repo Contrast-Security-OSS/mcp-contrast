@@ -126,6 +126,57 @@ class WarningCollectorTest {
   }
 
   @Test
+  void tryFetch_should_indicate_retrieval_error_in_warning_when_supplier_throws() {
+    var collector = WarningCollector.forContext(log, Map.of());
+
+    collector.<String>tryFetch(
+        "Recommendation data",
+        () -> {
+          throw new RuntimeException("403 Forbidden");
+        });
+
+    assertThat(collector.snapshot().get(0))
+        .isEqualTo("Recommendation data not available (retrieval error)");
+  }
+
+  @Test
+  void tryFetch_should_not_indicate_error_in_warning_when_supplier_returns_null() {
+    var collector = WarningCollector.forContext(log, Map.of());
+
+    collector.<String>tryFetch("Null data", () -> null);
+
+    assertThat(collector.snapshot().get(0)).isEqualTo("Null data not available");
+  }
+
+  @Test
+  void tryFetchNonNull_should_indicate_retrieval_error_in_warning_when_supplier_throws() {
+    var collector = WarningCollector.forContext(log, Map.of());
+
+    collector.<String>tryFetchNonNull(
+        "HTTP request data",
+        () -> {
+          throw new RuntimeException("Connection timeout");
+        });
+
+    assertThat(collector.snapshot().get(0))
+        .isEqualTo("HTTP request data not available (retrieval error)");
+  }
+
+  @Test
+  void tryRun_should_indicate_retrieval_error_in_warning_when_operation_throws() {
+    var collector = WarningCollector.forContext(log, Map.of());
+
+    collector.tryRun(
+        "Stack trace data",
+        () -> {
+          throw new RuntimeException("SDK error");
+        });
+
+    assertThat(collector.snapshot().get(0))
+        .isEqualTo("Stack trace data not available (retrieval error)");
+  }
+
+  @Test
   void warn_should_unconditionally_append_warning() {
     var collector = WarningCollector.forContext(log, Map.of());
 

@@ -66,8 +66,13 @@ public final class WarningCollector {
   /**
    * Executes {@code fetch} and returns the result wrapped in an Optional.
    *
-   * <p>On exception or null result: logs WARN, records {@code description + " not available"} as a
-   * warning, returns empty.
+   * <p>On null result: records {@code description + " not available"} as a warning, returns empty.
+   *
+   * <p>On exception: logs WARN, records {@code description + " not available (retrieval error)"} as
+   * a warning, returns empty. The {@code (retrieval error)} suffix signals to AI agents that the
+   * absence was caused by a fetch failure, not a legitimate absence of data. Exception details are
+   * logged server-side but excluded from the agent-visible warning to avoid leaking internal API
+   * information.
    */
   public <T> Optional<T> tryFetch(String description, CheckedSupplier<T> fetch) {
     try {
@@ -79,7 +84,7 @@ public final class WarningCollector {
       return Optional.of(result);
     } catch (Exception e) {
       logWarn(description, e);
-      warnings.add(description + " not available");
+      warnings.add(description + " not available (retrieval error)");
       return Optional.empty();
     }
   }
@@ -88,21 +93,31 @@ public final class WarningCollector {
    * Executes {@code fetch} and returns the result wrapped in an Optional.
    *
    * <p>Null return is treated as absent — no warning emitted. On exception: logs WARN, records
-   * {@code description + " not available"} as a warning, returns empty.
+   * {@code description + " not available (retrieval error)"} as a warning, returns empty.
+   *
+   * <p>The {@code (retrieval error)} suffix is intentional: it signals to AI agents that the data
+   * was absent due to a fetch failure (e.g. permission denied, network error), not because the data
+   * legitimately does not exist. Exception details are logged server-side but excluded from the
+   * agent-visible warning to avoid leaking internal API information.
    */
   public <T> Optional<T> tryFetchNonNull(String description, CheckedSupplier<T> fetch) {
     try {
       return Optional.ofNullable(fetch.get());
     } catch (Exception e) {
       logWarn(description, e);
-      warnings.add(description + " not available");
+      warnings.add(description + " not available (retrieval error)");
       return Optional.empty();
     }
   }
 
   /**
    * Executes {@code operation}. Returns {@code true} on success, {@code false} if an exception is
-   * thrown. On exception: logs WARN, records {@code description + " not available"} as a warning.
+   * thrown. On exception: logs WARN, records {@code description + " not available (retrieval
+   * error)"} as a warning.
+   *
+   * <p>The {@code (retrieval error)} suffix signals to AI agents that the data was absent due to a
+   * fetch failure. Exception details are logged server-side but excluded from the agent-visible
+   * warning to avoid leaking internal API information.
    */
   public boolean tryRun(String description, CheckedRunnable operation) {
     try {
@@ -110,7 +125,7 @@ public final class WarningCollector {
       return true;
     } catch (Exception e) {
       logWarn(description, e);
-      warnings.add(description + " not available");
+      warnings.add(description + " not available (retrieval error)");
       return false;
     }
   }
