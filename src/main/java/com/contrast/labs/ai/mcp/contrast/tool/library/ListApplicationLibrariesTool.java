@@ -64,6 +64,9 @@ public class ListApplicationLibrariesTool
           - totalVulnerabilities: Total CVE count
           - criticalVulnerabilities: CRITICAL severity CVE count
           - highVulnerabilities: HIGH severity CVE count (not CRITICAL)
+          - mediumVulnerabilities: MEDIUM severity CVE count
+          - lowVulnerabilities: LOW severity CVE count
+          - noteVulnerabilities: NOTE severity CVE count
           - vulnerabilities: Known CVEs affecting this library version
           - grade: Library security grade (A-F)
 
