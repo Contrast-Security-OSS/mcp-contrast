@@ -62,4 +62,7 @@ test-plans-archive/
 ### Local tools ###
 .abacus/
 .cass/
+compound-engineering.local.md
 docs/brainstorms/
+docs/superpowers/
+todos/
