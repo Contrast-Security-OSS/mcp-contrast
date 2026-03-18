@@ -81,4 +81,110 @@ class LibraryExtendedTest {
 
     assertThat(library.getCriticalVulnerabilities()).isEqualTo(5);
   }
+
+  // ---- helper ----
+
+  private LibraryVulnerabilityExtended vuln(String severityCode) {
+    var v = new LibraryVulnerabilityExtended();
+    v.setSeverityCode(severityCode);
+    return v;
+  }
+
+  // ---- getMediumVulnerabilities ----
+
+  @Test
+  void getMediumVulnerabilities_should_return_count_when_medium_vulns_present() {
+    var library = new LibraryExtended();
+    library.setVulnerabilities(List.of(vuln("MEDIUM"), vuln("MEDIUM"), vuln("HIGH")));
+
+    assertThat(library.getMediumVulnerabilities()).isEqualTo(2);
+  }
+
+  @Test
+  void getMediumVulnerabilities_should_return_0_when_vulnerabilities_null() {
+    var library = new LibraryExtended();
+    // vulnerabilities is null by default
+
+    assertThat(library.getMediumVulnerabilities()).isEqualTo(0);
+  }
+
+  @Test
+  void getMediumVulnerabilities_should_return_0_when_vulnerabilities_empty() {
+    var library = new LibraryExtended();
+    library.setVulnerabilities(new ArrayList<>());
+
+    assertThat(library.getMediumVulnerabilities()).isEqualTo(0);
+  }
+
+  // ---- getLowVulnerabilities ----
+
+  @Test
+  void getLowVulnerabilities_should_return_count_when_low_vulns_present() {
+    var library = new LibraryExtended();
+    library.setVulnerabilities(List.of(vuln("LOW"), vuln("HIGH")));
+
+    assertThat(library.getLowVulnerabilities()).isEqualTo(1);
+  }
+
+  @Test
+  void getLowVulnerabilities_should_return_0_when_vulnerabilities_null() {
+    var library = new LibraryExtended();
+
+    assertThat(library.getLowVulnerabilities()).isEqualTo(0);
+  }
+
+  @Test
+  void getLowVulnerabilities_should_return_0_when_vulnerabilities_empty() {
+    var library = new LibraryExtended();
+    library.setVulnerabilities(new ArrayList<>());
+
+    assertThat(library.getLowVulnerabilities()).isEqualTo(0);
+  }
+
+  // ---- getNoteVulnerabilities ----
+
+  @Test
+  void getNoteVulnerabilities_should_return_count_when_note_vulns_present() {
+    var library = new LibraryExtended();
+    library.setVulnerabilities(List.of(vuln("NOTE"), vuln("NOTE"), vuln("NOTE")));
+
+    assertThat(library.getNoteVulnerabilities()).isEqualTo(3);
+  }
+
+  @Test
+  void getNoteVulnerabilities_should_return_0_when_vulnerabilities_null() {
+    var library = new LibraryExtended();
+
+    assertThat(library.getNoteVulnerabilities()).isEqualTo(0);
+  }
+
+  @Test
+  void getNoteVulnerabilities_should_return_0_when_vulnerabilities_empty() {
+    var library = new LibraryExtended();
+    library.setVulnerabilities(new ArrayList<>());
+
+    assertThat(library.getNoteVulnerabilities()).isEqualTo(0);
+  }
+
+  // ---- cross-severity isolation ----
+
+  @Test
+  void get_vulnerability_counts_should_return_only_matching_severity_from_mixed_array() {
+    var library = new LibraryExtended();
+    library.setVulnerabilities(List.of(vuln("MEDIUM"), vuln("MEDIUM"), vuln("LOW"), vuln("NOTE")));
+
+    assertThat(library.getMediumVulnerabilities()).isEqualTo(2);
+    assertThat(library.getLowVulnerabilities()).isEqualTo(1);
+    assertThat(library.getNoteVulnerabilities()).isEqualTo(1);
+  }
+
+  @Test
+  void getLowVulnerabilities_should_return_0_when_absent_from_non_empty_array() {
+    var library = new LibraryExtended();
+    library.setVulnerabilities(List.of(vuln("MEDIUM"), vuln("MEDIUM"), vuln("NOTE")));
+
+    assertThat(library.getMediumVulnerabilities()).isEqualTo(2);
+    assertThat(library.getLowVulnerabilities()).isEqualTo(0);
+    assertThat(library.getNoteVulnerabilities()).isEqualTo(1);
+  }
 }
