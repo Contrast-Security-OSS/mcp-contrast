@@ -47,6 +47,9 @@ public class AnonymousLibraryExtendedBuilder {
   private int totalVulnerabilities = 0;
   private int criticalVulnerabilities = 0;
   private int highVulnerabilities = 0;
+  private int mediumVulnerabilities = 0;
+  private int lowVulnerabilities = 0;
+  private int noteVulnerabilities = 0;
   private boolean custom = false;
   private double libScore = 75.0;
   private int monthsOutdated = 0;
@@ -163,6 +166,21 @@ public class AnonymousLibraryExtendedBuilder {
     return this;
   }
 
+  public AnonymousLibraryExtendedBuilder withMediumVulnerabilities(int mediumVulnerabilities) {
+    this.mediumVulnerabilities = mediumVulnerabilities;
+    return this;
+  }
+
+  public AnonymousLibraryExtendedBuilder withLowVulnerabilities(int lowVulnerabilities) {
+    this.lowVulnerabilities = lowVulnerabilities;
+    return this;
+  }
+
+  public AnonymousLibraryExtendedBuilder withNoteVulnerabilities(int noteVulnerabilities) {
+    this.noteVulnerabilities = noteVulnerabilities;
+    return this;
+  }
+
   public AnonymousLibraryExtendedBuilder withCustom(boolean custom) {
     this.custom = custom;
     return this;
@@ -219,6 +237,9 @@ public class AnonymousLibraryExtendedBuilder {
     lenient().when(library.getTotalVulnerabilities()).thenReturn(totalVulnerabilities);
     lenient().when(library.getCriticalVulnerabilities()).thenReturn(criticalVulnerabilities);
     lenient().when(library.getHighVulnerabilities()).thenReturn(highVulnerabilities);
+    lenient().when(library.getMediumVulnerabilities()).thenReturn(mediumVulnerabilities);
+    lenient().when(library.getLowVulnerabilities()).thenReturn(lowVulnerabilities);
+    lenient().when(library.getNoteVulnerabilities()).thenReturn(noteVulnerabilities);
     lenient().when(library.isCustom()).thenReturn(custom);
     lenient().when(library.getLibScore()).thenReturn(libScore);
     lenient().when(library.getMonthsOutdated()).thenReturn(monthsOutdated);
