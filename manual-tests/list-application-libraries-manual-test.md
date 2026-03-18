@@ -17,6 +17,9 @@ The `list_application_libraries` tool retrieves all third-party libraries used b
 - `totalVulnerabilities` - Total CVE count
 - `criticalVulnerabilities` - CRITICAL severity CVE count only
 - `highVulnerabilities` - HIGH severity CVE count only (does not include CRITICAL)
+- `mediumVulnerabilities` - MEDIUM severity CVE count
+- `lowVulnerabilities` - LOW severity CVE count
+- `noteVulnerabilities` - NOTE severity CVE count
 - `vulnerabilities` - List of CVE details
 - `grade` - Security grade (A, B, C, D, F)
 - `monthsOutdated` - Months since latest version
@@ -140,7 +143,8 @@ use contrast mcp to list libraries for application 7949c260-6ae9-477f-970a-60d8f
   - Multiple HIGH severity CVEs
 - `criticalVulnerabilities` counts CRITICAL severity CVEs only
 - `highVulnerabilities` counts only HIGH severity CVEs (not CRITICAL)
-- `totalVulnerabilities` = `criticalVulnerabilities` + `highVulnerabilities` + other severities
+- `totalVulnerabilities` = `criticalVulnerabilities` + `highVulnerabilities` + `mediumVulnerabilities` + `lowVulnerabilities` + `noteVulnerabilities`
+- `mediumVulnerabilities`, `lowVulnerabilities`, `noteVulnerabilities` counts available
 
 ---
 
@@ -650,6 +654,9 @@ use contrast mcp to list libraries for application 1d5cdd44-19b9-44df-88b1-ad02c
       "totalVulnerabilities": 6,
       "criticalVulnerabilities": 1,
       "highVulnerabilities": 5,
+      "mediumVulnerabilities": 0,
+      "lowVulnerabilities": 0,
+      "noteVulnerabilities": 1,
       "vulnerabilities": [
         {
           "name": "CVE-2025-31651",
