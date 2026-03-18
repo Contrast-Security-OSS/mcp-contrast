@@ -113,6 +113,24 @@ class ListApplicationLibrariesToolIT
     assertThat(firstLib.getFilename()).as("Library filename should not be null").isNotNull();
     assertThat(firstLib.getHash()).as("Library hash should not be null").isNotNull();
     assertThat(firstLib.getClassCount()).as("Class count should be non-negative").isNotNegative();
+
+    // Validate new severity count fields
+    log.info(
+        "First library severity counts — medium: {}, low: {}, note: {}",
+        firstLib.getMediumVulnerabilities(),
+        firstLib.getLowVulnerabilities(),
+        firstLib.getNoteVulnerabilities());
+
+    // Counts must be non-negative
+    assertThat(firstLib.getMediumVulnerabilities())
+        .as("mediumVulnerabilities should be non-negative")
+        .isNotNegative();
+    assertThat(firstLib.getLowVulnerabilities())
+        .as("lowVulnerabilities should be non-negative")
+        .isNotNegative();
+    assertThat(firstLib.getNoteVulnerabilities())
+        .as("noteVulnerabilities should be non-negative")
+        .isNotNegative();
   }
 
   @Test
@@ -187,5 +205,59 @@ class ListApplicationLibrariesToolIT
         page1.items().size(),
         page2.items().size(),
         totalLibraries);
+  }
+
+  @Test
+  void listApplicationLibraries_should_have_consistent_severity_counts() {
+    log.info("\n=== Integration Test: Severity count consistency ===");
+
+    var result = tool.listApplicationLibraries(null, null, testData.appId);
+    assertThat(result.isSuccess()).isTrue();
+
+    // Find a library with vulnerabilities to validate the severityToUse format assumption
+    var vulnLib =
+        result.items().stream()
+            .filter(lib -> lib.getVulnerabilities() != null && !lib.getVulnerabilities().isEmpty())
+            .findFirst();
+
+    if (vulnLib.isEmpty()) {
+      log.info("No libraries with vulnerabilities found — skipping severity format validation");
+      return;
+    }
+
+    var lib = vulnLib.get();
+    // Compare array-computed counts only — avoids mixing API-provided critical/high fields
+    // with array-computed medium/low/note, which would cause spurious failures.
+    int arraySize = lib.getVulnerabilities().size();
+    int sumFromArray =
+        lib.getMediumVulnerabilities()
+            + lib.getLowVulnerabilities()
+            + lib.getNoteVulnerabilities()
+            + (int)
+                lib.getVulnerabilities().stream()
+                    .filter(v -> "CRITICAL".equalsIgnoreCase(v.getSeverityCode()))
+                    .count()
+            + (int)
+                lib.getVulnerabilities().stream()
+                    .filter(v -> "HIGH".equalsIgnoreCase(v.getSeverityCode()))
+                    .count();
+
+    log.info(
+        "Library: {}, vulns array size: {}, sum of severity counts: {}, "
+            + "medium: {}, low: {}, note: {}",
+        lib.getFilename(),
+        arraySize,
+        sumFromArray,
+        lib.getMediumVulnerabilities(),
+        lib.getLowVulnerabilities(),
+        lib.getNoteVulnerabilities());
+
+    assertThat(sumFromArray)
+        .as(
+            "Sum of all severity counts should equal vulnerabilities array size for %s. "
+                + "If medium/low/note are 0 when vulns exist, severityToUse format may differ "
+                + "from expected — check log output for actual values.",
+            lib.getFilename())
+        .isEqualTo(arraySize);
   }
 }
