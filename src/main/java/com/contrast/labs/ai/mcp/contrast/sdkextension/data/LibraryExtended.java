@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 
+import com.contrastsecurity.http.RuleSeverity;
 import com.contrastsecurity.models.Application;
 import com.contrastsecurity.models.Server;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -101,6 +102,26 @@ public class LibraryExtended {
       return vulnerabilities.size();
     }
     return totalVulnerabilities;
+  }
+
+  private int countBySeverity(RuleSeverity severity) {
+    if (vulnerabilities == null) return 0;
+    return (int)
+        vulnerabilities.stream()
+            .filter(v -> severity.name().equalsIgnoreCase(v.getSeverityCode()))
+            .count();
+  }
+
+  public int getMediumVulnerabilities() {
+    return countBySeverity(RuleSeverity.MEDIUM);
+  }
+
+  public int getLowVulnerabilities() {
+    return countBySeverity(RuleSeverity.LOW);
+  }
+
+  public int getNoteVulnerabilities() {
+    return countBySeverity(RuleSeverity.NOTE);
   }
 
   private boolean custom;
