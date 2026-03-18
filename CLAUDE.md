@@ -140,6 +140,9 @@ When creating or modifying MCP tools:
 - `StringUtils.hasText()` or `isNotBlank()` over manual null/empty checks
 - `isBlank()` better than `isEmpty()` (whitespace handling)
 
+**Enums:**
+- Before using a string literal for a known set of values (e.g., severity codes), check for an existing enum in the SDK or codebase — use `MyEnum.VALUE.name()` instead of `"VALUE"`
+
 **Lombok:**
 - `@RequiredArgsConstructor` on `@Service` classes with `final` fields
 - `@Slf4j` for logging (not manual `Logger` declaration)
@@ -244,6 +247,15 @@ This project is tracked in Jira under the **AIML** project. When creating Jira t
   - `Epic` - for large features with many dependent tasks (typically managed by Product Management)
 
 **Access**: Use the Atlassian MCP server to read or write Jira tickets programmatically.
+
+**AIML Project Transition IDs** (use with `transitionJiraIssue`, cloudId: `https://contrast.atlassian.net`):
+- `11` → To Do
+- `21` → In Progress
+- `41` → In Review
+- `51` → Ready to Deploy
+- `61` → Blocked
+- `71` → Backlog
+- `81` → Closed
 
 **IMPORTANT**: When a jira ticket is created for a bead, you must do 2 things:
 1. Update the `external-ref` of the bead to be the jira ticket id
