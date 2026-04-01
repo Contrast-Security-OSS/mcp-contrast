@@ -7,5 +7,11 @@
     <module name="AvoidStarImport">
       <property name="severity" value="error"/>
     </module>
+    <module name="RegexpSinglelineJava">
+      <property name="format" value="^\s+com\.[a-z]+\.[a-zA-Z.]+\.[A-Z][a-zA-Z]+\s"/>
+      <property name="message" value="Use import instead of fully-qualified class name"/>
+      <property name="severity" value="error"/>
+      <property name="ignoreComments" value="true"/>
+    </module>
   </module>
 </module>
