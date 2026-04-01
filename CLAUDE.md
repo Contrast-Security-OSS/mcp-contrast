@@ -142,6 +142,11 @@ When creating or modifying MCP tools:
 - No fully-qualified class names - use imports
 - `isEmpty()` not `size() > 0` for collections
 
+**Checkstyle:** Three rules enforced at `error` severity (run in `validate` phase via `make check`):
+- `AvoidStarImport` — no wildcard imports
+- `RegexpSinglelineJava` — no fully-qualified class names in code; use imports
+- `MagicNumber` — no raw numeric literals; use named constants (HTTP status codes and -1/0/1/2/100 are ignored)
+
 **String Validation:**
 - `StringUtils.hasText()` or `isNotBlank()` over manual null/empty checks
 - `isBlank()` better than `isEmpty()` (whitespace handling)
