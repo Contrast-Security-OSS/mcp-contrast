@@ -29,6 +29,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCo
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants;
 import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.http.HttpMethod;
 import com.contrastsecurity.http.LibraryFilterForm;
@@ -59,7 +60,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SDKExtension {
 
-  private static final int DEFAULT_LIBRARY_OBS_PAGE_SIZE = 25;
   private static final int DEFAULT_ATTACKS_LIMIT = 1000;
 
   private final ContrastSDK contrastSDK;
@@ -145,7 +145,7 @@ public class SDKExtension {
       String organizationId, String applicationId, String libraryId, int pageSize)
       throws IOException, UnauthorizedException {
     if (pageSize <= 0) {
-      pageSize = DEFAULT_LIBRARY_OBS_PAGE_SIZE;
+      pageSize = ValidationConstants.DEFAULT_LIBRARY_OBS_PAGE_SIZE;
     }
 
     var allObservations = new ArrayList<LibraryObservation>();
@@ -178,7 +178,10 @@ public class SDKExtension {
       String organizationId, String applicationId, String libraryId)
       throws IOException, UnauthorizedException {
     return getLibraryObservations(
-        organizationId, applicationId, libraryId, DEFAULT_LIBRARY_OBS_PAGE_SIZE);
+        organizationId,
+        applicationId,
+        libraryId,
+        ValidationConstants.DEFAULT_LIBRARY_OBS_PAGE_SIZE);
   }
 
   /** Builds URL for retrieving library observations */

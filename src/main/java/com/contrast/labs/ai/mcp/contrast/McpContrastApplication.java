@@ -47,6 +47,7 @@ import org.springframework.context.annotation.Bean;
 public class McpContrastApplication {
 
   private static final Logger logger = LoggerFactory.getLogger(McpContrastApplication.class);
+  private static final int SEPARATOR_WIDTH = 60;
 
   public static void main(String[] args) {
     SpringApplication.run(McpContrastApplication.class, args);
@@ -57,13 +58,13 @@ public class McpContrastApplication {
       org.springframework.beans.factory.ObjectProvider<BuildProperties> buildPropertiesProvider) {
     return args -> {
       BuildProperties buildProperties = buildPropertiesProvider.getIfAvailable();
-      logger.info("=".repeat(60));
+      logger.info("=".repeat(SEPARATOR_WIDTH));
       if (buildProperties != null) {
         logger.info("Contrast MCP Server - Version {}", buildProperties.getVersion());
       } else {
         logger.info("Contrast MCP Server - Version information not available");
       }
-      logger.info("=".repeat(60));
+      logger.info("=".repeat(SEPARATOR_WIDTH));
     };
   }
 
