@@ -59,6 +59,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SDKExtension {
 
+  private static final int DEFAULT_LIBRARY_OBS_PAGE_SIZE = 25;
+  private static final int DEFAULT_ATTACKS_LIMIT = 1000;
+
   private final ContrastSDK contrastSDK;
   private final UrlBuilder urlBuilder;
   private final Gson gson;
@@ -142,7 +145,7 @@ public class SDKExtension {
       String organizationId, String applicationId, String libraryId, int pageSize)
       throws IOException, UnauthorizedException {
     if (pageSize <= 0) {
-      pageSize = 25; // Default page size
+      pageSize = DEFAULT_LIBRARY_OBS_PAGE_SIZE;
     }
 
     var allObservations = new ArrayList<LibraryObservation>();
@@ -174,7 +177,8 @@ public class SDKExtension {
   public List<LibraryObservation> getLibraryObservations(
       String organizationId, String applicationId, String libraryId)
       throws IOException, UnauthorizedException {
-    return getLibraryObservations(organizationId, applicationId, libraryId, 25);
+    return getLibraryObservations(
+        organizationId, applicationId, libraryId, DEFAULT_LIBRARY_OBS_PAGE_SIZE);
   }
 
   /** Builds URL for retrieving library observations */
@@ -502,7 +506,7 @@ public class SDKExtension {
       throws IOException, UnauthorizedException {
 
     // Set default values if not provided
-    if (limit == null) limit = 1000;
+    if (limit == null) limit = DEFAULT_ATTACKS_LIMIT;
     if (offset == null) offset = 0;
     if (sort == null) sort = "-startTime";
     if (filterBody == null) filterBody = AttacksFilterBody.builder().build();

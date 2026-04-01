@@ -44,6 +44,11 @@ public class SDKHelper {
   private static final String MCP_SERVER_NAME = "contrast-mcp";
   private static final String HTTPS_PROTOCOL = "https://";
   private static final String HTTP_PROTOCOL = "http://";
+  private static final int API_MAX_PAGE_SIZE = 50;
+  private static final int DEFAULT_LIBRARY_OBS_PAGE_SIZE = 25;
+  private static final int DEFAULT_HTTP_PROXY_PORT = 80;
+  private static final long CACHE_MAX_SIZE = 500000;
+  private static final long CACHE_EXPIRY_MINUTES = 10;
   private static Environment environment;
 
   @Autowired
@@ -52,10 +57,16 @@ public class SDKHelper {
   }
 
   private static final Cache<String, List<LibraryExtended>> libraryCache =
-      CacheBuilder.newBuilder().maximumSize(500000).expireAfterWrite(10, TimeUnit.MINUTES).build();
+      CacheBuilder.newBuilder()
+          .maximumSize(CACHE_MAX_SIZE)
+          .expireAfterWrite(CACHE_EXPIRY_MINUTES, TimeUnit.MINUTES)
+          .build();
 
   private static final Cache<String, List<LibraryObservation>> libraryObservationsCache =
-      CacheBuilder.newBuilder().maximumSize(500000).expireAfterWrite(10, TimeUnit.MINUTES).build();
+      CacheBuilder.newBuilder()
+          .maximumSize(CACHE_MAX_SIZE)
+          .expireAfterWrite(CACHE_EXPIRY_MINUTES, TimeUnit.MINUTES)
+          .build();
 
   /**
    * Retrieves a single page of libraries for an application with server-side pagination. Unlike
@@ -74,7 +85,7 @@ public class SDKHelper {
       throws IOException {
 
     // API enforces max limit of 50
-    int effectiveLimit = Math.min(limit, 50);
+    int effectiveLimit = Math.min(limit, API_MAX_PAGE_SIZE);
 
     var filterForm = new LibraryFilterForm();
     filterForm.setLimit(effectiveLimit);
@@ -93,7 +104,7 @@ public class SDKHelper {
       return cachedLibraries;
     }
     log.info("Cache miss for appId: {}, fetching libraries from SDK", appId);
-    int libraryCallSize = 50;
+    int libraryCallSize = API_MAX_PAGE_SIZE;
     var filterForm = new LibraryFilterForm();
     filterForm.setLimit(libraryCallSize);
     filterForm.setExpand(EnumSet.of(LibraryFilterForm.LibrariesExpandValues.VULNS));
@@ -162,7 +173,8 @@ public class SDKHelper {
   public static List<LibraryObservation> getLibraryObservationsWithCache(
       String libraryId, String appId, String orgId, SDKExtension extendedSDK)
       throws IOException, UnauthorizedException {
-    return getLibraryObservationsWithCache(libraryId, appId, orgId, 25, extendedSDK);
+    return getLibraryObservationsWithCache(
+        libraryId, appId, orgId, DEFAULT_LIBRARY_OBS_PAGE_SIZE, extendedSDK);
   }
 
   /**
@@ -239,7 +251,10 @@ public class SDKHelper {
             .withUserAgentProduct(UserAgentProduct.of(MCP_SERVER_NAME, mcpVersion));
 
     if (StringUtils.hasText(httpProxyHost)) {
-      int port = StringUtils.hasText(httpProxyPort) ? Integer.parseInt(httpProxyPort) : 80;
+      int port =
+          StringUtils.hasText(httpProxyPort)
+              ? Integer.parseInt(httpProxyPort)
+              : DEFAULT_HTTP_PROXY_PORT;
       log.debug("Configuring HTTP proxy: {}:{}", httpProxyHost, port);
 
       var proxy =
