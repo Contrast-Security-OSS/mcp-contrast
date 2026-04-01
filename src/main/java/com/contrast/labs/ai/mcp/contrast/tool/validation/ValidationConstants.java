@@ -30,6 +30,9 @@ public final class ValidationConstants {
   /** Maximum allowed page size. */
   public static final int MAX_PAGE_SIZE = 100;
 
+  /** Maximum page size enforced by the Contrast API for library endpoints. */
+  public static final int API_MAX_PAGE_SIZE = 50;
+
   /** Minimum page number (1-indexed). */
   public static final int MIN_PAGE = 1;
 

@@ -13,5 +13,14 @@
       <property name="severity" value="error"/>
       <property name="ignoreComments" value="true"/>
     </module>
+    <module name="MagicNumber">
+      <property name="severity" value="error"/>
+      <property name="ignoreNumbers" value="-1, 0, 1, 2, 8, 60, 100, 401, 403, 404, 429, 500, 502, 503"/>
+      <property name="ignoreHashCodeMethod" value="true"/>
+      <property name="ignoreAnnotation" value="true"/>
+      <property name="ignoreFieldDeclaration" value="true"/>
+      <property name="constantWaiverParentToken"
+                value="TYPECAST, METHOD_CALL, EXPR, ARRAY_INIT, UNARY_MINUS, UNARY_PLUS, ELIST, STAR, ASSIGN, PLUS, MINUS, DIV, LITERAL_NEW"/>
+    </module>
   </module>
 </module>

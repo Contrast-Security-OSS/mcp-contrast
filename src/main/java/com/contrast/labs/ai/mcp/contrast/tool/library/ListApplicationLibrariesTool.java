@@ -22,6 +22,7 @@ import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.tool.library.params.ListApplicationLibrariesParams;
+import com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -40,11 +41,9 @@ import org.springframework.stereotype.Service;
 public class ListApplicationLibrariesTool
     extends PaginatedTool<ListApplicationLibrariesParams, LibraryExtended> {
 
-  private static final int API_MAX_PAGE_SIZE = 50;
-
   @Override
   protected int getMaxPageSize() {
-    return API_MAX_PAGE_SIZE;
+    return ValidationConstants.API_MAX_PAGE_SIZE;
   }
 
   @Tool(
