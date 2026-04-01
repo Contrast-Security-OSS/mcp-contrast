@@ -47,6 +47,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
 
+  private static final int REQUEST_ID_PREFIX_LENGTH = 8;
+
   /**
    * Returns the maximum page size for this tool. Default is 100. Override in subclasses to set a
    * lower limit (e.g., when API has stricter limits).
@@ -69,7 +71,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
   protected final PaginatedToolResponse<R> executePipeline(
       Integer page, Integer pageSize, Supplier<P> paramsSupplier) {
 
-    var requestId = UUID.randomUUID().toString().substring(0, 8);
+    var requestId = UUID.randomUUID().toString().substring(0, REQUEST_ID_PREFIX_LENGTH);
     long startTime = System.currentTimeMillis();
 
     // 1. Parse pagination FIRST with tool-specific max (always succeeds with warnings)

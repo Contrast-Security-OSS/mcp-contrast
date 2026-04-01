@@ -44,6 +44,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
 
+  private static final int REQUEST_ID_PREFIX_LENGTH = 8;
+
   /**
    * Template method - defines the mandatory processing pipeline for single-item retrieval.
    * Subclasses implement doExecute() for tool-specific logic. This method is FINAL to enforce
@@ -53,7 +55,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
    * @return tool response with item or errors
    */
   protected final SingleToolResponse<R> executePipeline(Supplier<P> paramsSupplier) {
-    var requestId = UUID.randomUUID().toString().substring(0, 8);
+    var requestId = UUID.randomUUID().toString().substring(0, REQUEST_ID_PREFIX_LENGTH);
     long startTime = System.currentTimeMillis();
 
     // 1. Parse tool-specific params (collects all errors)

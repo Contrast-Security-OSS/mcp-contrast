@@ -15,7 +15,7 @@
     </module>
     <module name="MagicNumber">
       <property name="severity" value="error"/>
-      <property name="ignoreNumbers" value="-1, 0, 1, 2, 8, 60, 100, 401, 403, 404, 429, 500, 502, 503"/>
+      <property name="ignoreNumbers" value="-1, 0, 1, 2, 100, 401, 403, 404, 429, 500, 502, 503"/>
       <property name="ignoreHashCodeMethod" value="true"/>
       <property name="ignoreAnnotation" value="true"/>
       <property name="ignoreFieldDeclaration" value="true"/>

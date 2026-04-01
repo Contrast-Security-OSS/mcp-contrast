@@ -33,6 +33,9 @@ public final class ValidationConstants {
   /** Maximum page size enforced by the Contrast API for library endpoints. */
   public static final int API_MAX_PAGE_SIZE = 50;
 
+  /** Default page size for library observations endpoint. */
+  public static final int DEFAULT_LIBRARY_OBS_PAGE_SIZE = 25;
+
   /** Minimum page number (1-indexed). */
   public static final int MIN_PAGE = 1;
 
