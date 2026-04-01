@@ -19,6 +19,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibrariesExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;
+import com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants;
 import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.http.LibraryFilterForm;
 import com.contrastsecurity.sdk.ContrastSDK;
@@ -44,8 +45,6 @@ public class SDKHelper {
   private static final String MCP_SERVER_NAME = "contrast-mcp";
   private static final String HTTPS_PROTOCOL = "https://";
   private static final String HTTP_PROTOCOL = "http://";
-  private static final int API_MAX_PAGE_SIZE = 50;
-  private static final int DEFAULT_LIBRARY_OBS_PAGE_SIZE = 25;
   private static final int DEFAULT_HTTP_PROXY_PORT = 80;
   private static final long CACHE_MAX_SIZE = 500000;
   private static final long CACHE_EXPIRY_MINUTES = 10;
@@ -85,7 +84,7 @@ public class SDKHelper {
       throws IOException {
 
     // API enforces max limit of 50
-    int effectiveLimit = Math.min(limit, API_MAX_PAGE_SIZE);
+    int effectiveLimit = Math.min(limit, ValidationConstants.API_MAX_PAGE_SIZE);
 
     var filterForm = new LibraryFilterForm();
     filterForm.setLimit(effectiveLimit);
@@ -104,7 +103,7 @@ public class SDKHelper {
       return cachedLibraries;
     }
     log.info("Cache miss for appId: {}, fetching libraries from SDK", appId);
-    int libraryCallSize = API_MAX_PAGE_SIZE;
+    int libraryCallSize = ValidationConstants.API_MAX_PAGE_SIZE;
     var filterForm = new LibraryFilterForm();
     filterForm.setLimit(libraryCallSize);
     filterForm.setExpand(EnumSet.of(LibraryFilterForm.LibrariesExpandValues.VULNS));
@@ -174,7 +173,7 @@ public class SDKHelper {
       String libraryId, String appId, String orgId, SDKExtension extendedSDK)
       throws IOException, UnauthorizedException {
     return getLibraryObservationsWithCache(
-        libraryId, appId, orgId, DEFAULT_LIBRARY_OBS_PAGE_SIZE, extendedSDK);
+        libraryId, appId, orgId, ValidationConstants.DEFAULT_LIBRARY_OBS_PAGE_SIZE, extendedSDK);
   }
 
   /**
