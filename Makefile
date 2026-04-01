@@ -14,9 +14,9 @@ build: ## Build the project (compile + package)
 
 ## Check targets (formatting and static analysis)
 
-check: ## Run format check (quiet output)
+check: ## Run format and static analysis checks (quiet output)
 	@if [ -n "$$VERBOSE" ]; then \
-		$(MVN) spotless:check; \
+		$(MVN) validate; \
 	else \
 		$(MAKE) check-quiet; \
 	fi
@@ -24,7 +24,7 @@ check: ## Run format check (quiet output)
 check-quiet:
 	@. ./hack/run_silent.sh && print_main_header "Running Checks"
 	@. ./hack/run_silent.sh && print_header "mcp-contrast" "Static analysis"
-	@. ./hack/run_silent.sh && run_with_quiet "Format check passed" "$(MVN) spotless:check"
+	@. ./hack/run_silent.sh && run_with_quiet "All checks passed" "$(MVN) validate"
 
 check-verbose: ## Run checks with verbose output
 	@VERBOSE=1 $(MAKE) check
