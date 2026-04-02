@@ -19,8 +19,8 @@ import com.contrastsecurity.models.SessionMetadata;
 import java.util.List;
 
 /**
- * Lightweight vulnerability record for listing operations. Contains essential vulnerability
- * information including application correlation data.
+ * Lightweight vulnerability record for listing and search operations. Contains essential
+ * vulnerability information including application correlation data.
  *
  * @param title Vulnerability title/description
  * @param type Vulnerability type/rule name (e.g., "sql-injection", "xss-reflected")
@@ -51,4 +51,3 @@ public record VulnLight(
     String closedAt,
     List<String> environments,
     List<String> tags) {}
-// test
