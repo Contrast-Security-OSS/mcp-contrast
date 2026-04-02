@@ -51,3 +51,4 @@ public record VulnLight(
     String closedAt,
     List<String> environments,
     List<String> tags) {}
+// test
