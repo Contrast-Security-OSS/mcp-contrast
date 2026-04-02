@@ -147,6 +147,8 @@ When creating or modifying MCP tools:
 - `RegexpSinglelineJava` — no fully-qualified class names in code; use imports
 - `MagicNumber` — no raw numeric literals; use named constants (HTTP status codes and -1/0/1/2/100 are ignored)
 
+> ⛔ **PROHIBITED:** Modifying checkstyle rules, Spotless config, or any other linter/constraint config is **expressly forbidden** without explicit user permission. When code fails a check, fix the code — never relax the rule.
+
 **String Validation:**
 - `StringUtils.hasText()` or `isNotBlank()` over manual null/empty checks
 - `isBlank()` better than `isEmpty()` (whitespace handling)
