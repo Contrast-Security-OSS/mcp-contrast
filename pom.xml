@@ -34,7 +34,7 @@
 		<mockito-inline.version>5.2.0</mockito-inline.version>
 		<assertj.version>3.27.7</assertj.version>
 		<maven-failsafe-plugin.version>3.5.3</maven-failsafe-plugin.version>
-		<spotless-maven-plugin.version>2.43.0</spotless-maven-plugin.version>
+		<spotless-maven-plugin.version>3.4.0</spotless-maven-plugin.version>
 		<google-java-format.version>1.26.0</google-java-format.version>
 		<maven-checkstyle-plugin.version>3.3.1</maven-checkstyle-plugin.version>
 		<checkstyle.version>10.12.5</checkstyle.version>
