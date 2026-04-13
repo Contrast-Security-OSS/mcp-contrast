@@ -175,6 +175,9 @@ When creating or modifying MCP tools:
 
 This codebase handles sensitive vulnerability data. The README contains critical warnings about data privacy when using with AI models. Never expose Contrast credentials or vulnerability data to untrusted AI services.
 
+**Dependency Policy (ENTSEC-1742):**
+Never suggest upgrading to a dependency version published fewer than 7 days ago. This is a mandatory supply chain security control enforced via Dependabot. See SECURITY.md for the full policy and break glass procedure.
+
 ### Logging
 
 - Default log location: `/tmp/mcp-contrast.log`
@@ -813,3 +816,5 @@ Would you like to work on **mcp-dw1** next, or would you prefer a different one?
 - If all child beads are closed and parent is complete, suggest moving parent to review
 - If this was a standalone bead, suggest using `bd ready` to find next available work
 - Check for any blocked beads that might now be unblocked
+
+@SECURITY.md
