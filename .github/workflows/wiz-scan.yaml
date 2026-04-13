@@ -22,7 +22,7 @@ jobs:
         run: curl -o wizcli https://downloads.wiz.io/v1/wizcli/latest/wizcli-linux-amd64 && chmod +x wizcli
 
       - name: Run Wiz CLI container image scan
-        run: ./wizcli scan container-image contrast-mcp:dev --id "$WIZ_CLIENT_ID" --secret "$WIZ_CLIENT_SECRET" --policies "Block-VM" --csv-output-file="mcp-contrast-wiz-report.zip" --by-policy-hits="BLOCK" --show-ignored-by-grace-period
+        run: ./wizcli scan container-image contrast-mcp:dev --policies "Block-VM" --csv-output-file="mcp-contrast-wiz-report.zip" --by-policy-hits="BLOCK" --show-ignored-by-grace-period
         env:
           WIZ_CLIENT_ID: ${{ secrets.WIZ_CLIENT_ID }}
           WIZ_CLIENT_SECRET: ${{ secrets.WIZ_CLIENT_SECRET }}
