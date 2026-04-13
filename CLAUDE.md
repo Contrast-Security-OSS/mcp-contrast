@@ -176,7 +176,8 @@ When creating or modifying MCP tools:
 This codebase handles sensitive vulnerability data. The README contains critical warnings about data privacy when using with AI models. Never expose Contrast credentials or vulnerability data to untrusted AI services.
 
 **Dependency Policy (ENTSEC-1742):**
-Never suggest upgrading to a dependency version published fewer than 7 days ago. This is a mandatory supply chain security control enforced via Dependabot. See SECURITY.md for the full policy and break glass procedure.
+- Never suggest upgrading to a dependency version published fewer than 7 days ago. See SECURITY.md for the full policy and break glass procedure.
+- When adding or updating dependencies in `pom.xml`: always define the version as a `${property}` in `<properties>` — never inline in `<dependency>`; never use `RELEASE` or `LATEST` as a version specifier.
 
 ### Logging
 
