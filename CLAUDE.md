@@ -107,6 +107,35 @@ Required environment variables/arguments:
 
 **SDK Source Access:** The Contrast SDK Java source code is available in the parent directory at `/Users/chrisedwards/projects/contrast/contrast-sdk-java`. Reference this when you need to understand SDK types, method signatures, or behavior.
 
+### Working with the Contrast Codebase
+
+All Contrast repos live under `/Users/chrisedwards/projects/contrast/`. Most use `develop` as the default branch (not `main`). Always checkout the default branch and pull before reading.
+
+**Finding code in unknown repos — search before guessing:**
+```bash
+gh search code "ClassName" --owner Contrast-Security-Inc --limit 10
+```
+This immediately shows which repo and path contains any class or symbol. Never guess a repo name and try to clone it — search first.
+
+**Reading files from a repo with local changes blocking pull:**
+```bash
+gh api repos/Contrast-Security-Inc/repo-name/contents/path/to/File.java \
+  --jq '.content' | base64 -d
+```
+When `git pull` fails due to local modifications (and `git stash` is hook-blocked), read files directly from GitHub instead of fighting the local state.
+
+**Reliable default branch detection:**
+```bash
+git remote show origin | grep 'HEAD branch' | awk '{print $NF}'
+```
+
+**Do not use the Write tool for `/tmp` files.** A previous failed Bash attempt may have already created the file, causing Write to fail with "read first". Use Bash heredoc instead:
+```bash
+cat > /tmp/file.txt << 'EOF'
+content here
+EOF
+```
+
 ### Development Patterns
 
 1. **Tool-per-Class**: Each MCP tool is a standalone `@Service` class with `@Tool` annotation, extending `BaseMcpTool` or `BaseGetTool`
@@ -200,7 +229,47 @@ This codebase handles sensitive vulnerability data. The README contains critical
 
 ## Beads Workflow Requirements
 
-This project uses Beads (bd) for issue tracking. See the MCP resource `beads://quickstart` for usage details.
+This project uses Beads (br) for issue tracking. See the MCP resource `beads://quickstart` for usage details.
+
+### Bead Command Reference
+
+Exact syntax for the most common operations — do not guess command names:
+
+```bash
+# Status
+br update <bead-id> --status in_progress
+br close <bead-id> --reason "why it's done"   # --reason/-r is REQUIRED; positional arg fails
+br reopen <bead-id>
+
+# Viewing
+br show <bead-id>
+br ready                                       # list unblocked open beads
+br list
+
+# Comments — 'br comment' does NOT exist; use 'br comments add'
+br comments add <bead-id> --message "short single-line text"
+br comments add <bead-id> -f /tmp/comment.txt  # preferred for multi-line content
+
+# Labels
+br label add <bead-id> -l <label>
+br label remove <bead-id> -l <label>
+
+# Dependencies
+br dep add <dependent> <prerequisite>          # dependent "blocks on" prerequisite
+br dep add <child> <parent> --type parent-child
+```
+
+**Multi-line comments — always use a temp file:**
+Shell strings containing backticks, `$()`, or special characters are interpreted by the shell.
+Write content to a temp file with a heredoc, then pass `-f`:
+```bash
+cat > /tmp/comment.txt << 'EOF'
+## My comment with `code`, **markdown**, and special chars
+Content here is never shell-interpreted because of the quoted EOF delimiter.
+EOF
+br comments add <bead-id> -f /tmp/comment.txt
+```
+Never use `$()` substitution to pass multi-line comment text — use `-f` instead.
 
 ### Bead Status Management
 
@@ -208,14 +277,14 @@ This project uses Beads (bd) for issue tracking. See the MCP resource `beads://q
 
 1. **When starting work on a bead**: Immediately set status to `in_progress`
    ```
-   bd update <bead-id> status=in_progress
+   br update <bead-id> --status in_progress
    ```
 
 2. **While working**: Keep the bead `in_progress` until all work is complete, tested, and ready to close
 
 3. **When work is complete**: Close the bead only after all acceptance criteria are met
    ```
-   bd close <bead-id>
+   br close <bead-id> --reason "brief close reason"
    ```
 
 **Status lifecycle:**
@@ -240,8 +309,8 @@ This project uses Beads (bd) for issue tracking. See the MCP resource `beads://q
 2. **Update the bead** - If changes are needed based on review, update the bead description with the approved approach
 3. **Update labels:**
    ```bash
-   bd label remove <bead-id> needs-human-review
-   bd label add <bead-id> human-reviewed
+   br label remove <bead-id> -l needs-human-review
+   br label add <bead-id> -l human-reviewed
    ```
 4. **Proceed to next bead** - Continue reviewing remaining beads with `needs-human-review` label
 
@@ -335,9 +404,9 @@ Promoting Stacked PR (after base PR merges):
    - Record the branch name in the bead (so it's easily found later)
    - **If this is a stacked branch** (based on another PR branch):
      - Label the bead with `stacked-branch`
-     - Create blocks dependency: `bd dep add <new-bead-id> <base-bead-id> --type blocks`
+     - Create blocks dependency: `br dep add <new-bead-id> <base-bead-id> --type blocks`
        - This represents that the base bead "blocks" the new bead from being merged
-       - Example: If AIML-230 is stacked on AIML-228, use `bd dep add mcp-uuv mcp-9kr --type blocks`
+       - Example: If AIML-230 is stacked on AIML-228, use `br dep add mcp-uuv mcp-9kr --type blocks`
 
 **3. Update Jira (if applicable):**
    - If bead has a linked Jira ticket:
@@ -354,16 +423,16 @@ Promoting Stacked PR (after base PR merges):
 
 **When creating new beads from a Jira-linked bead:**
 - Ask user if the new bead should be a child of the Jira-linked bead
-- If yes, establish parent-child relationship using `bd dep add <child> <parent>` with `parent-child` dependency type
+- If yes, establish parent-child relationship using `br dep add <child> <parent>` with `parent-child` dependency type
 - Child beads work on the same branch as their parent
   
 ### Managing Bead Dependencies
 
-**Command syntax:** `bd dep add <dependent-task> <prerequisite-task>`
+**Command syntax:** `br dep add <dependent-task> <prerequisite-task>`
 
-Example: If B must be done after A completes, use `bd dep add B A` (not `bd dep add A B`).
+Example: If B must be done after A completes, use `br dep add B A` (not `br dep add A B`).
 
-Verify with `bd show <task-id>` - dependent tasks show "Depends on", prerequisites show "Blocks".
+Verify with `br show <task-id>` - dependent tasks show "Depends on", prerequisites show "Blocks".
 
 NOTE: This is not for parent-child dependencies, these are blocks dependencies. 
 **IMPORTANT** If you are asked to add a bead as a child or with phrasing that implies a parent-child relationship, ensure you add the dependency of type parent-child. The default is a blocks type.
@@ -720,7 +789,7 @@ This workflow completes the development cycle by closing the bead and updating t
 
 **1. Close the bead:**
    ```bash
-   bd close <bead-id>
+   br close <bead-id>
    ```
    - Provide a brief reason mentioning the merged PR
    - Example: "PR #28 merged to main. Successfully added appID and appName fields to VulnLight record."
@@ -789,14 +858,14 @@ This workflow is for ending the current session while preserving all state so wo
 **When a bead is completed (closed or moved to review), proactively suggest what to work on next:**
 
 **1. Check for parent bead context:**
-   - If the completed bead is a child bead, check the parent bead using `bd show <parent-bead-id>`
+   - If the completed bead is a child bead, check the parent bead using `br show <parent-bead-id>`
    - Look in the parent bead's `notes` field for recommended execution order or priority guidance
    - Example: "Recommended execution order for child beads: 1. mcp-981, 2. mcp-dw1, 3. mcp-j1i..."
 
 **2. Identify next bead options:**
    - Look at other child beads of the same parent (siblings)
    - Check for beads that are `status=open` and have no blocking dependencies
-   - Use `bd ready` to find beads ready to work on
+   - Use `br ready` to find beads ready to work on
    - Consider priority levels (Priority 1 > Priority 2 > Priority 3)
 
 **3. Present recommendations to the user:**
@@ -828,7 +897,7 @@ Would you like to work on **mcp-dw1** next, or would you prefer a different one?
 
 **When there are no more child beads:**
 - If all child beads are closed and parent is complete, suggest moving parent to review
-- If this was a standalone bead, suggest using `bd ready` to find next available work
+- If this was a standalone bead, suggest using `br ready` to find next available work
 - Check for any blocked beads that might now be unblocked
 
 @SECURITY.md
