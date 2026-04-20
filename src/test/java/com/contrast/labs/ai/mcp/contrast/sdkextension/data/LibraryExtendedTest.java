@@ -187,4 +187,38 @@ class LibraryExtendedTest {
     assertThat(library.getLowVulnerabilities()).isEqualTo(0);
     assertThat(library.getNoteVulnerabilities()).isEqualTo(1);
   }
+
+  // ---- case-insensitive matching ----
+
+  @Test
+  void get_vulnerability_counts_should_match_lowercase_severity_codes() {
+    var library = new LibraryExtended();
+    library.setVulnerabilities(List.of(vuln("medium"), vuln("low"), vuln("note")));
+
+    assertThat(library.getMediumVulnerabilities()).isEqualTo(1);
+    assertThat(library.getLowVulnerabilities()).isEqualTo(1);
+    assertThat(library.getNoteVulnerabilities()).isEqualTo(1);
+  }
+
+  @Test
+  void get_vulnerability_counts_should_match_mixed_case_severity_codes() {
+    var library = new LibraryExtended();
+    library.setVulnerabilities(List.of(vuln("Medium"), vuln("Low"), vuln("Note")));
+
+    assertThat(library.getMediumVulnerabilities()).isEqualTo(1);
+    assertThat(library.getLowVulnerabilities()).isEqualTo(1);
+    assertThat(library.getNoteVulnerabilities()).isEqualTo(1);
+  }
+
+  // ---- null severityCode handling ----
+
+  @Test
+  void get_vulnerability_counts_should_return_0_when_vuln_has_null_severity_code() {
+    var library = new LibraryExtended();
+    library.setVulnerabilities(List.of(vuln(null), vuln("HIGH")));
+
+    assertThat(library.getMediumVulnerabilities()).isEqualTo(0);
+    assertThat(library.getLowVulnerabilities()).isEqualTo(0);
+    assertThat(library.getNoteVulnerabilities()).isEqualTo(0);
+  }
 }
