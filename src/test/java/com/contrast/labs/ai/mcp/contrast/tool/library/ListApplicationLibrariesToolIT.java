@@ -120,56 +120,37 @@ class ListApplicationLibrariesToolIT
         .as("requires seeded libraries on app %s — see INTEGRATION_TESTS.md", testData.appName)
         .isNotEmpty();
 
-    // Every library must populate the core identity fields and satisfy vulnerability-count
-    // arithmetic: the severity breakdown cannot exceed the total, and each count must be
-    // non-negative. Empty strings are rejected via isNotBlank.
+    // Every library must populate the core identity fields, and each per-severity bucket must
+    // lie within [0, totalVulnerabilities] — a negative count would indicate a sentinel leaking
+    // through, and a count exceeding total would indicate a deserialization mix-up. Full
+    // arithmetic consistency (sum == total) is asserted in the dedicated severity-counts test
+    // against the vulnerabilities array, which avoids mixing API-provided and array-derived
+    // sources. classCount/classesUsed arithmetic is covered in the class-usage test.
     assertThat(result.items())
-        .as("every library must populate core identity and vulnerability-count fields")
+        .as("every library must populate core identity and in-range vulnerability-count fields")
         .allSatisfy(
             lib -> {
               assertThat(lib.getFilename()).as("%s.filename", lib.getHash()).isNotBlank();
               assertThat(lib.getHash()).as("%s.hash", lib.getFilename()).isNotBlank();
               assertThat(lib.getVersion()).as("%s.version", lib.getFilename()).isNotBlank();
-              assertThat(lib.getClassCount())
-                  .as("%s.classCount", lib.getFilename())
-                  .isNotNegative();
-              assertThat(lib.getClassesUsed())
-                  .as("%s.classesUsed", lib.getFilename())
-                  .isNotNegative();
-              assertThat(lib.getCriticalVulnerabilities())
-                  .as("%s.criticalVulnerabilities", lib.getFilename())
-                  .isNotNegative();
-              assertThat(lib.getHighVulnerabilities())
-                  .as("%s.highVulnerabilities", lib.getFilename())
-                  .isNotNegative();
-              assertThat(lib.getMediumVulnerabilities())
-                  .as("%s.mediumVulnerabilities", lib.getFilename())
-                  .isNotNegative();
-              assertThat(lib.getLowVulnerabilities())
-                  .as("%s.lowVulnerabilities", lib.getFilename())
-                  .isNotNegative();
-              assertThat(lib.getNoteVulnerabilities())
-                  .as("%s.noteVulnerabilities", lib.getFilename())
-                  .isNotNegative();
-              // Each severity bucket alone cannot exceed the total. Full arithmetic consistency
-              // (sum == total) is asserted in the dedicated severity-counts test against the
-              // vulnerabilities array, which avoids mixing API-provided and array-derived sources.
               int total = lib.getTotalVulnerabilities();
               assertThat(lib.getCriticalVulnerabilities())
-                  .as("%s.critical must not exceed total", lib.getFilename())
-                  .isLessThanOrEqualTo(total);
+                  .as(
+                      "%s.criticalVulnerabilities must be in [0, total=%d]",
+                      lib.getFilename(), total)
+                  .isBetween(0, total);
               assertThat(lib.getHighVulnerabilities())
-                  .as("%s.high must not exceed total", lib.getFilename())
-                  .isLessThanOrEqualTo(total);
+                  .as("%s.highVulnerabilities must be in [0, total=%d]", lib.getFilename(), total)
+                  .isBetween(0, total);
               assertThat(lib.getMediumVulnerabilities())
-                  .as("%s.medium must not exceed total", lib.getFilename())
-                  .isLessThanOrEqualTo(total);
+                  .as("%s.mediumVulnerabilities must be in [0, total=%d]", lib.getFilename(), total)
+                  .isBetween(0, total);
               assertThat(lib.getLowVulnerabilities())
-                  .as("%s.low must not exceed total", lib.getFilename())
-                  .isLessThanOrEqualTo(total);
+                  .as("%s.lowVulnerabilities must be in [0, total=%d]", lib.getFilename(), total)
+                  .isBetween(0, total);
               assertThat(lib.getNoteVulnerabilities())
-                  .as("%s.note must not exceed total", lib.getFilename())
-                  .isLessThanOrEqualTo(total);
+                  .as("%s.noteVulnerabilities must be in [0, total=%d]", lib.getFilename(), total)
+                  .isBetween(0, total);
             });
   }
 
@@ -192,16 +173,25 @@ class ListApplicationLibrariesToolIT
   }
 
   @Test
-  void listApplicationLibraries_should_handle_invalid_app_id() {
-    // A bogus app ID must never surface populated library data. Whether the API rejects
-    // with an error or returns an empty success payload is implementation-dependent; the
-    // invariant the tool must hold is "no populated items for a nonexistent app".
+  void listApplicationLibraries_should_surface_error_response_for_invalid_app_id() {
+    // A bogus app ID must surface as a deterministic error response, not a silent empty-success
+    // payload. The specific HTTP status (403 vs 404) and mapped message are environment-dependent
+    // (TeamServer deliberately conflates "unknown" with "forbidden" for enumeration defence), so
+    // we assert the tool-contract shape: errors present, no items, no total, no more pages, and
+    // no warnings mixed in with the error.
     var result = tool.listApplicationLibraries(null, null, "invalid-app-id-12345");
 
-    assertThat(result).as("response must not be null").isNotNull();
-    assertThat(result.items())
-        .as("invalid appId must never return populated library data")
-        .isEmpty();
+    assertThat(result.isSuccess())
+        .as("invalid appId must surface as an error, not a silent empty success")
+        .isFalse();
+    assertThat(result.errors())
+        .as("error response must carry at least one non-blank error message")
+        .isNotEmpty()
+        .allSatisfy(msg -> assertThat(msg).isNotBlank());
+    assertThat(result.items()).as("error response must carry no items").isEmpty();
+    assertThat(result.totalItems()).as("error response must report zero total").isZero();
+    assertThat(result.hasMorePages()).as("error response must not claim more pages").isFalse();
+    assertThat(result.warnings()).as("error response must not mix in warnings").isEmpty();
   }
 
   @Test
