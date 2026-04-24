@@ -18,6 +18,11 @@ package com.contrast.labs.ai.mcp.contrast.tool.attack;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
+import com.contrast.labs.ai.mcp.contrast.result.AttackSummary;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -43,8 +48,6 @@ class SearchAttacksToolIT {
 
   @Test
   void searchAttacks_should_return_response_with_no_filters() {
-    log.info("\n=== Integration Test: search_attacks (no filters) ===");
-
     var response =
         searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, null, null);
 
@@ -53,18 +56,8 @@ class SearchAttacksToolIT {
     assertThat(response.page()).as("Page should be 1").isEqualTo(1);
     assertThat(response.pageSize()).as("Page size should be 10").isEqualTo(10);
 
-    log.info("✓ Retrieved {} attacks", response.items().size());
-    log.info("  Total items: {}", response.totalItems());
-    log.info("  Has more pages: {}", response.hasMorePages());
-
     if (!response.items().isEmpty()) {
       var firstAttack = response.items().get(0);
-      log.info("  Sample attack:");
-      log.info("    Attack ID: {}", firstAttack.attackId());
-      log.info("    Status: {}", firstAttack.status());
-      log.info("    Source: {}", firstAttack.source());
-      log.info("    Rules: {}", firstAttack.rules());
-
       assertThat(firstAttack.attackId()).as("Attack ID should not be null").isNotNull();
       assertThat(firstAttack.status()).as("Status should not be null").isNotNull();
     }
@@ -72,59 +65,80 @@ class SearchAttacksToolIT {
 
   @Test
   void searchAttacks_should_filter_by_quickFilter() {
-    log.info("\n=== Integration Test: search_attacks (quickFilter=EFFECTIVE) ===");
-
     var response =
         searchAttacksTool.searchAttacks(
-            1, 10, "EFFECTIVE", null, null, null, null, null, null, null);
+            1, 50, "EFFECTIVE", null, null, null, null, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
-    assertThat(response.items()).as("Items should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have no errors").isEmpty();
+    assertThat(response.items())
+        .as("requires seeded EFFECTIVE attacks in test org — see INTEGRATION_TESTS.md")
+        .isNotEmpty();
 
-    log.info("✓ Retrieved {} EFFECTIVE attacks", response.items().size());
+    // EFFECTIVE excludes probed attacks per SearchAttacksTool description (line 89).
+    assertThat(response.items())
+        .as("EFFECTIVE filter must exclude PROBED attacks")
+        .allSatisfy(
+            attack ->
+                assertThat(attack.status())
+                    .as("attack %s status", attack.attackId())
+                    .isNotEqualTo("PROBED"));
   }
 
   @Test
   void searchAttacks_should_filter_by_statusFilter() {
-    log.info("\n=== Integration Test: search_attacks (statusFilter=EXPLOITED) ===");
-
     var response =
         searchAttacksTool.searchAttacks(
-            1, 10, null, "EXPLOITED", null, null, null, null, null, null);
+            1, 50, null, "EXPLOITED", null, null, null, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
-    assertThat(response.items()).as("Items should not be null").isNotNull();
-
-    log.info("✓ Retrieved {} EXPLOITED attacks", response.items().size());
+    assertThat(response.errors()).as("Should have no errors").isEmpty();
+    assertThat(response.items())
+        .as("requires seeded EXPLOITED attacks in test org — see INTEGRATION_TESTS.md")
+        .isNotEmpty();
+    assertThat(response.items())
+        .as("statusFilter=EXPLOITED must return only EXPLOITED attacks")
+        .allSatisfy(
+            attack ->
+                assertThat(attack.status())
+                    .as("attack %s status", attack.attackId())
+                    .isEqualTo("EXPLOITED"));
   }
 
   @Test
   void searchAttacks_should_filter_by_keyword() {
-    log.info("\n=== Integration Test: search_attacks (keyword=sql) ===");
-
     var response =
-        searchAttacksTool.searchAttacks(1, 10, null, null, "sql", null, null, null, null, null);
+        searchAttacksTool.searchAttacks(1, 50, null, null, "sql", null, null, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
-    assertThat(response.items()).as("Items should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have no errors").isEmpty();
+    assertThat(response.items())
+        .as("requires seeded attacks matching keyword 'sql' — see INTEGRATION_TESTS.md")
+        .isNotEmpty();
 
-    log.info("✓ Retrieved {} attacks matching keyword 'sql'", response.items().size());
+    // Keyword performs substring match across source IP, server name, application name, rule name,
+    // attack UUID, forwarded IP/path, and attack tags (OR logic). Of those, only source IP,
+    // application name, rule name, and attack UUID are exposed on AttackSummary. A match on a
+    // non-exposed field (server name, forwarded path, tags) would fail this assertion — the
+    // production-seeded SQL-injection data is expected to include at least one visible-field match
+    // (typically rule names like "sql-injection").
+    assertThat(response.items())
+        .as("keyword 'sql' must appear in at least one visible searchable field per result")
+        .allSatisfy(
+            attack ->
+                assertThat(visibleSearchableStrings(attack))
+                    .as("attack %s searchable fields", attack.attackId())
+                    .anyMatch(s -> s.toLowerCase().contains("sql")));
   }
 
   @Test
   void searchAttacks_should_handle_pagination() {
-    log.info("\n=== Integration Test: search_attacks (pagination) ===");
-
     var page1 =
         searchAttacksTool.searchAttacks(1, 5, null, null, null, null, null, null, null, null);
 
     assertThat(page1).as("Page 1 response should not be null").isNotNull();
     assertThat(page1.page()).as("Should be page 1").isEqualTo(1);
     assertThat(page1.pageSize()).as("Page size should be 5").isEqualTo(5);
-
-    log.info("✓ Page 1: {} attacks", page1.items().size());
-    log.info("  Total items: {}", page1.totalItems());
-    log.info("  Has more pages: {}", page1.hasMorePages());
 
     if (page1.hasMorePages()) {
       var page2 =
@@ -133,34 +147,32 @@ class SearchAttacksToolIT {
       assertThat(page2).as("Page 2 response should not be null").isNotNull();
       assertThat(page2.page()).as("Should be page 2").isEqualTo(2);
 
-      log.info("✓ Page 2: {} attacks", page2.items().size());
-
-      if (!page1.items().isEmpty() && !page2.items().isEmpty()) {
-        assertThat(page1.items().get(0).attackId())
-            .as("Page 1 and Page 2 should have different attacks")
-            .isNotEqualTo(page2.items().get(0).attackId());
-      }
+      var page1Ids = page1.items().stream().map(AttackSummary::attackId).toList();
+      var page2Ids = page2.items().stream().map(AttackSummary::attackId).toList();
+      assertThat(page2Ids)
+          .as("Page 2 items should be disjoint from page 1 items")
+          .doesNotContainAnyElementsOf(page1Ids);
     }
   }
 
   @Test
   void searchAttacks_should_handle_sort() {
-    log.info("\n=== Integration Test: search_attacks (sort=-startTime) ===");
-
     var response =
         searchAttacksTool.searchAttacks(
             1, 10, null, null, null, null, null, null, "-startTime", null);
 
     assertThat(response).as("Response should not be null").isNotNull();
-    assertThat(response.items()).as("Items should not be null").isNotNull();
-
-    log.info("✓ Retrieved {} attacks sorted by -startTime", response.items().size());
+    assertThat(response.errors()).as("Should have no errors").isEmpty();
+    assertThat(response.items())
+        .as("requires seeded attacks to verify sort order — see INTEGRATION_TESTS.md")
+        .isNotEmpty();
+    assertThat(response.items())
+        .as("sort=-startTime must return items ordered by startTimeMs descending")
+        .isSortedAccordingTo(Comparator.comparingLong(AttackSummary::startTimeMs).reversed());
   }
 
   @Test
   void searchAttacks_should_return_error_for_invalid_quickFilter() {
-    log.info("\n=== Integration Test: search_attacks (invalid quickFilter) ===");
-
     var response =
         searchAttacksTool.searchAttacks(1, 10, "INVALID", null, null, null, null, null, null, null);
 
@@ -169,15 +181,10 @@ class SearchAttacksToolIT {
     assertThat(response.errors())
         .as("Should explain invalid filter")
         .anyMatch(e -> e.contains("Invalid quickFilter"));
-
-    log.info("✓ Invalid filter correctly rejected");
-    log.info("  Errors: {}", response.errors());
   }
 
   @Test
   void searchAttacks_should_return_error_for_invalid_statusFilter() {
-    log.info("\n=== Integration Test: search_attacks (invalid statusFilter) ===");
-
     var response =
         searchAttacksTool.searchAttacks(1, 10, null, "INVALID", null, null, null, null, null, null);
 
@@ -186,45 +193,61 @@ class SearchAttacksToolIT {
     assertThat(response.errors())
         .as("Should explain invalid filter")
         .anyMatch(e -> e.contains("Invalid statusFilter"));
-
-    log.info("✓ Invalid status filter correctly rejected");
-    log.info("  Errors: {}", response.errors());
   }
 
   @Test
   void searchAttacks_should_handle_boolean_filters() {
-    log.info("\n=== Integration Test: search_attacks (boolean filters) ===");
+    // Compare with and without suppressed attacks to verify includeSuppressed takes effect.
+    // AttackSummary does not expose the `suppressed` field, so we can only assert the count
+    // relationship: including suppressed must return at least as many results as excluding them.
+    var withSuppressed =
+        searchAttacksTool.searchAttacks(1, 100, null, null, null, true, null, null, null, null);
+    var withoutSuppressed =
+        searchAttacksTool.searchAttacks(1, 100, null, null, null, false, null, null, null, null);
 
-    var response =
-        searchAttacksTool.searchAttacks(1, 10, null, null, null, true, null, null, null, null);
+    assertThat(withSuppressed.errors())
+        .as("includeSuppressed=true should have no errors")
+        .isEmpty();
+    assertThat(withoutSuppressed.errors())
+        .as("includeSuppressed=false should have no errors")
+        .isEmpty();
 
-    assertThat(response).as("Response should not be null").isNotNull();
-    assertThat(response.items()).as("Items should not be null").isNotNull();
-
-    log.info("✓ Retrieved {} attacks with includeSuppressed=true", response.items().size());
+    assertThat(totalOrZero(withSuppressed.totalItems()))
+        .as("includeSuppressed=true must return >= total items than includeSuppressed=false")
+        .isGreaterThanOrEqualTo(totalOrZero(withoutSuppressed.totalItems()));
   }
 
   @Test
   void searchAttacks_should_handle_combined_filters() {
-    log.info("\n=== Integration Test: search_attacks (combined filters) ===");
-
     var response =
         searchAttacksTool.searchAttacks(
-            1, 10, "EFFECTIVE", "EXPLOITED", null, false, null, null, null, null);
+            1, 50, "EFFECTIVE", "EXPLOITED", null, false, null, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
-    assertThat(response.items()).as("Items should not be null").isNotNull();
+    assertThat(response.errors()).as("Should have no errors").isEmpty();
+    assertThat(response.items())
+        .as("requires seeded EFFECTIVE+EXPLOITED attacks — see INTEGRATION_TESTS.md")
+        .isNotEmpty();
 
-    log.info("✓ Retrieved {} attacks with combined filters", response.items().size());
-    log.info("  Filters: quickFilter=EFFECTIVE, statusFilter=EXPLOITED");
+    // Intersection of EFFECTIVE (excludes PROBED) and statusFilter=EXPLOITED must hold per result.
+    // includeSuppressed=false cannot be verified from AttackSummary (field not exposed).
+    assertThat(response.items())
+        .as("every result must satisfy both quickFilter=EFFECTIVE and statusFilter=EXPLOITED")
+        .allSatisfy(
+            attack -> {
+              assertThat(attack.status())
+                  .as("attack %s status must be EXPLOITED (statusFilter)", attack.attackId())
+                  .isEqualTo("EXPLOITED");
+              assertThat(attack.status())
+                  .as("attack %s status must not be PROBED (EFFECTIVE)", attack.attackId())
+                  .isNotEqualTo("PROBED");
+            });
   }
 
   // ========== Sort Field Validation Tests (Bug Fix: AIML-345) ==========
 
   @Test
   void searchAttacks_should_return_validation_error_for_invalid_sort_field() {
-    log.info("\n=== Integration Test: search_attacks (invalid sort field - BUG FIX) ===");
-
     // This test verifies the bug fix: invalid sort fields should return a helpful
     // validation error listing valid options, NOT a generic "Contrast API error"
     var response =
@@ -242,33 +265,23 @@ class SearchAttacksToolIT {
     assertThat(response.errors())
         .as("Error message should NOT be generic API error")
         .noneMatch(e -> e.contains("Contrast API error"));
-
-    log.info("✓ Invalid sort field correctly rejected with helpful error");
-    log.info("  Errors: {}", response.errors());
   }
 
   @ParameterizedTest(name = "valid sort field: {0}")
   @ValueSource(strings = {"sourceIP", "status", "startTime", "endTime", "type"})
   void searchAttacks_should_accept_all_valid_sort_fields(String sortField) {
-    log.info("\n=== Integration Test: search_attacks (sort={}) ===", sortField);
-
     var response =
         searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, sortField, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors()).as("Should have no errors for sort: " + sortField).isEmpty();
     assertThat(response.items()).as("Items should not be null").isNotNull();
-
-    log.info("✓ Sort field '{}' accepted", sortField);
-    log.info("  Results: {} attacks found", response.items().size());
   }
 
   @ParameterizedTest(name = "valid sort field descending: -{0}")
   @ValueSource(strings = {"sourceIP", "status", "startTime", "endTime", "type"})
   void searchAttacks_should_accept_all_valid_sort_fields_with_descending_prefix(String sortField) {
     String descending = "-" + sortField;
-    log.info("\n=== Integration Test: search_attacks (sort={}) ===", descending);
-
     var response =
         searchAttacksTool.searchAttacks(
             1, 10, null, null, null, null, null, null, descending, null);
@@ -276,16 +289,11 @@ class SearchAttacksToolIT {
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors()).as("Should have no errors for sort: " + descending).isEmpty();
     assertThat(response.items()).as("Items should not be null").isNotNull();
-
-    log.info("✓ Sort field '{}' accepted", descending);
-    log.info("  Results: {} attacks found", response.items().size());
   }
 
   @ParameterizedTest(name = "invalid sort field: {0}")
   @ValueSource(strings = {"severity", "probes", "NEWEST", "OLDEST", "invalidField"})
   void searchAttacks_should_reject_invalid_sort_fields(String sortField) {
-    log.info("\n=== Integration Test: search_attacks (invalid sort={}) ===", sortField);
-
     var response =
         searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, sortField, null);
 
@@ -296,33 +304,29 @@ class SearchAttacksToolIT {
     assertThat(response.errors())
         .as("Should be validation error not API error")
         .anyMatch(e -> e.contains("Invalid sort field"));
-
-    log.info("✓ Invalid sort field '{}' correctly rejected", sortField);
-    log.info("  Errors: {}", response.errors());
   }
 
   // ========== Keyword and Rules Parameter Tests (Bug Fix: AIML-385) ==========
 
   @Test
-  void searchAttacks_should_find_results_with_keyword_SQL_Injection() {
-    log.info("\n=== Integration Test: search_attacks (keyword='SQL Injection') ===");
-
+  void searchAttacks_should_accept_keyword_with_spaces_without_error() {
+    // Narrow contract: multi-word keywords must be URL-encoded safely and accepted by the API.
+    // We do NOT assert results are non-empty because the seeded test org may not contain attacks
+    // whose visible fields match "SQL Injection" as a literal substring — keyword also matches
+    // rule display names which aren't exposed on AttackSummary.
     var response =
         searchAttacksTool.searchAttacks(
             1, 10, null, null, "SQL Injection", null, null, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
-    assertThat(response.errors()).as("Should have no errors").isEmpty();
-
-    log.info(
-        "✓ Retrieved {} attacks using keyword 'SQL Injection' (display name search)",
-        response.items().size());
+    assertThat(response.errors())
+        .as("keyword with spaces must be URL-encoded and accepted without error")
+        .isEmpty();
+    assertThat(response.items()).as("Items should not be null").isNotNull();
   }
 
   @Test
   void searchAttacks_should_find_results_with_rules_filter() {
-    log.info("\n=== Integration Test: search_attacks (rules='sql-injection') ===");
-
     var response =
         searchAttacksTool.searchAttacks(
             1, 10, null, null, null, null, null, null, null, "sql-injection");
@@ -337,24 +341,32 @@ class SearchAttacksToolIT {
               attack ->
                   assertThat(attack.rules()).anyMatch(rule -> rule.toLowerCase().contains("sql")));
     }
-
-    log.info(
-        "✓ Retrieved {} attacks using rules='sql-injection' (exact rule ID filter)",
-        response.items().size());
   }
 
   @Test
   void searchAttacks_should_find_results_with_multiple_rules() {
-    log.info("\n=== Integration Test: search_attacks (rules='sql-injection,xss-reflected') ===");
-
     var response =
         searchAttacksTool.searchAttacks(
-            1, 10, null, null, null, null, null, null, null, "sql-injection,xss-reflected");
+            1, 50, null, null, null, null, null, null, null, "sql-injection,xss-reflected");
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors()).as("Should have no errors").isEmpty();
+    assertThat(response.items())
+        .as("requires seeded attacks matching sql-injection or xss-reflected rules")
+        .isNotEmpty();
 
-    log.info("✓ Retrieved {} attacks using multiple rules filter", response.items().size());
+    // Every attack must have at least one rule matching one of the two requested rule families.
+    assertThat(response.items())
+        .as("every result must match at least one of the requested rules (sql or xss)")
+        .allSatisfy(
+            attack ->
+                assertThat(attack.rules())
+                    .as("attack %s rules", attack.attackId())
+                    .anyMatch(
+                        rule -> {
+                          var lower = rule.toLowerCase();
+                          return lower.contains("sql") || lower.contains("xss");
+                        }));
   }
 
   // ========== Special Character Keyword Tests (Test Cases 3.5 and 13.4) ==========
@@ -373,16 +385,38 @@ class SearchAttacksToolIT {
         "%00null-byte" // Null byte pattern (tests double-encoding of %)
       })
   void searchAttacks_should_handle_specialCharacterKeywords(String keyword) {
-    log.info("\n=== Integration Test: search_attacks (keyword='{}') ===", keyword);
-
+    // Narrow contract: keyword is URL-encoded safely without triggering API-side attack
+    // detection. Result content is irrelevant — seeded test data is not expected to match these
+    // adversarial keywords. We only assert the request round-trips without error.
     var response =
         searchAttacksTool.searchAttacks(1, 10, null, null, keyword, null, null, null, null, null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors()).as("Should have no errors for keyword: " + keyword).isEmpty();
     assertThat(response.items()).as("Items should not be null").isNotNull();
+  }
 
-    log.info("✓ Special character keyword handled correctly: {}", keyword);
-    log.info("  Results: {} attacks found", response.items().size());
+  /**
+   * Collects all string fields on an {@link AttackSummary} that participate in keyword substring
+   * matching and are exposed on the summary. Server name, forwarded IP/path, and attack tags are
+   * also keyword-searchable on the server side but are not exposed on AttackSummary.
+   */
+  private static List<String> visibleSearchableStrings(AttackSummary attack) {
+    var appStrings =
+        Optional.ofNullable(attack.applications()).orElse(List.of()).stream()
+            .flatMap(
+                app ->
+                    Stream.of(app.applicationName(), app.applicationId())
+                        .filter(s -> s != null && !s.isBlank()));
+    var ruleStrings =
+        Optional.ofNullable(attack.rules()).orElse(List.of()).stream()
+            .filter(s -> s != null && !s.isBlank());
+    var topLevel =
+        Stream.of(attack.source(), attack.attackId()).filter(s -> s != null && !s.isBlank());
+    return Stream.concat(Stream.concat(topLevel, ruleStrings), appStrings).toList();
+  }
+
+  private static int totalOrZero(Integer totalItems) {
+    return totalItems != null ? totalItems : 0;
   }
 }
