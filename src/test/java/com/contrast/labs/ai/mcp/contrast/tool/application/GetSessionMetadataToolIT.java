@@ -55,15 +55,42 @@ public class GetSessionMetadataToolIT
   @Autowired private GetSessionMetadataTool getSessionMetadataTool;
   @Autowired private SearchApplicationsTool searchApplicationsTool;
 
-  /** Container for discovered test data. */
+  // SingleTool's 5xx mapping — validation errors must never look like this.
+  private static final String CONTRAST_API_ERROR = "Contrast API error";
+
+  // SingleTool's 401/403 mapping — see BaseTool#mapHttpErrorCode and
+  // SingleTool#executePipeline (UnauthorizedException branch). Surfaces for both invalid
+  // credentials and unknown application IDs (TeamServer returns 403 rather than 404 for an
+  // appId the caller cannot see).
+  private static final String AUTH_OR_NOT_FOUND_ERROR =
+      "Authentication failed or resource not found. Verify credentials and that the resource ID"
+          + " is correct.";
+
+  // Tool warning emitted when the SDK returns null (no recorded sessions).
+  private static final String NO_METADATA_WARNING_FRAGMENT = "No session metadata found";
+
+  // Probe depth for discovering an app with populated session metadata. Bounded to keep
+  // discovery fast on orgs with many applications.
+  private static final int METADATA_PROBE_DEPTH = 10;
+
+  // String the API will not match against any real application.
+  private static final String NONEXISTENT_APP_ID = "nonexistent-app-id-12345";
+
+  /** Discovered test data — populated once per class by {@link #performDiscovery()}. */
   static class TestData {
-    boolean hasApplications;
     String sampleAppId;
+
+    /**
+     * App ID known to expose at least one populated session metadata filter group. Remains blank if
+     * no probed app surfaced metadata; the populate test fails loudly in that case.
+     */
+    String sampleAppIdWithMetadata;
 
     @Override
     public String toString() {
       return String.format(
-          "TestData{hasApplications=%s, sampleAppId='%s'}", hasApplications, sampleAppId);
+          "TestData{sampleAppId='%s', sampleAppIdWithMetadata='%s'}",
+          sampleAppId, sampleAppIdWithMetadata);
     }
   }
 
@@ -79,75 +106,178 @@ public class GetSessionMetadataToolIT
 
   @Override
   protected void logTestDataDetails(TestData data) {
-    log.info(
-        "Test data: hasApplications={}, sampleAppId={}", data.hasApplications, data.sampleAppId);
+    log.info("Test data: {}", data);
   }
 
   @Override
   protected TestData performDiscovery() throws IOException {
-    var response = searchApplicationsTool.searchApplications(1, 5, null, null, null);
+    var response =
+        searchApplicationsTool.searchApplications(1, METADATA_PROBE_DEPTH, null, null, null);
 
-    var testData = new TestData();
-    testData.hasApplications = response.isSuccess() && !response.items().isEmpty();
-
-    if (testData.hasApplications) {
-      testData.sampleAppId = response.items().get(0).appID();
+    if (!response.isSuccess() || response.items().isEmpty()) {
+      throw new NoTestDataException(
+          "GetSessionMetadataToolIT requires at least one application in the organization — "
+              + "see INTEGRATION_TESTS.md");
     }
 
-    log.info(
-        "Discovery: found {} applications (hasApps={})",
-        response.items().size(),
-        testData.hasApplications);
+    var data = new TestData();
+    data.sampleAppId = response.items().get(0).appID();
 
-    return testData;
+    // Probe the page for an app that has accumulated session metadata. Stops at the first
+    // hit so discovery cost stays bounded. If no app surfaces metadata, the populate test
+    // fails loudly with a precondition message.
+    for (var app : response.items()) {
+      var probe = getSessionMetadataTool.getSessionMetadata(app.appID());
+      if (probe.isSuccess()
+          && probe.found()
+          && probe.data() != null
+          && probe.data().getFilters() != null
+          && !probe.data().getFilters().isEmpty()) {
+        data.sampleAppIdWithMetadata = app.appID();
+        break;
+      }
+    }
+
+    return data;
   }
+
+  // ---------- Discovery precondition ----------
+
+  @Test
+  void testDiscoveredTestDataExists() {
+    assertThat(testData).as("discovery must populate test data").isNotNull();
+    assertThat(testData.sampleAppId)
+        .as("discovery must resolve at least one application — see INTEGRATION_TESTS.md")
+        .isNotBlank();
+  }
+
+  // ---------- Validation errors ----------
 
   @Test
   void getSessionMetadata_should_return_validation_error_for_missing_app_id() {
     var result = getSessionMetadataTool.getSessionMetadata(null);
 
-    assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).anyMatch(e -> e.contains("appId") && e.contains("required"));
+    assertThat(result.isSuccess()).as("null appId must fail validation").isFalse();
+    assertThat(result.found()).as("validation failure must not report found").isFalse();
+    assertThat(result.data()).as("validation failure must not carry data").isNull();
+    // Assert full message shape — a bare "appId" + "required" substring would coincidentally
+    // match an unrelated message containing the parameter name.
+    assertThat(result.errors())
+        .as("validation error must state appId is required")
+        .containsExactly("appId is required");
+    assertThat(result.errors())
+        .as("validation error must not surface as a Contrast API error")
+        .noneMatch(e -> e.contains(CONTRAST_API_ERROR));
   }
 
   @Test
   void getSessionMetadata_should_return_validation_error_for_empty_app_id() {
     var result = getSessionMetadataTool.getSessionMetadata("");
 
-    assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).anyMatch(e -> e.contains("appId") && e.contains("required"));
+    assertThat(result.isSuccess()).as("empty appId must fail validation").isFalse();
+    assertThat(result.found()).as("validation failure must not report found").isFalse();
+    assertThat(result.data()).as("validation failure must not carry data").isNull();
+    assertThat(result.errors())
+        .as("validation error must state appId is required")
+        .containsExactly("appId is required");
+    assertThat(result.errors())
+        .as("validation error must not surface as a Contrast API error")
+        .noneMatch(e -> e.contains(CONTRAST_API_ERROR));
   }
 
   @Test
-  void getSessionMetadata_should_handle_valid_app_id() {
-    // First discover an app ID
-    var appsResponse = searchApplicationsTool.searchApplications(1, 1, null, null, null);
+  void getSessionMetadata_should_return_validation_error_for_blank_app_id() {
+    var result = getSessionMetadataTool.getSessionMetadata("   ");
 
-    if (appsResponse.isSuccess() && !appsResponse.items().isEmpty()) {
-      var appId = appsResponse.items().get(0).appID();
+    assertThat(result.isSuccess()).as("whitespace-only appId must fail validation").isFalse();
+    assertThat(result.found()).as("validation failure must not report found").isFalse();
+    assertThat(result.errors())
+        .as("validation error must state appId is required")
+        .containsExactly("appId is required");
+    assertThat(result.errors())
+        .as("validation error must not surface as a Contrast API error")
+        .noneMatch(e -> e.contains(CONTRAST_API_ERROR));
+  }
 
-      var result = getSessionMetadataTool.getSessionMetadata(appId);
+  // ---------- Successful retrieval ----------
 
-      // Should succeed without errors (may or may not have session data)
-      assertThat(result.isSuccess()).isTrue();
-      assertThat(result.errors()).isEmpty();
+  @Test
+  void getSessionMetadata_should_succeed_for_valid_app_id() {
+    // Single deterministic outcome: a valid appId must produce a successful response with no
+    // errors. Whether the app has accumulated session metadata is exercised separately by
+    // _should_populate_metadata_fields.
+    var result = getSessionMetadataTool.getSessionMetadata(testData.sampleAppId);
 
-      // If no session metadata, should have a warning
-      if (!result.found() || result.data() == null) {
-        assertThat(result.warnings()).anyMatch(w -> w.contains("session metadata"));
-      }
-    } else {
-      log.warn("No applications found in org - skipping session metadata test");
-    }
+    assertThat(result.isSuccess())
+        .as("valid appId %s must produce a successful response", testData.sampleAppId)
+        .isTrue();
+    assertThat(result.errors()).as("successful query must have no errors").isEmpty();
+    assertThat(result.errors())
+        .as("successful response must not surface as a Contrast API error")
+        .noneMatch(e -> e.contains(CONTRAST_API_ERROR));
   }
 
   @Test
-  void getSessionMetadata_should_handle_nonexistent_app_id_gracefully() {
-    var result = getSessionMetadataTool.getSessionMetadata("nonexistent-app-id-12345");
+  void getSessionMetadata_should_populate_metadata_fields() {
+    // Precondition: requires a seeded app with at least one populated session metadata filter
+    // group. Discovery surfaces this via testData.sampleAppIdWithMetadata; if absent across the
+    // probe depth, fail loudly with a diagnostic message rather than silently passing.
+    assertThat(testData.sampleAppIdWithMetadata)
+        .as(
+            "requires a seeded application with populated session metadata within the first %d"
+                + " applications — see INTEGRATION_TESTS.md",
+            METADATA_PROBE_DEPTH)
+        .isNotBlank();
 
-    // Should not throw an exception - should return an error or not-found response
-    assertThat(result).isNotNull();
-    // The API may return an error for invalid app IDs
-    // or return null/empty response - either is acceptable
+    var result = getSessionMetadataTool.getSessionMetadata(testData.sampleAppIdWithMetadata);
+
+    assertThat(result.isSuccess()).as("seeded session metadata query must succeed").isTrue();
+    assertThat(result.errors()).as("seeded query must produce no errors").isEmpty();
+    assertThat(result.found()).as("seeded session metadata must be reported as found").isTrue();
+    assertThat(result.data()).as("seeded query must carry data").isNotNull();
+    // "Populate ≠ non-null": the @Tool description promises filter groups exposing branch
+    // names, build IDs, and other custom metadata. Assert the collection is non-empty and
+    // every group carries a non-blank identifier so a regression that decoded an empty list
+    // or null group ids would surface here.
+    assertThat(result.data().getFilters())
+        .as("response must include at least one filter group")
+        .isNotNull()
+        .isNotEmpty();
+    assertThat(result.data().getFilters())
+        .as("every filter group must populate a non-blank id and a non-null values list")
+        .allSatisfy(
+            group -> {
+              assertThat(group.getId()).as("group.id must be non-blank").isNotBlank();
+              assertThat(group.getValues())
+                  .as("group %s values must be a non-null list", group.getId())
+                  .isNotNull();
+            });
+  }
+
+  // ---------- API-rejection path ----------
+
+  @Test
+  void getSessionMetadata_should_surface_actionable_error_for_unknown_app_id() {
+    // TeamServer rejects unknown applications with 403 Forbidden ("Authorization failure"),
+    // which the SDK surfaces as UnauthorizedException and SingleTool maps to the
+    // auth-or-not-found user message. Single deterministic outcome — no isSuccess?A:B
+    // dual-path. A regression that surfaced this as a generic 5xx error or a stack trace
+    // would surface here.
+    var result = getSessionMetadataTool.getSessionMetadata(NONEXISTENT_APP_ID);
+
+    assertThat(result.isSuccess())
+        .as("unknown appId must surface as a non-success response")
+        .isFalse();
+    assertThat(result.found()).as("unknown appId must not report found").isFalse();
+    assertThat(result.data()).as("error response must not carry data").isNull();
+    assertThat(result.errors())
+        .as("unknown appId must produce the documented auth-or-not-found error")
+        .containsExactly(AUTH_OR_NOT_FOUND_ERROR);
+    assertThat(result.errors())
+        .as("unknown appId must not be surfaced as a generic 5xx Contrast API error")
+        .noneMatch(e -> e.contains(CONTRAST_API_ERROR));
+    assertThat(result.warnings())
+        .as("error path must not also emit the no-metadata warning")
+        .noneMatch(w -> w.contains(NO_METADATA_WARNING_FRAGMENT));
   }
 }
