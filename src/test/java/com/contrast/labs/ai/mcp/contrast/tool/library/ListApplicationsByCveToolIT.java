@@ -78,6 +78,13 @@ class ListApplicationsByCveToolIT
     return TestData.class;
   }
 
+  /**
+   * Locates an application with libraries and, when possible, captures a real CVE ID exposed by one
+   * of those libraries. The CVE ID is the only input that exercises the happy path of {@code
+   * list_applications_by_cve}; without it the CVE-driven tests fail loudly with a precondition
+   * message rather than masking the missing seed data. {@code hasVulnerableLibrary} drives the
+   * {@code afterCacheHit}/{@code afterDiscovery} warning so the cause is visible in test logs.
+   */
   @Override
   protected TestData performDiscovery() throws IOException {
     var appWithLibraries =

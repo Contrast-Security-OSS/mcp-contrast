@@ -127,6 +127,16 @@ public class GetRouteCoverageToolIT
     log.info("\n🔍 Fast discovery: using cached route coverage helper...");
   }
 
+  /**
+   * Locates an application that has discovered/exercised route coverage and, when possible, also
+   * carries session metadata. {@code appId} + {@code routeCount} drive the happy-path retrieval and
+   * pagination tests; {@code sessionMetadataName} / {@code sessionMetadataValue} drive the metadata
+   * filter test, which would pass vacuously if the test app had no metadata at all.
+   *
+   * <p>Session metadata is best-effort: when missing, {@code afterCacheHit}/{@code afterDiscovery}
+   * surface a clear warning and the metadata-dependent test fails loudly with a precondition
+   * message rather than silently skipping.
+   */
   @Override
   protected TestData performDiscovery() throws IOException {
     Optional<RouteCoverageTestData> routeCandidate =

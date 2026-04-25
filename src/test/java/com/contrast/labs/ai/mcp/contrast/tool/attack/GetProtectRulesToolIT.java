@@ -88,6 +88,13 @@ class GetProtectRulesToolIT extends AbstractIntegrationTest<GetProtectRulesToolI
     return TestData.class;
   }
 
+  /**
+   * Locates an application that has at least one Protect rule configured (standard rule or Virtual
+   * Patch). The tests need a non-zero rule count to exercise {@code get_protect_rules}'s rule-shape
+   * assertions ({@code allSatisfy} over {@code name}/{@code type}/{@code description}/{@code id}/
+   * {@code canBlock}); a zero-rule app would silently pass the assertion. The discovered {@code
+   * appId} also drives the happy-path retrieval test.
+   */
   @Override
   protected TestData performDiscovery() throws IOException {
     Optional<ApplicationWithProtectRules> protectCandidate =

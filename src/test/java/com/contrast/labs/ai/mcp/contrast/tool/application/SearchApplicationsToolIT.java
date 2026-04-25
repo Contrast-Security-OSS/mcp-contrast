@@ -110,6 +110,25 @@ class SearchApplicationsToolIT extends AbstractIntegrationTest<SearchApplication
     log.info("Test data: {}", data);
   }
 
+  /**
+   * Captures the seed values needed to exercise every {@code search_applications} filter path:
+   *
+   * <ul>
+   *   <li>{@code totalApplications} — drives the pagination tests (need at least {@link
+   *       #MIN_APPS_FOR_PAGINATION} for cross-page disjointness checks).
+   *   <li>{@code sampleAppName} / {@code sampleAppId} — exercise the name-filter and identity
+   *       round-trip assertions on the first known application.
+   *   <li>{@code sampleTag} + {@code appIdWithSampleTag} — drive the tags-filter test, which
+   *       asserts the tag-matched results contain the discovered app.
+   *   <li>{@code sampleMetadataField} / {@code sampleMetadataValue} — drive the metadata-filter and
+   *       case-insensitivity tests; the field name uses the {@code displayLabel} from the org's
+   *       metadata-fields endpoint so we exercise the real server mapping.
+   * </ul>
+   *
+   * Falls back gracefully when an app lacks tags/metadata — only the precondition values ({@code
+   * totalApplications}, {@code sampleAppId}, {@code sampleAppName}) are required; the tests for
+   * tags/metadata fail loudly with descriptive messages when their seeds are missing.
+   */
   @Override
   protected TestData performDiscovery() throws IOException {
     var data = new TestData();

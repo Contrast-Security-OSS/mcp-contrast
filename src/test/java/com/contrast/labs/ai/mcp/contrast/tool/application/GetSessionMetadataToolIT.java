@@ -109,6 +109,21 @@ public class GetSessionMetadataToolIT
     log.info("Test data: {}", data);
   }
 
+  /**
+   * Captures two app IDs from the first page of applications:
+   *
+   * <ul>
+   *   <li>{@code sampleAppId} — any app in the org. Drives baseline retrieval tests and the
+   *       error-path test for an unknown-but-syntactically-valid app ID.
+   *   <li>{@code sampleAppIdWithMetadata} — the first probed app whose session metadata response
+   *       carries a populated filter group. The "populate" test asserts {@code isNotEmpty} on the
+   *       returned filters and would otherwise fail or pass vacuously if every probed app had no
+   *       accumulated session metadata.
+   * </ul>
+   *
+   * Probing stops at the first metadata-bearing app to keep discovery cost bounded; if none is
+   * found the populate test fails loudly with a precondition message.
+   */
   @Override
   protected TestData performDiscovery() throws IOException {
     var response =

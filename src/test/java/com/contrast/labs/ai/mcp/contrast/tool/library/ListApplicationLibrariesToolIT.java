@@ -78,6 +78,12 @@ class ListApplicationLibrariesToolIT
     return TestData.class;
   }
 
+  /**
+   * Locates an application that has at least one library attached. The {@code appId} drives the
+   * happy-path call to {@code list_application_libraries}; a library count of zero would let the
+   * core {@code allSatisfy} library-shape assertions vacuously pass, so the test depends on a
+   * positive count. {@code expectedLibraryCount} is captured for the discovery precondition test.
+   */
   @Override
   protected TestData performDiscovery() throws IOException {
     var appWithLibraries =
