@@ -30,7 +30,7 @@
 		<spring-ai.version>1.1.4</spring-ai.version>
 		<maven-release-plugin.version>3.1.1</maven-release-plugin.version>
 		<guava.version>33.5.0-jre</guava.version>
-		<contrast.sdk.version>3.6.0</contrast.sdk.version>
+		<contrast.sdk.version>3.7.0</contrast.sdk.version>
 		<mockito-inline.version>5.2.0</mockito-inline.version>
 		<assertj.version>3.27.7</assertj.version>
 		<maven-failsafe-plugin.version>3.5.3</maven-failsafe-plugin.version>
