@@ -26,6 +26,7 @@ import com.contrast.labs.ai.mcp.contrast.tool.base.FilterHelper;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
+import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.UnresolvedMetadataFilter;
 import java.util.HashMap;
 import java.util.List;
@@ -87,7 +88,7 @@ public class SearchApplicationsTool
 
   @Override
   protected ExecutionResult<ApplicationData> doExecute(
-      PaginationParams pagination, ApplicationFilterParams params, List<String> warnings)
+      PaginationParams pagination, ApplicationFilterParams params, WarningCollector collector)
       throws Exception {
 
     var orgId = getOrgId();
@@ -114,7 +115,7 @@ public class SearchApplicationsTool
             pagination.offset());
 
     if (response == null || response.getApplications() == null) {
-      warnings.add("API returned no application data.");
+      collector.warn("API returned no application data.");
       return ExecutionResult.empty();
     }
 

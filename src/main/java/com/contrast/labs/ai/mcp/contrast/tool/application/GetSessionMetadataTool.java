@@ -18,8 +18,8 @@ package com.contrast.labs.ai.mcp.contrast.tool.application;
 import com.contrast.labs.ai.mcp.contrast.tool.application.params.GetSessionMetadataParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrastsecurity.models.MetadataFilterResponse;
-import java.util.List;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
@@ -54,15 +54,15 @@ public class GetSessionMetadataTool
   }
 
   @Override
-  protected MetadataFilterResponse doExecute(GetSessionMetadataParams params, List<String> warnings)
-      throws Exception {
+  protected MetadataFilterResponse doExecute(
+      GetSessionMetadataParams params, WarningCollector collector) throws Exception {
     var sdk = getContrastSDK();
     var orgId = getOrgId();
 
     var response = sdk.getSessionMetadataForApplication(orgId, params.appId(), null);
 
     if (response == null) {
-      warnings.add(
+      collector.warn(
           "No session metadata found for this application. "
               + "This may indicate the application has no recorded sessions.");
       return null;

@@ -23,6 +23,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.library.params.ListApplicationsByCveParams;
 import java.util.Collections;
 import java.util.List;
@@ -71,7 +72,7 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
   }
 
   @Override
-  protected CveData doExecute(ListApplicationsByCveParams params, List<String> warnings)
+  protected CveData doExecute(ListApplicationsByCveParams params, WarningCollector collector)
       throws Exception {
     var orgId = getOrgId();
     var extendedSDK = getSDKExtension();
@@ -90,7 +91,7 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
     var apps = cveData.getApps() != null ? cveData.getApps() : Collections.<App>emptyList();
 
     if (apps.isEmpty()) {
-      warnings.add(
+      collector.warn(
           "No applications found with this CVE. "
               + "The CVE may not affect any libraries in your organization, "
               + "or the CVE ID may be invalid.");
@@ -103,7 +104,7 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
         params.cveId());
 
     // Enrich each app with class usage data from the vulnerable library
-    enrichAppsWithClassUsage(apps, vulnerableLibs, orgId, extendedSDK, warnings);
+    enrichAppsWithClassUsage(apps, vulnerableLibs, orgId, extendedSDK, collector);
 
     log.info(
         "Successfully retrieved CVE data for {}: {} vulnerable applications",
@@ -123,32 +124,25 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
       List<Library> vulnerableLibs,
       String orgId,
       SDKExtension extendedSDK,
-      List<String> warnings) {
+      WarningCollector collector) {
 
     for (App app : apps) {
-      try {
-        var appLibraries = SDKHelper.getLibsForID(app.getAppId(), orgId, extendedSDK);
-
-        for (LibraryExtended appLib : appLibraries) {
-          for (Library vulnLib : vulnerableLibs) {
-            if (appLib.getHash().equals(vulnLib.getHash())) {
-              // Only populate if the library is actually being used
-              if (appLib.getClassesUsed() > 0) {
-                app.setClassCount(appLib.getClassCount());
-                app.setClassUsage(appLib.getClassesUsed());
+      collector.tryRun(
+          "Class usage data for application '" + app.getName() + "'",
+          () -> {
+            var appLibraries = SDKHelper.getLibsForID(app.getAppId(), orgId, extendedSDK);
+            for (LibraryExtended appLib : appLibraries) {
+              for (Library vulnLib : vulnerableLibs) {
+                if (appLib.getHash().equals(vulnLib.getHash())) {
+                  if (appLib.getClassesUsed() > 0) {
+                    app.setClassCount(appLib.getClassCount());
+                    app.setClassUsage(appLib.getClassesUsed());
+                  }
+                  break;
+                }
               }
-              break;
             }
-          }
-        }
-      } catch (Exception e) {
-        log.atWarn()
-            .addKeyValue("appId", app.getAppId())
-            .setCause(e)
-            .setMessage("Could not fetch library data")
-            .log();
-        warnings.add("Could not fetch class usage data for application '" + app.getName() + "'");
-      }
+          });
     }
   }
 }

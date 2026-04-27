@@ -21,7 +21,7 @@ import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
-import java.util.List;
+import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -143,7 +143,7 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
 
   @Override
   protected ExecutionResult<AttackSummary> doExecute(
-      PaginationParams pagination, AttackFilterParams params, List<String> warnings)
+      PaginationParams pagination, AttackFilterParams params, WarningCollector collector)
       throws Exception {
 
     var extendedSDK = getSDKExtension();
@@ -154,7 +154,7 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
             getOrgId(), filterBody, pagination.limit(), pagination.offset(), params.getSort());
 
     if (attacksResponse == null || attacksResponse.getAttacks() == null) {
-      warnings.add("API returned no attack data. Verify permissions and filters.");
+      collector.warn("API returned no attack data. Verify permissions and filters.");
       return ExecutionResult.empty();
     }
 

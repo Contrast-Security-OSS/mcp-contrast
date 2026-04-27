@@ -19,10 +19,10 @@ import com.contrast.labs.ai.mcp.contrast.result.RouteCoverageResponseLight;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.coverage.params.RouteCoverageParams;
 import com.contrastsecurity.models.RouteCoverageMetadataLabelValues;
 import java.util.Collections;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
@@ -99,8 +99,8 @@ public class GetRouteCoverageTool
   }
 
   @Override
-  protected RouteCoverageResponseLight doExecute(RouteCoverageParams params, List<String> warnings)
-      throws Exception {
+  protected RouteCoverageResponseLight doExecute(
+      RouteCoverageParams params, WarningCollector collector) throws Exception {
     var orgId = getOrgId();
     var sdkExtension = getSDKExtension();
 
@@ -114,11 +114,13 @@ public class GetRouteCoverageTool
 
       if (latest == null) {
         log.warn("No session metadata found for application ID: {}", params.appId());
+        collector.warn("Session metadata not available for this application");
         return null; // SingleTool converts this to notFound response
       }
 
       if (latest.getAgentSession() == null) {
         log.warn("No agent session found for application ID: {}", params.appId());
+        collector.warn("Agent session not available for this application");
         return null; // SingleTool converts this to notFound response
       }
 

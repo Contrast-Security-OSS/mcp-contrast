@@ -32,6 +32,8 @@ make test VERBOSE=1
 make check VERBOSE=1
 ```
 
+**After a compilation failure**, stale `.class` files remain and cause "Unresolved compilation problems" on the next test run. Always run `mvn clean test-compile` (or `make clean && make test`) to recover before continuing.
+
 **Direct Maven commands** (verbose output, use make targets above for quiet output):
 - **Build**: `mvn clean install` or `./mvnw clean install`
 - **Test (unit)**: `mvn test`
@@ -316,6 +318,14 @@ Never use `$()` substitution to pass multi-line comment text — use `-f` instea
 - `in_progress` → Actively working on task (SET THIS WHEN YOU START!)
 - `closed` → Task complete, tested, and merged
 
+### Adding Comments to Beads
+
+```bash
+br comments add <bead-id> "comment text"
+```
+
+Note: `br comment` (no s) does NOT work — the correct subcommand is `br comments add`.
+
 ### Human Review Required Label
 
 **IMPORTANT: Beads labeled `needs-human-review` require human approval before AI work begins.**
@@ -480,7 +490,7 @@ NOTE: This is not for parent-child dependencies, these are blocks dependencies.
    - If credentials unavailable, verify integration tests pass in CI/CD
 4. **Verify new tests are included** - Ensure your tests ran and passed
 
-All code changes require corresponding test coverage. Do not move to review without tests.
+All code changes require corresponding test coverage. Do not create a PR until `make verify` passes. Do not move to review without tests.
 
 See INTEGRATION_TESTS.md for integration test setup and credentials.
 
