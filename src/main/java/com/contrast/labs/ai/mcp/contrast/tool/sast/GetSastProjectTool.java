@@ -51,13 +51,14 @@ public class GetSastProjectTool extends SingleTool<GetSastProjectParams, ScanPro
           Usage examples:
           - Get project: projectName="my-application"
 
-          Note: Project names are case-sensitive and must match exactly.
+          Note: Project name matching is case-insensitive. The returned project's name field
+          reflects the canonical casing as stored in Contrast.
 
           Related tools:
           - get_scan_results: Get SARIF results for a project's latest scan
           """)
   public SingleToolResponse<ScanProject> getScanProject(
-      @ToolParam(description = "Scan project name (case-sensitive, must match exactly)")
+      @ToolParam(description = "Scan project name (matched case-insensitively)")
           String projectName) {
     return executePipeline(() -> GetSastProjectParams.of(projectName));
   }

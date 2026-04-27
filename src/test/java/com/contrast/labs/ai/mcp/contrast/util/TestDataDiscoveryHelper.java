@@ -88,6 +88,12 @@ public class TestDataDiscoveryHelper {
     int appsChecked = 0;
     int actualMaxToCheck = Math.min(applications.size(), maxAppsToCheck);
 
+    // Prefer an app whose libraries include a populated vulnerabilities array AND surface a
+    // CVE-prefixed vulnerability name so SCA tests can exercise severity breakdowns and CVE
+    // lookups. Fall back tiers: vulnerable-but-no-CVE-name, then any app with libraries.
+    ApplicationWithLibraries firstVulnerableNoCveMatch = null;
+    ApplicationWithLibraries firstAnyLibMatch = null;
+
     for (Application app : applications) {
       if (appsChecked >= actualMaxToCheck) {
         logger.info("Reached max apps to check ({}), stopping search", actualMaxToCheck);
@@ -104,36 +110,76 @@ public class TestDataDiscoveryHelper {
 
       try {
         var libraries = IntegrationTestDataCache.getLibraries(orgId, app.getAppId(), sdkExtension);
-        if (libraries != null && !libraries.isEmpty()) {
-          logger.info(
-              "✓ Found application with {} library/libraries: {} (ID: {})",
-              libraries.size(),
-              app.getName(),
-              app.getAppId());
+        if (libraries == null || libraries.isEmpty()) {
+          continue;
+        }
 
-          // Check for vulnerable libraries
-          boolean hasVulnerableLibrary = false;
-          String vulnerableCveId = null;
-
-          for (LibraryExtended lib : libraries) {
-            if (lib.getVulnerabilities() != null && !lib.getVulnerabilities().isEmpty()) {
-              hasVulnerableLibrary = true;
-              var firstVuln = lib.getVulnerabilities().get(0);
-              if (firstVuln.getName() != null && firstVuln.getName().startsWith("CVE-")) {
-                vulnerableCveId = firstVuln.getName();
-                logger.info("  ✓ Has vulnerable library with CVE: {}", vulnerableCveId);
-                break;
-              }
+        boolean hasVulnerableLibrary = false;
+        String vulnerableCveId = null;
+        for (LibraryExtended lib : libraries) {
+          if (lib.getVulnerabilities() == null || lib.getVulnerabilities().isEmpty()) {
+            continue;
+          }
+          hasVulnerableLibrary = true;
+          for (var vuln : lib.getVulnerabilities()) {
+            if (vuln.getName() != null && vuln.getName().startsWith("CVE-")) {
+              vulnerableCveId = vuln.getName();
+              break;
             }
           }
+          if (vulnerableCveId != null) {
+            break;
+          }
+        }
 
-          return Optional.of(
-              new ApplicationWithLibraries(app, libraries, hasVulnerableLibrary, vulnerableCveId));
+        if (hasVulnerableLibrary && vulnerableCveId != null) {
+          logger.info(
+              "✓ Found application with {} library/libraries (vulnerable, CVE={}): {} (ID: {})",
+              libraries.size(),
+              vulnerableCveId,
+              app.getName(),
+              app.getAppId());
+          return Optional.of(new ApplicationWithLibraries(app, libraries, true, vulnerableCveId));
+        }
+
+        if (hasVulnerableLibrary) {
+          if (firstVulnerableNoCveMatch == null) {
+            logger.debug(
+                "Remembering vulnerable app without CVE-named vuln as fallback: {} (ID: {})",
+                app.getName(),
+                app.getAppId());
+            firstVulnerableNoCveMatch = new ApplicationWithLibraries(app, libraries, true, null);
+          }
+          continue;
+        }
+
+        if (firstAnyLibMatch == null) {
+          logger.debug(
+              "Remembering app as non-vulnerable fallback: {} (ID: {})",
+              app.getName(),
+              app.getAppId());
+          firstAnyLibMatch = new ApplicationWithLibraries(app, libraries, false, null);
         }
       } catch (IOException e) {
         logger.warn("Error checking libraries for app {}: {}", app.getAppId(), e.getMessage());
         // Continue to next app
       }
+    }
+
+    if (firstVulnerableNoCveMatch != null) {
+      logger.info(
+          "✓ Falling back to vulnerable app without CVE-named vuln: {} (ID: {})",
+          firstVulnerableNoCveMatch.getApplication().getName(),
+          firstVulnerableNoCveMatch.getApplication().getAppId());
+      return Optional.of(firstVulnerableNoCveMatch);
+    }
+
+    if (firstAnyLibMatch != null) {
+      logger.info(
+          "✓ Falling back to non-vulnerable app with libraries: {} (ID: {})",
+          firstAnyLibMatch.getApplication().getName(),
+          firstAnyLibMatch.getApplication().getAppId());
+      return Optional.of(firstAnyLibMatch);
     }
 
     logger.warn("No application with libraries found after checking {} apps", appsChecked);

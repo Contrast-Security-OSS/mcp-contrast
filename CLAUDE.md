@@ -206,12 +206,36 @@ When creating or modifying MCP tools:
 **Testing:**
 - Simplified `mock()`: `ClassName mock = mock()` not `mock(ClassName.class)`
 - AssertJ fluent: `assertThat(x).isEqualTo(y)` not `assertEquals(y, x)`
-- Naming: `methodName_should_expectedBehavior_when_condition()`
+- Naming: `methodName_should_expectedBehavior_when_condition()` — body must verify the behavior the name promises. If assertions don't match the name, strengthen the assertions. Do **not** delete or weaken the name.
 - Example: `getVulnerability_should_return_data_when_valid_id()`
 - **Anonymous builders**: Use `AnonymousXxxBuilder` pattern for complex mocks (see `AnonymousApplicationBuilder.java`)
   - Provides valid defaults for all fields with lenient stubbing
   - Tests only specify fields they care about: `AnonymousApplicationBuilder.validApp().withName("MyApp").build()`
   - Avoids over-mocking anti-pattern and UnnecessaryStubbingException
+
+**Assertion quality (applies to every test):**
+- **Never delete a failing, flaky, or weak test to make it go away.** Strengthen, un-flake, or fix the underlying bug. Deletion is only allowed when the behavior itself is being deliberately removed — and requires user approval.
+- **Exercise ≠ verify.** `assertThat(x).isNotNull()` + `log.info("✓ ...")` is not a test. No `✓` in logs as a stand-in for an assertion.
+- **Mutation check.** Before committing, ask: *if I deleted the production logic under test, would this test go red?* If no, strengthen it until the answer is yes.
+- **AAA completeness.** Every parameter set in arrange must appear in at least one assertion. Setting `severity="HIGH"` without asserting over returned severities means the arrange step is decorative.
+- **Fail fast on missing data.** If a test requires seeded data, `assertThat(data).as("requires seeded X — ...").isNotEmpty()` as the first assertion. Never skip, never silently pass.
+- **Prefer behavioral over shape assertions**: `allSatisfy`, `isSortedAccordingTo`, `containsExactlyInAnyOrderElementsOf`, `extracting(...).allMatch(...)` over `isNotNull` / `isNotEmpty`.
+- **Deterministic expectations.** A test must assert a single expected outcome. Never write `if (response.isSuccess()) { ... } else { ... }` treating both branches as pass. If both outcomes are legitimate, split into two named tests, each with one expected outcome.
+- **Populated ≠ non-null.** When a test name promises to "populate" or "return" a field, assert `isNotBlank()` for strings and `isNotEmpty()` for collections — not `isNotNull()`. An empty list is not populated; an empty string is not populated.
+
+**Testing anti-patterns (do not reintroduce):**
+- `if (data.isEmpty()) return;` — silent skip; assert `isNotEmpty()` up front with diagnostic message instead
+- `Assumptions.assumeTrue(...)` — skipping hides data rot from CI; fail loudly instead
+- `assertThat(items).isNotEmpty(); log.info("✓ filter works")` — logging is not an assertion
+- Filter test that never calls `allSatisfy` over the filter predicate
+- Sort test that never calls `isSortedAccordingTo`
+- Pagination test that fetches page 2 without comparing IDs to page 1
+- Combined-filter test that doesn't verify every filter predicate holds
+- Error-path test using `errors().anyMatch(e -> e.contains("x"))` where `"x"` is just the parameter name — assert full message shape including valid options listed
+- Dual-path test: `if (response.isSuccess()) { assertX } else { assertY }` — both branches treated as pass; split into deterministic tests
+- Filter verified with `anyMatch(...)` — only proves one item matches; use `allMatch` / `allSatisfy` to prove every result matches the predicate
+- Manual loop for sort/filter verification (e.g., `for (int i=1; i<list.size(); i++)`) — use `isSortedAccordingTo` / `allSatisfy` for clearer failure messages
+- `_populate_*` or `_return_*` test using `isNotNull()` on the claimed field — asserts shape, not content; use `isNotBlank` / `isNotEmpty` / content-level check
 
 ### Security Considerations
 
@@ -455,6 +479,35 @@ NOTE: This is not for parent-child dependencies, these are blocks dependencies.
 All code changes require corresponding test coverage. Do not move to review without tests.
 
 See INTEGRATION_TESTS.md for integration test setup and credentials.
+
+### Integration Test Standards
+
+`*IT.java` tests verify the contract across the SDK/API boundary. Shape-only smoke checks belong in unit tests; an IT that only confirms "no exception thrown" has degraded into an auth smoke test.
+
+**Required assertion patterns:**
+- Filter by field → `allSatisfy(item -> assertThat(item.field())...)`
+- Sort by field → `isSortedAccordingTo(Comparator.comparing(...))`
+- Pagination → page N+1 items disjoint from page N by ID; count = `min(pageSize, remaining)`
+- Combined filters → `allSatisfy` over every filter predicate, not `isSuccess()`
+- Error path → specific message content + `noneMatch("Contrast API error")`
+- Field mapping → response values reflect inputs (e.g., response `appID` equals filter `appId`)
+- "Populate" claim → `isNotBlank` for strings, `isNotEmpty` for collections, content-level check — never just `isNotNull`
+- Deterministic behavior → single expected outcome per test — no `if (isSuccess) ... else ...` dual-path
+
+**Data dependency rule:**
+ITs that depend on seeded data must assert the precondition up front with a descriptive `.as(...)` clause. Missing data must fail loudly with an actionable message — never skip, never silently pass.
+
+```java
+assertThat(libraries)
+    .as("requires seeded libraries with CVE associations — see INTEGRATION_TESTS.md")
+    .isNotEmpty();
+```
+
+**Canonical examples to emulate:**
+- `SearchAttacksToolIT` sort-validation tests (`_should_reject_invalid_sort_fields`, `_should_return_validation_error_for_invalid_sort_field`)
+- `GetVulnerabilityToolIT` — comprehensive field verification
+- `GetRouteCoverageToolIT` — pagination + filter + edge cases
+- `GetSastProjectToolIT` — regression coverage for field mapping
 
 ### Creating High-Quality PR Descriptions
 
