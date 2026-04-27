@@ -110,13 +110,11 @@ public class ContrastSDKFactory {
     var candidateUrl = buildCandidateUrl(properties.protocol(), properties.hostName());
     if (!HTTPS_URL_VALIDATOR.isValid(candidateUrl)) {
       throw new IllegalStateException(
-          "Invalid or insecure Contrast TeamServer URL '"
-              + candidateUrl
-              + "' (resolved from contrast.api.protocol='"
-              + properties.protocol()
-              + "', CONTRAST_HOST_NAME='"
-              + properties.hostName()
-              + "'). The MCP server requires an https:// URL with a valid hostname.");
+          String.format(
+              "Invalid or insecure Contrast TeamServer URL '%s' (resolved from"
+                  + " contrast.api.protocol='%s', CONTRAST_HOST_NAME='%s'). The MCP server"
+                  + " requires an https:// URL with a valid hostname.",
+              candidateUrl, properties.protocol(), properties.hostName()));
     }
   }
 
