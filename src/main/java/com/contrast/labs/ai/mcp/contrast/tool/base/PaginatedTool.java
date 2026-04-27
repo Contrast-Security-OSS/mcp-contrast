@@ -108,7 +108,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
           "Authentication failed or resource not found. Verify credentials and that the resource ID"
               + " is correct.");
     } catch (ResourceNotFoundException e) {
-      return handleException(e, pagination, requestId, "Resource not found: " + e.getMessage());
+      return handleException(e, pagination, requestId, "Resource not found");
     } catch (HttpResponseException e) {
       return handleHttpResponseException(e, pagination, requestId);
     } catch (Exception e) {
@@ -118,7 +118,9 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
           .setMessage("Request failed unexpectedly")
           .log();
       return PaginatedToolResponse.error(
-          pagination.page(), pagination.pageSize(), "Internal error: " + e.getMessage());
+          pagination.page(),
+          pagination.pageSize(),
+          "An internal error occurred (ref: " + requestId + ")");
     }
   }
 

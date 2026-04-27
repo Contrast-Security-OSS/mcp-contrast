@@ -87,7 +87,7 @@ tool/
 The application uses Spring Boot configuration with the following key properties:
 - `spring.ai.mcp.server.name=mcp-contrast`
 - `spring.main.web-application-type=none` (CLI application, not web server)
-- `contrast.api.protocol=https` (configurable for local development)
+- `contrast.api.protocol=https` (HTTPS only — server rejects HTTP at startup)
 
 Required environment variables/arguments:
 - `CONTRAST_HOST_NAME` - Contrast TeamServer URL
@@ -341,6 +341,10 @@ Never use `$()` substitution to pass multi-line comment text — use `-f` instea
 **Label meanings:**
 - `needs-human-review` - Bead requires human approval before AI can start work
 - `human-reviewed` - Bead has been reviewed and approved by human, AI may proceed when ready
+
+## Helper Scripts
+
+- **`scripts/br-set-design <bead-id> <file-path>`** — Copy plan file into bead design field. Always use this instead of `br update --design` (CLI misparses `--` in markdown).
 
 ## Project Management
 

@@ -20,6 +20,7 @@ import com.contrastsecurity.sdk.ContrastSDK;
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -32,6 +33,7 @@ import org.springframework.util.StringUtils;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class ContrastSDKFactory {
 
   private final ContrastProperties properties;
@@ -97,6 +99,38 @@ public class ContrastSDKFactory {
       throw new IllegalStateException(
           "Missing required Contrast configuration. Set the following environment variables: "
               + String.join(", ", missing));
+    }
+
+    var protocol = properties.protocol();
+    if (StringUtils.hasText(protocol)) {
+      var normalizedProtocol = protocol.strip().toLowerCase();
+      if (normalizedProtocol.contains("://")) {
+        throw new IllegalStateException(
+            "Invalid contrast.api.protocol value: '"
+                + protocol
+                + "'. Set to 'https', not 'https://'. The protocol separator is added"
+                + " automatically.");
+      }
+      if (!"https".equals(normalizedProtocol)) {
+        throw new IllegalStateException(
+            "Insecure protocol configured: '"
+                + protocol
+                + "'. The MCP server requires HTTPS to protect API credentials. Set"
+                + " contrast.api.protocol=https or remove the property to use the"
+                + " default.");
+      }
+    }
+
+    var hostName = properties.hostName();
+    if (StringUtils.hasText(hostName)) {
+      var normalizedHostName = hostName.strip().toLowerCase();
+      if (normalizedHostName.contains("://") && !normalizedHostName.startsWith("https://")) {
+        throw new IllegalStateException(
+            "Insecure protocol in CONTRAST_HOST_NAME: '"
+                + hostName
+                + "'. Use 'https://' or provide the hostname without a scheme"
+                + " to use HTTPS by default.");
+      }
     }
   }
 }

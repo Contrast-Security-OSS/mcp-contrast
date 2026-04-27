@@ -165,7 +165,7 @@ class ListApplicationLibrariesToolTest {
     var result = tool.listApplicationLibraries(null, null, TEST_APP_ID);
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).anyMatch(e -> e.contains("Internal error"));
+    assertThat(result.errors()).anyMatch(e -> e.startsWith("An internal error occurred (ref: "));
   }
 
   @Test

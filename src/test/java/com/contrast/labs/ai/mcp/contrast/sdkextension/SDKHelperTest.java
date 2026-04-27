@@ -42,14 +42,30 @@ class SDKHelperTest {
 
   @Test
   void testGetProtocolAndServer_WithHttpProtocol() {
-    var result = SDKHelper.getProtocolAndServer("http://example.com", "https");
-    assertThat(result).isEqualTo("http://example.com");
+    assertThatThrownBy(() -> SDKHelper.getProtocolAndServer("http://example.com", "https"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Insecure protocol")
+        .hasMessageContaining("http://example.com");
+  }
+
+  @Test
+  void testGetProtocolAndServer_WithHttpProtocolUppercase() {
+    assertThatThrownBy(() -> SDKHelper.getProtocolAndServer("HTTP://example.com", "https"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Insecure protocol")
+        .hasMessageContaining("HTTP://example.com");
   }
 
   @Test
   void testGetProtocolAndServer_WithHttpsProtocol() {
     var result = SDKHelper.getProtocolAndServer("https://example.com", "https");
     assertThat(result).isEqualTo("https://example.com");
+  }
+
+  @Test
+  void testGetProtocolAndServer_WithHttpsProtocolUppercase() {
+    var result = SDKHelper.getProtocolAndServer("HTTPS://example.com", "https");
+    assertThat(result).isEqualTo("HTTPS://example.com");
   }
 
   @Test
@@ -60,9 +76,25 @@ class SDKHelperTest {
 
   @Test
   void testGetProtocolAndServer_WithHttpProtocolConfig() {
-    // When protocol config is "http", hostnames without protocol should use http
-    var result = SDKHelper.getProtocolAndServer("example.com", "http");
-    assertThat(result).isEqualTo("http://example.com");
+    assertThatThrownBy(() -> SDKHelper.getProtocolAndServer("example.com", "http"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Insecure protocol")
+        .hasMessageContaining("http");
+  }
+
+  @Test
+  void testGetProtocolAndServer_WithHttpProtocolConfigUppercase() {
+    assertThatThrownBy(() -> SDKHelper.getProtocolAndServer("example.com", "HTTP"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Insecure protocol")
+        .hasMessageContaining("HTTP");
+  }
+
+  @Test
+  void testGetProtocolAndServer_WithProtocolConfigWithScheme() {
+    assertThatThrownBy(() -> SDKHelper.getProtocolAndServer("example.com", "https://"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("not 'https://'");
   }
 
   @Test
@@ -172,10 +204,12 @@ class SDKHelperTest {
     var hostname = "example.contrastsecurity.com";
     when(environment.getProperty("spring.ai.mcp.server.version", "unknown")).thenReturn("1.0.0");
 
-    var sdk = SDKHelper.getSDK(hostname, "apiKey", "serviceKey", "username", null, null, "http");
-
-    assertThat(sdk).isNotNull();
-    // The SDK should prepend http:// when protocol is "http"
+    assertThatThrownBy(
+            () ->
+                SDKHelper.getSDK(hostname, "apiKey", "serviceKey", "username", null, null, "http"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Insecure protocol")
+        .hasMessageContaining("http");
   }
 
   @Test
@@ -192,8 +226,10 @@ class SDKHelperTest {
 
   @Test
   void testGetProtocolAndServer_WithHttpProtocolAndTrailingSlash() {
-    var result = SDKHelper.getProtocolAndServer("http://example.com/", "https");
-    assertThat(result).isEqualTo("http://example.com");
+    assertThatThrownBy(() -> SDKHelper.getProtocolAndServer("http://example.com/", "https"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Insecure protocol")
+        .hasMessageContaining("http://example.com/");
   }
 
   @Test

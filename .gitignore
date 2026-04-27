@@ -46,6 +46,7 @@ test-cache/
 .beads.zip
 results-*.md
 plans/
+docs/brainstorms/
 
 # Test plan validation results
 test-plan-results/

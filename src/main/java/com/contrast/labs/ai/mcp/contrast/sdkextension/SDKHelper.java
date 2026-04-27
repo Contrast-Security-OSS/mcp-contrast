@@ -204,17 +204,28 @@ public class SDKHelper {
 
     // Check if hostname contains a protocol separator
     if (hostName.contains("://")) {
-      // Validate that it's a supported protocol
-      if (!hostName.startsWith(HTTP_PROTOCOL) && !hostName.startsWith(HTTPS_PROTOCOL)) {
+      var lowerHostName = hostName.toLowerCase();
+      if (lowerHostName.startsWith(HTTP_PROTOCOL)) {
         throw new IllegalArgumentException(
-            "Invalid protocol in hostname: "
-                + hostName
-                + ". Only http:// and https:// are supported.");
+            "Insecure protocol in hostname: '" + hostName + "'. Use https:// instead.");
+      }
+      if (!lowerHostName.startsWith(HTTPS_PROTOCOL)) {
+        throw new IllegalArgumentException(
+            "Invalid protocol in hostname: '" + hostName + "'. Only https:// is supported.");
       }
       result = hostName;
     } else {
       // No protocol specified, prepend provided protocol (default to https if not specified)
-      var effectiveProtocol = StringUtils.hasText(protocol) ? protocol : "https";
+      var effectiveProtocol = StringUtils.hasText(protocol) ? protocol.strip() : "https";
+      var normalizedProtocol = effectiveProtocol.toLowerCase();
+      if (normalizedProtocol.contains("://")) {
+        throw new IllegalArgumentException(
+            "Invalid protocol: '" + protocol + "'. Use 'https', not 'https://'.");
+      }
+      if (!"https".equals(normalizedProtocol)) {
+        throw new IllegalArgumentException(
+            "Insecure protocol: '" + protocol + "'. Only 'https' is supported.");
+      }
       result = effectiveProtocol + "://" + hostName;
     }
 

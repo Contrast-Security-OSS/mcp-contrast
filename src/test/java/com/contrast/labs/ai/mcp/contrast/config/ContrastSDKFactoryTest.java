@@ -16,6 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mockStatic;
 
@@ -155,5 +156,122 @@ class ContrastSDKFactoryTest {
     // Factory created with TEST_PROPS should validate without exception
     factory.validateConfiguration();
     // No exception means success
+  }
+
+  @Test
+  void validateConfiguration_should_throw_when_protocol_is_http() {
+    var props = buildProps("test.contrast.com", "http");
+    var factoryWithInvalidProps = new ContrastSDKFactory(props);
+
+    assertThatThrownBy(factoryWithInvalidProps::validateConfiguration)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Insecure protocol")
+        .hasMessageContaining("http");
+  }
+
+  @Test
+  void validateConfiguration_should_throw_when_protocol_is_HTTP_uppercase() {
+    var props = buildProps("test.contrast.com", "HTTP");
+    var factoryWithInvalidProps = new ContrastSDKFactory(props);
+
+    assertThatThrownBy(factoryWithInvalidProps::validateConfiguration)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Insecure protocol")
+        .hasMessageContaining("HTTP");
+  }
+
+  @Test
+  void validateConfiguration_should_throw_when_protocol_is_ftp() {
+    var props = buildProps("test.contrast.com", "ftp");
+    var factoryWithInvalidProps = new ContrastSDKFactory(props);
+
+    assertThatThrownBy(factoryWithInvalidProps::validateConfiguration)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("Insecure protocol")
+        .hasMessageContaining("ftp");
+  }
+
+  @Test
+  void validateConfiguration_should_throw_when_protocol_has_scheme_suffix() {
+    var props = buildProps("test.contrast.com", "https://");
+    var factoryWithInvalidProps = new ContrastSDKFactory(props);
+
+    assertThatThrownBy(factoryWithInvalidProps::validateConfiguration)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("not 'https://'");
+  }
+
+  @Test
+  void validateConfiguration_should_pass_when_protocol_is_https() {
+    var props = buildProps("test.contrast.com", "https");
+    var factoryWithValidProps = new ContrastSDKFactory(props);
+
+    assertThatCode(factoryWithValidProps::validateConfiguration).doesNotThrowAnyException();
+  }
+
+  @Test
+  void validateConfiguration_should_pass_when_protocol_is_HTTPS_uppercase() {
+    var props = buildProps("test.contrast.com", "HTTPS");
+    var factoryWithValidProps = new ContrastSDKFactory(props);
+
+    assertThatCode(factoryWithValidProps::validateConfiguration).doesNotThrowAnyException();
+  }
+
+  @Test
+  void validateConfiguration_should_pass_when_protocol_is_blank() {
+    var props = buildProps("test.contrast.com", "");
+    var factoryWithValidProps = new ContrastSDKFactory(props);
+
+    assertThatCode(factoryWithValidProps::validateConfiguration).doesNotThrowAnyException();
+  }
+
+  @Test
+  void validateConfiguration_should_pass_when_protocol_is_null() {
+    var props = buildProps("test.contrast.com", null);
+    var factoryWithValidProps = new ContrastSDKFactory(props);
+
+    assertThatCode(factoryWithValidProps::validateConfiguration).doesNotThrowAnyException();
+  }
+
+  @Test
+  void validateConfiguration_should_throw_when_hostname_has_http_scheme() {
+    var props = buildProps("http://app.example.com", "https");
+    var factoryWithInvalidProps = new ContrastSDKFactory(props);
+
+    assertThatThrownBy(factoryWithInvalidProps::validateConfiguration)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("CONTRAST_HOST_NAME")
+        .hasMessageContaining("http://app.example.com");
+  }
+
+  @Test
+  void validateConfiguration_should_throw_when_hostname_has_HTTP_uppercase_scheme() {
+    var props = buildProps("HTTP://app.example.com", "https");
+    var factoryWithInvalidProps = new ContrastSDKFactory(props);
+
+    assertThatThrownBy(factoryWithInvalidProps::validateConfiguration)
+        .isInstanceOf(IllegalStateException.class)
+        .hasMessageContaining("CONTRAST_HOST_NAME")
+        .hasMessageContaining("HTTP://app.example.com");
+  }
+
+  @Test
+  void validateConfiguration_should_pass_when_hostname_has_https_scheme() {
+    var props = buildProps("https://app.example.com", "https");
+    var factoryWithValidProps = new ContrastSDKFactory(props);
+
+    assertThatCode(factoryWithValidProps::validateConfiguration).doesNotThrowAnyException();
+  }
+
+  private ContrastProperties buildProps(String hostName, String protocol) {
+    return new ContrastProperties(
+        hostName,
+        "api-key-123",
+        "service-key-456",
+        "testuser",
+        "org-789",
+        "proxy.example.com",
+        "8080",
+        protocol);
   }
 }

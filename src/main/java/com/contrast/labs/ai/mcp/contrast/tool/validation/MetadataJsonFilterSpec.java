@@ -21,6 +21,7 @@ import com.google.gson.reflect.TypeToken;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
 /**
@@ -28,6 +29,7 @@ import org.springframework.util.StringUtils;
  * UnresolvedMetadataFilter} records where each filter has a field name and list of values. Used for
  * session metadata filters and can be extended for application metadata.
  */
+@Slf4j
 public class MetadataJsonFilterSpec {
 
   private static final Gson GSON = new Gson();
@@ -79,11 +81,16 @@ public class MetadataJsonFilterSpec {
 
       return result.isEmpty() ? null : List.copyOf(result);
     } catch (JsonSyntaxException e) {
+      log.atWarn()
+          .addKeyValue("filterName", name)
+          .setCause(e)
+          .setMessage("Invalid JSON in metadata filter")
+          .log();
       ctx.addError(
           String.format(
-              "Invalid JSON for %s: %s. Expected format: {\"field\":\"value\"} or "
+              "Invalid JSON for %s. Expected format: {\"field\":\"value\"} or "
                   + "{\"field\":[\"value1\",\"value2\"]}",
-              name, e.getMessage()));
+              name));
       return null;
     }
   }
