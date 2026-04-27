@@ -21,6 +21,7 @@ import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.validator.routines.UrlValidator;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -35,6 +36,11 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 @Slf4j
 public class ContrastSDKFactory {
+
+  private static final UrlValidator HTTPS_URL_VALIDATOR =
+      new UrlValidator(new String[] {"https"}, UrlValidator.ALLOW_LOCAL_URLS);
+
+  private static final String SCHEME_SEPARATOR = "://";
 
   private final ContrastProperties properties;
   private ContrastSDK sdkInstance;
@@ -101,36 +107,26 @@ public class ContrastSDKFactory {
               + String.join(", ", missing));
     }
 
-    var protocol = properties.protocol();
-    if (StringUtils.hasText(protocol)) {
-      var normalizedProtocol = protocol.strip().toLowerCase();
-      if (normalizedProtocol.contains("://")) {
-        throw new IllegalStateException(
-            "Invalid contrast.api.protocol value: '"
-                + protocol
-                + "'. Set to 'https', not 'https://'. The protocol separator is added"
-                + " automatically.");
-      }
-      if (!"https".equals(normalizedProtocol)) {
-        throw new IllegalStateException(
-            "Insecure protocol configured: '"
-                + protocol
-                + "'. The MCP server requires HTTPS to protect API credentials. Set"
-                + " contrast.api.protocol=https or remove the property to use the"
-                + " default.");
-      }
+    var candidateUrl = buildCandidateUrl(properties.protocol(), properties.hostName());
+    if (!HTTPS_URL_VALIDATOR.isValid(candidateUrl)) {
+      throw new IllegalStateException(
+          "Invalid or insecure Contrast TeamServer URL '"
+              + candidateUrl
+              + "' (resolved from contrast.api.protocol='"
+              + properties.protocol()
+              + "', CONTRAST_HOST_NAME='"
+              + properties.hostName()
+              + "'). The MCP server requires an https:// URL with a valid hostname.");
     }
+  }
 
-    var hostName = properties.hostName();
-    if (StringUtils.hasText(hostName)) {
-      var normalizedHostName = hostName.strip().toLowerCase();
-      if (normalizedHostName.contains("://") && !normalizedHostName.startsWith("https://")) {
-        throw new IllegalStateException(
-            "Insecure protocol in CONTRAST_HOST_NAME: '"
-                + hostName
-                + "'. Use 'https://' or provide the hostname without a scheme"
-                + " to use HTTPS by default.");
-      }
+  private static String buildCandidateUrl(String protocol, String hostName) {
+    var bareHost = hostName.strip();
+    if (bareHost.contains(SCHEME_SEPARATOR)) {
+      return bareHost;
     }
+    var effectiveProtocol =
+        StringUtils.hasText(protocol) ? protocol.strip().toLowerCase() : "https";
+    return effectiveProtocol + SCHEME_SEPARATOR + bareHost;
   }
 }
