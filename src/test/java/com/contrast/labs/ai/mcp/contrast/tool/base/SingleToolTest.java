@@ -192,6 +192,28 @@ class SingleToolTest {
   }
 
   @Test
+  void executePipeline_should_surface_illegalArgumentException_message_as_user_error() {
+    var iaeMessage =
+        "Session metadata field(s) not found for application 'app-1': nonexistent_field_xyz_12345."
+            + " Use get_session_metadata(appId) to discover available field names.";
+    tool.setDoExecuteHandler(
+        (params, collector) -> {
+          throw new IllegalArgumentException(iaeMessage);
+        });
+
+    var result = tool.executePipeline(() -> TestParams.valid());
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors())
+        .as("IllegalArgumentException message must surface verbatim as the user-facing error")
+        .singleElement()
+        .isEqualTo(iaeMessage);
+    assertThat(result.errors())
+        .as("IllegalArgumentException must not be masked as a generic internal error")
+        .noneMatch(e -> e.contains("An internal error occurred"));
+  }
+
+  @Test
   void executePipeline_should_include_params_warnings() {
     tool.setDoExecuteHandler((params, warnings) -> "result");
 

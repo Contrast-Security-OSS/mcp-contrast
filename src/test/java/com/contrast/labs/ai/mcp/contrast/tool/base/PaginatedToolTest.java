@@ -179,6 +179,28 @@ class PaginatedToolTest {
   }
 
   @Test
+  void executePipeline_should_surface_illegalArgumentException_message_as_user_error() {
+    var iaeMessage =
+        "Metadata field(s) not found: never_a_real_field_zzq_123. Available fields can be"
+            + " discovered via the Contrast UI.";
+    tool.setDoExecuteHandler(
+        (pagination, params, collector) -> {
+          throw new IllegalArgumentException(iaeMessage);
+        });
+
+    var result = tool.executePipeline(1, 10, () -> TestParams.valid());
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors())
+        .as("IllegalArgumentException message must surface verbatim as the user-facing error")
+        .singleElement()
+        .isEqualTo(iaeMessage);
+    assertThat(result.errors())
+        .as("IllegalArgumentException must not be masked as a generic internal error")
+        .noneMatch(e -> e.contains("An internal error occurred"));
+  }
+
+  @Test
   void executePipeline_should_calculate_hasMorePages_with_known_total() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) ->

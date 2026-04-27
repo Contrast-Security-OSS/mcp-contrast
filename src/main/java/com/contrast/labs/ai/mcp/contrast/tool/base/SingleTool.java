@@ -97,6 +97,10 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
           collector);
     } catch (HttpResponseException e) {
       return handleHttpResponseException(e, requestId, collector);
+    } catch (IllegalArgumentException e) {
+      // User-input rejection raised mid-execution (e.g., resolveSessionMetadataFilters when an
+      // unknown field name is supplied). The exception message is the actionable user message.
+      return handleException(e, requestId, e.getMessage(), collector);
     } catch (Exception e) {
       log.atError()
           .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
