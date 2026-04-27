@@ -81,7 +81,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
     var params = paramsSupplier.get();
 
     // 3. Collector accumulates warnings from all stages
-    var collector = WarningCollector.forContext(Map.of("requestId", requestId));
+    var collector = WarningCollector.forContext(Map.of(LoggingKeys.REQUEST_ID, requestId));
     pagination.warnings().forEach(collector::warn);
     params.warnings().forEach(collector::warn);
 
@@ -113,7 +113,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
       return handleHttpResponseException(e, pagination, requestId, collector);
     } catch (Exception e) {
       log.atError()
-          .addKeyValue("requestId", requestId)
+          .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
           .setCause(e)
           .setMessage("Request failed unexpectedly")
           .log();
@@ -140,8 +140,8 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
   private PaginatedToolResponse<R> handleException(
       Exception e, PaginationParams pagination, String requestId, String userMessage) {
     log.atWarn()
-        .addKeyValue("requestId", requestId)
-        .addKeyValue("exceptionType", e.getClass().getSimpleName())
+        .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
+        .addKeyValue(LoggingKeys.EXCEPTION_TYPE, e.getClass().getSimpleName())
         .setMessage("Request failed: {}")
         .addArgument(e.getMessage())
         .log();
@@ -157,8 +157,8 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
     String errorMessage = mapHttpErrorCode(e.getCode());
 
     log.atWarn()
-        .addKeyValue("requestId", requestId)
-        .addKeyValue("httpStatus", e.getCode())
+        .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
+        .addKeyValue(LoggingKeys.HTTP_STATUS, e.getCode())
         .setMessage("API error: {}")
         .addArgument(e.getMessage())
         .log();
@@ -209,8 +209,8 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
 
   private void logValidationError(String requestId, List<String> errors) {
     log.atDebug()
-        .addKeyValue("requestId", requestId)
-        .addKeyValue("errorCount", errors.size())
+        .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
+        .addKeyValue(LoggingKeys.ERROR_COUNT, errors.size())
         .setMessage("Validation failed: {}")
         .addArgument(String.join(", ", errors))
         .log();
@@ -218,10 +218,10 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
 
   private void logSuccess(String requestId, long duration, int itemCount, Integer totalItems) {
     log.atDebug()
-        .addKeyValue("requestId", requestId)
-        .addKeyValue("durationMs", duration)
-        .addKeyValue("itemCount", itemCount)
-        .addKeyValue("totalItems", totalItems)
+        .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
+        .addKeyValue(LoggingKeys.DURATION_MS, duration)
+        .addKeyValue(LoggingKeys.ITEM_COUNT, itemCount)
+        .addKeyValue(LoggingKeys.TOTAL_ITEMS, totalItems)
         .setMessage("Request completed successfully")
         .log();
   }

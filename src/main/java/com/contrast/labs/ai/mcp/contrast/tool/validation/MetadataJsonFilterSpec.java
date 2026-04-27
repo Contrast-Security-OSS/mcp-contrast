@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.validation;
 
+import com.contrast.labs.ai.mcp.contrast.tool.base.LoggingKeys;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
@@ -82,7 +83,7 @@ public class MetadataJsonFilterSpec {
       return result.isEmpty() ? null : List.copyOf(result);
     } catch (JsonSyntaxException e) {
       log.atWarn()
-          .addKeyValue("filterName", name)
+          .addKeyValue(LoggingKeys.FILTER_NAME, name)
           .setCause(e)
           .setMessage("Invalid JSON in metadata filter")
           .log();
