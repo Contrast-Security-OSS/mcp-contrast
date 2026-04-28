@@ -298,8 +298,11 @@ br create "Title" --description "$(cat << 'EOF'
 EOF
 )"
 
-# Design field — use the helper script instead of --design (CLI misparses -- in markdown)
-scripts/br-set-design <bead-id> /tmp/design.md
+# Design field — same $() pattern works
+br update <bead-id> --design "$(cat << 'EOF'
+## Design with `code` and --flags and $(vars) — all literal.
+EOF
+)"
 ```
 
 ### Human Review Labels
