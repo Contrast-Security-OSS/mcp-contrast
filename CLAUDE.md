@@ -259,10 +259,8 @@ This project uses Beads (br) for issue tracking. See the MCP resource `beads://q
 
 ### Bead Command Reference
 
-Exact syntax for the most common operations — do not guess command names:
-
 ```bash
-# Status
+# Status — set in_progress immediately when starting; close only when done
 br update <bead-id> --status in_progress
 br close <bead-id> --reason "why it's done"   # --reason/-r is REQUIRED; positional arg fails
 br reopen <bead-id>
@@ -274,7 +272,7 @@ br list
 
 # Comments — 'br comment' does NOT exist; use 'br comments add'
 br comments add <bead-id> --message "short single-line text"
-br comments add <bead-id> -f /tmp/comment.txt  # preferred for multi-line content
+br comments add <bead-id> -f /tmp/comment.txt  # use -f for multi-line (avoids shell interpretation)
 
 # Labels
 br label add <bead-id> -l <label>
@@ -285,72 +283,24 @@ br dep add <dependent> <prerequisite>          # dependent "blocks on" prerequis
 br dep add <child> <parent> --type parent-child
 ```
 
-**Multi-line comments — always use a temp file:**
-Shell strings containing backticks, `$()`, or special characters are interpreted by the shell.
-Write content to a temp file with a heredoc, then pass `-f`:
+**Multi-line comments — always use a temp file** (shell interprets backticks/`$()` in strings):
 ```bash
 cat > /tmp/comment.txt << 'EOF'
-## My comment with `code`, **markdown**, and special chars
-Content here is never shell-interpreted because of the quoted EOF delimiter.
+content with `code` and special chars — never shell-interpreted
 EOF
 br comments add <bead-id> -f /tmp/comment.txt
 ```
-Never use `$()` substitution to pass multi-line comment text — use `-f` instead.
 
-### Bead Status Management
+### Human Review Labels
 
-**IMPORTANT: Update bead status as you work:**
+- `needs-human-review` — DO NOT start work; ask human to review first
+- `human-reviewed` — approved; AI may proceed
 
-1. **When starting work on a bead**: Immediately set status to `in_progress`
-   ```
-   br update <bead-id> --status in_progress
-   ```
-
-2. **While working**: Keep the bead `in_progress` until all work is complete, tested, and ready to close
-
-3. **When work is complete**: Close the bead only after all acceptance criteria are met
-   ```
-   br close <bead-id> --reason "brief close reason"
-   ```
-
-**Status lifecycle:**
-- `open` → Task not yet started
-- `in_progress` → Actively working on task (SET THIS WHEN YOU START!)
-- `closed` → Task complete, tested, and merged
-
-### Adding Comments to Beads
-
+When reviewing a `needs-human-review` bead, update the description if needed, then:
 ```bash
-br comments add <bead-id> "comment text"
+br label remove <bead-id> -l needs-human-review
+br label add <bead-id> -l human-reviewed
 ```
-
-Note: `br comment` (no s) does NOT work — the correct subcommand is `br comments add`.
-
-### Human Review Required Label
-
-**IMPORTANT: Beads labeled `needs-human-review` require human approval before AI work begins.**
-
-**AI Behavior:**
-- Before starting work on any bead, check for the `needs-human-review` label
-- If present, **DO NOT start work** on the bead
-- Instead, ask the human to review the bead description and approach
-
-### Human Review Label Workflow
-
-**When a human reviews a bead with the `needs-human-review` label:**
-
-1. **Review the bead description** - Evaluate the proposed approach, implementation details, and any concerns
-2. **Update the bead** - If changes are needed based on review, update the bead description with the approved approach
-3. **Update labels:**
-   ```bash
-   br label remove <bead-id> -l needs-human-review
-   br label add <bead-id> -l human-reviewed
-   ```
-4. **Proceed to next bead** - Continue reviewing remaining beads with `needs-human-review` label
-
-**Label meanings:**
-- `needs-human-review` - Bead requires human approval before AI can start work
-- `human-reviewed` - Bead has been reviewed and approved by human, AI may proceed when ready
 
 ## Helper Scripts
 
