@@ -12,6 +12,16 @@ This is an MCP (Model Context Protocol) server for Contrast Security that enable
 
 Branch naming: `AIML-<ticket-id>-<short-description>` (e.g., `AIML-391-add-medium-low-note-counts`)
 
+## Required Plugins
+
+The workflows below use the **pr-tools** plugin (`/pr-tools:*` commands). If those skills aren't available, ask permission, then have the user run:
+
+```
+/plugin marketplace add Contrast-Security-Inc/claude-marketplace
+/plugin install pr-tools@Contrast-Security-Inc
+/reload-plugins
+```
+
 ## Build and Development Commands
 
 ### Building the Project
