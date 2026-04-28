@@ -17,8 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.config;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -32,10 +31,9 @@ import org.springframework.context.annotation.Scope;
  *
  * <p>The shared SDK instance is thread-safe and can be safely used by parallel test execution.
  */
+@Slf4j
 @TestConfiguration
 public class IntegrationTestConfig {
-
-  private static final Logger logger = LoggerFactory.getLogger(IntegrationTestConfig.class);
 
   @Value("${contrast.host-name:${CONTRAST_HOST_NAME:}}")
   private String hostName;
@@ -69,16 +67,16 @@ public class IntegrationTestConfig {
   @Bean
   @Scope("singleton")
   public SDKExtension sharedSDKExtension() {
-    logger.info("Initializing shared SDK extension for integration tests");
-    logger.info("  Host: {}", hostName);
-    logger.info("  Username: {}", userName);
+    log.info("Initializing shared SDK extension for integration tests");
+    log.info("  Host: {}", hostName);
+    log.info("  Username: {}", userName);
 
     var sdk =
         SDKHelper.getSDK(
             hostName, apiKey, serviceKey, userName, httpProxyHost, httpProxyPort, protocol);
     var sdkExtension = new SDKExtension(sdk);
 
-    logger.info("✓ Shared SDK extension initialized successfully");
+    log.info("✓ Shared SDK extension initialized successfully");
     return sdkExtension;
   }
 }

@@ -30,8 +30,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Cache for expensive SDK lookups used across integration tests.
@@ -45,9 +44,8 @@ import org.slf4j.LoggerFactory;
  * so the data set is relatively small and does not require sophisticated eviction policies. Cached
  * values are safe to share across tests because the SDK objects are treated as read-only.
  */
+@Slf4j
 public final class IntegrationTestDataCache {
-
-  private static final Logger logger = LoggerFactory.getLogger(IntegrationTestDataCache.class);
 
   private static final ConcurrentMap<String, List<Application>> APPLICATIONS =
       new ConcurrentHashMap<>();
@@ -74,11 +72,11 @@ public final class IntegrationTestDataCache {
       throws IOException {
     var cached = APPLICATIONS.get(orgId);
     if (cached != null) {
-      logger.debug("Returning cached applications for org {}", orgId);
+      log.debug("Returning cached applications for org {}", orgId);
       return cached;
     }
 
-    logger.info("Fetching applications for org {} (not cached yet)", orgId);
+    log.info("Fetching applications for org {} (not cached yet)", orgId);
     try {
       ApplicationsResponse response = sdkExtension.getApplications(orgId);
       List<Application> applications =
@@ -107,11 +105,11 @@ public final class IntegrationTestDataCache {
     var key = new LibraryKey(orgId, appId);
     var cached = APPLICATION_LIBRARIES.get(key);
     if (cached != null) {
-      logger.debug("Returning cached libraries for org {} app {}", orgId, appId);
+      log.debug("Returning cached libraries for org {} app {}", orgId, appId);
       return cached;
     }
 
-    logger.info("Fetching libraries for org {} app {} (not cached yet)", orgId, appId);
+    log.info("Fetching libraries for org {} app {} (not cached yet)", orgId, appId);
     try {
       var libraries = SDKHelper.getLibsForID(appId, orgId, sdkExtension);
       List<LibraryExtended> immutableLibraries =
@@ -138,11 +136,11 @@ public final class IntegrationTestDataCache {
     var key = new ProtectKey(orgId, appId);
     var cached = PROTECT_DATA.get(key);
     if (cached != null) {
-      logger.debug("Returning cached Protect data for org {} app {}", orgId, appId);
+      log.debug("Returning cached Protect data for org {} app {}", orgId, appId);
       return cached;
     }
 
-    logger.info("Fetching Protect data for org {} app {} (not cached yet)", orgId, appId);
+    log.info("Fetching Protect data for org {} app {} (not cached yet)", orgId, appId);
     try {
       var protectData = Optional.ofNullable(sdkExtension.getProtectConfig(orgId, appId));
       var previous = PROTECT_DATA.putIfAbsent(key, protectData);
@@ -167,11 +165,11 @@ public final class IntegrationTestDataCache {
     var key = new RouteCoverageKey(orgId, appId);
     var cached = ROUTE_COVERAGE.get(key);
     if (cached != null) {
-      logger.debug("Returning cached route coverage for org {} app {}", orgId, appId);
+      log.debug("Returning cached route coverage for org {} app {}", orgId, appId);
       return cached;
     }
 
-    logger.info("Fetching route coverage for org {} app {} (not cached yet)", orgId, appId);
+    log.info("Fetching route coverage for org {} app {} (not cached yet)", orgId, appId);
     try {
       var response = Optional.ofNullable(sdkExtension.getRouteCoverage(orgId, appId, null));
       var previous = ROUTE_COVERAGE.putIfAbsent(key, response);
@@ -196,11 +194,11 @@ public final class IntegrationTestDataCache {
     var key = new SessionMetadataKey(orgId, appId);
     var cached = SESSION_METADATA.get(key);
     if (cached != null) {
-      logger.debug("Returning cached session metadata for org {} app {}", orgId, appId);
+      log.debug("Returning cached session metadata for org {} app {}", orgId, appId);
       return cached;
     }
 
-    logger.info("Fetching session metadata for org {} app {} (not cached yet)", orgId, appId);
+    log.info("Fetching session metadata for org {} app {} (not cached yet)", orgId, appId);
     try {
       var response = Optional.ofNullable(sdkExtension.getLatestSessionMetadata(orgId, appId));
       var previous = SESSION_METADATA.putIfAbsent(key, response);

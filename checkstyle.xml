@@ -52,5 +52,11 @@
       <property name="severity" value="error"/>
       <property name="ignoreComments" value="true"/>
     </module>
+    <module name="RegexpSinglelineJava">
+      <property name="format" value="private\s+(static\s+)?(final\s+)?Logger\s+\w+\s*="/>
+      <property name="message" value="Use Lombok @Slf4j instead of declaring a Logger field manually"/>
+      <property name="severity" value="error"/>
+      <property name="ignoreComments" value="true"/>
+    </module>
   </module>
 </module>

@@ -31,8 +31,7 @@ import com.contrast.labs.ai.mcp.contrast.tool.vulnerability.ListVulnerabilityTyp
 import com.contrast.labs.ai.mcp.contrast.tool.vulnerability.SearchAppVulnerabilitiesTool;
 import com.contrast.labs.ai.mcp.contrast.tool.vulnerability.SearchVulnerabilitiesTool;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.boot.ApplicationRunner;
@@ -42,11 +41,11 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.boot.info.BuildProperties;
 import org.springframework.context.annotation.Bean;
 
+@Slf4j
 @SpringBootApplication
 @ConfigurationPropertiesScan
 public class McpContrastApplication {
 
-  private static final Logger logger = LoggerFactory.getLogger(McpContrastApplication.class);
   private static final int SEPARATOR_WIDTH = 60;
 
   public static void main(String[] args) {
@@ -58,13 +57,13 @@ public class McpContrastApplication {
       org.springframework.beans.factory.ObjectProvider<BuildProperties> buildPropertiesProvider) {
     return args -> {
       BuildProperties buildProperties = buildPropertiesProvider.getIfAvailable();
-      logger.info("=".repeat(SEPARATOR_WIDTH));
+      log.info("=".repeat(SEPARATOR_WIDTH));
       if (buildProperties != null) {
-        logger.info("Contrast MCP Server - Version {}", buildProperties.getVersion());
+        log.info("Contrast MCP Server - Version {}", buildProperties.getVersion());
       } else {
-        logger.info("Contrast MCP Server - Version information not available");
+        log.info("Contrast MCP Server - Version information not available");
       }
-      logger.info("=".repeat(SEPARATOR_WIDTH));
+      log.info("=".repeat(SEPARATOR_WIDTH));
     };
   }
 
