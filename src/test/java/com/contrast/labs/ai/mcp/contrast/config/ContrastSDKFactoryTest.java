@@ -165,8 +165,9 @@ class ContrastSDKFactoryTest {
 
     assertThatThrownBy(factoryWithInvalidProps::validateConfiguration)
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("Insecure protocol")
-        .hasMessageContaining("http");
+        .hasMessageContaining("Invalid or insecure Contrast TeamServer URL")
+        .hasMessageContaining("contrast.api.protocol='http'")
+        .hasMessageContaining("https://");
   }
 
   @Test
@@ -176,8 +177,8 @@ class ContrastSDKFactoryTest {
 
     assertThatThrownBy(factoryWithInvalidProps::validateConfiguration)
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("Insecure protocol")
-        .hasMessageContaining("HTTP");
+        .hasMessageContaining("Invalid or insecure Contrast TeamServer URL")
+        .hasMessageContaining("contrast.api.protocol='HTTP'");
   }
 
   @Test
@@ -187,8 +188,8 @@ class ContrastSDKFactoryTest {
 
     assertThatThrownBy(factoryWithInvalidProps::validateConfiguration)
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("Insecure protocol")
-        .hasMessageContaining("ftp");
+        .hasMessageContaining("Invalid or insecure Contrast TeamServer URL")
+        .hasMessageContaining("contrast.api.protocol='ftp'");
   }
 
   @Test
@@ -198,7 +199,8 @@ class ContrastSDKFactoryTest {
 
     assertThatThrownBy(factoryWithInvalidProps::validateConfiguration)
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("not 'https://'");
+        .hasMessageContaining("Invalid or insecure Contrast TeamServer URL")
+        .hasMessageContaining("contrast.api.protocol='https://'");
   }
 
   @Test
@@ -240,8 +242,8 @@ class ContrastSDKFactoryTest {
 
     assertThatThrownBy(factoryWithInvalidProps::validateConfiguration)
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("CONTRAST_HOST_NAME")
-        .hasMessageContaining("http://app.example.com");
+        .hasMessageContaining("Invalid or insecure Contrast TeamServer URL")
+        .hasMessageContaining("CONTRAST_HOST_NAME='http://app.example.com'");
   }
 
   @Test
@@ -251,8 +253,8 @@ class ContrastSDKFactoryTest {
 
     assertThatThrownBy(factoryWithInvalidProps::validateConfiguration)
         .isInstanceOf(IllegalStateException.class)
-        .hasMessageContaining("CONTRAST_HOST_NAME")
-        .hasMessageContaining("HTTP://app.example.com");
+        .hasMessageContaining("Invalid or insecure Contrast TeamServer URL")
+        .hasMessageContaining("CONTRAST_HOST_NAME='HTTP://app.example.com'");
   }
 
   @Test

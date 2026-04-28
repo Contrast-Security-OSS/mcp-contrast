@@ -177,8 +177,10 @@ class SearchApplicationsToolTest {
         .singleElement()
         .satisfies(
             error -> {
-              assertThat(error).startsWith("An internal error occurred (ref: ");
-              assertThat(error).doesNotContain("unknownField");
+              assertThat(error).contains("Metadata field(s) not found");
+              assertThat(error).contains("unknownField");
+              assertThat(error).contains("Available fields");
+              assertThat(error).doesNotContain("An internal error occurred");
             });
 
     verify(sdkExtension).getApplicationMetadataFields(anyString());

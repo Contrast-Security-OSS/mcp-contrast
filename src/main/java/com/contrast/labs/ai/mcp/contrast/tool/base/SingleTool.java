@@ -62,7 +62,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
     var params = paramsSupplier.get();
 
     // 2. Collector accumulates warnings from all stages
-    var collector = WarningCollector.forContext(Map.of("requestId", requestId));
+    var collector = WarningCollector.forContext(Map.of(LoggingKeys.REQUEST_ID, requestId));
     params.warnings().forEach(collector::warn);
 
     // 3. Single validation checkpoint - ALL errors collected
@@ -97,9 +97,13 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
           collector);
     } catch (HttpResponseException e) {
       return handleHttpResponseException(e, requestId, collector);
+    } catch (IllegalArgumentException e) {
+      // User-input rejection raised mid-execution (e.g., resolveSessionMetadataFilters when an
+      // unknown field name is supplied). The exception message is the actionable user message.
+      return handleException(e, requestId, e.getMessage(), collector);
     } catch (Exception e) {
       log.atError()
-          .addKeyValue("requestId", requestId)
+          .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
           .setCause(e)
           .setMessage("Request failed unexpectedly")
           .log();
@@ -121,8 +125,8 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
   private SingleToolResponse<R> handleException(
       Exception e, String requestId, String userMessage, WarningCollector collector) {
     log.atWarn()
-        .addKeyValue("requestId", requestId)
-        .addKeyValue("exceptionType", e.getClass().getSimpleName())
+        .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
+        .addKeyValue(LoggingKeys.EXCEPTION_TYPE, e.getClass().getSimpleName())
         .setMessage("Request failed: {}")
         .addArgument(e.getMessage())
         .log();
@@ -136,8 +140,8 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
     String errorMessage = mapHttpErrorCode(e.getCode());
 
     log.atWarn()
-        .addKeyValue("requestId", requestId)
-        .addKeyValue("httpStatus", e.getCode())
+        .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
+        .addKeyValue(LoggingKeys.HTTP_STATUS, e.getCode())
         .setMessage("API error: {}")
         .addArgument(e.getMessage())
         .log();
@@ -147,8 +151,8 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
 
   private void logValidationError(String requestId, List<String> errors) {
     log.atDebug()
-        .addKeyValue("requestId", requestId)
-        .addKeyValue("errorCount", errors.size())
+        .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
+        .addKeyValue(LoggingKeys.ERROR_COUNT, errors.size())
         .setMessage("Validation failed: {}")
         .addArgument(String.join(", ", errors))
         .log();
@@ -156,16 +160,16 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
 
   private void logNotFound(String requestId, long duration) {
     log.atDebug()
-        .addKeyValue("requestId", requestId)
-        .addKeyValue("durationMs", duration)
+        .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
+        .addKeyValue(LoggingKeys.DURATION_MS, duration)
         .setMessage("Resource not found")
         .log();
   }
 
   private void logSuccess(String requestId, long duration) {
     log.atDebug()
-        .addKeyValue("requestId", requestId)
-        .addKeyValue("durationMs", duration)
+        .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
+        .addKeyValue(LoggingKeys.DURATION_MS, duration)
         .setMessage("Request completed successfully")
         .log();
   }
