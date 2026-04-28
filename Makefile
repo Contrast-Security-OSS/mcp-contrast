@@ -14,7 +14,7 @@ build: ## Build the project (compile + package)
 
 ## Check targets (formatting and static analysis)
 
-check: ## Run format and static analysis checks (quiet output)
+check: format ## Run format and static analysis checks (quiet output)
 	@if [ -n "$$VERBOSE" ]; then \
 		$(MVN) validate; \
 	else \
