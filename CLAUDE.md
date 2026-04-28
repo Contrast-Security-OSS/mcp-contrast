@@ -283,12 +283,13 @@ br dep add <dependent> <prerequisite>          # dependent "blocks on" prerequis
 br dep add <child> <parent> --type parent-child
 ```
 
-**Multi-line comments — always use a temp file** (shell interprets backticks/`$()` in strings):
+**Multi-line comments — pipe via stdin** (quoted heredoc delimiter prevents all shell interpretation):
 ```bash
-cat > /tmp/comment.txt << 'EOF'
-content with `code` and special chars — never shell-interpreted
+cat << 'EOF' | br comments add <bead-id> -f -
+## Heading
+
+With `code blocks`, **markdown**, and $(variables) — all literal.
 EOF
-br comments add <bead-id> -f /tmp/comment.txt
 ```
 
 ### Human Review Labels
