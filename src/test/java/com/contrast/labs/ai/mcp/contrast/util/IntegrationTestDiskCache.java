@@ -33,8 +33,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Lightweight disk cache shared across integration tests.
@@ -51,9 +50,8 @@ import org.slf4j.LoggerFactory;
  *   <li>{@code CONTRAST_TEST_CACHE_TTL_HOURS=N} - Override the default entry TTL (12 hours).
  * </ul>
  */
+@Slf4j
 public final class IntegrationTestDiskCache {
-
-  private static final Logger logger = LoggerFactory.getLogger(IntegrationTestDiskCache.class);
 
   private static final Path CACHE_DIR = Path.of("test-cache");
   private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -96,7 +94,7 @@ public final class IntegrationTestDiskCache {
     maybeClearCacheDirectory();
 
     if (orgId == null || orgId.isBlank()) {
-      logger.debug("Skipping disk cache load for {}: orgId is blank", testName);
+      log.debug("Skipping disk cache load for {}: orgId is blank", testName);
       return Optional.empty();
     }
 
@@ -109,24 +107,24 @@ public final class IntegrationTestDiskCache {
       try {
         Instant lastModified = Files.getLastModifiedTime(cacheFile).toInstant();
         if (Instant.now().minus(ttl).isAfter(lastModified)) {
-          logger.debug(
+          log.debug(
               "Disk cache entry for {} expired (age {}s)",
               testName,
               Duration.between(lastModified, Instant.now()).getSeconds());
           return Optional.empty();
         }
       } catch (IOException ex) {
-        logger.warn("Unable to read cache timestamp for {}: {}", testName, ex.getMessage());
+        log.warn("Unable to read cache timestamp for {}: {}", testName, ex.getMessage());
         return Optional.empty();
       }
     }
 
     try (Reader reader = Files.newBufferedReader(cacheFile, StandardCharsets.UTF_8)) {
       T value = GSON.fromJson(reader, type);
-      logger.info("✓ Loaded cached discovery data for {}", testName);
+      log.info("✓ Loaded cached discovery data for {}", testName);
       return Optional.ofNullable(value);
     } catch (Exception ex) {
-      logger.warn("Failed to read cache entry for {}: {}", testName, ex.getMessage());
+      log.warn("Failed to read cache entry for {}: {}", testName, ex.getMessage());
       return Optional.empty();
     }
   }
@@ -144,7 +142,7 @@ public final class IntegrationTestDiskCache {
     }
 
     if (orgId == null || orgId.isBlank()) {
-      logger.debug("Skipping disk cache write for {}: orgId is blank", testName);
+      log.debug("Skipping disk cache write for {}: orgId is blank", testName);
       return;
     }
 
@@ -170,9 +168,9 @@ public final class IntegrationTestDiskCache {
         // Retry without ATOMIC_MOVE for filesystems that do not support it
         Files.move(tempFile, cacheFile, StandardCopyOption.REPLACE_EXISTING);
       }
-      logger.info("✓ Cached discovery data for {}", testName);
+      log.info("✓ Cached discovery data for {}", testName);
     } catch (IOException ex) {
-      logger.warn("Unable to write cache entry for {}: {}", testName, ex.getMessage());
+      log.warn("Unable to write cache entry for {}: {}", testName, ex.getMessage());
     }
   }
 
@@ -216,12 +214,12 @@ public final class IntegrationTestDiskCache {
                   try {
                     Files.deleteIfExists(path);
                   } catch (IOException ex) {
-                    logger.warn("Failed to delete cache path {}: {}", path, ex.getMessage());
+                    log.warn("Failed to delete cache path {}: {}", path, ex.getMessage());
                   }
                 });
       }
     } catch (IOException ex) {
-      logger.warn("Failed to clear cache directory {}: {}", CACHE_DIR, ex.getMessage());
+      log.warn("Failed to clear cache directory {}: {}", CACHE_DIR, ex.getMessage());
     }
   }
 
@@ -284,7 +282,7 @@ public final class IntegrationTestDiskCache {
       long parsed = Long.parseLong(ttlValue.trim());
       return parsed > 0 ? parsed : 12L;
     } catch (NumberFormatException ex) {
-      logger.warn(
+      log.warn(
           "Invalid CONTRAST_TEST_CACHE_TTL_HOURS value '{}'; using default 12 hours", ttlValue);
       return 12L;
     }
