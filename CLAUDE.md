@@ -12,6 +12,16 @@ This is an MCP (Model Context Protocol) server for Contrast Security that enable
 
 Branch naming: `AIML-<ticket-id>-<short-description>` (e.g., `AIML-391-add-medium-low-note-counts`)
 
+## Required Plugins
+
+The workflows below use the **pr-tools** plugin (`/pr-tools:*` commands). If those skills aren't available, ask permission, then have the user run:
+
+```
+/plugin marketplace add Contrast-Security-Inc/claude-marketplace
+/plugin install pr-tools@Contrast-Security-Inc
+/reload-plugins
+```
+
 ## Build and Development Commands
 
 ### Building the Project
@@ -19,11 +29,11 @@ Branch naming: `AIML-<ticket-id>-<short-description>` (e.g., `AIML-391-add-mediu
 Use these make targets for all checks and tests:
 
 ```bash
-make check       # Run format check (quiet output)
+make check       # Auto-format then run static analysis (no need to run make format first)
 make test        # Run unit tests (quiet output)
-make check-test  # Run both checks and tests
+make check-test  # Run both checks and tests — use this before committing
 make verify      # Run all tests including integration
-make format      # Auto-format code with Spotless
+make format      # Auto-format code with Spotless (also runs automatically via make check)
 make build       # Build the project
 make clean       # Clean build artifacts
 
@@ -41,7 +51,7 @@ make check VERBOSE=1
 - **Format code**: `mvn spotless:apply`
 - **Run locally**: `java -jar target/mcp-contrast-0.0.11.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
 
-**Note:** Spotless enforces Google Java Format style automatically. Run `make format` before committing.
+**Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard pre-commit verification command.
 
 **Integration Tests:** Require Contrast credentials in `.env.integration-test` (copy from `.env.integration-test.template`). See INTEGRATION_TESTS.md for details.
 
@@ -176,7 +186,7 @@ When creating or modifying MCP tools:
 **Checkstyle:** Three rules enforced at `error` severity (run in `validate` phase via `make check`):
 - `AvoidStarImport` — no wildcard imports
 - `RegexpSinglelineJava` — no fully-qualified class names in code; use imports
-- `MagicNumber` — no raw numeric literals; use named constants (HTTP status codes and -1/0/1/2/100 are ignored)
+- `MagicNumber` — no raw numeric literals; use named constants (HTTP status codes and -1/0/1/2/100 are ignored). **Before writing any numeric literal**, check `ValidationConstants` first — it has `DEFAULT_PAGE_SIZE`, `MAX_PAGE_SIZE`, `API_MAX_PAGE_SIZE`, `DEFAULT_LIBRARY_OBS_PAGE_SIZE`, `MIN_PAGE`, `DEFAULT_PAGE`. If no existing constant fits, declare `private static final int MY_CONSTANT = <value>` in the same class.
 
 > ⛔ **PROHIBITED:** Modifying checkstyle rules, Spotless config, or any other linter/constraint config is **expressly forbidden** without explicit user permission. When code fails a check, fix the code — never relax the rule.
 
@@ -259,10 +269,8 @@ This project uses Beads (br) for issue tracking. See the MCP resource `beads://q
 
 ### Bead Command Reference
 
-Exact syntax for the most common operations — do not guess command names:
-
 ```bash
-# Status
+# Status — set in_progress immediately when starting; close only when done
 br update <bead-id> --status in_progress
 br close <bead-id> --reason "why it's done"   # --reason/-r is REQUIRED; positional arg fails
 br reopen <bead-id>
@@ -274,7 +282,7 @@ br list
 
 # Comments — 'br comment' does NOT exist; use 'br comments add'
 br comments add <bead-id> --message "short single-line text"
-br comments add <bead-id> -f /tmp/comment.txt  # preferred for multi-line content
+br comments add <bead-id> -f /tmp/comment.txt  # use -f for multi-line (avoids shell interpretation)
 
 # Labels
 br label add <bead-id> -l <label>
@@ -285,72 +293,38 @@ br dep add <dependent> <prerequisite>          # dependent "blocks on" prerequis
 br dep add <child> <parent> --type parent-child
 ```
 
-**Multi-line comments — always use a temp file:**
-Shell strings containing backticks, `$()`, or special characters are interpreted by the shell.
-Write content to a temp file with a heredoc, then pass `-f`:
+**Multi-line content — quoted heredoc prevents all shell interpretation:**
 ```bash
-cat > /tmp/comment.txt << 'EOF'
-## My comment with `code`, **markdown**, and special chars
-Content here is never shell-interpreted because of the quoted EOF delimiter.
+# Comments — pipe via stdin (-f - supported)
+cat << 'EOF' | br comments add <bead-id> -f -
+## Heading
+
+With `code blocks`, **markdown**, and $(variables) — all literal.
 EOF
-br comments add <bead-id> -f /tmp/comment.txt
+
+# Description/design — capture via $() (inner heredoc is still safe with quoted delimiter)
+br create "Title" --description "$(cat << 'EOF'
+## Description with `code` and $(vars) — all literal.
+EOF
+)"
+
+# Design field — same $() pattern works
+br update <bead-id> --design "$(cat << 'EOF'
+## Design with `code` and --flags and $(vars) — all literal.
+EOF
+)"
 ```
-Never use `$()` substitution to pass multi-line comment text — use `-f` instead.
 
-### Bead Status Management
+### Human Review Labels
 
-**IMPORTANT: Update bead status as you work:**
+- `needs-human-review` — DO NOT start work; ask human to review first
+- `human-reviewed` — approved; AI may proceed
 
-1. **When starting work on a bead**: Immediately set status to `in_progress`
-   ```
-   br update <bead-id> --status in_progress
-   ```
-
-2. **While working**: Keep the bead `in_progress` until all work is complete, tested, and ready to close
-
-3. **When work is complete**: Close the bead only after all acceptance criteria are met
-   ```
-   br close <bead-id> --reason "brief close reason"
-   ```
-
-**Status lifecycle:**
-- `open` → Task not yet started
-- `in_progress` → Actively working on task (SET THIS WHEN YOU START!)
-- `closed` → Task complete, tested, and merged
-
-### Adding Comments to Beads
-
+When reviewing a `needs-human-review` bead, update the description if needed, then:
 ```bash
-br comments add <bead-id> "comment text"
+br label remove <bead-id> -l needs-human-review
+br label add <bead-id> -l human-reviewed
 ```
-
-Note: `br comment` (no s) does NOT work — the correct subcommand is `br comments add`.
-
-### Human Review Required Label
-
-**IMPORTANT: Beads labeled `needs-human-review` require human approval before AI work begins.**
-
-**AI Behavior:**
-- Before starting work on any bead, check for the `needs-human-review` label
-- If present, **DO NOT start work** on the bead
-- Instead, ask the human to review the bead description and approach
-
-### Human Review Label Workflow
-
-**When a human reviews a bead with the `needs-human-review` label:**
-
-1. **Review the bead description** - Evaluate the proposed approach, implementation details, and any concerns
-2. **Update the bead** - If changes are needed based on review, update the bead description with the approved approach
-3. **Update labels:**
-   ```bash
-   br label remove <bead-id> -l needs-human-review
-   br label add <bead-id> -l human-reviewed
-   ```
-4. **Proceed to next bead** - Continue reviewing remaining beads with `needs-human-review` label
-
-**Label meanings:**
-- `needs-human-review` - Bead requires human approval before AI can start work
-- `human-reviewed` - Bead has been reviewed and approved by human, AI may proceed when ready
 
 ## Helper Scripts
 
@@ -451,12 +425,6 @@ Promoting Stacked PR (after base PR merges):
      - Update Jira status to "In Progress" using Atlassian MCP
      - **Assign the ticket to the current user** (the authenticated Atlassian MCP user)
 
-**4. Enter plan mode and present approach:**
-   - Present a textual plan of what needs to be done
-   - Discuss the approach with the user
-   - **Tell user: "ASK ME TO GENERATE A PLAN WHEN YOU ARE READY"**
-   - Wait for user approval before generating full plan and proceeding
-
 ### Creating Related Beads
 
 **When creating new beads from a Jira-linked bead:**
@@ -523,392 +491,46 @@ assertThat(libraries)
 - `GetRouteCoverageToolIT` — pagination + filter + edge cases
 - `GetSastProjectToolIT` — regression coverage for field mapping
 
-### Creating High-Quality PR Descriptions
-
-**This section defines the shared approach for creating PR descriptions used by both "Moving to Review" and "Stacked PRs" workflows.**
-
-Human review is the bottleneck in AI-assisted development. Creating exceptional PR descriptions that make review effortless is critical to development velocity.
-
-**Research Phase** - Gather comprehensive context from:
-- All beads that have been worked on for this branch
-- All git commits in the branch (`git log`, `git diff`)
-- Voice notes that relate to this work
-- Any related Jira tickets
-
-**PR Description Structure:**
-
-1. **Why**: Explain the problem or need that motivated this change
-   - What problem are we solving?
-   - What value does this provide?
-   - What was the business or technical driver?
-
-2. **What**: Describe what changes were made at a high level
-   - What components/files were modified?
-   - What new capabilities exist?
-   - What behavior changed?
-
-3. **How**: Explain how it was implemented
-   - Technical approach and architecture decisions
-   - Key implementation choices and trade-offs
-   - Design patterns used
-   - Integration points
-
-4. **Step-by-step walkthrough**: Guide the reviewer through the changes in logical order
-   - Walk through the diff in a sensible sequence
-   - Explain complex sections
-   - Call out important details
-   - Help reviewer understand the flow
-
-5. **Testing**: Summarize test coverage and results
-   - Unit test coverage added
-   - Integration test coverage added
-   - Test results (pass/fail counts)
-   - Manual testing performed
-   - Edge cases covered
-
-**Goal**: Make reviewing effortless by providing all information the reviewer needs to understand and evaluate the changes with confidence and speed. The reviewer should not need to ask clarifying questions. 
-
-**IMPORTANT**: Ensure the text of the PR clearly explains all the changes and leads the developer through the logical progression of the chain of thought that produced it.
-
 ### Moving to Review
 
-**When user says "move to review" or "ready for review" for a bead WITHOUT the `stacked-branch` label:**
+When user says "move to review" or "ready for review" for a bead WITHOUT the `stacked-branch` label:
 
-This workflow creates a standard PR ready for immediate review, targeting the `main` branch.
-
-**1. Label the bead(s):**
-   - Create/apply labels: `pr-created` and `in-review`
-   - Apply to all beads worked on in this branch
-
-**2. Update Jira status (if applicable):**
-   - If bead has linked Jira ticket, transition to "In Review" or equivalent review status
-
-**3. Push to remote:**
-   - Push the feature branch to remote repository
-
-**4. Complete time tracking:**
-   - Follow the **"Completing Time Tracking"** process in the Time Tracking section
-   - This is for parent beads only (child beads were already rated when closed)
-
-**5. Create or update Pull Request:**
-   - If PR doesn't exist, create it with base branch `main`
-   - If PR exists, update the description
-   - PR should be ready for review (NOT draft)
-
-**6. Generate comprehensive PR description:**
-   - Follow the **"Creating High-Quality PR Descriptions"** section above
-   - Use the standard structure: Why / What / How / Walkthrough / Testing
-   - No special warnings or dependency context needed
+1. Apply the `pr-created` and `in-review` labels to the bead(s) on this branch
+2. Transition the linked Jira ticket to "In Review"
+3. Push the feature branch
+4. Run `/pr-tools:create-pr` — it generates the description and creates a ready-for-review PR targeting `main`
 
 ### Stacked PRs (Ready for Draft Review)
 
-**When user says "ready for stacked PR", "ready for draft review", or when creating a PR for a bead WITH the `stacked-branch` label:**
+When user says "ready for stacked PR" or creating a PR for a bead WITH the `stacked-branch` label:
 
-This workflow creates a draft PR that depends on another unmerged PR (stacked branches).
+1. Apply the `pr-created` label to the bead(s) — do **not** add the `in-review` label yet
+2. Keep the linked Jira ticket at "In Progress"
+3. Push the branch
+4. Run `/pr-tools:create-pr` — it auto-detects the stacked context, creates a draft PR with the warning banner, and targets the parent branch
 
-**1. Identify the base PR:**
-   - Find the PR for the base branch using `gh pr list --head <base-branch-name>`
-   - Note the PR number and URL
-
-**2. Label the bead(s):**
-   - Create/apply label `pr-created` to the bead
-   - **Do NOT add `in-review` label yet** (only added when promoted to ready-for-review)
-   - Apply to all beads worked on in this branch
-
-**3. Update Jira status (if applicable):**
-   - If bead has linked Jira ticket, keep status as "In Progress" (draft PR, not ready for review yet)
-
-**4. Push to remote:**
-   - Push the feature branch: `git push -u origin <branch-name>`
-
-**5. Complete time tracking:**
-   - Follow the **"Completing Time Tracking"** process in the Time Tracking section
-   - This is for parent beads only (child beads were already rated when closed)
-
-**6. Create DRAFT Pull Request:**
-   - **Base branch**: Set to the parent PR's branch (NOT main)
-   - **Status**: MUST be draft
-   - **Title**: Include `[STACKED]` indicator
-   - **Body**: Start with prominent warning, then add dependency context, followed by standard PR description:
-     ```
-     **⚠️ DO NOT MERGE - WAITING FOR <link to base PR>**
-
-     This is a stacked PR based on #<base-pr-number>.
-     Please review and merge #<base-pr-number> first,
-     then rebase this PR onto `main` before merging.
-
-     ---
-
-     **Dependency Context:**
-     This PR builds on the work from #<base-pr-number>. [Briefly explain
-     what the base PR did and why this PR follows it]
-
-     ---
-     ```
-   - After the warning and dependency context, follow the **"Creating High-Quality PR Descriptions"** section
-   - Use the standard structure: Why / What / How / Walkthrough / Testing
-
-**7. Verify configuration:**
-   - Confirm PR is in draft status
-   - Confirm base branch is the parent PR's branch
-   - Confirm warning and dependency context are prominently displayed
-
-**Example command:**
-```bash
-gh pr create --draft \
-  --base AIML-226-parent-branch \
-  --title "AIML-228: Feature name [STACKED]" \
-  --body "$(cat <<'EOF'
-**⚠️ DO NOT MERGE - WAITING FOR https://github.com/org/repo/pull/27**
-
-This is a stacked PR based on #27. Please review and merge #27 first.
-
----
-
-## Summary
-[Your PR description here]
-EOF
-)"
-```
-
-**IMPORTANT**: Stacked PRs must remain in draft until:
-1. The base PR is merged
-2. This PR is rebased onto main
-3. CI/CD passes on the rebased code
+The PR stays in draft until the parent merges and this branch is rebased onto `main` (use `/pr-tools:promote-stacked-pr`).
 
 ### Promoting Stacked PR to Ready for Review
 
-**When user says "move stacked PR to ready for review", "promote stacked PR", or "finalize stacked PR" for a bead WITH the `stacked-branch` label:**
+When user says "promote stacked PR" or "finalize stacked PR" for a bead WITH the `stacked-branch` label:
 
-This workflow promotes a draft stacked PR to ready-for-review after its base PR has been merged to main.
+1. Run `/pr-tools:promote-stacked-pr` — it rebases onto main with `--onto`, force-pushes safely, retargets the PR base, updates the body, and marks it ready
+2. Add the `in-review` label to the bead and update notes with the PR URL
+3. Keep the bead `in_progress` until the PR merges
 
-**Prerequisites:**
-- Bead must have `stacked-branch` label
-- Base PR must be merged to main
-- All tests must be passing on the stacked branch
-- PR is currently in draft status targeting the base PR's branch
+### After PR is Merged to main
 
-**Steps:**
-
-**1. Identify PR context:**
-   - Determine which PR to promote (by PR number or current branch)
-   - Identify the base PR it depends on
-   - Example: "Which PR should I promote?" or infer from current branch
-
-**2. Verify base PR is merged:**
-   ```bash
-   gh pr view <base-pr-number> --json state,mergedAt,baseRefName
-   ```
-   - Must show `state: "MERGED"`
-   - Note when it was merged for reference
-   - If NOT merged, inform user and wait
-
-**3. Fetch and rebase onto main:**
-
-   **CRITICAL: Use `git rebase --onto` to avoid replaying base commits that are already in main!**
-
-   ```bash
-   # Fetch latest from origin (including the merged base PR)
-   git fetch origin --prune
-
-   # Checkout the stacked branch
-   git checkout <feature-branch>
-
-   # Find the base commit (last commit of the base branch)
-   git log --oneline --graph --decorate -20
-   # Look for the commit right before your stacked commits started
-   # This is typically the last commit from the base branch
-
-   # Rebase ONLY the stacked commits onto main
-   git rebase --onto origin/main <base-commit-hash>
-   ```
-
-   **Example:**
-   If your branch history shows:
-   ```
-   * abc1234 (HEAD) Your stacked commit 3
-   * def5678 Your stacked commit 2
-   * ghi9012 Your stacked commit 1
-   * jkl3456 Last commit from base branch  <-- This is your <base-commit-hash>
-   * mno7890 Base branch commit
-   ```
-
-   Use: `git rebase --onto origin/main jkl3456`
-
-   This rebases only commits `ghi9012`, `def5678`, and `abc1234` onto main,
-   avoiding conflicts from commits that are already merged.
-
-   **Troubleshooting:**
-   - If you get conflicts about changes already in main, you likely used the wrong base commit
-   - Handle genuine conflicts by pausing and asking user for guidance
-   - Clean rebase expected for well-structured stacks with correct base commit
-
-**4. Force push safely:**
-   ```bash
-   git push --force-with-lease origin <feature-branch>
-   ```
-   - Use `--force-with-lease` (NOT `--force`) for safety
-   - Prevents overwriting if branch was updated elsewhere
-
-**5. Update PR base branch:**
-   ```bash
-   gh pr edit <pr-number> --base main
-   ```
-   - Changes PR from targeting base branch to targeting main
-   - GitHub will update the diff automatically
-
-**6. Update PR description:**
-   - Remove "DO NOT MERGE" and dependency warnings
-   - Remove stacked PR notes about targeting other branches
-   - Add line confirming rebase: "Rebased onto main after #<base-pr> merged"
-   - Update test counts if they changed
-   - Keep all other content (Why/What/How/Testing)
-
-   Example:
-   ```bash
-   # Create updated description in temp file
-   gh pr view <pr-number> --json body -q .body > /tmp/pr_body.txt
-   # Edit to remove warnings and add rebase note
-   gh pr edit <pr-number> --body-file /tmp/updated_pr_body.txt
-   ```
-
-**7. Mark PR ready for review:**
-   ```bash
-   gh pr ready <pr-number>
-   ```
-   - Removes draft status
-   - PR is now visible in review queue
-   - CI/CD should trigger automatically
-
-**8. Verify tests pass:**
-   ```bash
-   mvn clean verify
-   ```
-   - Run full test suite to verify rebase didn't break anything
-   - Address any failures before proceeding
-   - Check CI status on GitHub
-
-**9. Update bead:**
-   - **Add `in-review` label to the bead** (PR is now truly ready for human review)
-   - Update bead notes with PR status: "Rebased onto main, ready for review"
-   - Keep bead in `in_progress` status
-   - Don't close until PR is merged
-
-**10. Confirm completion:**
-   - Provide PR URL to user
-   - Confirm tests passing
-   - Note CI status
-   - Summary: "PR #<number> rebased onto main and ready for review"
-
-**Example full workflow:**
-```bash
-# Check base PR merged
-gh pr view 24 --json state,mergedAt
-# Output: {"state":"MERGED","mergedAt":"2025-11-12T21:44:33Z"}
-
-# Fetch and rebase
-git fetch origin
-git checkout AIML-224-consolidate-route-coverage
-git rebase origin/main
-# Output: Successfully rebased and updated refs/heads/AIML-224-consolidate-route-coverage
-
-# Force push
-git push --force-with-lease origin AIML-224-consolidate-route-coverage
-
-# Update PR
-gh pr edit 25 --base main
-gh pr edit 25 --body-file /tmp/updated_description.txt
-gh pr ready 25
-
-# Verify
-mvn clean verify
-```
-
-**Common Issues:**
-
-**Rebase conflicts:**
-- Pause and show user the conflicts
-- Ask for guidance on resolution
-- Don't attempt to auto-resolve without user input
-
-**Base PR not merged:**
-- Inform user: "Base PR #<number> is not yet merged (status: <state>)"
-- Wait for user instruction
-- Don't proceed with promotion
-
-**Tests fail after rebase:**
-- Report failures to user
-- Keep PR in draft until tests pass
-- Investigate if rebase introduced issues
-
-**CI not triggering:**
-- GitHub CI may take a few minutes to start
-- Verify workflow configuration targets main branch
-- Check `.github/workflows/` for PR triggers
-
-### After PR is Merged
-
-**When a PR is merged to main:**
-
-This workflow completes the development cycle by closing the bead and updating the Jira ticket status.
-
-**Steps:**
-
-**1. Close the bead:**
-   ```bash
-   br close <bead-id>
-   ```
-   - Provide a brief reason mentioning the merged PR
-   - Example: "PR #28 merged to main. Successfully added appID and appName fields to VulnLight record."
-
-**2. Update Jira status to "Ready to Deploy":**
-   - Use the Atlassian MCP to transition the Jira ticket
-   - Transition to "Ready to Deploy" status (NOT "Closed")
-   - "Closed" status is reserved for when code is actually released/deployed
-   - Example:
-   ```python
-   mcp__atlassian__transitionJiraIssue(
-       cloudId="https://contrast.atlassian.net",
-       issueIdOrKey="AIML-XXX",
-       transition={"id": "51"}  # "Ready to Deploy" transition
-   )
-   ```
-
-**3. Check for dependent beads/PRs:**
-   - If this was a base PR for stacked PRs, the dependent PRs can now be promoted
-   - Check for beads with `stacked-branch` label that depend on this one
-   - Follow the "Promoting Stacked PR to Ready for Review" workflow for each dependent PR
+1. Close the bead with brief description of what was done.
+2. Update Jira status to "Ready to Deploy"
+3. Handle dependent stacked PRs:
+   - Run `/pr-tools:after-pr-merged` to find and optionally promote child PRs
 
 **Rationale:**
 - "Ready to Deploy" indicates the code is merged and ready for the next release
 - "Closed" should only be used when the code is actually deployed/released to production
 - This allows tracking what code is ready to go out in the next release vs what's already deployed
 
-### Landing the Plane
-
-**When user says "let's land the plane":**
-
-This workflow is for ending the current session while preserving all state so work can continue seamlessly in a new session (due to context limits or time constraints).
-
-1. **Create follow-up beads:**
-   - Identify any remaining work that needs to be done
-   - Create child beads of the current bead for each follow-up task
-   - Use parent-child dependencies to maintain relationship
-
-2. **Update current bead with complete status:**
-   - Document everything done so far
-   - Record current state, blockers, decisions made
-   - Include any context the next AI will need to continue
-   - Update bead notes with progress details
-
-3. **Commit changes:**
-   - Stage and commit all work-in-progress changes
-   - Write appropriate commit message describing current state
-
-4. **Generate continuation prompt:**
-   - Create a prompt that will allow the user to resume work in next session
-   - User should be able to copy/paste this prompt to continue working on the bead
-   - Include bead ID, current status, and what needs to happen next
 
 ### Closing Beads
 
@@ -916,55 +538,8 @@ This workflow is for ending the current session while preserving all state so wo
 
 **Cannot close parent beads** if they still have open children. Ensure all child beads are closed first.
 
-**For child beads:** When closing a child bead, complete time tracking using the **"Completing Time Tracking"** process in the Time Tracking section. This captures the time spent on that specific subtask.
+**Parent beads** typically remain `in_progress` (with `in-review` label) until the PR review is complete and merged. Only close beads when explicitly instructed by the user.
 
-**For parent beads:** Time tracking is completed when the PR is created, not when the bead is closed. Beads typically remain `in_progress` (with `in-review` label) until the PR review is complete and merged. Only close beads when explicitly instructed by the user.
 
-### After Completing a Bead - Suggesting Next Steps
-
-**When a bead is completed (closed or moved to review), proactively suggest what to work on next:**
-
-**1. Check for parent bead context:**
-   - If the completed bead is a child bead, check the parent bead using `br show <parent-bead-id>`
-   - Look in the parent bead's `notes` field for recommended execution order or priority guidance
-   - Example: "Recommended execution order for child beads: 1. mcp-981, 2. mcp-dw1, 3. mcp-j1i..."
-
-**2. Identify next bead options:**
-   - Look at other child beads of the same parent (siblings)
-   - Check for beads that are `status=open` and have no blocking dependencies
-   - Use `br ready` to find beads ready to work on
-   - Consider priority levels (Priority 1 > Priority 2 > Priority 3)
-
-**3. Present recommendations to the user:**
-   - Clearly state the recommended next bead with its ID and title
-   - Explain WHY it's recommended (e.g., "highest priority", "easy config with big impact", "follows logical sequence")
-   - Provide a brief summary of what the bead involves
-   - Show alternative beads if there are multiple good options
-   - Ask the user if they want to work on the recommended bead or choose another
-
-**Example response format:**
-```
-Based on the recommended execution order in the parent bead, the next task is:
-
-## **mcp-dw1 - Enable parallel test execution** (Priority 2)
-
-**Description:** Configure Maven Failsafe plugin to execute integration test classes in parallel.
-
-**Why this next:**
-- "Easy config, big impact" per parent bead notes
-- Expected 2-4x speedup depending on CPU cores
-- Quick configuration change
-
-**Other available beads** (can work in any order):
-- mcp-j1i - Add performance instrumentation (Priority 3)
-- mcp-xni - Extract shared utilities (Priority 2)
-
-Would you like to work on **mcp-dw1** next, or would you prefer a different one?
-```
-
-**When there are no more child beads:**
-- If all child beads are closed and parent is complete, suggest moving parent to review
-- If this was a standalone bead, suggest using `br ready` to find next available work
-- Check for any blocked beads that might now be unblocked
 
 @SECURITY.md
