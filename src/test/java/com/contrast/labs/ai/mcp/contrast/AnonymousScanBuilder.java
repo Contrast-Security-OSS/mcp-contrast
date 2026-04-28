@@ -39,7 +39,7 @@ public class AnonymousScanBuilder {
           "{\"version\":\"2.1.0\",\"runs\":[]}".getBytes(StandardCharsets.UTF_8));
 
   private AnonymousScanBuilder() {
-    this.scan = mock(Scan.class);
+    this.scan = mock();
   }
 
   /** Create a builder with valid defaults for all required fields. */

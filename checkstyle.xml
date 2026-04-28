@@ -46,5 +46,11 @@
       <property name="severity" value="error"/>
       <property name="ignoreComments" value="true"/>
     </module>
+    <module name="RegexpSinglelineJava">
+      <property name="format" value="mock\([A-Z]\w+\.class\)"/>
+      <property name="message" value="Use mock() with explicit target type (e.g. 'Foo x = mock();') instead of mock(X.class)"/>
+      <property name="severity" value="error"/>
+      <property name="ignoreComments" value="true"/>
+    </module>
   </module>
 </module>

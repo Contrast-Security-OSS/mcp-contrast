@@ -69,7 +69,7 @@ class GetSessionMetadataToolTest {
 
   @Test
   void getSessionMetadata_should_return_data_on_success() throws Exception {
-    var response = mock(MetadataFilterResponse.class);
+    MetadataFilterResponse response = mock();
     when(sdk.getSessionMetadataForApplication(eq("test-org-id"), eq("app-123"), isNull()))
         .thenReturn(response);
 
