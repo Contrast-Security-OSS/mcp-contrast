@@ -283,13 +283,23 @@ br dep add <dependent> <prerequisite>          # dependent "blocks on" prerequis
 br dep add <child> <parent> --type parent-child
 ```
 
-**Multi-line comments — pipe via stdin** (quoted heredoc delimiter prevents all shell interpretation):
+**Multi-line content — quoted heredoc prevents all shell interpretation:**
 ```bash
+# Comments — pipe via stdin (-f - supported)
 cat << 'EOF' | br comments add <bead-id> -f -
 ## Heading
 
 With `code blocks`, **markdown**, and $(variables) — all literal.
 EOF
+
+# Description/design — capture via $() (inner heredoc is still safe with quoted delimiter)
+br create "Title" --description "$(cat << 'EOF'
+## Description with `code` and $(vars) — all literal.
+EOF
+)"
+
+# Design field — use the helper script instead of --design (CLI misparses -- in markdown)
+scripts/br-set-design <bead-id> /tmp/design.md
 ```
 
 ### Human Review Labels
