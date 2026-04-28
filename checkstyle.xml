@@ -22,5 +22,29 @@
       <property name="constantWaiverParentToken"
                 value="TYPECAST, METHOD_CALL, EXPR, ARRAY_INIT, UNARY_MINUS, UNARY_PLUS, ELIST, STAR, ASSIGN, PLUS, MINUS, DIV, LITERAL_NEW"/>
     </module>
+    <module name="RegexpSinglelineJava">
+      <property name="format" value="\bCollectors\.toList\(\)"/>
+      <property name="message" value="Use Stream.toList() (Java 16+), not Collectors.toList()"/>
+      <property name="severity" value="error"/>
+      <property name="ignoreComments" value="true"/>
+    </module>
+    <module name="RegexpSinglelineJava">
+      <property name="format" value="\.size\(\)\s*[&lt;&gt;!=]=?\s*0"/>
+      <property name="message" value="Use isEmpty() instead of size() comparisons against 0"/>
+      <property name="severity" value="error"/>
+      <property name="ignoreComments" value="true"/>
+    </module>
+    <module name="RegexpSinglelineJava">
+      <property name="format" value="\bassert(Equals|True|False|Null|NotNull)\("/>
+      <property name="message" value="Use AssertJ fluent (assertThat(...)) instead of JUnit assertions"/>
+      <property name="severity" value="error"/>
+      <property name="ignoreComments" value="true"/>
+    </module>
+    <module name="RegexpSinglelineJava">
+      <property name="format" value="\bAssumptions\.assume"/>
+      <property name="message" value="Do not skip tests with Assumptions — fail loudly with assertThat(...).as(...)"/>
+      <property name="severity" value="error"/>
+      <property name="ignoreComments" value="true"/>
+    </module>
   </module>
 </module>
