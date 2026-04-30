@@ -165,7 +165,7 @@ class ListApplicationsByCveToolTest {
   @Test
   void listApplicationsByCve_should_handle_null_libraries_list_gracefully() throws IOException {
     var cveData = new CveData();
-    var app = mock(App.class);
+    App app = mock();
     when(app.getAppId()).thenReturn(TEST_APP_ID);
     when(app.getName()).thenReturn("Test App");
 
@@ -256,7 +256,7 @@ class ListApplicationsByCveToolTest {
   private CveData createMockCveDataWithApps() {
     var cveData = new CveData();
 
-    var app = mock(App.class);
+    App app = mock();
     when(app.getAppId()).thenReturn(TEST_APP_ID);
     when(app.getName()).thenReturn("Test Application");
     when(app.getClassCount()).thenReturn(0);
@@ -265,7 +265,7 @@ class ListApplicationsByCveToolTest {
     apps.add(app);
     cveData.setApps(apps);
 
-    var lib = mock(Library.class);
+    Library lib = mock();
     when(lib.getHash()).thenReturn("matching-hash-789");
     when(lib.getFile_name()).thenReturn("vulnerable-lib.jar");
     when(lib.getVersion()).thenReturn("1.0.0");

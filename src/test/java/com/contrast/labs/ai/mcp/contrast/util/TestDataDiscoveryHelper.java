@@ -24,17 +24,15 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCo
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Helper utility for discovering suitable test data in integration tests.
  *
  * <p>Provides reusable discovery patterns that leverage SDK caching for efficiency.
  */
+@Slf4j
 public class TestDataDiscoveryHelper {
-
-  private static final Logger logger = LoggerFactory.getLogger(TestDataDiscoveryHelper.class);
 
   /**
    * Finds the first available application in the organization.
@@ -48,17 +46,17 @@ public class TestDataDiscoveryHelper {
    */
   public static Optional<Application> findFirstApplication(String orgId, SDKExtension sdkExtension)
       throws IOException {
-    logger.info("Finding first available application...");
+    log.info("Finding first available application...");
 
     var applications = IntegrationTestDataCache.getApplications(orgId, sdkExtension);
 
     if (applications.isEmpty()) {
-      logger.warn("No applications found in organization");
+      log.warn("No applications found in organization");
       return Optional.empty();
     }
 
     var app = applications.get(0);
-    logger.info("✓ Found application: {} (ID: {})", app.getName(), app.getAppId());
+    log.info("✓ Found application: {} (ID: {})", app.getName(), app.getAppId());
     return Optional.of(app);
   }
 
@@ -76,12 +74,12 @@ public class TestDataDiscoveryHelper {
    */
   public static Optional<ApplicationWithLibraries> findApplicationWithLibraries(
       String orgId, SDKExtension sdkExtension, int maxAppsToCheck) throws IOException {
-    logger.info("Finding application with libraries (checking up to {} apps)...", maxAppsToCheck);
+    log.info("Finding application with libraries (checking up to {} apps)...", maxAppsToCheck);
 
     var applications = IntegrationTestDataCache.getApplications(orgId, sdkExtension);
 
     if (applications.isEmpty()) {
-      logger.warn("No applications found in organization");
+      log.warn("No applications found in organization");
       return Optional.empty();
     }
 
@@ -96,12 +94,12 @@ public class TestDataDiscoveryHelper {
 
     for (Application app : applications) {
       if (appsChecked >= actualMaxToCheck) {
-        logger.info("Reached max apps to check ({}), stopping search", actualMaxToCheck);
+        log.info("Reached max apps to check ({}), stopping search", actualMaxToCheck);
         break;
       }
       appsChecked++;
 
-      logger.debug(
+      log.debug(
           "Checking app {}/{}: {} (ID: {})",
           appsChecked,
           actualMaxToCheck,
@@ -133,7 +131,7 @@ public class TestDataDiscoveryHelper {
         }
 
         if (hasVulnerableLibrary && vulnerableCveId != null) {
-          logger.info(
+          log.info(
               "✓ Found application with {} library/libraries (vulnerable, CVE={}): {} (ID: {})",
               libraries.size(),
               vulnerableCveId,
@@ -144,7 +142,7 @@ public class TestDataDiscoveryHelper {
 
         if (hasVulnerableLibrary) {
           if (firstVulnerableNoCveMatch == null) {
-            logger.debug(
+            log.debug(
                 "Remembering vulnerable app without CVE-named vuln as fallback: {} (ID: {})",
                 app.getName(),
                 app.getAppId());
@@ -154,20 +152,20 @@ public class TestDataDiscoveryHelper {
         }
 
         if (firstAnyLibMatch == null) {
-          logger.debug(
+          log.debug(
               "Remembering app as non-vulnerable fallback: {} (ID: {})",
               app.getName(),
               app.getAppId());
           firstAnyLibMatch = new ApplicationWithLibraries(app, libraries, false, null);
         }
       } catch (IOException e) {
-        logger.warn("Error checking libraries for app {}: {}", app.getAppId(), e.getMessage());
+        log.warn("Error checking libraries for app {}: {}", app.getAppId(), e.getMessage());
         // Continue to next app
       }
     }
 
     if (firstVulnerableNoCveMatch != null) {
-      logger.info(
+      log.info(
           "✓ Falling back to vulnerable app without CVE-named vuln: {} (ID: {})",
           firstVulnerableNoCveMatch.getApplication().getName(),
           firstVulnerableNoCveMatch.getApplication().getAppId());
@@ -175,14 +173,14 @@ public class TestDataDiscoveryHelper {
     }
 
     if (firstAnyLibMatch != null) {
-      logger.info(
+      log.info(
           "✓ Falling back to non-vulnerable app with libraries: {} (ID: {})",
           firstAnyLibMatch.getApplication().getName(),
           firstAnyLibMatch.getApplication().getAppId());
       return Optional.of(firstAnyLibMatch);
     }
 
-    logger.warn("No application with libraries found after checking {} apps", appsChecked);
+    log.warn("No application with libraries found after checking {} apps", appsChecked);
     return Optional.empty();
   }
 
@@ -210,12 +208,11 @@ public class TestDataDiscoveryHelper {
    */
   public static Optional<ApplicationWithProtectRules> findApplicationWithProtectRules(
       String orgId, SDKExtension sdkExtension, int maxAppsToCheck) throws IOException {
-    logger.info(
-        "Finding application with Protect rules (checking up to {} apps)...", maxAppsToCheck);
+    log.info("Finding application with Protect rules (checking up to {} apps)...", maxAppsToCheck);
 
     var applications = IntegrationTestDataCache.getApplications(orgId, sdkExtension);
     if (applications.isEmpty()) {
-      logger.warn("No applications found in organization");
+      log.warn("No applications found in organization");
       return Optional.empty();
     }
 
@@ -224,12 +221,12 @@ public class TestDataDiscoveryHelper {
 
     for (Application app : applications) {
       if (appsChecked >= actualMaxToCheck) {
-        logger.info("Reached max apps to check ({}), stopping search", actualMaxToCheck);
+        log.info("Reached max apps to check ({}), stopping search", actualMaxToCheck);
         break;
       }
       appsChecked++;
 
-      logger.debug(
+      log.debug(
           "Checking Protect config for app {}/{}: {} (ID: {})",
           appsChecked,
           actualMaxToCheck,
@@ -243,7 +240,7 @@ public class TestDataDiscoveryHelper {
             && protectData.get().getRules() != null
             && !protectData.get().getRules().isEmpty()) {
           var config = protectData.get();
-          logger.info(
+          log.info(
               "✓ Found Protect-enabled application with {} rule(s): {} (ID: {})",
               config.getRules().size(),
               app.getName(),
@@ -251,12 +248,11 @@ public class TestDataDiscoveryHelper {
           return Optional.of(new ApplicationWithProtectRules(app, config));
         }
       } catch (IOException e) {
-        logger.warn(
-            "Error retrieving Protect config for app {}: {}", app.getAppId(), e.getMessage());
+        log.warn("Error retrieving Protect config for app {}: {}", app.getAppId(), e.getMessage());
       }
     }
 
-    logger.warn("No application with Protect rules found after checking {} apps", appsChecked);
+    log.warn("No application with Protect rules found after checking {} apps", appsChecked);
     return Optional.empty();
   }
 
@@ -284,12 +280,11 @@ public class TestDataDiscoveryHelper {
    */
   public static Optional<RouteCoverageTestData> findApplicationWithRouteCoverage(
       String orgId, SDKExtension sdkExtension, int maxAppsToCheck) throws IOException {
-    logger.info(
-        "Finding application with route coverage (checking up to {} apps)...", maxAppsToCheck);
+    log.info("Finding application with route coverage (checking up to {} apps)...", maxAppsToCheck);
 
     var applications = IntegrationTestDataCache.getApplications(orgId, sdkExtension);
     if (applications.isEmpty()) {
-      logger.warn("No applications found in organization");
+      log.warn("No applications found in organization");
       return Optional.empty();
     }
 
@@ -299,12 +294,12 @@ public class TestDataDiscoveryHelper {
 
     for (Application app : applications) {
       if (appsChecked >= actualMaxToCheck) {
-        logger.info("Reached max apps to check ({}), stopping search", actualMaxToCheck);
+        log.info("Reached max apps to check ({}), stopping search", actualMaxToCheck);
         break;
       }
       appsChecked++;
 
-      logger.debug(
+      log.debug(
           "Checking route coverage for app {}/{}: {} (ID: {})",
           appsChecked,
           actualMaxToCheck,
@@ -316,8 +311,7 @@ public class TestDataDiscoveryHelper {
         routeCoverageOptional =
             IntegrationTestDataCache.getRouteCoverage(orgId, app.getAppId(), sdkExtension);
       } catch (IOException e) {
-        logger.warn(
-            "Error retrieving route coverage for app {}: {}", app.getAppId(), e.getMessage());
+        log.warn("Error retrieving route coverage for app {}: {}", app.getAppId(), e.getMessage());
         continue;
       }
 
@@ -353,7 +347,7 @@ public class TestDataDiscoveryHelper {
             candidate =
                 candidate.withSessionMetadata(
                     metadataField.getAgentLabel(), firstMetadata.getValue());
-            logger.info(
+            log.info(
                 "✓ Found application with routes ({}) and session metadata {}={}",
                 candidate.routeCount(),
                 candidate.sessionMetadataName(),
@@ -362,7 +356,7 @@ public class TestDataDiscoveryHelper {
           }
         }
       } catch (IOException e) {
-        logger.warn(
+        log.warn(
             "Error retrieving session metadata for app {}: {}", app.getAppId(), e.getMessage());
       }
 
@@ -372,14 +366,14 @@ public class TestDataDiscoveryHelper {
     }
 
     if (fallback != null) {
-      logger.info(
+      log.info(
           "No application with session metadata found; using app {} with {} route(s)",
           fallback.application().getName(),
           fallback.routeCount());
       return Optional.of(fallback);
     }
 
-    logger.warn("No application with route coverage found after checking {} apps", appsChecked);
+    log.warn("No application with route coverage found after checking {} apps", appsChecked);
     return Optional.empty();
   }
 

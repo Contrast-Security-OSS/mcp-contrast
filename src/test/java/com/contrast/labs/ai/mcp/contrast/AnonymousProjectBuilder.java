@@ -43,7 +43,7 @@ public class AnonymousProjectBuilder {
   private Collection<String> excludeNamespaceFilters = new ArrayList<>();
 
   private AnonymousProjectBuilder() {
-    this.project = mock(Project.class);
+    this.project = mock();
   }
 
   /** Create a builder with valid defaults for all required fields. */

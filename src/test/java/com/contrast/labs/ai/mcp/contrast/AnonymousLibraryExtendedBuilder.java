@@ -58,7 +58,7 @@ public class AnonymousLibraryExtendedBuilder {
   private List<LibraryVulnerabilityExtended> vulnerabilities = new ArrayList<>();
 
   private AnonymousLibraryExtendedBuilder() {
-    this.library = mock(LibraryExtended.class);
+    this.library = mock();
   }
 
   /** Create a builder with valid defaults for all required fields. */
