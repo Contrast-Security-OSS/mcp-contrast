@@ -190,7 +190,7 @@ When creating or modifying MCP tools:
 - **Style:** `SimplifyBooleanExpression`, `SimplifyBooleanReturn`
 - **Codebase conventions (regex):** ban `Collectors.toList()` (use `.toList()`), `mock(X.class)` (use `mock()` with explicit-type LHS for assignments; extract to a typed local variable when at argument position — `mock()` without the class arg won't compile there), `.size() > 0` (use `isEmpty()`), JUnit assertions in tests (use AssertJ), `Assumptions.assume*` (fail loudly), manual `Logger` fields (use `@Slf4j`)
 
-> ⛔ **PROHIBITED:** Modifying checkstyle rules, Spotless config, or any other linter/constraint config is **expressly forbidden** without explicit user permission. When code fails a check, fix the code — never relax the rule.
+> ⛔ **PROHIBITED:** Modifying checkstyle rules, Spotless config, or any other linter/constraint config is **expressly forbidden** without explicit user permission. This includes adding entries to `checkstyle-suppressions.xml` — a suppression is relaxing a rule at a site, which is equally prohibited. When code fails a check, fix the code — never relax the rule.
 
 **String Validation:**
 - `StringUtils.hasText()` or `isNotBlank()` over manual null/empty checks
