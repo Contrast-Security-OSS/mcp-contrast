@@ -188,7 +188,7 @@ When creating or modifying MCP tools:
 - **Numbers:** `MagicNumber` — no raw numeric literals; use named constants (HTTP status codes and -1/0/1/2/100 are ignored). **Before writing any numeric literal**, check `ValidationConstants` first — it has `DEFAULT_PAGE_SIZE`, `MAX_PAGE_SIZE`, `API_MAX_PAGE_SIZE`, `DEFAULT_LIBRARY_OBS_PAGE_SIZE`, `MIN_PAGE`, `DEFAULT_PAGE`. If no existing constant fits, declare `private static final int MY_CONSTANT = <value>` in the same class. `UpperEll` (`1L` not `1l`).
 - **Correctness:** `EmptyCatchBlock`, `MissingOverride`, `EqualsHashCode`, `StringLiteralEquality` (`s == "FOO"` is always wrong), `FallThrough`, `DefaultComesLast`, `MissingSwitchDefault`, `ModifiedControlVariable`
 - **Style:** `SimplifyBooleanExpression`, `SimplifyBooleanReturn`
-- **Codebase conventions (regex):** ban `Collectors.toList()` (use `.toList()`), `mock(X.class)` (use `mock()` with explicit-type LHS), `.size() > 0` (use `isEmpty()`), JUnit assertions in tests (use AssertJ), `Assumptions.assume*` (fail loudly), manual `Logger` fields (use `@Slf4j`)
+- **Codebase conventions (regex):** ban `Collectors.toList()` (use `.toList()`), `mock(X.class)` (use `mock()` with explicit-type LHS for assignments; extract to a typed local variable when at argument position — `mock()` without the class arg won't compile there), `.size() > 0` (use `isEmpty()`), JUnit assertions in tests (use AssertJ), `Assumptions.assume*` (fail loudly), manual `Logger` fields (use `@Slf4j`)
 
 > ⛔ **PROHIBITED:** Modifying checkstyle rules, Spotless config, or any other linter/constraint config is **expressly forbidden** without explicit user permission. When code fails a check, fix the code — never relax the rule.
 
@@ -218,7 +218,7 @@ When creating or modifying MCP tools:
 - `Optional.ofNullable(x).orElse(default)` over ternary `x != null ? x : default`
 
 **Testing:**
-- Simplified `mock()`: `ClassName mock = mock()` not `mock(ClassName.class)`
+- Simplified `mock()`: `ClassName mock = mock()` not `mock(ClassName.class)` — when `mock(X.class)` appears as a method argument (not an assignment), extract to a typed local first: `Foo x = mock(); when(x.method())...`
 - AssertJ fluent: `assertThat(x).isEqualTo(y)` not `assertEquals(y, x)`
 - Naming: `methodName_should_expectedBehavior_when_condition()` — body must verify the behavior the name promises. If assertions don't match the name, strengthen the assertions. Do **not** delete or weaken the name.
 - Example: `getVulnerability_should_return_data_when_valid_id()`
