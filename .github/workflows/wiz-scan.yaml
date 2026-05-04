@@ -5,6 +5,9 @@ on:
   pull_request:
     branches: [ main, master ]
 
+permissions:
+  contents: read
+
 jobs:
   wiz-scan:
     runs-on: ubuntu-latest
@@ -17,6 +20,11 @@ jobs:
       id-token: write
       contents: read
     steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@a5ad31d6a139d249332a2605b85202e8c0b78450 # v2.19.1
+        with:
+          egress-policy: audit
+
       - name: Checkout repo
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
 
