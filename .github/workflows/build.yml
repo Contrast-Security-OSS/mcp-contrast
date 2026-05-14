@@ -26,8 +26,6 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
         cache: gradle
-    - name: Log Gradle migration diagnostics
-      run: ./hack/verify-gradle-migration.sh
     - name: Run static checks
       run: ./gradlew spotlessCheck checkstyleMain checkstyleTest --no-daemon
     - name: Build stdio app
