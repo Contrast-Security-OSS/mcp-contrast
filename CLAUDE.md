@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an MCP (Model Context Protocol) server for Contrast Security that enables AI agents to access and analyze vulnerability data from Contrast's security platform. It serves as a bridge between Contrast Security's API and AI tools like Claude, enabling automated vulnerability remediation and security analysis.
 
+**This service is currently under construction.** The PRD is `docs/plans/AIML-110-prd-v4.md` — refer to it for full scope and details. Work is tracked as beads hydrated from the PRD. Implementation slices are child beads of parent bead `mcp-325e`; each slice is further broken into smaller child beads. Beads are prefixed with an `AIML-???` Jira ticket ID referring to the slice (child beads share the slice's Jira ID even though they cover only a portion of it). This work spans two repos: the public stdio MCP server (this repo) and the new hosted (remote) MCP server (`aiml-services`). Each bead has a `repo:*` label declaring which repo the work should be done in (if a bead touches two repos, only the primary is indicated by the label).
+
 ## Branching Requirements
 
 **All code changes must be made on a feature branch.** Never commit directly to `main`.
@@ -53,7 +55,7 @@ make check VERBOSE=1
 
 **Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard pre-commit verification command.
 
-**Integration Tests:** Require Contrast credentials in `.env.integration-test` (copy from `.env.integration-test.template`). See INTEGRATION_TESTS.md for details.
+**Integration Tests:** Require Contrast credentials in `.env.integration-test` (copy from `.env.integration-test.template`). See INTEGRATION_TESTS.md for details. Integration tests are intentionally skipped when credentials are not available (e.g., in CI forks or local builds without `.env.integration-test`).
 
 ### Docker Commands
 - **Build Docker image**: `docker build -t mcp-contrast .`
