@@ -603,8 +603,8 @@
   <div class="hero-meta">
     <span class="hero-meta-item"><strong>Branch:</strong> AIML-757-gradle-migration</span>
     <span class="hero-meta-item"><strong>Base:</strong> main</span>
-    <span class="hero-meta-item"><strong>Files:</strong> 250 changed</span>
-    <span class="hero-meta-item"><strong>Lines:</strong> +1,022 / &minus;1,160</span>
+    <span class="hero-meta-item"><strong>Files:</strong> 251 changed</span>
+    <span class="hero-meta-item"><strong>Lines:</strong> +2,580 / &minus;1,160</span>
   </div>
 </div>
 
@@ -961,7 +961,14 @@
 <span class="diff-line add"><span class="marker">+</span><span class="ln">98</span><span class="code">    }</span></span>
     </pre></div>
     <div class="annotation">
-      <strong><code>enforcedPlatform()</code> is the key to BOM precedence.</strong> Unlike a regular <code>platform()</code>, an enforced platform overrides any transitive version that disagrees. This means Spring Boot's dependency management wins everywhere &mdash; including when Spring AI's BOM tries to pull a different version of a shared dependency. This is deliberate: Boot's BOM is more conservative and better tested.
+      <strong><code>enforcedPlatform()</code> is the key to BOM precedence &mdash; and it's resolving real conflicts today.</strong> Unlike a regular <code>platform()</code>, an enforced platform overrides any transitive version that disagrees. This build has concrete examples:
+      <br/><br/>
+      <code style="font-size: 0.82em; color: var(--text-muted);">
+      Jackson &nbsp;&mdash; Spring AI wants 2.19.4, Boot pins 2.19.2<br/>
+      Reactor &mdash; Spring AI wants 3.7.16, Boot pins 3.7.12
+      </code>
+      <br/><br/>
+      Without <code>enforcedPlatform()</code>, the higher Spring AI versions would silently win at resolve time, producing a classpath that Boot's integration testing never validated. The enforced BOM ensures we run on the exact dependency set that Spring Boot was tested against.
     </div>
   </div>
 
@@ -1078,7 +1085,7 @@
 <span class="diff-line add"><span class="marker">+</span><span class="ln">20</span><span class="code">}</span></span>
     </pre></div>
     <div class="annotation">
-      <strong>Line 10 is the BOM precedence decision.</strong> Spring AI's BOM is imported as a regular <code>platform()</code> &mdash; not <code>enforcedPlatform()</code>. The root already applies Spring Boot's BOM as enforced. So when both BOMs manage the same transitive dependency (e.g., Jackson), Boot wins. Spring AI's BOM only contributes versions for coordinates it uniquely owns, like <code>spring-ai-starter-mcp-server</code>.
+      <strong>Line 10 is the BOM precedence decision.</strong> Spring AI's BOM is imported as a regular <code>platform()</code> &mdash; not <code>enforcedPlatform()</code>. The root already applies Spring Boot's BOM as enforced. The practical effect: when both BOMs manage the same dependency (Jackson, Reactor, etc.), Boot's version wins. Spring AI's BOM only contributes versions for coordinates it uniquely owns, like <code>spring-ai-starter-mcp-server</code>. If someone changed this to <code>enforcedPlatform()</code>, Spring AI would override Boot's pinned versions &mdash; producing an untested dependency combination.
     </div>
   </div>
 
