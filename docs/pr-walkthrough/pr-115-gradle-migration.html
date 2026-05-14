@@ -595,10 +595,10 @@
 
 <!-- ===== HERO ===== -->
 <div class="hero">
-  <span class="hero-badge">PR #115 &middot; AIML-757</span>
+  <span class="hero-badge">PR #115 &middot; AIML-757 &middot; PR 1 of 3</span>
   <h1>Migrate MCP Server to Gradle Modules</h1>
   <p class="subtitle">
-    Maven single-module to Gradle multi-module &mdash; a tracer-bullet baseline proving the build works before tools migrate to their final locations
+    First of three PRs for AIML-757 &mdash; establishes the Gradle multi-module skeleton and Java 21 baseline before publishing (S3B) and standards alignment (S3C) follow
   </p>
   <div class="hero-meta">
     <span class="hero-meta-item"><strong>Branch:</strong> AIML-757-gradle-migration</span>
@@ -655,12 +655,16 @@
 
   <div class="callout why">
     <span class="callout-label">This is a tracer bullet, not the final state</span>
-    <strong>The core module in this PR is intentionally minimal.</strong> It contains only validation, hints, and filter helpers &mdash; not the 12+ production tools that will eventually live there. Those tools currently depend on local SDK factories, SDK helpers, and Guava caches that must be decoupled before they can move. This PR proves the Gradle multi-module build works end-to-end (CI, release, Docker, tests) so that subsequent slices can incrementally migrate tools to their final home with confidence that the build infrastructure is solid. Think of it as: <em>establish the baseline first, then fill the module</em>.
+    <strong>The core module in this PR is intentionally minimal &mdash; this is the first of three AIML-757 PRs.</strong> It contains only validation, hints, and filter helpers &mdash; not the 12+ production tools that will eventually live there. Those tools currently depend on local SDK factories, SDK helpers, and Guava caches that must be decoupled before they can move. This first PR proves the Gradle multi-module build works end-to-end (CI, release, Docker, tests). The next two PRs (S3B: publish &amp; consume; S3C: standards alignment) complete the migration before later slices begin filling the module with production code.
   </div>
 
   <div class="callout note">
-    <span class="callout-label">Where this fits in AIML-110</span>
-    This is Slice 3A of the AIML-110 delivery plan. Without the multi-module split, the hosted server team would need to fork or duplicate ~3,000 lines of tool infrastructure. Every subsequent slice &mdash; <code>ContrastApiClient</code> extraction (S4A), tool migration, <code>maven-publish</code>, BearerToken transport &mdash; depends on this foundation being in place.
+    <span class="callout-label">AIML-757 is three PRs, not one</span>
+    This is PR 1 of 3 for AIML-757 (Slice 3 of the AIML-110 delivery plan). The three PRs land independently and each has its own scope:<br/>
+    <strong>S3A (this PR)</strong> &mdash; Gradle multi-module skeleton, Java 21, CI, boundary test. Proves the build works.<br/>
+    <strong>S3B (next)</strong> &mdash; Add <code>maven-publish</code> to <code>contrast-mcp-core</code>, prove the hosted server consumes it via composite-build substitution, and validate the classpath boundary (no stdio classes leak).<br/>
+    <strong>S3C (final)</strong> &mdash; Align contributor docs (README, AGENTS.md), Dependabot, and Makefile with the Gradle split. Document composite-build local development for engineers working across both repos.<br/>
+    Without the multi-module split, the hosted server team would need to fork or duplicate ~3,000 lines of tool infrastructure. Everything after AIML-757 &mdash; <code>ContrastApiClient</code> extraction (S4A), tool migration (S5+), BearerToken transport &mdash; depends on all three of these PRs being in place.
   </div>
 
   <!-- Architecture diagram: three states -->
@@ -772,12 +776,12 @@
       <div class="slice-item"><span class="dot"></span><strong>Zero behavior change</strong> &mdash; all existing tests pass, all renames</div>
     </div>
     <div class="slice-col future-col">
-      <div class="slice-title">Final Core State (Subsequent Slices)</div>
-      <div class="slice-item"><span class="dot"></span><code>ContrastApiClient</code> interface + <code>SdkApiClient</code> extraction (S4A)</div>
-      <div class="slice-item"><span class="dot"></span>Move <code>BaseTool</code>/<code>PaginatedTool</code>/<code>SingleTool</code> pipeline to core</div>
-      <div class="slice-item"><span class="dot"></span>Move all 12 remote-eligible shared tools + DTOs to core</div>
-      <div class="slice-item"><span class="dot"></span><code>maven-publish</code> for Artifactory &rarr; hosted server consumption</div>
-      <div class="slice-item"><span class="dot"></span>App shrinks to: local config, <code>SdkApiClient</code>, <code>get_scan_results</code></div>
+      <div class="slice-title">Remaining AIML-757 PRs (S3B &amp; S3C)</div>
+      <div class="slice-item"><span class="dot"></span><strong>S3B:</strong> <code>maven-publish</code> &rarr; hosted server consumes core via composite build</div>
+      <div class="slice-item"><span class="dot"></span><strong>S3B:</strong> Classpath boundary proof &mdash; no stdio classes in hosted service</div>
+      <div class="slice-item"><span class="dot"></span><strong>S3C:</strong> Align README, AGENTS.md, Dependabot with Gradle split</div>
+      <div class="slice-item"><span class="dot"></span><strong>S3C:</strong> Document composite-build local dev for cross-repo workflow</div>
+      <div class="slice-item"><span class="dot"></span><em>After AIML-757:</em> <code>ContrastApiClient</code> (S4A), tool migration (S5+)</div>
     </div>
   </div>
 </section>
@@ -1359,8 +1363,7 @@
   </div>
 
   <p class="narrative">
-    <strong>This PR establishes the baseline &mdash; the core module will grow substantially as subsequent slices decouple tools from local SDK factories and migrate them to their final locations.</strong>
-    The module structure, build configuration, CI, and boundary enforcement are all in their final form. What will change is <em>what lives inside each module</em>: production tools, the <code>BaseTool</code> pipeline, <code>ContrastApiClient</code>, and shared DTOs will all migrate from the app module into core once the coupling to local SDK implementation details is broken. Suggested review order: start with <code>settings.gradle</code> and <code>gradle.properties</code> to understand the topology, then <code>build.gradle</code> (root) for shared config, then the two module build files, then <code>CoreBoundaryTest</code>. The CI workflows and run_silent.sh are worth a look. Everything else is mechanical.
+    <strong>This is PR 1 of 3 for AIML-757.</strong> Two more PRs will follow to complete the Gradle migration: S3B adds publishing and proves the hosted server can consume the core artifact, and S3C aligns contributor docs and workflow tooling. Only after all three AIML-757 PRs merge do later slices (S4A, S5+) begin decoupling and migrating tools. Suggested review order: start with <code>settings.gradle</code> and <code>gradle.properties</code> to understand the topology, then <code>build.gradle</code> (root) for shared config, then the two module build files, then <code>CoreBoundaryTest</code>. The CI workflows and run_silent.sh are worth a look. Everything else is mechanical.
   </p>
 
   <table class="roadmap-table">
@@ -1368,26 +1371,28 @@
     <tbody>
       <tr class="current-row">
         <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-757">S3A</a></td>
-        <td><span class="slice-name">Gradle Skeleton</span><span class="current-badge">This PR</span></td>
+        <td><span class="slice-name">Gradle Skeleton</span><span class="current-badge">PR 1 of 3</span></td>
         <td>Core gets validation, hints, filter helpers &mdash; proves the build works</td>
       </tr>
       <tr>
-        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-757">S3B/S3C</a></td>
-        <td><span class="slice-name">Publish &amp; Align</span></td>
-        <td><code>maven-publish</code> added; hosted server proves classpath boundary</td>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-757">S3B</a></td>
+        <td><span class="slice-name">Publish &amp; Consume</span></td>
+        <td><code>maven-publish</code> added; hosted server consumes core via composite build; classpath boundary proven</td>
       </tr>
       <tr>
-        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-758">S4A</a></td>
-        <td><span class="slice-name">ContrastApiClient</span></td>
-        <td>API client interface + auth strategy hook decouple tools from local SDK</td>
-      </tr>
-      <tr>
-        <td>S5+</td>
-        <td><span class="slice-name">Tool Migration</span></td>
-        <td>12 shared tools + <code>BaseTool</code> pipeline + DTOs migrate to core</td>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-757">S3C</a></td>
+        <td><span class="slice-name">Standards &amp; Docs</span></td>
+        <td>README, AGENTS.md, Dependabot, Makefile aligned with Gradle split; composite-build dev documented</td>
       </tr>
     </tbody>
   </table>
+
+  <div class="callout future">
+    <span class="callout-label">After AIML-757 completes</span>
+    Once all three S3 PRs have merged, later slices begin to fill the core module with production code:
+    <strong>S4A</strong> (<a href="https://contrast.atlassian.net/browse/AIML-758" style="color: var(--accent)">AIML-758</a>) introduces <code>ContrastApiClient</code> and the auth strategy hook, decoupling tools from local SDK factories.
+    <strong>S5+</strong> (<a href="https://contrast.atlassian.net/browse/AIML-759" style="color: var(--accent)">AIML-759</a>) migrates 12 shared tools, the <code>BaseTool</code> pipeline, and DTOs into core. The app module shrinks to: local config, <code>SdkApiClient</code>, and <code>get_scan_results</code>.
+  </div>
 
   <table class="file-table">
     <thead><tr><th>File</th><th>Purpose</th><th>Lines</th><th>Novelty</th></tr></thead>
@@ -1495,7 +1500,7 @@
 </main>
 
 <footer>
-  PR #115 &middot; AIML-757 &middot; mcp-contrast
+  PR #115 &middot; AIML-757 (S3A &mdash; PR 1 of 3) &middot; mcp-contrast
 </footer>
 
 </body>
