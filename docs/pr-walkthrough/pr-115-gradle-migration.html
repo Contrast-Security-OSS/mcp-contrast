@@ -1090,8 +1090,8 @@
   </div>
 
   <p class="narrative">
-    <strong>The integration test task is where the most subtle bug fix lives.</strong>
-    In Maven, integration test credentials were passed only as system properties. But Spring Boot's property resolution reads from environment variables too &mdash; and some test infrastructure expected env vars. The Gradle task now forwards credentials via both <code>systemProperty</code> and <code>environment</code>, eliminating the mismatch.
+    <strong>The integration test task reproduces Maven Failsafe's dual credential forwarding in Gradle's idiom.</strong>
+    Maven's <code>&lt;systemPropertyVariables&gt;</code> and <code>&lt;environmentVariables&gt;</code> blocks both forwarded Contrast credentials to the forked test JVM. Gradle's <code>Test</code> task doesn't inherit the parent process's environment by default, so the same dual forwarding must be wired explicitly via <code>systemProperty</code> and <code>environment</code> calls.
   </p>
 
   <div class="diff-block">
@@ -1127,7 +1127,7 @@
 <span class="diff-line add"><span class="marker">+</span><span class="ln">71</span><span class="code">}</span></span>
     </pre></div>
     <div class="annotation">
-      <strong>Lines 67&ndash;68 are the dual-forwarding fix.</strong> Gradle's <code>Test</code> task forks a new JVM, which doesn't inherit the parent process's environment. The <code>systemProperty</code> line makes credentials available via <code>System.getProperty()</code>, while <code>environment</code> makes them available via <code>System.getenv()</code>. Spring Boot's <code>@Value</code> resolution uses environment variables by default, so both paths need to work.
+      <strong>Lines 67&ndash;68 replicate what Maven Failsafe did via XML config.</strong> Gradle's <code>Test</code> task forks a clean JVM that doesn't inherit environment variables. <code>systemProperty</code> makes credentials available via <code>System.getProperty()</code>; <code>environment</code> makes them available via <code>System.getenv()</code>. Both paths are needed because Spring Boot's <code>@Value</code> resolution and <code>@EnabledIfEnvironmentVariable</code> test guards use different lookup mechanisms.
     </div>
   </div>
 
