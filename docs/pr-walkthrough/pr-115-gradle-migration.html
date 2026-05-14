@@ -645,7 +645,9 @@
 
   <p class="narrative">
     <strong>Contrast is building a hosted MCP server that needs to share tool logic with the existing public local server &mdash; and Maven single-module can't produce a consumable library artifact.</strong>
-    The AIML-110 initiative (Contrast-Hosted Remote MCP Server) requires extracting transport-neutral tool infrastructure into a shared core module that both the local stdio server and the private hosted server can consume. Maven's single-module layout made this impossible. This PR creates the Gradle multi-module structure that unblocks all shared tool work.
+  </p>
+  <p class="narrative">
+    The AIML-110 initiative requires extracting transport-neutral tool infrastructure into a shared core that both servers consume. Maven's single-module layout made this impossible. This PR creates the Gradle multi-module structure that unblocks all shared tool work.
   </p>
 
   <p class="narrative">
@@ -655,16 +657,29 @@
 
   <div class="callout why">
     <span class="callout-label">This is a tracer bullet, not the final state</span>
-    <strong>The core module in this PR is intentionally minimal &mdash; this is the first of three AIML-757 PRs.</strong> It contains only validation, hints, and filter helpers &mdash; not the 12+ production tools that will eventually live there. Those tools currently depend on local SDK factories, SDK helpers, and Guava caches that must be decoupled before they can move. This first PR proves the Gradle multi-module build works end-to-end (CI, release, Docker, tests). The next two PRs (S3B: publish &amp; consume; S3C: standards alignment) complete the migration before later slices begin filling the module with production code.
+    <strong>The core module in this PR is intentionally minimal &mdash; this is the first of three AIML-757 PRs.</strong>
+    <br/><br/>
+    What's in core today:
+    <ul style="margin: 0.4rem 0 0.4rem 1.2rem; padding: 0;">
+      <li>Validation, hints, and filter helpers &mdash; that's it</li>
+    </ul>
+    What's <em>not</em> in core yet (and why):
+    <ul style="margin: 0.4rem 0 0.6rem 1.2rem; padding: 0;">
+      <li>12+ production tools, <code>BaseTool</code> pipeline, <code>ContrastApiClient</code>, shared DTOs</li>
+      <li>Blocked by coupling to local SDK factories, SDK helpers, and Guava caches</li>
+    </ul>
+    This first PR proves the Gradle multi-module build works end-to-end (CI, release, Docker, tests). The next two PRs &mdash; S3B (publish &amp; consume) and S3C (standards alignment) &mdash; complete the migration before later slices begin filling the module with production code.
   </div>
 
   <div class="callout note">
     <span class="callout-label">AIML-757 is three PRs, not one</span>
-    This is PR 1 of 3 for AIML-757 (Slice 3 of the AIML-110 delivery plan). The three PRs land independently and each has its own scope:<br/>
-    <strong>S3A (this PR)</strong> &mdash; Gradle multi-module skeleton, Java 21, CI, boundary test. Proves the build works.<br/>
-    <strong>S3B (next)</strong> &mdash; Add <code>maven-publish</code> to <code>contrast-mcp-core</code>, prove the hosted server consumes it via composite-build substitution, and validate the classpath boundary (no stdio classes leak).<br/>
-    <strong>S3C (final)</strong> &mdash; Align contributor docs (README, AGENTS.md), Dependabot, and Makefile with the Gradle split. Document composite-build local development for engineers working across both repos.<br/>
-    Without the multi-module split, the hosted server team would need to fork or duplicate ~3,000 lines of tool infrastructure. Everything after AIML-757 &mdash; <code>ContrastApiClient</code> extraction (S4A), tool migration (S5+), BearerToken transport &mdash; depends on all three of these PRs being in place.
+    <strong>This is PR 1 of 3 for AIML-757 (Slice 3 of the AIML-110 delivery plan).</strong> Each PR lands independently:
+    <ul style="margin: 0.6rem 0 0.6rem 1.2rem; padding: 0; line-height: 1.8;">
+      <li><strong>S3A (this PR)</strong> &mdash; Gradle multi-module skeleton, Java 21, CI, boundary test. Proves the build works.</li>
+      <li><strong>S3B (next)</strong> &mdash; Add <code>maven-publish</code>, prove hosted server consumes core via composite-build substitution, validate classpath boundary.</li>
+      <li><strong>S3C (final)</strong> &mdash; Align contributor docs (README, AGENTS.md), Dependabot, Makefile. Document composite-build local dev for cross-repo workflow.</li>
+    </ul>
+    Without the multi-module split, the hosted server team would need to fork or duplicate ~3,000 lines of tool infrastructure. Everything after AIML-757 &mdash; <code>ContrastApiClient</code> extraction (S4A), tool migration (S5+), BearerToken transport &mdash; depends on all three PRs being in place.
   </div>
 
   <!-- Architecture diagram: three states -->
@@ -967,7 +982,17 @@
 
   <p class="narrative">
     <strong>The core module's build file is intentionally minimal <em>right now</em> &mdash; this is an intermediate state, not the final boundary.</strong>
-    Today it contains only validation, hints, and filter helpers with three dependencies: <code>spring-core</code> (<code>StringUtils</code>), <code>gson</code> (hint generation), and <code>slf4j-api</code> (logging). The production tools, <code>BaseTool</code> pipeline, <code>ContrastApiClient</code>, and shared DTOs aren't here yet because they still depend directly on local SDK factories and SDK helpers that must be decoupled first. Once <code>ContrastApiClient</code> is introduced (Slice 4A), tools can be migrated here incrementally. The final core module will be the published shared library containing all 12 remote-eligible tools, the full base pipeline, the API client interface, and shared data types.
+  </p>
+  <p class="narrative">
+    Today it has three dependencies and only validation/hints/filter helpers:
+  </p>
+  <ul style="margin: -0.5rem 0 1.2rem 1.5rem; color: var(--text-muted); font-size: 0.95rem; line-height: 1.8;">
+    <li><code>spring-core</code> &mdash; <code>StringUtils</code> for validation</li>
+    <li><code>gson</code> &mdash; hint generation</li>
+    <li><code>slf4j-api</code> &mdash; logging</li>
+  </ul>
+  <p class="narrative">
+    The production tools, <code>BaseTool</code> pipeline, <code>ContrastApiClient</code>, and shared DTOs aren't here yet &mdash; they still depend directly on local SDK factories and SDK helpers that must be decoupled first. Once <code>ContrastApiClient</code> is introduced (S4A, after AIML-757), tools migrate here incrementally.
   </p>
 
   <div class="diff-block">
@@ -996,8 +1021,23 @@
 
   <div class="callout future">
     <span class="callout-label">This module will grow substantially</span>
-    <strong>The eventual contents of <code>contrast-mcp-core</code> are: all 12 remote-eligible tools, <code>BaseTool</code>/<code>PaginatedTool</code>/<code>SingleTool</code>/<code>CursorPaginatedTool</code> pipeline, <code>ContrastApiClient</code> interface, shared DTOs and result types, and hints.</strong>
-    Today those classes remain in the app module because they import <code>ContrastSDKFactory</code>, <code>SDKHelper</code>, Guava caches, and other local implementation details. Slice 4A introduces the <code>ContrastApiClient</code> abstraction that breaks this coupling. Once that boundary exists, tools migrate to core one by one. The <code>maven-publish</code> plugin will be added when the hosted server is ready to consume the artifact from Artifactory. What stays permanently in <code>contrast-mcp-stdio-app</code>: <code>McpContrastApplication</code>, local credential/config wiring, <code>SdkApiClient</code>, SDK helper/cache implementations, and the deprecated <code>get_scan_results</code>.
+    <strong>The eventual contents of <code>contrast-mcp-core</code> go far beyond what's here today.</strong>
+    <br/><br/>
+    What will move into core (after AIML-757):
+    <ul style="margin: 0.4rem 0 0.6rem 1.2rem; padding: 0; line-height: 1.8;">
+      <li>All 12 remote-eligible shared tools</li>
+      <li><code>BaseTool</code> / <code>PaginatedTool</code> / <code>SingleTool</code> / <code>CursorPaginatedTool</code> pipeline</li>
+      <li><code>ContrastApiClient</code> interface</li>
+      <li>Shared DTOs and result types</li>
+    </ul>
+    Why they can't move yet: they import <code>ContrastSDKFactory</code>, <code>SDKHelper</code>, Guava caches, and other local implementation details. S4A introduces the <code>ContrastApiClient</code> abstraction that breaks this coupling.
+    <br/><br/>
+    What stays permanently in <code>contrast-mcp-stdio-app</code>:
+    <ul style="margin: 0.4rem 0 0.2rem 1.2rem; padding: 0; line-height: 1.8;">
+      <li><code>McpContrastApplication</code> and local credential/config wiring</li>
+      <li><code>SdkApiClient</code> and SDK helper/cache implementations</li>
+      <li>The deprecated <code>get_scan_results</code></li>
+    </ul>
   </div>
 </section>
 
@@ -1101,8 +1141,21 @@
 
   <p class="narrative">
     <strong><code>CoreBoundaryTest</code> guards the boundary by blocking local-only dependencies &mdash; but deliberately does <em>not</em> block shared tool abstractions that belong in core's future.</strong>
-    The test forbids SDK factories, local config classes, Guava caches, SARIF code, and other local implementation concerns. It does not treat <code>BaseTool</code>, <code>SingleTool</code>, <code>PaginatedTool</code>, or shared tool implementations as forbidden &mdash; those classes aren't in core <em>yet</em> only because they're still coupled to local SDK factories, not because they don't belong here. As the coupling is broken in subsequent slices, those classes will move into core and the boundary test's required-types list will grow to include them.
   </p>
+  <p class="narrative">
+    What the test forbids (permanently local-only concerns):
+  </p>
+  <ul style="margin: -0.5rem 0 1rem 1.5rem; color: var(--text-muted); font-size: 0.95rem; line-height: 1.8;">
+    <li>SDK factories (<code>ContrastSDKFactory</code>, <code>SDKExtensionFactory</code>, <code>SdkApiClient</code>)</li>
+    <li>Local config classes, Guava caches, SARIF code</li>
+  </ul>
+  <p class="narrative">
+    What the test does <em>not</em> forbid:
+  </p>
+  <ul style="margin: -0.5rem 0 1.2rem 1.5rem; color: var(--text-muted); font-size: 0.95rem; line-height: 1.8;">
+    <li><code>BaseTool</code>, <code>SingleTool</code>, <code>PaginatedTool</code>, shared tool implementations</li>
+    <li>These aren't in core <em>yet</em> only because they're coupled to local SDK factories &mdash; not because they don't belong here</li>
+  </ul>
 
   <div class="diff-block">
     <div class="diff-header">
@@ -1152,7 +1205,7 @@
 <span class="diff-line add"><span class="marker">+</span><span class="ln">65</span><span class="code">          <span class="str">"SARIF"</span>);</span></span>
     </pre></div>
     <div class="annotation">
-      <strong>These are the <em>permanently</em> forbidden patterns &mdash; things that must never enter core regardless of how much it grows.</strong> Local credential wiring (<code>ContrastSDKFactory</code>, <code>SdkApiClient</code>, <code>SDKHelper</code>), config classes, Guava caches, SARIF code, and direct Contrast SDK imports represent local-only implementation concerns. Notice that <code>BaseTool</code>, <code>PaginatedTool</code>, and shared tool names are <em>not</em> on this list &mdash; they belong in core's future and the test must not block their eventual arrival.
+      <strong>These are <em>permanently</em> forbidden patterns &mdash; they must never enter core.</strong> Local credential wiring, config classes, Guava caches, SARIF code, and direct Contrast SDK imports are all local-only concerns. Note: <code>BaseTool</code>, <code>PaginatedTool</code>, and shared tool names are deliberately <em>absent</em> from this list &mdash; they belong in core's future.
     </div>
   </div>
 
@@ -1163,7 +1216,11 @@
 
   <div class="callout why">
     <span class="callout-label">Why the test is shaped this way</span>
-    <strong>The boundary test blocks local-only <em>concerns</em>, not shared tool <em>categories</em>.</strong> An earlier iteration of this test explicitly forbade <code>BaseTool</code>, <code>SingleTool</code>, <code>PaginatedTool</code>, and tool implementation names from appearing in core. That was wrong &mdash; it would have encoded the temporary S3A minimal state as a permanent rule, blocking the very migrations that are the whole point of this split. The corrected test asks: "does this file reference local SDK factories, credential wiring, or SARIF code?" If a class can be decoupled from those concerns, it's welcome in core.
+    <strong>The boundary test blocks local-only <em>concerns</em>, not shared tool <em>categories</em>.</strong>
+    <br/><br/>
+    An earlier iteration explicitly forbade <code>BaseTool</code>, <code>SingleTool</code>, <code>PaginatedTool</code>, and tool implementation names from appearing in core. That was wrong &mdash; it would have encoded the temporary S3A minimal state as a permanent rule, blocking the very migrations that are the whole point of this split.
+    <br/><br/>
+    The corrected test asks one question: <em>does this file reference local SDK factories, credential wiring, or SARIF code?</em> If a class can be decoupled from those concerns, it's welcome in core.
   </div>
 </section>
 
@@ -1363,7 +1420,17 @@
   </div>
 
   <p class="narrative">
-    <strong>This is PR 1 of 3 for AIML-757.</strong> Two more PRs will follow to complete the Gradle migration: S3B adds publishing and proves the hosted server can consume the core artifact, and S3C aligns contributor docs and workflow tooling. Only after all three AIML-757 PRs merge do later slices (S4A, S5+) begin decoupling and migrating tools. Suggested review order: start with <code>settings.gradle</code> and <code>gradle.properties</code> to understand the topology, then <code>build.gradle</code> (root) for shared config, then the two module build files, then <code>CoreBoundaryTest</code>. The CI workflows and run_silent.sh are worth a look. Everything else is mechanical.
+    <strong>This is PR 1 of 3 for AIML-757.</strong> Two more PRs follow to complete the Gradle migration:
+  </p>
+  <ul style="margin: -0.5rem 0 1rem 1.5rem; color: var(--text-muted); font-size: 0.95rem; line-height: 1.8;">
+    <li><strong>S3B</strong> &mdash; adds publishing and proves the hosted server can consume the core artifact</li>
+    <li><strong>S3C</strong> &mdash; aligns contributor docs and workflow tooling</li>
+  </ul>
+  <p class="narrative">
+    Only after all three merge do later slices (S4A, S5+) begin decoupling and migrating tools.
+  </p>
+  <p class="narrative">
+    <strong>Suggested review order:</strong> <code>settings.gradle</code> &rarr; <code>gradle.properties</code> &rarr; root <code>build.gradle</code> &rarr; module build files &rarr; <code>CoreBoundaryTest</code>. CI workflows and <code>run_silent.sh</code> are worth a look. Everything else is mechanical.
   </p>
 
   <table class="roadmap-table">
@@ -1389,9 +1456,11 @@
 
   <div class="callout future">
     <span class="callout-label">After AIML-757 completes</span>
-    Once all three S3 PRs have merged, later slices begin to fill the core module with production code:
-    <strong>S4A</strong> (<a href="https://contrast.atlassian.net/browse/AIML-758" style="color: var(--accent)">AIML-758</a>) introduces <code>ContrastApiClient</code> and the auth strategy hook, decoupling tools from local SDK factories.
-    <strong>S5+</strong> (<a href="https://contrast.atlassian.net/browse/AIML-759" style="color: var(--accent)">AIML-759</a>) migrates 12 shared tools, the <code>BaseTool</code> pipeline, and DTOs into core. The app module shrinks to: local config, <code>SdkApiClient</code>, and <code>get_scan_results</code>.
+    <strong>Once all three S3 PRs have merged, later slices begin to fill the core module with production code:</strong>
+    <ul style="margin: 0.6rem 0 0.2rem 1.2rem; padding: 0; line-height: 1.8;">
+      <li><strong>S4A</strong> (<a href="https://contrast.atlassian.net/browse/AIML-758" style="color: var(--accent)">AIML-758</a>) &mdash; introduces <code>ContrastApiClient</code> and the auth strategy hook, decoupling tools from local SDK factories</li>
+      <li><strong>S5+</strong> (<a href="https://contrast.atlassian.net/browse/AIML-759" style="color: var(--accent)">AIML-759</a>) &mdash; migrates 12 shared tools, the <code>BaseTool</code> pipeline, and DTOs into core. App shrinks to: local config, <code>SdkApiClient</code>, <code>get_scan_results</code></li>
+    </ul>
   </div>
 
   <table class="file-table">
