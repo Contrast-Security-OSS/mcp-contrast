@@ -37,6 +37,14 @@ def defaultIntegrationTestMaxParallelForks = Math.max(
     1,
     Math.min(5, Runtime.runtime.availableProcessors().intdiv(2)))
 
+def contrastIntegrationTestCredentialEnvVars = [
+    'CONTRAST_HOST_NAME',
+    'CONTRAST_API_KEY',
+    'CONTRAST_SERVICE_KEY',
+    'CONTRAST_USERNAME',
+    'CONTRAST_ORG_ID'
+]
+
 test {
     exclude '**/*IT.class'
     exclude '**/*IntegrationTest.class'
@@ -53,14 +61,11 @@ tasks.register('integrationTest', Test) {
     shouldRunAfter test
     include '**/*IT.class'
     include '**/*IntegrationTest.class'
-    systemProperty 'CONTRAST_HOST_NAME', System.getenv('CONTRAST_HOST_NAME')
-    systemProperty 'CONTRAST_API_KEY', System.getenv('CONTRAST_API_KEY')
-    systemProperty 'CONTRAST_SERVICE_KEY', System.getenv('CONTRAST_SERVICE_KEY')
-    systemProperty 'CONTRAST_USERNAME', System.getenv('CONTRAST_USERNAME')
-    systemProperty 'CONTRAST_ORG_ID', System.getenv('CONTRAST_ORG_ID')
-    environment 'CONTRAST_HOST_NAME', System.getenv('CONTRAST_HOST_NAME')
-    environment 'CONTRAST_API_KEY', System.getenv('CONTRAST_API_KEY')
-    environment 'CONTRAST_SERVICE_KEY', System.getenv('CONTRAST_SERVICE_KEY')
-    environment 'CONTRAST_USERNAME', System.getenv('CONTRAST_USERNAME')
-    environment 'CONTRAST_ORG_ID', System.getenv('CONTRAST_ORG_ID')
+    contrastIntegrationTestCredentialEnvVars.each { credentialEnvVar ->
+        def credentialValue = System.getenv(credentialEnvVar)
+        if (credentialValue) {
+            systemProperty credentialEnvVar, credentialValue
+            environment credentialEnvVar, credentialValue
+        }
+    }
 }
