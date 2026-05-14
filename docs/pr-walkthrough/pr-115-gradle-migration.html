@@ -1326,36 +1326,18 @@
     </div>
   </details>
 
-  <p class="narrative">
-    <strong>The most interesting change in this chapter is <code>run_silent.sh</code>, which was substantially rewritten to parse Gradle's XML test reports instead of Maven's console output.</strong>
-    Maven printed test counts in its console output (<code>Tests run: 45, Failures: 0</code>). Gradle doesn't. The new approach finds JUnit XML reports on disk and aggregates them with a Perl one-liner.
-  </p>
-
-  <div class="diff-block">
-    <div class="diff-header">
-      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
-      <span class="filename">hack/run_silent.sh &mdash; Gradle test summary</span>
-      <span class="badge badge-modified">MODIFIED</span>
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">run_silent.sh &mdash; token-optimization helper rewritten for Gradle</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-files">hack/run_silent.sh</span>
+      <span class="sp-ref">Dev tooling, not production code</span>
+    </summary>
+    <div class="sp-body">
+      This script reduces token consumption when AI agents run tests by suppressing verbose Gradle output and emitting only a compact summary (test count, failures, elapsed time). Maven printed test counts inline (<code>Tests run: 45, Failures: 0</code>); Gradle doesn't. The rewrite parses JUnit XML reports from <code>build/test-results</code> via a Perl one-liner, using a marker-file timestamp to exclude stale results from prior runs.
     </div>
-    <div class="diff-body"><pre>
-<span class="diff-line add"><span class="marker">+</span><span class="ln"> </span><span class="code"><span class="type">gradle_test_summary</span>() {</span></span>
-<span class="diff-line add"><span class="marker">+</span><span class="ln"> </span><span class="code">    <span class="kw">local</span> marker_file=<span class="str">"$1"</span></span></span>
-<span class="diff-line add"><span class="marker">+</span><span class="ln"> </span><span class="code">    gradle_test_reports <span class="str">"$marker_file"</span> \</span></span>
-<span class="diff-line add"><span class="marker">+</span><span class="ln"> </span><span class="code">        | xargs -0 perl -ne <span class="str">'</span></span></span>
-<span class="diff-line add"><span class="marker">+</span><span class="ln"> </span><span class="code"><span class="str">            if (/&lt;testsuite\b([^&gt;]*)&gt;/) {</span></span></span>
-<span class="diff-line add"><span class="marker">+</span><span class="ln"> </span><span class="code"><span class="str">                $seen = 1;</span></span></span>
-<span class="diff-line add"><span class="marker">+</span><span class="ln"> </span><span class="code"><span class="str">                $attrs = $1;</span></span></span>
-<span class="diff-line add"><span class="marker">+</span><span class="ln"> </span><span class="code"><span class="str">                $tests += attr($attrs, "tests");</span></span></span>
-<span class="diff-line add"><span class="marker">+</span><span class="ln"> </span><span class="code"><span class="str">                $failures += attr($attrs, "failures");</span></span></span>
-<span class="diff-line add"><span class="marker">+</span><span class="ln"> </span><span class="code"><span class="str">                ...</span></span></span>
-<span class="diff-line add"><span class="marker">+</span><span class="ln"> </span><span class="code"><span class="str">            }</span></span></span>
-<span class="diff-line add"><span class="marker">+</span><span class="ln"> </span><span class="code"><span class="str">        '</span></span></span>
-<span class="diff-line add"><span class="marker">+</span><span class="ln"> </span><span class="code">}</span></span>
-    </pre></div>
-    <div class="annotation">
-      <strong>A marker file timestamp is used to find only the XML reports from the current run.</strong> Before the Gradle command, stale <code>build/test-results</code> directories are wiped. After the command, <code>find</code> locates <code>TEST-*.xml</code> files newer than the marker. This prevents stale results from a previous run from inflating the count. The failure summary similarly parses <code>&lt;failure&gt;</code> and <code>&lt;error&gt;</code> elements to show individual test names and messages.
-    </div>
-  </div>
+  </details>
 
   <details class="standard-pattern">
     <summary>
@@ -1430,7 +1412,7 @@
     Only after all three merge do later slices (S4A, S5+) begin decoupling and migrating tools.
   </p>
   <p class="narrative">
-    <strong>Suggested review order:</strong> <code>settings.gradle</code> &rarr; <code>gradle.properties</code> &rarr; root <code>build.gradle</code> &rarr; module build files &rarr; <code>CoreBoundaryTest</code>. CI workflows and <code>run_silent.sh</code> are worth a look. Everything else is mechanical.
+    <strong>Suggested review order:</strong> <code>settings.gradle</code> &rarr; <code>gradle.properties</code> &rarr; root <code>build.gradle</code> &rarr; module build files &rarr; <code>CoreBoundaryTest</code>. CI workflows are worth a look. Everything else is mechanical.
   </p>
 
   <table class="roadmap-table">
@@ -1516,9 +1498,9 @@
       </tr>
       <tr>
         <td>hack/run_silent.sh</td>
-        <td>Gradle XML report parsing, elapsed time tracking</td>
+        <td>Token-optimization helper rewritten for Gradle test reports</td>
         <td>+120/&minus;80</td>
-        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
       </tr>
       <tr>
         <td>Makefile</td>
