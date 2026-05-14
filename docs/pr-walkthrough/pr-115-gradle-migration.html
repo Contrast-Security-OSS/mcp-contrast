@@ -683,6 +683,7 @@
   </div>
 
   <!-- Architecture diagram: three states -->
+  <p class="narrative" style="margin-bottom: 0.5rem;"><strong style="color: var(--text);">Module evolution: Maven &rarr; This PR &rarr; Final State</strong></p>
   <div class="diagram">
     <div class="diagram-container">
       <svg viewBox="0 0 1200 440" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
@@ -777,6 +778,160 @@
         <rect x="780" y="380" width="280" height="42" rx="6" fill="rgba(63,185,80,0.06)" stroke="rgba(63,185,80,0.2)"/>
         <text x="920" y="397" fill="#3fb950" font-size="9" font-weight="600" text-anchor="middle">After ContrastApiClient decouples tools</text>
         <text x="920" y="411" fill="#3fb950" font-size="9" font-weight="600" text-anchor="middle">from local SDK, they move to core</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Package redistribution diagram -->
+  <p class="narrative" style="margin-bottom: 0.5rem;"><strong style="color: var(--text);">Package redistribution: what moved where (214 files)</strong></p>
+  <div class="diagram">
+    <div class="diagram-container">
+      <svg viewBox="0 0 1100 520" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <defs>
+          <marker id="arr-green" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="#3fb950"/></marker>
+          <marker id="arr-blue" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="#58a6ff"/></marker>
+        </defs>
+
+        <!-- === BEFORE column === -->
+        <text x="170" y="24" fill="#8b949e" font-size="13" font-weight="700" text-anchor="middle" letter-spacing="0.04em">BEFORE</text>
+        <text x="170" y="40" fill="#6e7681" font-size="10" text-anchor="middle">src/main/java/...contrast/</text>
+
+        <rect x="20" y="52" width="300" height="456" rx="8" fill="#161b22" stroke="#f85149" stroke-width="1.5" stroke-dasharray="6,3"/>
+
+        <!-- hints/ -->
+        <rect x="36" y="64" width="268" height="30" rx="4" fill="rgba(63,185,80,0.10)" stroke="rgba(63,185,80,0.3)"/>
+        <text x="50" y="84" fill="#3fb950" font-size="11" font-weight="600">hints/</text>
+        <text x="268" y="84" fill="#6e7681" font-size="9" text-anchor="end">4 files</text>
+
+        <!-- tool/validation/ -->
+        <rect x="36" y="100" width="268" height="30" rx="4" fill="rgba(63,185,80,0.10)" stroke="rgba(63,185,80,0.3)"/>
+        <text x="50" y="120" fill="#3fb950" font-size="11" font-weight="600">tool/validation/</text>
+        <text x="268" y="120" fill="#6e7681" font-size="9" text-anchor="end">9 files</text>
+
+        <!-- tool/base/ (split) -->
+        <rect x="36" y="136" width="268" height="44" rx="4" fill="rgba(210,153,34,0.10)" stroke="rgba(210,153,34,0.3)"/>
+        <text x="50" y="155" fill="#d29922" font-size="11" font-weight="600">tool/base/</text>
+        <text x="268" y="150" fill="#6e7681" font-size="9" text-anchor="end">12 files</text>
+        <text x="62" y="170" fill="#6e7681" font-size="9">3 to core (FilterHelper, LoggingKeys, ToolParams)</text>
+
+        <!-- config/ -->
+        <rect x="36" y="188" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="208" fill="#58a6ff" font-size="11" font-weight="600">config/</text>
+        <text x="268" y="208" fill="#6e7681" font-size="9" text-anchor="end">local wiring</text>
+
+        <!-- tool/vulnerability/ -->
+        <rect x="36" y="224" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="244" fill="#58a6ff" font-size="11" font-weight="600">tool/vulnerability/</text>
+        <text x="268" y="244" fill="#6e7681" font-size="9" text-anchor="end">SDK-coupled</text>
+
+        <!-- tool/application/ -->
+        <rect x="36" y="260" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="280" fill="#58a6ff" font-size="11" font-weight="600">tool/application/</text>
+        <text x="268" y="280" fill="#6e7681" font-size="9" text-anchor="end">SDK-coupled</text>
+
+        <!-- tool/attack/ -->
+        <rect x="36" y="296" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="316" fill="#58a6ff" font-size="11" font-weight="600">tool/attack/</text>
+        <text x="268" y="316" fill="#6e7681" font-size="9" text-anchor="end">SDK-coupled</text>
+
+        <!-- tool/library/ + tool/coverage/ + tool/sast/ -->
+        <rect x="36" y="332" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="352" fill="#58a6ff" font-size="11" font-weight="600">tool/{library,coverage,sast}/</text>
+        <text x="268" y="352" fill="#6e7681" font-size="9" text-anchor="end">SDK-coupled</text>
+
+        <!-- sdkextension/ -->
+        <rect x="36" y="368" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="388" fill="#58a6ff" font-size="11" font-weight="600">sdkextension/</text>
+        <text x="268" y="388" fill="#6e7681" font-size="9" text-anchor="end">SDK data types</text>
+
+        <!-- result/ -->
+        <rect x="36" y="404" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="424" fill="#58a6ff" font-size="11" font-weight="600">result/</text>
+        <text x="268" y="424" fill="#6e7681" font-size="9" text-anchor="end">response types</text>
+
+        <!-- McpContrastApplication -->
+        <rect x="36" y="440" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="460" fill="#58a6ff" font-size="11" font-weight="600">McpContrastApplication.java</text>
+        <text x="268" y="460" fill="#6e7681" font-size="9" text-anchor="end">Boot entry</text>
+
+        <!-- Test/resource summary -->
+        <rect x="36" y="476" width="268" height="24" rx="4" fill="rgba(88,166,255,0.05)" stroke="#30363d"/>
+        <text x="170" y="493" fill="#6e7681" font-size="9" text-anchor="middle">+ 90 test files, resources, properties</text>
+
+        <!-- === ARROWS === -->
+        <!-- Green arrows to core -->
+        <path d="M 320 79 C 380 79, 420 100, 480 100" stroke="#3fb950" stroke-width="2" fill="none" marker-end="url(#arr-green)"/>
+        <path d="M 320 115 C 380 115, 420 120, 480 120" stroke="#3fb950" stroke-width="2" fill="none" marker-end="url(#arr-green)"/>
+        <path d="M 320 151 C 380 145, 420 140, 480 140" stroke="#3fb950" stroke-width="1.5" fill="none" stroke-dasharray="4,3" marker-end="url(#arr-green)"/>
+
+        <!-- Blue arrows to app -->
+        <path d="M 320 158 C 400 165, 420 310, 480 310" stroke="#58a6ff" stroke-width="1.5" fill="none" stroke-dasharray="4,3" marker-end="url(#arr-blue)"/>
+        <path d="M 320 203 C 380 220, 420 320, 480 320" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+        <path d="M 320 280 C 380 290, 420 340, 480 340" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+        <path d="M 320 350 C 380 355, 420 365, 480 365" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+        <path d="M 320 420 C 380 420, 420 390, 480 390" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+        <path d="M 320 455 C 380 450, 420 410, 480 410" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+
+        <!-- === AFTER column === -->
+        <text x="730" y="24" fill="#8b949e" font-size="13" font-weight="700" text-anchor="middle" letter-spacing="0.04em">AFTER</text>
+
+        <!-- Core module -->
+        <rect x="490" y="52" width="600" height="140" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="510" y="76" fill="#3fb950" font-size="12" font-weight="700">contrast-mcp-core</text>
+        <text x="1060" y="76" fill="#6e7681" font-size="10" text-anchor="end">16 src + 12 test files</text>
+
+        <rect x="506" y="88" width="280" height="22" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="518" y="104" fill="#8b949e" font-size="10">hints/ &mdash; HintGenerator, HintProvider, HintUtils, RuleHints</text>
+
+        <rect x="506" y="114" width="280" height="22" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="518" y="130" fill="#8b949e" font-size="10">tool/validation/ &mdash; ToolValidationContext, *Spec (7)</text>
+
+        <rect x="506" y="140" width="280" height="22" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="518" y="156" fill="#8b949e" font-size="10">tool/base/ &mdash; FilterHelper, LoggingKeys, ToolParams</text>
+
+        <rect x="506" y="166" width="280" height="18" rx="3" fill="rgba(63,185,80,0.04)" stroke="none"/>
+        <text x="518" y="180" fill="#3fb950" font-size="9" font-weight="600">Transport-neutral &bull; No SDK dependency</text>
+
+        <!-- App module -->
+        <rect x="490" y="210" width="600" height="290" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="510" y="234" fill="#58a6ff" font-size="12" font-weight="700">contrast-mcp-stdio-app</text>
+        <text x="1060" y="234" fill="#6e7681" font-size="10" text-anchor="end">105 src + 78 test files</text>
+
+        <rect x="506" y="246" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="518" y="262" fill="#8b949e" font-size="10">tool/base/ &mdash; BaseTool, PaginatedTool, SingleTool, ExecutionResult, WarningCollector, params (9)</text>
+
+        <rect x="506" y="272" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="518" y="288" fill="#8b949e" font-size="10">tool/vulnerability/ &mdash; SearchVulnerabilities, GetVulnerability, GetVulnerabilityRecommendation, ...</text>
+
+        <rect x="506" y="298" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="518" y="314" fill="#8b949e" font-size="10">tool/{application,attack,library,coverage,sast}/ &mdash; all 12 production tools + params</text>
+
+        <rect x="506" y="324" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="518" y="340" fill="#8b949e" font-size="10">sdkextension/ &mdash; SDK data models (ADR, Application, RouteCoverage, SCA, SessionMetadata)</text>
+
+        <rect x="506" y="350" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="518" y="366" fill="#8b949e" font-size="10">result/ &mdash; response types (AttackSummary, LibrarySummary, VulnerabilityDetail, ...)</text>
+
+        <rect x="506" y="376" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="518" y="392" fill="#8b949e" font-size="10">config/ &mdash; ContrastProperties, ContrastSDKFactory, SDKExtensionFactory, SdkApiClient</text>
+
+        <rect x="506" y="402" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="518" y="418" fill="#8b949e" font-size="10">McpContrastApplication.java &mdash; Spring Boot entry point</text>
+
+        <rect x="506" y="430" width="572" height="22" rx="3" fill="rgba(88,166,255,0.04)" stroke="none"/>
+        <text x="518" y="444" fill="#58a6ff" font-size="9" font-weight="600">SDK-coupled &bull; Local credential wiring &bull; Spring Boot</text>
+
+        <rect x="506" y="456" width="572" height="34" rx="3" fill="rgba(210,153,34,0.06)" stroke="rgba(210,153,34,0.2)"/>
+        <text x="518" y="472" fill="#d29922" font-size="9" font-weight="600">Future: tool/base/ pipeline + 12 production tools migrate to core after ContrastApiClient decouples them (S4A+)</text>
+        <text x="518" y="484" fill="#6e7681" font-size="9">Stays permanently: McpContrastApplication, config/, SdkApiClient, get_scan_results</text>
+
+        <!-- Legend -->
+        <rect x="20" y="514" width="10" height="3" rx="1" fill="#3fb950"/>
+        <text x="36" y="518" fill="#6e7681" font-size="9">Moved to core (16 files)</text>
+        <rect x="200" y="514" width="10" height="3" rx="1" fill="#58a6ff"/>
+        <text x="216" y="518" fill="#6e7681" font-size="9">Moved to app (105 files)</text>
+        <line x1="396" y1="515" x2="416" y2="515" stroke="#d29922" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="422" y="518" fill="#6e7681" font-size="9">Split across both (tool/base/: 3 to core, 9 to app)</text>
       </svg>
     </div>
   </div>
@@ -1371,163 +1526,6 @@
       All Maven command references updated to Gradle equivalents. <code>RELEASING.md</code> was substantially rewritten to document the new <code>gradle-release.yml</code> workflow. Install guides update the JAR path from <code>target/mcp-contrast-*.jar</code> to <code>contrast-mcp-stdio-app/build/libs/mcp-contrast-*.jar</code>. <code>dependabot.yml</code> changed <code>package-ecosystem</code> from <code>maven</code> to <code>gradle</code>.
     </div>
   </details>
-
-  <p class="narrative">
-    <strong>214 source files were redistributed between the two modules &mdash; here's the package-level view of what went where.</strong>
-  </p>
-
-  <!-- Package redistribution diagram -->
-  <div class="diagram">
-    <div class="diagram-container">
-      <svg viewBox="0 0 1100 520" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
-        <defs>
-          <marker id="arr-green" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="#3fb950"/></marker>
-          <marker id="arr-blue" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="#58a6ff"/></marker>
-        </defs>
-
-        <!-- === BEFORE column === -->
-        <text x="170" y="24" fill="#8b949e" font-size="13" font-weight="700" text-anchor="middle" letter-spacing="0.04em">BEFORE</text>
-        <text x="170" y="40" fill="#6e7681" font-size="10" text-anchor="middle">src/main/java/...contrast/</text>
-
-        <rect x="20" y="52" width="300" height="456" rx="8" fill="#161b22" stroke="#f85149" stroke-width="1.5" stroke-dasharray="6,3"/>
-
-        <!-- hints/ -->
-        <rect x="36" y="64" width="268" height="30" rx="4" fill="rgba(63,185,80,0.10)" stroke="rgba(63,185,80,0.3)"/>
-        <text x="50" y="84" fill="#3fb950" font-size="11" font-weight="600">hints/</text>
-        <text x="268" y="84" fill="#6e7681" font-size="9" text-anchor="end">4 files</text>
-
-        <!-- tool/validation/ -->
-        <rect x="36" y="100" width="268" height="30" rx="4" fill="rgba(63,185,80,0.10)" stroke="rgba(63,185,80,0.3)"/>
-        <text x="50" y="120" fill="#3fb950" font-size="11" font-weight="600">tool/validation/</text>
-        <text x="268" y="120" fill="#6e7681" font-size="9" text-anchor="end">9 files</text>
-
-        <!-- tool/base/ (split) -->
-        <rect x="36" y="136" width="268" height="44" rx="4" fill="rgba(210,153,34,0.10)" stroke="rgba(210,153,34,0.3)"/>
-        <text x="50" y="155" fill="#d29922" font-size="11" font-weight="600">tool/base/</text>
-        <text x="268" y="150" fill="#6e7681" font-size="9" text-anchor="end">12 files</text>
-        <text x="62" y="170" fill="#6e7681" font-size="9">3 to core (FilterHelper, LoggingKeys, ToolParams)</text>
-
-        <!-- config/ -->
-        <rect x="36" y="188" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
-        <text x="50" y="208" fill="#58a6ff" font-size="11" font-weight="600">config/</text>
-        <text x="268" y="208" fill="#6e7681" font-size="9" text-anchor="end">local wiring</text>
-
-        <!-- tool/vulnerability/ -->
-        <rect x="36" y="224" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
-        <text x="50" y="244" fill="#58a6ff" font-size="11" font-weight="600">tool/vulnerability/</text>
-        <text x="268" y="244" fill="#6e7681" font-size="9" text-anchor="end">SDK-coupled</text>
-
-        <!-- tool/application/ -->
-        <rect x="36" y="260" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
-        <text x="50" y="280" fill="#58a6ff" font-size="11" font-weight="600">tool/application/</text>
-        <text x="268" y="280" fill="#6e7681" font-size="9" text-anchor="end">SDK-coupled</text>
-
-        <!-- tool/attack/ -->
-        <rect x="36" y="296" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
-        <text x="50" y="316" fill="#58a6ff" font-size="11" font-weight="600">tool/attack/</text>
-        <text x="268" y="316" fill="#6e7681" font-size="9" text-anchor="end">SDK-coupled</text>
-
-        <!-- tool/library/ + tool/coverage/ + tool/sast/ -->
-        <rect x="36" y="332" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
-        <text x="50" y="352" fill="#58a6ff" font-size="11" font-weight="600">tool/{library,coverage,sast}/</text>
-        <text x="268" y="352" fill="#6e7681" font-size="9" text-anchor="end">SDK-coupled</text>
-
-        <!-- sdkextension/ -->
-        <rect x="36" y="368" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
-        <text x="50" y="388" fill="#58a6ff" font-size="11" font-weight="600">sdkextension/</text>
-        <text x="268" y="388" fill="#6e7681" font-size="9" text-anchor="end">SDK data types</text>
-
-        <!-- result/ -->
-        <rect x="36" y="404" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
-        <text x="50" y="424" fill="#58a6ff" font-size="11" font-weight="600">result/</text>
-        <text x="268" y="424" fill="#6e7681" font-size="9" text-anchor="end">response types</text>
-
-        <!-- McpContrastApplication -->
-        <rect x="36" y="440" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
-        <text x="50" y="460" fill="#58a6ff" font-size="11" font-weight="600">McpContrastApplication.java</text>
-        <text x="268" y="460" fill="#6e7681" font-size="9" text-anchor="end">Boot entry</text>
-
-        <!-- Test/resource summary -->
-        <rect x="36" y="476" width="268" height="24" rx="4" fill="rgba(88,166,255,0.05)" stroke="#30363d"/>
-        <text x="170" y="493" fill="#6e7681" font-size="9" text-anchor="middle">+ 90 test files, resources, properties</text>
-
-        <!-- === ARROWS === -->
-        <!-- Green arrows to core -->
-        <path d="M 320 79 C 380 79, 420 100, 480 100" stroke="#3fb950" stroke-width="2" fill="none" marker-end="url(#arr-green)"/>
-        <path d="M 320 115 C 380 115, 420 120, 480 120" stroke="#3fb950" stroke-width="2" fill="none" marker-end="url(#arr-green)"/>
-        <path d="M 320 151 C 380 145, 420 140, 480 140" stroke="#3fb950" stroke-width="1.5" fill="none" stroke-dasharray="4,3" marker-end="url(#arr-green)"/>
-
-        <!-- Blue arrows to app -->
-        <path d="M 320 158 C 400 165, 420 310, 480 310" stroke="#58a6ff" stroke-width="1.5" fill="none" stroke-dasharray="4,3" marker-end="url(#arr-blue)"/>
-        <path d="M 320 203 C 380 220, 420 320, 480 320" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
-        <path d="M 320 280 C 380 290, 420 340, 480 340" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
-        <path d="M 320 350 C 380 355, 420 365, 480 365" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
-        <path d="M 320 420 C 380 420, 420 390, 480 390" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
-        <path d="M 320 455 C 380 450, 420 410, 480 410" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
-
-        <!-- === AFTER column === -->
-        <text x="730" y="24" fill="#8b949e" font-size="13" font-weight="700" text-anchor="middle" letter-spacing="0.04em">AFTER</text>
-
-        <!-- Core module -->
-        <rect x="490" y="52" width="600" height="140" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
-        <text x="510" y="76" fill="#3fb950" font-size="12" font-weight="700">contrast-mcp-core</text>
-        <text x="1060" y="76" fill="#6e7681" font-size="10" text-anchor="end">16 src + 12 test files</text>
-
-        <rect x="506" y="88" width="280" height="22" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
-        <text x="518" y="104" fill="#8b949e" font-size="10">hints/ &mdash; HintGenerator, HintProvider, HintUtils, RuleHints</text>
-
-        <rect x="506" y="114" width="280" height="22" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
-        <text x="518" y="130" fill="#8b949e" font-size="10">tool/validation/ &mdash; ToolValidationContext, *Spec (7)</text>
-
-        <rect x="506" y="140" width="280" height="22" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
-        <text x="518" y="156" fill="#8b949e" font-size="10">tool/base/ &mdash; FilterHelper, LoggingKeys, ToolParams</text>
-
-        <rect x="506" y="166" width="280" height="18" rx="3" fill="rgba(63,185,80,0.04)" stroke="none"/>
-        <text x="518" y="180" fill="#3fb950" font-size="9" font-weight="600">Transport-neutral &bull; No SDK dependency</text>
-
-        <!-- App module -->
-        <rect x="490" y="210" width="600" height="290" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
-        <text x="510" y="234" fill="#58a6ff" font-size="12" font-weight="700">contrast-mcp-stdio-app</text>
-        <text x="1060" y="234" fill="#6e7681" font-size="10" text-anchor="end">105 src + 78 test files</text>
-
-        <rect x="506" y="246" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
-        <text x="518" y="262" fill="#8b949e" font-size="10">tool/base/ &mdash; BaseTool, PaginatedTool, SingleTool, ExecutionResult, WarningCollector, params (9)</text>
-
-        <rect x="506" y="272" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
-        <text x="518" y="288" fill="#8b949e" font-size="10">tool/vulnerability/ &mdash; SearchVulnerabilities, GetVulnerability, GetVulnerabilityRecommendation, ...</text>
-
-        <rect x="506" y="298" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
-        <text x="518" y="314" fill="#8b949e" font-size="10">tool/{application,attack,library,coverage,sast}/ &mdash; all 12 production tools + params</text>
-
-        <rect x="506" y="324" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
-        <text x="518" y="340" fill="#8b949e" font-size="10">sdkextension/ &mdash; SDK data models (ADR, Application, RouteCoverage, SCA, SessionMetadata)</text>
-
-        <rect x="506" y="350" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
-        <text x="518" y="366" fill="#8b949e" font-size="10">result/ &mdash; response types (AttackSummary, LibrarySummary, VulnerabilityDetail, ...)</text>
-
-        <rect x="506" y="376" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
-        <text x="518" y="392" fill="#8b949e" font-size="10">config/ &mdash; ContrastProperties, ContrastSDKFactory, SDKExtensionFactory, SdkApiClient</text>
-
-        <rect x="506" y="402" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
-        <text x="518" y="418" fill="#8b949e" font-size="10">McpContrastApplication.java &mdash; Spring Boot entry point</text>
-
-        <rect x="506" y="430" width="572" height="22" rx="3" fill="rgba(88,166,255,0.04)" stroke="none"/>
-        <text x="518" y="444" fill="#58a6ff" font-size="9" font-weight="600">SDK-coupled &bull; Local credential wiring &bull; Spring Boot</text>
-
-        <rect x="506" y="456" width="572" height="34" rx="3" fill="rgba(210,153,34,0.06)" stroke="rgba(210,153,34,0.2)"/>
-        <text x="518" y="472" fill="#d29922" font-size="9" font-weight="600">Future: tool/base/ pipeline + 12 production tools migrate to core after ContrastApiClient decouples them (S4A+)</text>
-        <text x="518" y="484" fill="#6e7681" font-size="9">Stays permanently: McpContrastApplication, config/, SdkApiClient, get_scan_results</text>
-
-        <!-- Legend -->
-        <rect x="20" y="514" width="10" height="3" rx="1" fill="#3fb950"/>
-        <text x="36" y="518" fill="#6e7681" font-size="9">Moved to core (16 files)</text>
-        <rect x="200" y="514" width="10" height="3" rx="1" fill="#58a6ff"/>
-        <text x="216" y="518" fill="#6e7681" font-size="9">Moved to app (105 files)</text>
-        <line x1="396" y1="515" x2="416" y2="515" stroke="#d29922" stroke-width="1.5" stroke-dasharray="4,3"/>
-        <text x="422" y="518" fill="#6e7681" font-size="9">Split across both (tool/base/: 3 to core, 9 to app)</text>
-      </svg>
-    </div>
-  </div>
 
   <details class="standard-pattern">
     <summary>
