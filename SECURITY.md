@@ -18,7 +18,7 @@ This is enforced automatically via Dependabot's `cooldown: default-days: 7` conf
 
 ### Scope
 
-- All Maven dependencies in `pom.xml`
+- All Gradle dependencies in `build.gradle`, module `build.gradle` files, and `gradle.properties`
 - All transitive dependencies pulled in via BOMs (Spring Boot, Spring AI)
 
 ### Rationale

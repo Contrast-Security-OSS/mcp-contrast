@@ -52,8 +52,8 @@ Claude will:
 
 **Claude follows your workflow automatically:**
 - Writes tests for all code changes
-- Runs `mvn test` and `mvn verify`
-- Builds artifacts when needed (`mvn clean package`)
+- Runs `./gradlew test` and `./gradlew :contrast-mcp-stdio-app:integrationTest`
+- Builds artifacts when needed (`./gradlew :contrast-mcp-stdio-app:bootJar`)
 - Records branch name in bead
 
 ### Managing Related Work
@@ -148,11 +148,11 @@ gh pr view                                  # View current PR
 gh pr checks                                # Check CI status
 ```
 
-### Maven
+### Gradle
 ```bash
-mvn test -q                                 # Run unit tests (quiet)
-mvn verify -q                               # Run integration tests
-mvn clean package                           # Build JAR
+./gradlew test                              # Run unit tests
+./gradlew :contrast-mcp-stdio-app:integrationTest  # Run integration tests
+./gradlew :contrast-mcp-stdio-app:bootJar   # Build JAR
 ```
 
 ### Log Work

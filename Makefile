@@ -1,4 +1,4 @@
-MVN ?= mvn
+GRADLE ?= ./gradlew
 
 .PHONY: help build test test-verbose check check-verbose check-test format clean verify verify-verbose
 
@@ -7,16 +7,16 @@ help: ## Display available make targets
 
 build: ## Build the project (compile + package)
 	@if [ -n "$$VERBOSE" ]; then \
-		$(MVN) package -DskipTests; \
+		$(GRADLE) :contrast-mcp-stdio-app:bootJar -x test; \
 	else \
-		. ./hack/run_silent.sh && run_silent "Building mcp-contrast" "$(MVN) package -DskipTests"; \
+		. ./hack/run_silent.sh && run_silent "Building mcp-contrast" "$(GRADLE) :contrast-mcp-stdio-app:bootJar -x test"; \
 	fi
 
 ## Check targets (formatting and static analysis)
 
 check: format ## Run format and static analysis checks (quiet output)
 	@if [ -n "$$VERBOSE" ]; then \
-		$(MVN) validate; \
+		$(GRADLE) spotlessCheck checkstyleMain checkstyleTest; \
 	else \
 		$(MAKE) check-quiet; \
 	fi
@@ -24,7 +24,7 @@ check: format ## Run format and static analysis checks (quiet output)
 check-quiet:
 	@. ./hack/run_silent.sh && print_main_header "Running Checks"
 	@. ./hack/run_silent.sh && print_header "mcp-contrast" "Static analysis"
-	@. ./hack/run_silent.sh && run_with_quiet "All checks passed" "$(MVN) validate"
+	@. ./hack/run_silent.sh && run_with_quiet "All checks passed" "$(GRADLE) spotlessCheck checkstyleMain checkstyleTest"
 
 check-verbose: ## Run checks with verbose output
 	@VERBOSE=1 $(MAKE) check
@@ -33,7 +33,7 @@ check-verbose: ## Run checks with verbose output
 
 test: ## Run unit tests (quiet output)
 	@if [ -n "$$VERBOSE" ]; then \
-		$(MVN) test; \
+		$(GRADLE) test; \
 	else \
 		$(MAKE) test-quiet; \
 	fi
@@ -41,7 +41,7 @@ test: ## Run unit tests (quiet output)
 test-quiet:
 	@. ./hack/run_silent.sh && print_main_header "Running Tests"
 	@. ./hack/run_silent.sh && print_header "mcp-contrast" "Unit tests"
-	@. ./hack/run_silent.sh && run_silent_with_test_count "Unit tests passed" "$(MVN) test" "maven"
+	@. ./hack/run_silent.sh && run_silent_with_test_count "Unit tests passed" "$(GRADLE) test" "gradle"
 
 test-verbose: ## Run tests with verbose output
 	@VERBOSE=1 $(MAKE) test
@@ -50,7 +50,7 @@ test-verbose: ## Run tests with verbose output
 
 verify: ## Run all tests including integration (quiet output)
 	@if [ -n "$$VERBOSE" ]; then \
-		$(MVN) verify; \
+		$(GRADLE) test :contrast-mcp-stdio-app:integrationTest; \
 	else \
 		$(MAKE) verify-quiet; \
 	fi
@@ -58,7 +58,7 @@ verify: ## Run all tests including integration (quiet output)
 verify-quiet:
 	@. ./hack/run_silent.sh && print_main_header "Running All Tests"
 	@. ./hack/run_silent.sh && print_header "mcp-contrast" "Unit + Integration tests"
-	@. ./hack/run_silent.sh && run_silent_with_test_count "All tests passed" "$(MVN) verify" "maven"
+	@. ./hack/run_silent.sh && run_silent_with_test_count "All tests passed" "$(GRADLE) test :contrast-mcp-stdio-app:integrationTest" "gradle"
 
 verify-verbose: ## Run all tests with verbose output
 	@VERBOSE=1 $(MAKE) verify
@@ -73,14 +73,14 @@ check-test: ## Run all checks and tests
 
 format: ## Auto-format code with Spotless
 	@if [ -n "$$VERBOSE" ]; then \
-		$(MVN) spotless:apply; \
+		$(GRADLE) spotlessApply; \
 	else \
-		. ./hack/run_silent.sh && run_silent "Formatting code" "$(MVN) spotless:apply"; \
+		. ./hack/run_silent.sh && run_silent "Formatting code" "$(GRADLE) spotlessApply"; \
 	fi
 
 clean: ## Remove build artifacts
 	@if [ -n "$$VERBOSE" ]; then \
-		$(MVN) clean; \
+		$(GRADLE) clean; \
 	else \
-		. ./hack/run_silent.sh && run_silent "Cleaning" "$(MVN) clean"; \
+		. ./hack/run_silent.sh && run_silent "Cleaning" "$(GRADLE) clean"; \
 	fi

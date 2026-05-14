@@ -1,0 +1,151 @@
+name: Gradle Release
+
+on:
+  workflow_dispatch:
+
+env:
+  DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: "${{secrets.DIGICERT_PKEY_PASSPHRASE}}"
+  DOCKER_CONTENT_TRUST_KEY_FILENAME: "${{secrets.DIGICERT_PKEY_FILENAME}}"
+  DOCKER_CONTENT_TRUST_PKEY_ROLE: "${{secrets.DIGICERT_PKEY_ROLE}}"
+  DOCKER_CONTENT_TRUST: 1
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@a5ad31d6a139d249332a2605b85202e8c0b78450 # v2.19.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine release versions
+        id: versions
+        run: |
+          # Get current version from gradle.properties (e.g., "0.0.12-SNAPSHOT")
+          CURRENT=$(./gradlew -q printVersion --no-daemon)
+          echo "Current version: $CURRENT"
+
+          # Strip -SNAPSHOT to get release version (e.g., "0.0.12")
+          RELEASE_VERSION=$(echo $CURRENT | sed 's/-SNAPSHOT//')
+          echo "Release version: $RELEASE_VERSION"
+
+          # Increment patch version for next dev version (e.g., "0.0.13-SNAPSHOT")
+          NEXT_VERSION=$(echo $RELEASE_VERSION | awk -F. '{$NF = $NF + 1;} 1' OFS=.)
+          NEXT_DEV_VERSION="${NEXT_VERSION}-SNAPSHOT"
+          echo "Next dev version: $NEXT_DEV_VERSION"
+
+          # Output for use in later steps
+          echo "release=$RELEASE_VERSION" >> $GITHUB_OUTPUT
+          echo "next=$NEXT_DEV_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Prepare Release
+        run: |
+          perl -0pi -e 's/^version=.*/version=${{ steps.versions.outputs.release }}/m' gradle.properties
+          ./gradlew clean :contrast-mcp-stdio-app:bootJar -x test --no-daemon
+          git add gradle.properties
+          git commit -m "[gradle-release] prepare release v${{ steps.versions.outputs.release }}"
+          git tag v${{ steps.versions.outputs.release }}
+          perl -0pi -e 's/^version=.*/version=${{ steps.versions.outputs.next }}/m' gradle.properties
+          git add gradle.properties
+          git commit -m "[gradle-release] prepare next development iteration"
+
+      - name: Push Changes and Tags
+        run: |
+          git push origin HEAD:main
+          git push origin v${{ steps.versions.outputs.release }}
+
+      - name: Checkout Release Tag
+        run: git checkout v${{ steps.versions.outputs.release }}
+
+      - name: Build Release Artifact
+        run: ./gradlew clean :contrast-mcp-stdio-app:bootJar -x test --no-daemon
+
+      - name: Create GitHub Release
+        uses: step-security/action-gh-release@dc29ef0d1f6f9a032a97ec797d9cb7ea788dde41 # v2.6.1
+        with:
+          tag_name: v${{ steps.versions.outputs.release }}
+          name: Release v${{ steps.versions.outputs.release }}
+          draft: false
+          prerelease: false
+          files: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create the trust keys folder
+        shell: sh
+        run: mkdir -p ~/.docker/trust/private/
+
+      - name: Save PKEY to file
+        shell: sh
+        run: echo "${{secrets.DIGICERT_PKEY}}" > ~/.docker/trust/private/"${{secrets.DIGICERT_PKEY_FILENAME}}"
+
+      - name: Chmod key
+        shell: sh
+        run: chmod 600 ~/.docker/trust/private/"${{secrets.DIGICERT_PKEY_FILENAME}}"
+
+      - name: Docker load PKEY
+        run: docker trust key load ~/.docker/trust/private/"${{secrets.DIGICERT_PKEY_FILENAME}}" --name "${{secrets.DIGICERT_PKEY_ROLE}}"
+
+      - name: Set up Docker Buildx
+        uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
+
+      - name: Set up QEMU
+        uses: step-security/setup-qemu-action@109c6ed9f089be1a250c75fd6a534e30df44e030 # v4.0.0
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
+        with:
+          images: contrast/mcp-contrast
+          tags: |
+            type=raw,value=${{ steps.versions.outputs.release }}
+            type=raw,value=latest
+
+      - name: Login to DockerHub
+        uses: step-security/docker-login-action@870af644803bf9f204aed474adbad2958fec048b # v4.1.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker image (without pushing)
+        uses: step-security/docker-build-push-action@846549baaf047e867d038826129a64d81df0f704 # v7.1.0
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Push and sign Docker image with DCT
+        run: |
+          # The tags are newline-separated, not comma-separated
+          echo "${{ steps.meta.outputs.tags }}" | while read -r tag; do
+            echo "Pushing and signing $tag"
+            docker push $tag
+          done

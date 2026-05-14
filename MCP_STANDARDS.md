@@ -11,7 +11,7 @@
 Tool names (in `@Tool` annotation) use `action_entity` snake_case format.
 
 **Format:**
-- Action verb: `search`, `list`, or `get`
+- Action verb: `search`, `list`, `get`, or `update`
 - Entity: what's operated on
 - Separator: single underscore
 - Casing: lowercase throughout
@@ -54,6 +54,17 @@ Tool names (in `@Tool` annotation) use `action_entity` snake_case format.
 
 **Example:** `get_vulnerability(vulnId, appId)` - one specific vuln
 
+### `update_*` - Mutate Existing Item
+- Mutates state of one identified item
+- Required identifier(s) (which item) and required mutation parameter (what to change)
+- Returns the updated item or operation result
+- Side effect: state change — must never appear under `get_*`
+- Use when: "change X to state Y"
+
+**Example:** `update_issue_status(issueId, status)` — change one issue's status.
+
+> Scope note: `update_*` is the only mutation verb currently in the standard. `create_*` and `delete_*` are intentionally not yet defined — add them when a tool actually requires that semantic.
+
 ---
 
 ## Exceptions and Special Cases
@@ -74,7 +85,9 @@ Tools returning analytical data (reports, coverage, metadata) may use `get_*` ev
 
 **Counter-examples (should use list_* or search_*):**
 - ❌ `get_applications_by_tag(tag)` - Should be `search_applications(tag=...)`
-- ❌ `get_protect_rules(appId)` - Should be `list_application_rules(appId)`
+
+**Legacy exception:**
+- `get_protect_rules(appId)` is grandfathered for AIML-110 local/remote parity. Do not rename it as part of hosted MCP; handle any future alias or rename as separate compatibility work.
 
 ---
 
@@ -114,13 +127,13 @@ Tools returning analytical data (reports, coverage, metadata) may use `get_*` ev
 
 ## Tool-per-Class Architecture
 
-All MCP tools follow a **one-class-per-tool** pattern with shared base classes. Each tool is a standalone `@Service` class that extends either `PaginatedTool` (for paginated search/list operations) or `SingleTool` (for single-item retrieval).
+All MCP tools follow a **one-class-per-tool** pattern with shared base classes. Each tool is a standalone `@Service` class that extends `PaginatedTool` for offset/page-backed search/list operations, `CursorPaginatedTool` for cursor/keyset-backed list operations, or `SingleTool` for single-item retrieval.
 
 ### Package Structure
 
 ```
 com.contrast.labs.ai.mcp.contrast.tool/
-├── base/                  # Shared base classes (BaseTool, PaginatedTool, SingleTool, ToolParams)
+├── base/                  # Shared base classes (BaseTool, PaginatedTool, CursorPaginatedTool, SingleTool, ToolParams)
 ├── validation/            # Shared validation utilities (ToolValidationContext)
 ├── vulnerability/         # Vulnerability tools
 │   ├── SearchVulnerabilitiesTool.java
@@ -138,12 +151,17 @@ com.contrast.labs.ai.mcp.contrast.tool/
 **`PaginatedTool<P extends ToolParams, R>`** - For paginated search/list tools:
 - Template method `executePipeline()` handles pagination, validation, exceptions
 - Subclasses implement `doExecute()` returning `ExecutionResult<R>`
-- Returns `PaginatedToolResponse<R>` with items, pagination metadata, warnings
+- Returns `PaginatedToolResponse<R>` with items, pagination metadata, errors, warnings
 
 **`SingleTool<P extends ToolParams, R>`** - For single-item get tools:
 - Template method `executePipeline()` handles validation, exceptions
 - Subclasses implement `doExecute()` returning item or null
 - Returns `SingleToolResponse<R>` with item, errors, warnings
+
+**`CursorPaginatedTool<P extends ToolParams, R>`** - For cursor/keyset-backed list tools:
+- Template method `executePipeline()` handles cursor pagination, validation, exceptions
+- Subclasses treat cursor values as opaque continuation tokens
+- Returns `CursorToolResponse<R>` with items, `nextCursor`, `hasMore`, errors, and warnings
 
 ### Parameter Classes (Params Pattern)
 
@@ -178,29 +196,29 @@ Each tool requires corresponding test classes:
 ### Adding a New Tool
 
 1. Create tool class in appropriate domain package (e.g., `tool/vulnerability/`)
-2. Extend `PaginatedTool` or `SingleTool` with appropriate type parameters
-3. Create corresponding `*Params` class extending `BaseToolParams`
+2. Extend `PaginatedTool`, `CursorPaginatedTool`, or `SingleTool` with appropriate type parameters
+3. Create corresponding `*Params` class extending `ToolValidationContext`
 4. Implement `doExecute()` with tool-specific logic
 5. Add `@Tool` annotation with snake_case name following naming standards
-6. **Register the tool in `McpContrastApplication.java`** (see Tool Registration below)
+6. **Register the tool explicitly in the appropriate application** (see Tool Registration below)
 7. Write unit and integration tests
 
 ---
 
 ## Tool Registration
 
-Tools are registered with Spring AI MCP through explicit wiring in the application class. Spring component scanning discovers the `@Service` classes, but they must be explicitly added to the tools bean.
+Tools are registered with Spring AI MCP through explicit wiring. Spring component scanning may discover `@Service` classes, but they must be explicitly added to the tools bean for the application that exposes them.
 
 ### Registration Mechanism
 
 1. **Component Scanning**: Spring discovers `@Service` tool classes in `com.contrast.labs.ai.mcp.contrast.tool.*`
-2. **Injection**: `McpContrastApplication.tools()` method receives each tool as a constructor parameter
+2. **Injection**: the application-specific `tools()` bean receives each tool as a constructor parameter
 3. **Callback Conversion**: `ToolCallbacks.from(...)` converts tool objects to `ToolCallback` instances
 4. **MCP Exposure**: Spring AI MCP Server starter exposes these callbacks to AI agents
 
 ### Registering a New Tool
 
-After creating a tool class, add it to `McpContrastApplication.java`:
+For the local stdio app, after creating a tool class, add it to `McpContrastApplication.java`:
 
 ```java
 @Bean
@@ -216,6 +234,8 @@ public List<ToolCallback> tools(
 
 **Important**: Both steps are required. The tool won't be exposed to AI agents if only the `@Service` annotation is present.
 
+For the hosted remote server, registration happens in the private hosted service through explicit `ToolCallback` wiring against the reviewed remote tool set. Hosted registration must also pass generated `tools/list` snapshot review and must not expose `ToolContext`, org/auth parameters, `get_scan_results`, mutation tools before approval, or cursor observation tools before the opaque cursor-client gate is satisfied.
+
 ---
 
 ## Checklist
@@ -228,8 +248,7 @@ public List<ToolCallback> tools(
 - [ ] @Tool description clear and concise
 - [ ] Required vs optional documented
 - [ ] No redundant words
-- [ ] Extends PaginatedTool or SingleTool
+- [ ] Extends `PaginatedTool`, `CursorPaginatedTool`, or `SingleTool`
 - [ ] Has corresponding Params class
-- [ ] Registered in McpContrastApplication.tools()
+- [ ] Registered in the appropriate explicit `tools()` bean
 - [ ] Unit and integration tests present
-

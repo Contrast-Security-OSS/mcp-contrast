@@ -9,7 +9,7 @@ This guide covers how to install and configure the Contrast MCP Server with oter
 - Contrast API credentials ([how to get API credentials](https://docs.contrastsecurity.com/en/personal-keys.html))
 - **Choose one deployment method:**
   - Docker (recommended)
-  - Java 17+ and the built JAR file
+  - Java 21+ and the built JAR file
 
 ## About oterm
 
@@ -70,7 +70,7 @@ Basic configuration structure:
 
 ### Option 2: JAR Deployment
 
-If you prefer to run the JAR directly (requires Java 17+):
+If you prefer to run the JAR directly (requires Java 21+):
 
 ```json
 {

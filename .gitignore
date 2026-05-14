@@ -1,6 +1,5 @@
 HELP.md
 target/
-!.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -25,6 +24,7 @@ target/
 /dist/
 /nbdist/
 /.nb-gradle/
+.gradle/
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
@@ -44,6 +44,7 @@ test-cache/
 ### Beads ###
 .beads/
 .beads.zip
+history/
 results-*.md
 plans/
 docs/brainstorms/
@@ -68,3 +69,6 @@ decisions/
 docs/brainstorms/
 docs/superpowers/
 todos/
+
+# bv (beads viewer) local config and caches
+.bv/

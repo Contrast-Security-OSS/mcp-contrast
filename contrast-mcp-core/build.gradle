@@ -1,0 +1,6 @@
+dependencies {
+    api 'org.springframework:spring-core'
+    api 'com.google.code.gson:gson'
+
+    implementation 'org.slf4j:slf4j-api'
+}

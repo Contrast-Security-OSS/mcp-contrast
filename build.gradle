@@ -1,0 +1,105 @@
+import org.gradle.api.plugins.quality.Checkstyle
+
+plugins {
+    id 'base'
+    id 'com.diffplug.spotless' version "${spotlessGradlePluginVersion}" apply false
+    id 'org.springframework.boot' version "${springBootVersion}" apply false
+}
+
+allprojects {
+    group = 'com.contrast.labs.ai.mcp'
+    version = rootProject.version
+}
+
+def generatedCheckstyleConfig = layout.buildDirectory.file('generated/checkstyle/checkstyle.xml')
+
+ext.positiveIntProperty = { String propertyName, int defaultValue ->
+    def rawValue = providers.gradleProperty(propertyName).orElse(defaultValue.toString()).get()
+    try {
+        def value = rawValue.toInteger()
+        if (value < 1) {
+            throw new GradleException("${propertyName} must be a positive integer, but was ${rawValue}")
+        }
+        return value
+    } catch (NumberFormatException ex) {
+        throw new GradleException("${propertyName} must be a positive integer, but was ${rawValue}", ex)
+    }
+}
+
+tasks.register('generateCheckstyleConfig') {
+    inputs.file rootProject.file('checkstyle.xml')
+    inputs.file rootProject.file('checkstyle-suppressions.xml')
+    outputs.file generatedCheckstyleConfig
+    doLast {
+        def originalConfig = rootProject.file('checkstyle.xml').text
+        def suppressionFile = rootProject.file('checkstyle-suppressions.xml').absolutePath
+        def effectiveConfig = originalConfig.replace(
+            '<module name="TreeWalker">',
+            """<module name="SuppressionFilter">
+    <property name="file" value="${suppressionFile}"/>
+  </module>
+  <module name="TreeWalker">""")
+        generatedCheckstyleConfig.get().asFile.parentFile.mkdirs()
+        generatedCheckstyleConfig.get().asFile.text = effectiveConfig
+    }
+}
+
+subprojects {
+    apply plugin: 'java-library'
+    apply plugin: 'checkstyle'
+    apply plugin: 'com.diffplug.spotless'
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.release = 21
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+        maxParallelForks = rootProject.ext.positiveIntProperty('testMaxParallelForks', 1)
+    }
+
+    spotless {
+        java {
+            googleJavaFormat(googleJavaFormatVersion)
+                .reflowLongStrings()
+                .reorderImports(true)
+                .formatJavadoc(true)
+        }
+    }
+
+    checkstyle {
+        toolVersion = checkstyleVersion
+    }
+
+    tasks.withType(Checkstyle).configureEach {
+        dependsOn rootProject.tasks.named('generateCheckstyleConfig')
+        configFile = generatedCheckstyleConfig.get().asFile
+    }
+
+    dependencies {
+        implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+
+        compileOnly "org.projectlombok:lombok:${lombokVersion}"
+        annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+
+        testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+        testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+        testImplementation 'org.junit.jupiter:junit-jupiter'
+        testImplementation "org.assertj:assertj-core:${assertjVersion}"
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+}
+
+tasks.register('printVersion') {
+    description = 'Prints the project version.'
+    doLast {
+        println project.version
+    }
+}

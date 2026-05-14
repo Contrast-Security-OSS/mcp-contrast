@@ -1,0 +1,68 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
+plugins {
+    id 'org.springframework.boot'
+}
+
+dependencies {
+    implementation project(':contrast-mcp-core')
+    implementation platform("org.springframework.ai:spring-ai-bom:${springAiVersion}")
+
+    implementation 'com.google.code.gson:gson'
+    implementation "com.google.guava:guava:${guavaVersion}"
+    implementation "com.contrastsecurity:contrast-sdk-java:${contrastSdkVersion}"
+    implementation "commons-validator:commons-validator:${commonsValidatorVersion}"
+    implementation 'org.springframework.ai:spring-ai-starter-mcp-server'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation "org.mockito:mockito-inline:${mockitoInlineVersion}"
+}
+
+bootJar {
+    archiveBaseName = 'mcp-contrast'
+}
+
+springBoot {
+    buildInfo()
+}
+
+processResources {
+    filesMatching('application.properties') {
+        filter ReplaceTokens, tokens: ['project.version': project.version.toString()]
+    }
+}
+
+def defaultIntegrationTestMaxParallelForks = Math.max(
+    1,
+    Math.min(5, Runtime.runtime.availableProcessors().intdiv(2)))
+def integrationTestMaxParallelForksDefault = providers.gradleProperty('testMaxParallelForks').isPresent()
+    ? rootProject.ext.positiveIntProperty('testMaxParallelForks', 1)
+    : defaultIntegrationTestMaxParallelForks
+
+test {
+    exclude '**/*IT.class'
+    exclude '**/*IntegrationTest.class'
+}
+
+tasks.register('integrationTest', Test) {
+    description = 'Runs integration tests.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    maxParallelForks = rootProject.ext.positiveIntProperty(
+        'integrationTestMaxParallelForks',
+        integrationTestMaxParallelForksDefault)
+    shouldRunAfter test
+    include '**/*IT.class'
+    include '**/*IntegrationTest.class'
+    systemProperty 'CONTRAST_HOST_NAME', System.getenv('CONTRAST_HOST_NAME')
+    systemProperty 'CONTRAST_API_KEY', System.getenv('CONTRAST_API_KEY')
+    systemProperty 'CONTRAST_SERVICE_KEY', System.getenv('CONTRAST_SERVICE_KEY')
+    systemProperty 'CONTRAST_USERNAME', System.getenv('CONTRAST_USERNAME')
+    systemProperty 'CONTRAST_ORG_ID', System.getenv('CONTRAST_ORG_ID')
+    environment 'CONTRAST_HOST_NAME', System.getenv('CONTRAST_HOST_NAME')
+    environment 'CONTRAST_API_KEY', System.getenv('CONTRAST_API_KEY')
+    environment 'CONTRAST_SERVICE_KEY', System.getenv('CONTRAST_SERVICE_KEY')
+    environment 'CONTRAST_USERNAME', System.getenv('CONTRAST_USERNAME')
+    environment 'CONTRAST_ORG_ID', System.getenv('CONTRAST_ORG_ID')
+}

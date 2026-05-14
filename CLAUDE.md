@@ -42,14 +42,14 @@ make test VERBOSE=1
 make check VERBOSE=1
 ```
 
-**After a compilation failure**, stale `.class` files remain and cause "Unresolved compilation problems" on the next test run. Always run `mvn clean test-compile` (or `make clean && make test`) to recover before continuing.
+**After a compilation failure**, stale `.class` files may remain and cause confusing follow-up failures. Always run `make clean && make test` to recover before continuing.
 
-**Direct Maven commands** (verbose output, use make targets above for quiet output):
-- **Build**: `mvn clean install` or `./mvnw clean install`
-- **Test (unit)**: `mvn test`
-- **Test (all)**: `source .env.integration-test && mvn verify`
-- **Format code**: `mvn spotless:apply`
-- **Run locally**: `java -jar target/mcp-contrast-0.0.11.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
+**Direct Gradle commands** (verbose output, use make targets above for quiet output):
+- **Build**: `./gradlew :contrast-mcp-stdio-app:bootJar`
+- **Test (unit)**: `./gradlew test`
+- **Test (all)**: `source .env.integration-test && ./gradlew test :contrast-mcp-stdio-app:integrationTest`
+- **Format code**: `./gradlew spotlessApply`
+- **Run locally**: `java -jar contrast-mcp-stdio-app/build/libs/mcp-contrast-0.0.11.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
 
 **Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard pre-commit verification command.
 
@@ -60,8 +60,8 @@ make check VERBOSE=1
 - **Run with Docker**: `docker run -e CONTRAST_HOST_NAME=<host> -e CONTRAST_API_KEY=<key> -e CONTRAST_SERVICE_KEY=<key> -e CONTRAST_USERNAME=<user> -e CONTRAST_ORG_ID=<org> -i --rm mcp-contrast:latest -t stdio`
 
 ### Requirements
-- Java 17+
-- Maven 3.6+ (or use included wrapper `./mvnw`)
+- Java 21+
+- Gradle wrapper (`./gradlew`)
 - Docker (optional, for containerized deployment)
 
 ## Architecture
@@ -73,19 +73,19 @@ make check VERBOSE=1
 **Tool Layer (tool-per-class pattern)**: Each MCP tool is a standalone `@Service` class organized by domain:
 ```
 tool/
-├── base/           # BaseMcpTool, BaseGetTool, ToolParams interfaces
+├── base/           # BaseTool, PaginatedTool, SingleTool, ToolParams interfaces
 ├── validation/     # ToolValidationContext for fluent validation
-├── assess/         # Vulnerability tools (search_vulnerabilities, get_vulnerability, etc.)
-├── applications/   # Application tools (search_applications, get_session_metadata)
-├── sca/            # Library tools (list_application_libraries, list_applications_by_cve)
-├── adr/            # Attack tools (search_attacks, get_protect_rules)
+├── vulnerability/  # Vulnerability tools (search_vulnerabilities, get_vulnerability, etc.)
+├── application/    # Application tools (search_applications, get_session_metadata)
+├── library/        # Library tools (list_application_libraries, list_applications_by_cve)
+├── attack/         # Attack tools (search_attacks, get_protect_rules)
 ├── sast/           # SAST tools (get_sast_project, get_sast_results)
 └── coverage/       # Coverage tools (get_route_coverage)
 ```
 
 **Base Classes**:
-- `BaseMcpTool<P, R>` - For paginated search/list operations
-- `BaseGetTool<P, R>` - For single-item retrieval operations
+- `PaginatedTool<P, R>` - For paginated search/list operations (extends `BaseTool`)
+- `SingleTool<P, R>` - For single-item retrieval operations (extends `BaseTool`)
 - `ToolValidationContext` - Fluent validation API for params
 
 **SDK Extensions**: Located in `sdkextension/` package, these extend the Contrast SDK with enhanced data models and helper methods for better AI integration.
@@ -110,11 +110,11 @@ Required environment variables/arguments:
 
 ### Technology Stack
 
-- **Framework**: Spring Boot 3.4.5 with Spring AI 1.0.0-RC1
+- **Framework**: Spring Boot 3.* with Spring AI 1.*
 - **MCP Integration**: Spring AI MCP Server starter
-- **Contrast Integration**: Contrast SDK Java 3.4.2
+- **Contrast Integration**: Contrast SDK Java 3.*
 - **Testing**: JUnit 5
-- **Build Tool**: Maven with wrapper
+- **Build Tool**: Gradle with wrapper
 - **Packaging**: Executable JAR and Docker container
 
 **SDK Source Access:** The Contrast SDK Java source code is available in the parent directory at `/Users/chrisedwards/projects/contrast/contrast-sdk-java`. Reference this when you need to understand SDK types, method signatures, or behavior.
@@ -257,7 +257,7 @@ This codebase handles sensitive vulnerability data. The README contains critical
 
 **Dependency Policy (ENTSEC-1742):**
 - Never suggest upgrading to a dependency version published fewer than 7 days ago. See SECURITY.md for the full policy and break glass procedure.
-- When adding or updating dependencies in `pom.xml`: always define the version as a `${property}` in `<properties>` — never inline in `<dependency>`; never use `RELEASE` or `LATEST` as a version specifier.
+- When adding or updating dependencies in Gradle files: define versions in `gradle.properties` rather than inline dependency declarations; never use dynamic versions such as `+`, `latest.release`, `RELEASE`, or `LATEST`.
 
 ### Logging
 
@@ -448,7 +448,7 @@ NOTE: This is not for parent-child dependencies, these are blocks dependencies.
 ### During Development
 
 **Build and verify artifacts** as needed for testing:
-- Build JAR for MCP server manual testing: `mvn clean package`
+- Build JAR for MCP server manual testing: `./gradlew :contrast-mcp-stdio-app:bootJar`
 - Verify version logging to confirm correct build is running
 
 ### Testing Requirements Before Moving to Review
