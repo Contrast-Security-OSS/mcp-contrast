@@ -737,6 +737,11 @@
     </div>
   </div>
 
+  <div class="callout note">
+    <span class="callout-label">Companion PR</span>
+    <strong>This PR must be merged together with <a href="https://github.com/Contrast-Security-Inc/aiml-services/pull/203" style="color: var(--accent);">aiml-services#203</a>, which wires up the hosted server's consumption of <code>contrast-mcp-core</code> via composite build.</strong> That PR adds the <code>includeBuild</code> in <code>settings.gradle.kts</code>, the hosted classpath boundary verification task, and the unit test proving forbidden classes are absent. Neither PR is complete without the other &mdash; this one publishes, that one consumes.
+  </div>
+
   <table class="roadmap-table">
     <thead><tr><th>Bead</th><th>Scope</th><th>Description</th></tr></thead>
     <tbody>
