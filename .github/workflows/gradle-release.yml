@@ -64,7 +64,7 @@ jobs:
       - name: Prepare Release
         run: |
           perl -0pi -e 's/^version=.*/version=${{ steps.versions.outputs.release }}/m' gradle.properties
-          ./gradlew clean :contrast-mcp-stdio-app:bootJar -x test --no-daemon
+          ./gradlew clean spotlessCheck check :contrast-mcp-stdio-app:integrationTest :contrast-mcp-stdio-app:bootJar --no-daemon
           git add gradle.properties
           git commit -m "[gradle-release] prepare release v${{ steps.versions.outputs.release }}"
           git tag v${{ steps.versions.outputs.release }}
