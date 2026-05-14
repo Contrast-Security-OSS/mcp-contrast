@@ -598,7 +598,7 @@
   <span class="hero-badge">PR #115 &middot; AIML-757</span>
   <h1>Migrate MCP Server to Gradle Modules</h1>
   <p class="subtitle">
-    Maven single-module to Gradle multi-module &mdash; enabling code sharing between local and hosted MCP servers
+    Maven single-module to Gradle multi-module &mdash; a tracer-bullet baseline proving the build works before tools migrate to their final locations
   </p>
   <div class="hero-meta">
     <span class="hero-meta-item"><strong>Branch:</strong> AIML-757-gradle-migration</span>
@@ -645,7 +645,7 @@
 
   <p class="narrative">
     <strong>Contrast is building a hosted MCP server that needs to share tool logic with the existing public local server &mdash; and Maven single-module can't produce a consumable library artifact.</strong>
-    The AIML-110 initiative (Contrast-Hosted Remote MCP Server) requires extracting transport-neutral tool infrastructure &mdash; validation, hints, filter helpers &mdash; into a shared core module that both the local stdio server and the private hosted server can consume. Maven's single-module layout made this impossible. This PR creates the Gradle multi-module structure that unblocks all shared tool work.
+    The AIML-110 initiative (Contrast-Hosted Remote MCP Server) requires extracting transport-neutral tool infrastructure into a shared core module that both the local stdio server and the private hosted server can consume. Maven's single-module layout made this impossible. This PR creates the Gradle multi-module structure that unblocks all shared tool work.
   </p>
 
   <p class="narrative">
@@ -654,77 +654,130 @@
   </p>
 
   <div class="callout why">
-    <span class="callout-label">Why this matters</span>
-    This is Phase 1 of the AIML-110 delivery plan. Without the multi-module split, the hosted server team would need to fork or duplicate ~3,000 lines of tool infrastructure. Every subsequent slice &mdash; <code>ContrastApiClient</code> extraction, tool migration, BearerToken transport &mdash; depends on this foundation being in place.
+    <span class="callout-label">This is a tracer bullet, not the final state</span>
+    <strong>The core module in this PR is intentionally minimal.</strong> It contains only validation, hints, and filter helpers &mdash; not the 12+ production tools that will eventually live there. Those tools currently depend on local SDK factories, SDK helpers, and Guava caches that must be decoupled before they can move. This PR proves the Gradle multi-module build works end-to-end (CI, release, Docker, tests) so that subsequent slices can incrementally migrate tools to their final home with confidence that the build infrastructure is solid. Think of it as: <em>establish the baseline first, then fill the module</em>.
   </div>
 
-  <!-- Architecture diagram: before/after -->
+  <div class="callout note">
+    <span class="callout-label">Where this fits in AIML-110</span>
+    This is Slice 3A of the AIML-110 delivery plan. Without the multi-module split, the hosted server team would need to fork or duplicate ~3,000 lines of tool infrastructure. Every subsequent slice &mdash; <code>ContrastApiClient</code> extraction (S4A), tool migration, <code>maven-publish</code>, BearerToken transport &mdash; depends on this foundation being in place.
+  </div>
+
+  <!-- Architecture diagram: three states -->
   <div class="diagram">
     <div class="diagram-container">
-      <svg viewBox="0 0 900 340" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
-        <!-- Before: Maven single-module -->
-        <text x="200" y="30" fill="#8b949e" font-size="13" font-weight="600" text-anchor="middle" letter-spacing="0.05em">BEFORE (Maven)</text>
-        <rect x="50" y="45" width="300" height="210" rx="8" fill="#161b22" stroke="#f85149" stroke-width="1.5" stroke-dasharray="6,3"/>
-        <text x="200" y="72" fill="#e6edf3" font-size="12" font-weight="600" text-anchor="middle">mcp-contrast (single module)</text>
-        <rect x="70" y="88" width="260" height="28" rx="4" fill="rgba(248,81,73,0.08)" stroke="#30363d"/>
-        <text x="200" y="107" fill="#8b949e" font-size="11" text-anchor="middle">Tools + SDK + Config + Hints + Validation</text>
-        <rect x="70" y="126" width="260" height="28" rx="4" fill="rgba(248,81,73,0.08)" stroke="#30363d"/>
-        <text x="200" y="145" fill="#8b949e" font-size="11" text-anchor="middle">Spring Boot + Spring AI + Contrast SDK</text>
-        <rect x="70" y="164" width="260" height="28" rx="4" fill="rgba(248,81,73,0.08)" stroke="#30363d"/>
-        <text x="200" y="183" fill="#8b949e" font-size="11" text-anchor="middle">pom.xml &bull; Java 17 &bull; Maven wrapper</text>
-        <rect x="70" y="202" width="260" height="38" rx="4" fill="rgba(248,81,73,0.15)" stroke="rgba(248,81,73,0.3)"/>
-        <text x="200" y="220" fill="#f85149" font-size="11" font-weight="600" text-anchor="middle">Cannot extract shared library</text>
-        <text x="200" y="234" fill="#ffa198" font-size="10" text-anchor="middle">Everything coupled in one artifact</text>
+      <svg viewBox="0 0 1200 440" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <defs>
+          <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#58a6ff"/></marker>
+          <marker id="greenarrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#3fb950"/></marker>
+          <marker id="purplearrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bc8cff"/></marker>
+        </defs>
 
-        <!-- Arrow -->
-        <line x1="380" y1="150" x2="520" y2="150" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowhead)"/>
-        <text x="450" y="140" fill="#58a6ff" font-size="11" font-weight="600" text-anchor="middle">This PR</text>
-        <defs><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#58a6ff"/></marker></defs>
+        <!-- === BEFORE: Maven single-module === -->
+        <text x="150" y="28" fill="#8b949e" font-size="12" font-weight="600" text-anchor="middle" letter-spacing="0.05em">BEFORE (Maven)</text>
+        <rect x="20" y="42" width="260" height="180" rx="8" fill="#161b22" stroke="#f85149" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <text x="150" y="66" fill="#e6edf3" font-size="11" font-weight="600" text-anchor="middle">mcp-contrast (single module)</text>
+        <rect x="35" y="78" width="230" height="24" rx="4" fill="rgba(248,81,73,0.08)" stroke="#30363d"/>
+        <text x="150" y="95" fill="#8b949e" font-size="10" text-anchor="middle">Tools + SDK + Config + Hints + Validation</text>
+        <rect x="35" y="108" width="230" height="24" rx="4" fill="rgba(248,81,73,0.08)" stroke="#30363d"/>
+        <text x="150" y="125" fill="#8b949e" font-size="10" text-anchor="middle">Spring Boot + Spring AI + Contrast SDK</text>
+        <rect x="35" y="138" width="230" height="24" rx="4" fill="rgba(248,81,73,0.08)" stroke="#30363d"/>
+        <text x="150" y="155" fill="#8b949e" font-size="10" text-anchor="middle">pom.xml &bull; Java 17 &bull; Maven wrapper</text>
+        <rect x="35" y="172" width="230" height="36" rx="4" fill="rgba(248,81,73,0.15)" stroke="rgba(248,81,73,0.3)"/>
+        <text x="150" y="191" fill="#f85149" font-size="10" font-weight="600" text-anchor="middle">Cannot extract shared library</text>
 
-        <!-- After: Gradle multi-module -->
-        <text x="700" y="30" fill="#8b949e" font-size="13" font-weight="600" text-anchor="middle" letter-spacing="0.05em">AFTER (Gradle)</text>
-        <rect x="550" y="45" width="300" height="105" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
-        <text x="700" y="72" fill="#3fb950" font-size="12" font-weight="600" text-anchor="middle">contrast-mcp-core</text>
-        <rect x="570" y="85" width="260" height="24" rx="4" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
-        <text x="700" y="101" fill="#8b949e" font-size="11" text-anchor="middle">Validation + Hints + Filter helpers</text>
-        <rect x="570" y="115" width="260" height="24" rx="4" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
-        <text x="700" y="131" fill="#8b949e" font-size="11" text-anchor="middle">spring-core + gson + slf4j only</text>
+        <!-- Arrow 1 -->
+        <line x1="300" y1="130" x2="395" y2="130" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <text x="348" y="120" fill="#58a6ff" font-size="10" font-weight="700" text-anchor="middle">This PR</text>
 
-        <rect x="550" y="170" width="300" height="105" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
-        <text x="700" y="197" fill="#58a6ff" font-size="12" font-weight="600" text-anchor="middle">contrast-mcp-stdio-app</text>
-        <rect x="570" y="210" width="260" height="24" rx="4" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
-        <text x="700" y="226" fill="#8b949e" font-size="11" text-anchor="middle">Tools + SDK + Config + Spring Boot</text>
-        <rect x="570" y="240" width="260" height="24" rx="4" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
-        <text x="700" y="256" fill="#8b949e" font-size="11" text-anchor="middle">Boot JAR &bull; Local stdio server</text>
+        <!-- === THIS PR: Intermediate state === -->
+        <text x="530" y="28" fill="#d29922" font-size="12" font-weight="600" text-anchor="middle" letter-spacing="0.05em">THIS PR (Intermediate)</text>
+        <!-- Core: small -->
+        <rect x="400" y="42" width="260" height="80" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+        <text x="530" y="62" fill="#d29922" font-size="11" font-weight="600" text-anchor="middle">contrast-mcp-core</text>
+        <rect x="415" y="72" width="230" height="18" rx="3" fill="rgba(210,153,34,0.08)" stroke="#30363d"/>
+        <text x="530" y="85" fill="#8b949e" font-size="9" text-anchor="middle">Validation + Hints + Filters only</text>
+        <rect x="415" y="94" width="230" height="18" rx="3" fill="rgba(210,153,34,0.08)" stroke="#30363d"/>
+        <text x="530" y="107" fill="#6e7681" font-size="9" text-anchor="middle">spring-core + gson + slf4j</text>
+        <!-- App: large (most code still here) -->
+        <rect x="400" y="140" width="260" height="115" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="530" y="162" fill="#58a6ff" font-size="11" font-weight="600" text-anchor="middle">contrast-mcp-stdio-app</text>
+        <rect x="415" y="172" width="230" height="18" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="530" y="185" fill="#8b949e" font-size="9" text-anchor="middle">All 12 tools still here (SDK-coupled)</text>
+        <rect x="415" y="194" width="230" height="18" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="530" y="207" fill="#8b949e" font-size="9" text-anchor="middle">BaseTool pipeline + SDK extensions</text>
+        <rect x="415" y="216" width="230" height="18" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="530" y="229" fill="#8b949e" font-size="9" text-anchor="middle">Config + Boot + SDK + local wiring</text>
+        <!-- Dep arrow -->
+        <line x1="530" y1="140" x2="530" y2="126" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#greenarrow)"/>
+        <!-- Label -->
+        <rect x="420" y="265" width="220" height="28" rx="4" fill="rgba(210,153,34,0.12)" stroke="rgba(210,153,34,0.3)"/>
+        <text x="530" y="283" fill="#d29922" font-size="9" font-weight="600" text-anchor="middle">Baseline proven &bull; Build works end-to-end</text>
 
-        <!-- dependency arrow -->
-        <line x1="700" y1="170" x2="700" y2="155" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#greenarrow)"/>
-        <defs><marker id="greenarrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#3fb950"/></marker></defs>
+        <!-- Arrow 2 -->
+        <line x1="680" y1="130" x2="775" y2="130" stroke="#bc8cff" stroke-width="2" marker-end="url(#purplearrow)"/>
+        <text x="728" y="118" fill="#bc8cff" font-size="9" font-weight="700" text-anchor="middle">Subsequent</text>
+        <text x="728" y="130" fill="#bc8cff" font-size="9" font-weight="700" text-anchor="middle">slices</text>
 
-        <!-- Future hosted server -->
-        <rect x="550" y="290" width="300" height="40" rx="8" fill="rgba(188,140,255,0.06)" stroke="rgba(188,140,255,0.3)" stroke-dasharray="6,3"/>
-        <text x="700" y="315" fill="#bc8cff" font-size="11" font-weight="600" text-anchor="middle">aiml-hosted-mcp-server (future consumer)</text>
-        <line x1="700" y1="290" x2="700" y2="155" stroke="#bc8cff" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+        <!-- === FINAL: Full core module === -->
+        <text x="920" y="28" fill="#3fb950" font-size="12" font-weight="600" text-anchor="middle" letter-spacing="0.05em">FINAL STATE (Target)</text>
+        <!-- Core: large -->
+        <rect x="780" y="42" width="280" height="170" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="920" y="62" fill="#3fb950" font-size="11" font-weight="600" text-anchor="middle">contrast-mcp-core (published)</text>
+        <rect x="795" y="74" width="250" height="18" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="920" y="87" fill="#8b949e" font-size="9" text-anchor="middle">12 remote-eligible shared tools</text>
+        <rect x="795" y="96" width="250" height="18" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="920" y="109" fill="#8b949e" font-size="9" text-anchor="middle">BaseTool + PaginatedTool + SingleTool pipeline</text>
+        <rect x="795" y="118" width="250" height="18" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="920" y="131" fill="#8b949e" font-size="9" text-anchor="middle">ContrastApiClient interface + DTOs + results</text>
+        <rect x="795" y="140" width="250" height="18" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="920" y="153" fill="#8b949e" font-size="9" text-anchor="middle">Validation + Hints + Filter helpers</text>
+        <rect x="795" y="162" width="250" height="18" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="920" y="175" fill="#8b949e" font-size="9" text-anchor="middle">SDK extension data types (shared DTOs)</text>
+        <rect x="795" y="184" width="250" height="18" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="920" y="197" fill="#3fb950" font-size="9" font-weight="600" text-anchor="middle">Published to Artifactory via maven-publish</text>
+        <!-- App: small (local-only) -->
+        <rect x="780" y="230" width="280" height="80" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="920" y="250" fill="#58a6ff" font-size="11" font-weight="600" text-anchor="middle">contrast-mcp-stdio-app</text>
+        <rect x="795" y="260" width="250" height="18" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="920" y="273" fill="#8b949e" font-size="9" text-anchor="middle">Local config + SdkApiClient + Boot + get_scan_results</text>
+        <rect x="795" y="282" width="250" height="18" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="920" y="295" fill="#8b949e" font-size="9" text-anchor="middle">Local-only concerns &bull; Boot JAR</text>
+        <!-- Dep arrow -->
+        <line x1="920" y1="230" x2="920" y2="210" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#greenarrow)"/>
+        <!-- Hosted server -->
+        <rect x="780" y="325" width="280" height="40" rx="8" fill="rgba(188,140,255,0.06)" stroke="rgba(188,140,255,0.3)"/>
+        <text x="920" y="350" fill="#bc8cff" font-size="10" font-weight="600" text-anchor="middle">aiml-hosted-mcp-server (consumer)</text>
+        <line x1="920" y1="325" x2="920" y2="210" stroke="#bc8cff" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+        <!-- Phase labels at bottom -->
+        <rect x="400" y="305" width="260" height="42" rx="6" fill="rgba(210,153,34,0.06)" stroke="rgba(210,153,34,0.2)"/>
+        <text x="530" y="322" fill="#d29922" font-size="9" font-weight="600" text-anchor="middle">Tools stay in app because they</text>
+        <text x="530" y="336" fill="#d29922" font-size="9" font-weight="600" text-anchor="middle">still depend on local SDK factories</text>
+
+        <rect x="780" y="380" width="280" height="42" rx="6" fill="rgba(63,185,80,0.06)" stroke="rgba(63,185,80,0.2)"/>
+        <text x="920" y="397" fill="#3fb950" font-size="9" font-weight="600" text-anchor="middle">After ContrastApiClient decouples tools</text>
+        <text x="920" y="411" fill="#3fb950" font-size="9" font-weight="600" text-anchor="middle">from local SDK, they move to core</text>
       </svg>
     </div>
   </div>
 
   <div class="slice-columns">
     <div class="slice-col this-pr">
-      <div class="slice-title">This PR (Phase 1 Foundation)</div>
+      <div class="slice-title">This PR &mdash; Tracer Bullet (S3A)</div>
       <div class="slice-item"><span class="dot"></span><strong>Gradle multi-module</strong> &mdash; two subprojects with centralized versions</div>
-      <div class="slice-item"><span class="dot"></span><strong>Core module</strong> &mdash; validation, hints, filter helpers (transport-neutral)</div>
+      <div class="slice-item"><span class="dot"></span><strong>Minimal core</strong> &mdash; validation, hints, filter helpers only (intermediate)</div>
       <div class="slice-item"><span class="dot"></span><strong>Java 21</strong> &mdash; toolchain, CI, Docker all upgraded</div>
-      <div class="slice-item"><span class="dot"></span><strong>Boundary enforcement</strong> &mdash; <code>CoreBoundaryTest</code> guards the split</div>
+      <div class="slice-item"><span class="dot"></span><strong>Boundary enforcement</strong> &mdash; <code>CoreBoundaryTest</code> blocks local-only deps</div>
       <div class="slice-item"><span class="dot"></span><strong>Zero behavior change</strong> &mdash; all existing tests pass, all renames</div>
     </div>
     <div class="slice-col future-col">
-      <div class="slice-title">Future Work (Subsequent PRs)</div>
-      <div class="slice-item"><span class="dot"></span><code>ContrastApiClient</code> interface + <code>SdkApiClient</code> extraction</div>
-      <div class="slice-item"><span class="dot"></span>Move production tools into <code>contrast-mcp-core</code></div>
-      <div class="slice-item"><span class="dot"></span><code>maven-publish</code> for Artifactory consumption</div>
-      <div class="slice-item"><span class="dot"></span>Hosted server composite build integration</div>
-      <div class="slice-item"><span class="dot"></span>HTTP transport, OAuth, multi-tenant wiring</div>
+      <div class="slice-title">Final Core State (Subsequent Slices)</div>
+      <div class="slice-item"><span class="dot"></span><code>ContrastApiClient</code> interface + <code>SdkApiClient</code> extraction (S4A)</div>
+      <div class="slice-item"><span class="dot"></span>Move <code>BaseTool</code>/<code>PaginatedTool</code>/<code>SingleTool</code> pipeline to core</div>
+      <div class="slice-item"><span class="dot"></span>Move all 12 remote-eligible shared tools + DTOs to core</div>
+      <div class="slice-item"><span class="dot"></span><code>maven-publish</code> for Artifactory &rarr; hosted server consumption</div>
+      <div class="slice-item"><span class="dot"></span>App shrinks to: local config, <code>SdkApiClient</code>, <code>get_scan_results</code></div>
     </div>
   </div>
 </section>
@@ -909,8 +962,8 @@
   </div>
 
   <p class="narrative">
-    <strong>The core module's build file is intentionally minimal &mdash; three dependencies define the ceiling of what the shared library can touch.</strong>
-    <code>spring-core</code> provides <code>StringUtils</code> (used by validation). <code>gson</code> is used by hint generation. <code>slf4j-api</code> enables logging without forcing a runtime. Nothing here pulls in Spring Boot, Spring AI, the Contrast SDK, or any transport layer.
+    <strong>The core module's build file is intentionally minimal <em>right now</em> &mdash; this is an intermediate state, not the final boundary.</strong>
+    Today it contains only validation, hints, and filter helpers with three dependencies: <code>spring-core</code> (<code>StringUtils</code>), <code>gson</code> (hint generation), and <code>slf4j-api</code> (logging). The production tools, <code>BaseTool</code> pipeline, <code>ContrastApiClient</code>, and shared DTOs aren't here yet because they still depend directly on local SDK factories and SDK helpers that must be decoupled first. Once <code>ContrastApiClient</code> is introduced (Slice 4A), tools can be migrated here incrementally. The final core module will be the published shared library containing all 12 remote-eligible tools, the full base pipeline, the API client interface, and shared data types.
   </p>
 
   <div class="diff-block">
@@ -938,8 +991,9 @@
   </p>
 
   <div class="callout future">
-    <span class="callout-label">Future work</span>
-    Once the <code>ContrastApiClient</code> interface is extracted (next slice), it will live in this module. Production tools will follow. The <code>maven-publish</code> plugin will be added here when the hosted server is ready to consume the artifact from Artifactory.
+    <span class="callout-label">This module will grow substantially</span>
+    <strong>The eventual contents of <code>contrast-mcp-core</code> are: all 12 remote-eligible tools, <code>BaseTool</code>/<code>PaginatedTool</code>/<code>SingleTool</code>/<code>CursorPaginatedTool</code> pipeline, <code>ContrastApiClient</code> interface, shared DTOs and result types, and hints.</strong>
+    Today those classes remain in the app module because they import <code>ContrastSDKFactory</code>, <code>SDKHelper</code>, Guava caches, and other local implementation details. Slice 4A introduces the <code>ContrastApiClient</code> abstraction that breaks this coupling. Once that boundary exists, tools migrate to core one by one. The <code>maven-publish</code> plugin will be added when the hosted server is ready to consume the artifact from Artifactory. What stays permanently in <code>contrast-mcp-stdio-app</code>: <code>McpContrastApplication</code>, local credential/config wiring, <code>SdkApiClient</code>, SDK helper/cache implementations, and the deprecated <code>get_scan_results</code>.
   </div>
 </section>
 
@@ -1042,8 +1096,8 @@
   </div>
 
   <p class="narrative">
-    <strong><code>CoreBoundaryTest</code> is the compile-time guardrail that prevents the core module from growing uncontrolled dependencies on the app layer.</strong>
-    Without this test, it would be easy for a future contributor to add an import to <code>com.contrastsecurity</code> or <code>org.springframework.ai</code> in a core source file. The test catches this at build time, not at consumption time when the hosted server fails to compile.
+    <strong><code>CoreBoundaryTest</code> guards the boundary by blocking local-only dependencies &mdash; but deliberately does <em>not</em> block shared tool abstractions that belong in core's future.</strong>
+    The test forbids SDK factories, local config classes, Guava caches, SARIF code, and other local implementation concerns. It does not treat <code>BaseTool</code>, <code>SingleTool</code>, <code>PaginatedTool</code>, or shared tool implementations as forbidden &mdash; those classes aren't in core <em>yet</em> only because they're still coupled to local SDK factories, not because they don't belong here. As the coupling is broken in subsequent slices, those classes will move into core and the boundary test's required-types list will grow to include them.
   </p>
 
   <div class="diff-block">
@@ -1065,7 +1119,7 @@
 <span class="diff-line add"><span class="marker">+</span><span class="ln">38</span><span class="code">          sourcePath(<span class="str">"com/contrast/.../hints/HintGenerator.java"</span>));</span></span>
     </pre></div>
     <div class="annotation">
-      <strong>The required types list is the module's contract.</strong> If any of these files get accidentally moved out of core or deleted, the test fails. This list will grow as production tools are migrated in subsequent PRs.
+      <strong>This list represents the <em>current</em> minimum, not the final contract.</strong> It will grow significantly as tools are decoupled from local SDK factories and migrated into core. Today it's 5 support types; the final state includes 12+ tools, the <code>BaseTool</code> pipeline, <code>ContrastApiClient</code>, and shared DTOs. If any of these files get accidentally removed from core, the test fails immediately.
     </div>
   </div>
 
@@ -1094,7 +1148,7 @@
 <span class="diff-line add"><span class="marker">+</span><span class="ln">65</span><span class="code">          <span class="str">"SARIF"</span>);</span></span>
     </pre></div>
     <div class="annotation">
-      <strong>This list scans the actual source text of every Java file in the core module.</strong> It catches references that might not be imports &mdash; like a string literal mentioning <code>"sarif"</code> or a Javadoc comment referencing <code>SDKHelper</code>. The <code>get_scan_results</code> entry specifically prevents the deprecated local-only SARIF tool from leaking into the shared artifact &mdash; a requirement from the AIML-110 PRD's non-negotiables.
+      <strong>These are the <em>permanently</em> forbidden patterns &mdash; things that must never enter core regardless of how much it grows.</strong> Local credential wiring (<code>ContrastSDKFactory</code>, <code>SdkApiClient</code>, <code>SDKHelper</code>), config classes, Guava caches, SARIF code, and direct Contrast SDK imports represent local-only implementation concerns. Notice that <code>BaseTool</code>, <code>PaginatedTool</code>, and shared tool names are <em>not</em> on this list &mdash; they belong in core's future and the test must not block their eventual arrival.
     </div>
   </div>
 
@@ -1102,6 +1156,11 @@
     <strong>The test uses two complementary strategies: structural and textual.</strong>
     The first test method checks file presence (required types exist) and absence (local-only types aren't here). The second walks every <code>.java</code> file and does substring matching against the prohibited patterns. Together they form a fast, zero-dependency boundary check that runs on every <code>./gradlew test</code>.
   </p>
+
+  <div class="callout why">
+    <span class="callout-label">Why the test is shaped this way</span>
+    <strong>The boundary test blocks local-only <em>concerns</em>, not shared tool <em>categories</em>.</strong> An earlier iteration of this test explicitly forbade <code>BaseTool</code>, <code>SingleTool</code>, <code>PaginatedTool</code>, and tool implementation names from appearing in core. That was wrong &mdash; it would have encoded the temporary S3A minimal state as a permanent rule, blocking the very migrations that are the whole point of this split. The corrected test asks: "does this file reference local SDK factories, credential wiring, or SARIF code?" If a class can be decoupled from those concerns, it's welcome in core.
+  </div>
 </section>
 
 <!-- ============================================================ -->
@@ -1300,22 +1359,32 @@
   </div>
 
   <p class="narrative">
-    <strong>This PR is the foundation &mdash; the next slices will progressively move production tools into the core module and add the <code>ContrastApiClient</code> abstraction.</strong>
-    Suggested review order: start with <code>settings.gradle</code> and <code>gradle.properties</code> to understand the topology, then <code>build.gradle</code> (root) for shared config, then the two module build files, then <code>CoreBoundaryTest</code>. The CI workflows and run_silent.sh are worth a look. Everything else is mechanical.
+    <strong>This PR establishes the baseline &mdash; the core module will grow substantially as subsequent slices decouple tools from local SDK factories and migrate them to their final locations.</strong>
+    The module structure, build configuration, CI, and boundary enforcement are all in their final form. What will change is <em>what lives inside each module</em>: production tools, the <code>BaseTool</code> pipeline, <code>ContrastApiClient</code>, and shared DTOs will all migrate from the app module into core once the coupling to local SDK implementation details is broken. Suggested review order: start with <code>settings.gradle</code> and <code>gradle.properties</code> to understand the topology, then <code>build.gradle</code> (root) for shared config, then the two module build files, then <code>CoreBoundaryTest</code>. The CI workflows and run_silent.sh are worth a look. Everything else is mechanical.
   </p>
 
   <table class="roadmap-table">
-    <thead><tr><th>Ticket</th><th>Scope</th><th>Description</th></tr></thead>
+    <thead><tr><th>Slice</th><th>Scope</th><th>What Happens to Core</th></tr></thead>
     <tbody>
       <tr class="current-row">
-        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-757">AIML-757</a></td>
-        <td><span class="slice-name">Gradle Migration</span><span class="current-badge">This PR</span></td>
-        <td>Multi-module build, Java 21, CI/release/Docker/docs updated</td>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-757">S3A</a></td>
+        <td><span class="slice-name">Gradle Skeleton</span><span class="current-badge">This PR</span></td>
+        <td>Core gets validation, hints, filter helpers &mdash; proves the build works</td>
       </tr>
       <tr>
-        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-110">AIML-110</a></td>
-        <td><span class="slice-name">Hosted MCP Server (Epic)</span></td>
-        <td>ContrastApiClient extraction, tool migration, HTTP transport, OAuth</td>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-757">S3B/S3C</a></td>
+        <td><span class="slice-name">Publish &amp; Align</span></td>
+        <td><code>maven-publish</code> added; hosted server proves classpath boundary</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-758">S4A</a></td>
+        <td><span class="slice-name">ContrastApiClient</span></td>
+        <td>API client interface + auth strategy hook decouple tools from local SDK</td>
+      </tr>
+      <tr>
+        <td>S5+</td>
+        <td><span class="slice-name">Tool Migration</span></td>
+        <td>12 shared tools + <code>BaseTool</code> pipeline + DTOs migrate to core</td>
       </tr>
     </tbody>
   </table>
