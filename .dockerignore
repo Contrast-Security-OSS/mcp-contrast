@@ -1,5 +1,6 @@
 .git
 .gradle
+.env*
 **/.gradle
 **/build
 **/target
