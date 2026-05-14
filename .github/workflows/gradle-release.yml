@@ -3,12 +3,6 @@ name: Gradle Release
 on:
   workflow_dispatch:
 
-env:
-  DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: "${{secrets.DIGICERT_PKEY_PASSPHRASE}}"
-  DOCKER_CONTENT_TRUST_KEY_FILENAME: "${{secrets.DIGICERT_PKEY_FILENAME}}"
-  DOCKER_CONTENT_TRUST_PKEY_ROLE: "${{secrets.DIGICERT_PKEY_ROLE}}"
-  DOCKER_CONTENT_TRUST: 1
-
 permissions:
   contents: read
 
@@ -104,14 +98,23 @@ jobs:
 
       - name: Save PKEY to file
         shell: sh
-        run: echo "${{secrets.DIGICERT_PKEY}}" > ~/.docker/trust/private/"${{secrets.DIGICERT_PKEY_FILENAME}}"
+        env:
+          DIGICERT_PKEY: ${{ secrets.DIGICERT_PKEY }}
+          DOCKER_CONTENT_TRUST_KEY_FILENAME: ${{ secrets.DIGICERT_PKEY_FILENAME }}
+        run: printf '%s\n' "$DIGICERT_PKEY" > ~/.docker/trust/private/"$DOCKER_CONTENT_TRUST_KEY_FILENAME"
 
       - name: Chmod key
         shell: sh
-        run: chmod 600 ~/.docker/trust/private/"${{secrets.DIGICERT_PKEY_FILENAME}}"
+        env:
+          DOCKER_CONTENT_TRUST_KEY_FILENAME: ${{ secrets.DIGICERT_PKEY_FILENAME }}
+        run: chmod 600 ~/.docker/trust/private/"$DOCKER_CONTENT_TRUST_KEY_FILENAME"
 
       - name: Docker load PKEY
-        run: docker trust key load ~/.docker/trust/private/"${{secrets.DIGICERT_PKEY_FILENAME}}" --name "${{secrets.DIGICERT_PKEY_ROLE}}"
+        env:
+          DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: ${{ secrets.DIGICERT_PKEY_PASSPHRASE }}
+          DOCKER_CONTENT_TRUST_KEY_FILENAME: ${{ secrets.DIGICERT_PKEY_FILENAME }}
+          DOCKER_CONTENT_TRUST_PKEY_ROLE: ${{ secrets.DIGICERT_PKEY_ROLE }}
+        run: docker trust key load ~/.docker/trust/private/"$DOCKER_CONTENT_TRUST_KEY_FILENAME" --name "$DOCKER_CONTENT_TRUST_PKEY_ROLE"
 
       - name: Set up Docker Buildx
         uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
@@ -146,9 +149,12 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Push and sign Docker image with DCT
+        env:
+          DOCKER_CONTENT_TRUST: 1
+          DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: ${{ secrets.DIGICERT_PKEY_PASSPHRASE }}
         run: |
           # The tags are newline-separated, not comma-separated
           echo "${{ steps.meta.outputs.tags }}" | while read -r tag; do
             echo "Pushing and signing $tag"
-            docker push $tag
+            docker push "$tag"
           done
