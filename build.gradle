@@ -86,8 +86,11 @@ subprojects {
 
     dependencies {
         if (project.name == 'contrast-mcp-core') {
+            // Published libraries should not force Spring-managed dependency versions on consumers.
+            // The tested baseline is the Spring Boot BOM version pinned by springBootVersion.
             implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
         } else {
+            // Deployable modules run with the exact Spring Boot dependency set tested by this repo.
             implementation enforcedPlatform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
         }
 
