@@ -1381,7 +1381,7 @@
       <span class="sp-ref">Pure renames (R100 in git)</span>
     </summary>
     <div class="sp-body">
-      All source files under <code>src/</code> were moved to either <code>contrast-mcp-core/src/</code> or <code>contrast-mcp-stdio-app/src/</code>. Git shows these as <code>R100</code> (100% identical renames). No code changes. Validation framework, hints, and filter helpers went to core. Everything else &mdash; tools, SDK extensions, config, result types, and all tests &mdash; went to the app module. The only non-rename test changes are Javadoc <code>@code</code> blocks updating <code>mvn verify</code> to Gradle commands.
+      All source files under <code>src/</code> were moved to either <code>contrast-mcp-core/src/</code> or <code>contrast-mcp-stdio-app/src/</code>. 202 of 214 renames are <code>R100</code> (100% identical). The remaining 12 have minor Javadoc edits updating <code>mvn verify</code> references to Gradle commands &mdash; no logic changes. Validation framework, hints, and filter helpers went to core. Everything else &mdash; tools, SDK extensions, config, result types, and all tests &mdash; went to the app module.
     </div>
   </details>
 
