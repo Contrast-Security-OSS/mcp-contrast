@@ -1,7 +1,7 @@
 FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /app
 COPY . .
-RUN ./gradlew :contrast-mcp-stdio-app:bootJar -x test --no-daemon
+RUN ./gradlew clean :contrast-mcp-stdio-app:bootJar -x test --no-daemon
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
