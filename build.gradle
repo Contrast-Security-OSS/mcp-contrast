@@ -11,8 +11,6 @@ allprojects {
     version = rootProject.version
 }
 
-def generatedCheckstyleConfig = layout.buildDirectory.file('generated/checkstyle/checkstyle.xml')
-
 ext.positiveIntProperty = { String propertyName, int defaultValue ->
     def rawValue = providers.gradleProperty(propertyName).orElse(defaultValue.toString()).get()
     try {
@@ -23,24 +21,6 @@ ext.positiveIntProperty = { String propertyName, int defaultValue ->
         return value
     } catch (NumberFormatException ex) {
         throw new GradleException("${propertyName} must be a positive integer, but was ${rawValue}", ex)
-    }
-}
-
-tasks.register('generateCheckstyleConfig') {
-    inputs.file rootProject.file('checkstyle.xml')
-    inputs.file rootProject.file('checkstyle-suppressions.xml')
-    outputs.file generatedCheckstyleConfig
-    doLast {
-        def originalConfig = rootProject.file('checkstyle.xml').text
-        def suppressionFile = rootProject.file('checkstyle-suppressions.xml').absolutePath
-        def effectiveConfig = originalConfig.replace(
-            '<module name="TreeWalker">',
-            """<module name="SuppressionFilter">
-    <property name="file" value="${suppressionFile}"/>
-  </module>
-  <module name="TreeWalker">""")
-        generatedCheckstyleConfig.get().asFile.parentFile.mkdirs()
-        generatedCheckstyleConfig.get().asFile.text = effectiveConfig
     }
 }
 
@@ -76,11 +56,14 @@ subprojects {
 
     checkstyle {
         toolVersion = checkstyleVersion
+        configFile = rootProject.file('checkstyle.xml')
+        configProperties = [
+            'checkstyle.suppressions.file': rootProject.file('checkstyle-suppressions.xml').absolutePath
+        ]
     }
 
     tasks.withType(Checkstyle).configureEach {
-        dependsOn rootProject.tasks.named('generateCheckstyleConfig')
-        configFile = generatedCheckstyleConfig.get().asFile
+        inputs.file rootProject.file('checkstyle-suppressions.xml')
     }
 
     dependencies {
