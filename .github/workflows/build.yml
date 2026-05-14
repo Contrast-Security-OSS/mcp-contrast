@@ -29,10 +29,5 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
         cache: gradle
-    - name: Run static checks
-      run: ./gradlew spotlessCheck checkstyleMain checkstyleTest --no-daemon
-    - name: Build stdio app
-      run: ./gradlew :contrast-mcp-stdio-app:bootJar -x test --no-daemon
-
-    - name: Run unit tests
-      run: ./gradlew test --no-daemon
+    - name: Run checks, tests, and build
+      run: ./gradlew spotlessCheck checkstyleMain checkstyleTest test :contrast-mcp-stdio-app:bootJar --no-daemon
