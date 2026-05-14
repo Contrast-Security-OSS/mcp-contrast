@@ -6,6 +6,7 @@ plugins {
 
 dependencies {
     implementation project(':contrast-mcp-core')
+    // Keep Spring Boot's enforced dependency management authoritative; Spring AI supplies only its own coordinates.
     implementation platform("org.springframework.ai:spring-ai-bom:${springAiVersion}")
 
     implementation 'com.google.code.gson:gson'
