@@ -35,9 +35,6 @@ processResources {
 def defaultIntegrationTestMaxParallelForks = Math.max(
     1,
     Math.min(5, Runtime.runtime.availableProcessors().intdiv(2)))
-def integrationTestMaxParallelForksDefault = providers.gradleProperty('testMaxParallelForks').isPresent()
-    ? rootProject.ext.positiveIntProperty('testMaxParallelForks', 1)
-    : defaultIntegrationTestMaxParallelForks
 
 test {
     exclude '**/*IT.class'
@@ -51,7 +48,7 @@ tasks.register('integrationTest', Test) {
     classpath = sourceSets.test.runtimeClasspath
     maxParallelForks = rootProject.ext.positiveIntProperty(
         'integrationTestMaxParallelForks',
-        integrationTestMaxParallelForksDefault)
+        defaultIntegrationTestMaxParallelForks)
     shouldRunAfter test
     include '**/*IT.class'
     include '**/*IntegrationTest.class'
