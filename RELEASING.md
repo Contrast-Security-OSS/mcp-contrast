@@ -50,12 +50,12 @@ Use this only if the workflow cannot run:
 ```bash
 git switch main
 git pull
-perl -0pi -e 's/^version=.*/version=1.0.1/m' gradle.properties
-./gradlew clean :contrast-mcp-stdio-app:bootJar -x test
+./gradlew setVersion -PnewVersion=1.0.1
+./gradlew clean spotlessCheck check :contrast-mcp-stdio-app:integrationTest :contrast-mcp-stdio-app:bootJar
 git add gradle.properties
 git commit -m "[gradle-release] prepare release v1.0.1"
 git tag v1.0.1
-perl -0pi -e 's/^version=.*/version=1.0.2-SNAPSHOT/m' gradle.properties
+./gradlew setVersion -PnewVersion=1.0.2-SNAPSHOT
 git add gradle.properties
 git commit -m "[gradle-release] prepare next development iteration"
 git push origin main

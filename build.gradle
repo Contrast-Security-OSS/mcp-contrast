@@ -24,6 +24,24 @@ ext.positiveIntProperty = { String propertyName, int defaultValue ->
     }
 }
 
+tasks.register('setVersion') {
+    description = 'Updates the project version in gradle.properties.'
+    group = 'release'
+    outputs.upToDateWhen { false }
+    doLast {
+        def newVersion = providers.gradleProperty('newVersion').orNull
+        if (!newVersion) {
+            throw new GradleException('Supply -PnewVersion=<version>')
+        }
+        def propertiesFile = rootProject.file('gradle.properties')
+        def originalText = propertiesFile.text
+        if (!(originalText =~ /(?m)^version=.*/).find()) {
+            throw new GradleException('gradle.properties must contain a version= line')
+        }
+        propertiesFile.text = originalText.replaceFirst(/(?m)^version=.*/, "version=${newVersion}")
+    }
+}
+
 subprojects {
     apply plugin: 'java-library'
     apply plugin: 'checkstyle'
