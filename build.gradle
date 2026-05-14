@@ -85,7 +85,11 @@ subprojects {
     }
 
     dependencies {
-        implementation enforcedPlatform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+        if (project.name == 'contrast-mcp-core') {
+            implementation platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+        } else {
+            implementation enforcedPlatform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
+        }
 
         compileOnly "org.projectlombok:lombok:${lombokVersion}"
         annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
