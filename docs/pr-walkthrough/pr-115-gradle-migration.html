@@ -1212,7 +1212,7 @@
 <span class="diff-line add"><span class="marker">+</span><span class="ln">65</span><span class="code">          <span class="str">"SARIF"</span>);</span></span>
     </pre></div>
     <div class="annotation">
-      <strong>These are <em>permanently</em> forbidden patterns &mdash; they must never enter core.</strong> Local credential wiring, config classes, Guava caches, SARIF code, and direct Contrast SDK imports are all local-only concerns. Note: <code>BaseTool</code>, <code>PaginatedTool</code>, and shared tool names are deliberately <em>absent</em> from this list &mdash; they belong in core's future.
+      <strong>Most of these are <em>permanently</em> forbidden patterns &mdash; local credential wiring, config classes, Guava caches, SARIF code, and direct Contrast SDK imports must never enter core.</strong> One exception to watch: <code>org.springframework.ai</code> is forbidden today because core has no Spring AI dependency, but when <code>@Tool</code>-annotated classes migrate to core in S5+, this pattern will need to be narrowed (e.g., allow <code>@Tool</code> but still block MCP server internals). That's a deliberate future refinement, not an oversight. <code>BaseTool</code>, <code>PaginatedTool</code>, and shared tool names are deliberately <em>absent</em> from this list &mdash; they belong in core's future.
     </div>
   </div>
 
