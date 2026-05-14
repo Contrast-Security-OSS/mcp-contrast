@@ -50,6 +50,10 @@ class CoreBoundaryTest {
   private static final List<String> LOCAL_ONLY_TEXT =
       List.of(
           "com.contrast.labs.ai.mcp.contrast.config",
+          "com.contrastsecurity",
+          "org.springframework.ai",
+          "spring-ai",
+          "@Configuration",
           "ContrastSDKFactory",
           "SDKExtensionFactory",
           "SdkApiClient",
