@@ -1355,7 +1355,7 @@
       <span class="sp-ref">Pattern: multi-stage build</span>
     </summary>
     <div class="sp-body">
-      Builder stage: <code>maven:3.9-eclipse-temurin-17</code> &rarr; <code>eclipse-temurin:21-jdk-alpine</code> (with digest pin). Runtime stage: <code>eclipse-temurin:25-jre-alpine</code> &rarr; <code>eclipse-temurin:21-jre-alpine</code>. Build command: <code>mvn clean package</code> &rarr; <code>./gradlew :contrast-mcp-stdio-app:bootJar</code>. JAR path: <code>target/</code> &rarr; <code>contrast-mcp-stdio-app/build/libs/</code>. A <code>.dockerignore</code> was added to exclude <code>.git</code>, <code>.gradle</code>, and <code>build/</code> directories from the build context.
+      Builder stage: <code>maven:3.9-eclipse-temurin-17</code> &rarr; <code>eclipse-temurin:21-jdk-alpine</code> (with digest pin). Runtime stage: <code>eclipse-temurin:25-jre-alpine</code> &rarr; <code>eclipse-temurin:21-jre-alpine</code>. The runtime "downgrade" from JRE 25 to 21 is intentional &mdash; the old builder compiled Java 17 bytecode that happened to run on a JRE 25 runtime; now builder and runtime are aligned at 21. Build command: <code>mvn clean package</code> &rarr; <code>./gradlew :contrast-mcp-stdio-app:bootJar</code>. JAR path: <code>target/</code> &rarr; <code>contrast-mcp-stdio-app/build/libs/</code>. A <code>.dockerignore</code> was added to exclude <code>.git</code>, <code>.gradle</code>, and <code>build/</code> directories from the build context.
     </div>
   </details>
 
