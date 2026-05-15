@@ -18,6 +18,9 @@ package com.contrast.labs.ai.mcp.contrast.util;
 import static org.assertj.core.api.Assertions.fail;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -47,9 +50,9 @@ public abstract class AbstractIntegrationTest<T> {
 
   protected T testData;
   private long discoveryDurationMs;
-  private long testStartTimeMs;
-  private long totalTestTimeMs;
-  private int testCount;
+  private final ConcurrentHashMap<String, Long> testStartTimes = new ConcurrentHashMap<>();
+  private final AtomicLong totalTestTimeMs = new AtomicLong();
+  private final AtomicInteger testCount = new AtomicInteger();
 
   /** Provides a human-readable name for the test class (used in logging). */
   protected abstract String testDisplayName();
@@ -115,14 +118,15 @@ public abstract class AbstractIntegrationTest<T> {
   @BeforeEach
   void logTestStart(TestInfo testInfo) {
     log.info("\n▶ Starting test: {}", testInfo.getDisplayName());
-    testStartTimeMs = System.currentTimeMillis();
+    testStartTimes.put(testInfo.getDisplayName(), System.currentTimeMillis());
   }
 
   @AfterEach
   void logTestEnd(TestInfo testInfo) {
-    long duration = System.currentTimeMillis() - testStartTimeMs;
-    totalTestTimeMs += duration;
-    testCount++;
+    var startTime = testStartTimes.remove(testInfo.getDisplayName());
+    long duration = (startTime != null) ? System.currentTimeMillis() - startTime : 0;
+    totalTestTimeMs.addAndGet(duration);
+    testCount.incrementAndGet();
     log.info("✓ Test completed in {}ms: {}\n", duration, testInfo.getDisplayName());
   }
 
@@ -130,10 +134,10 @@ public abstract class AbstractIntegrationTest<T> {
   void logSummary() {
     logBanner("Integration Test Performance Summary");
     log.info("Discovery time: {}ms", discoveryDurationMs);
-    log.info("Total test time: {}ms", totalTestTimeMs);
-    log.info("Tests executed: {}", testCount);
-    if (testCount > 0) {
-      log.info("Average per test: {}ms", totalTestTimeMs / testCount);
+    log.info("Total test time: {}ms", totalTestTimeMs.get());
+    log.info("Tests executed: {}", testCount.get());
+    if (testCount.get() > 0) {
+      log.info("Average per test: {}ms", totalTestTimeMs.get() / testCount.get());
     }
     logFooter();
   }
