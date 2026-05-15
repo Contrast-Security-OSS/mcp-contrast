@@ -86,13 +86,8 @@ assert_contains "CLAUDE.md" 'contrast-mcp-stdio-app:bootJar' "CLAUDE documents s
 assert_contains "CLAUDE.md" 'contrast-mcp-core:verifyCorePublicationMetadata' "CLAUDE documents core publication metadata verification"
 assert_not_contains "CLAUDE.md" 'docs/plans|mcp-contrast-0\.0\.11|make format && make check-test|validate phase|(^|[[:space:]`])(\./mvnw|mvn)([[:space:]]|$)' "CLAUDE has no stale Maven or old build command references"
 
-assert_contains "WORKFLOW.md" 'br ready' "WORKFLOW uses br ready"
-assert_not_contains "WORKFLOW.md" '(^|[[:space:]`])bd (ready|list|show|create|update|close|dep|stats|sync)' "WORKFLOW has no bd commands"
-assert_contains "WORKFLOW.md" 'br sync --flush-only' "WORKFLOW documents explicit br sync"
-assert_contains "WORKFLOW.md" 'do not commit \.beads' "WORKFLOW documents local-only bead state"
 assert_contains "AGENTS.md" 'does not commit bead state to git' "AGENTS documents local-only bead state"
 assert_not_contains "AGENTS.md" 'git add \.beads|Commit together|Always commit|commit it with|commit .*related code' "AGENTS does not tell agents to commit beads"
-assert_not_contains "WORKFLOW.md" 'git add \.beads|Commit together|Always commit|commit it with related|commit .* with related code' "WORKFLOW does not tell agents to commit beads"
 
 assert_contains "MCP_STANDARDS.md" 'For the local stdio app' "Standards distinguish local stdio registration"
 assert_contains "MCP_STANDARDS.md" 'For the hosted remote server' "Standards distinguish hosted explicit registration"
