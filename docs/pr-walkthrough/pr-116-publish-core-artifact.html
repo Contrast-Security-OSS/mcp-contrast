@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PR #116 Walkthrough: Publish contrast-mcp-core Artifact</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-raised: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-subtle: #6e7681;
+    --accent: #58a6ff;
+    --accent-soft: rgba(88,166,255,0.15);
+    --green: #3fb950;
+    --green-bg: rgba(63,185,80,0.15);
+    --green-border: rgba(63,185,80,0.4);
+    --red: #f85149;
+    --red-bg: rgba(248,81,73,0.10);
+    --yellow: #d29922;
+    --yellow-bg: rgba(210,153,34,0.15);
+    --purple: #bc8cff;
+    --purple-bg: rgba(188,140,255,0.12);
+    --orange: #f0883e;
+    --line-num: #484f58;
+    --diff-add-bg: rgba(63,185,80,0.10);
+    --diff-add-text: #aff5b4;
+    --diff-add-marker: #3fb950;
+    --diff-del-bg: rgba(248,81,73,0.10);
+    --diff-del-text: #ffa198;
+    --diff-del-marker: #f85149;
+    --diff-context-bg: transparent;
+    --code-bg: #0d1117;
+    --nav-bg: rgba(13,17,23,0.95);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* --- Hero --- */
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 40%, #1a1e2e 70%, #161b22 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 3rem 2rem 2.5rem;
+    text-align: center;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.3rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(88,166,255,0.3);
+    margin-bottom: 1rem;
+    letter-spacing: 0.03em;
+  }
+  .hero h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.6rem;
+    background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero .subtitle {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .hero-meta {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .hero-meta-item {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .hero-meta-item strong { color: var(--text); }
+
+  /* --- Navigation --- */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--nav-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.6rem 2rem;
+    overflow-x: auto;
+  }
+  nav ol {
+    display: flex;
+    gap: 0.3rem;
+    list-style: none;
+    max-width: 1100px;
+    margin: 0 auto;
+    font-size: 0.82rem;
+    align-items: center;
+  }
+  nav li a {
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.35rem 0.7rem;
+    border-radius: 6px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  nav li a:hover { color: var(--accent); background: var(--accent-soft); }
+  nav .nav-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4em;
+    height: 1.4em;
+    border-radius: 50%;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 0.4em;
+  }
+  nav .nav-sep { color: var(--text-subtle); font-size: 0.75rem; }
+
+  /* --- Main --- */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 2rem 6rem;
+  }
+
+  /* --- Sections --- */
+  .chapter {
+    margin-bottom: 3.5rem;
+    scroll-margin-top: 4rem;
+  }
+  .chapter-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .chapter-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .chapter-number.blue { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .chapter-number.green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .chapter-number.purple { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+  .chapter-number.yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .chapter-number.orange { background: rgba(240,136,62,0.12); color: var(--orange); border: 1px solid rgba(240,136,62,0.3); }
+  .chapter h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* --- Prose --- */
+  .narrative {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.75;
+    margin-bottom: 1.5rem;
+  }
+  .narrative strong { color: var(--text); font-weight: 600; }
+  .narrative code {
+    background: var(--surface-raised);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.88em;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  /* --- Callout boxes --- */
+  .callout {
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    border: 1px solid;
+  }
+  .callout.why {
+    background: var(--accent-soft);
+    border-color: rgba(88,166,255,0.25);
+    color: var(--text);
+  }
+  .callout.why .callout-label { color: var(--accent); }
+  .callout.security {
+    background: var(--red-bg);
+    border-color: rgba(248,81,73,0.25);
+  }
+  .callout.security .callout-label { color: var(--red); }
+  .callout.note {
+    background: var(--yellow-bg);
+    border-color: rgba(210,153,34,0.25);
+  }
+  .callout.note .callout-label { color: var(--yellow); }
+  .callout.future {
+    background: var(--purple-bg);
+    border-color: rgba(188,140,255,0.25);
+  }
+  .callout.future .callout-label { color: var(--purple); }
+  .callout-label {
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.3rem;
+    display: block;
+  }
+
+  /* --- Code / Diff blocks --- */
+  .diff-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .diff-header {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    gap: 0.5rem;
+  }
+  .diff-header .file-icon {
+    width: 16px; height: 16px;
+    fill: var(--text-subtle);
+    flex-shrink: 0;
+  }
+  .diff-header .filename {
+    color: var(--text);
+    font-weight: 600;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+  }
+  .diff-header .badge {
+    margin-left: auto;
+    font-size: 0.72rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .badge-new { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .badge-modified { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .badge-deleted { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,81,73,0.3); }
+
+  .diff-body {
+    overflow-x: auto;
+  }
+  .diff-body pre {
+    margin: 0;
+    padding: 0.4rem 0;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.3;
+    display: flex;
+    flex-direction: column;
+  }
+  .diff-line {
+    display: flex;
+    padding: 0 1rem;
+    min-height: 1.3em;
+  }
+  .diff-line.add {
+    background: var(--diff-add-bg);
+  }
+  .diff-line.del {
+    background: var(--diff-del-bg);
+  }
+  .diff-line.context {
+    background: var(--diff-context-bg);
+  }
+  .diff-line .marker {
+    width: 1.2em;
+    flex-shrink: 0;
+    color: var(--text-subtle);
+    user-select: none;
+    text-align: center;
+  }
+  .diff-line.add .marker { color: var(--diff-add-marker); }
+  .diff-line.del .marker { color: var(--diff-del-marker); }
+  .diff-line .ln {
+    width: 3.5em;
+    flex-shrink: 0;
+    color: var(--line-num);
+    text-align: right;
+    padding-right: 1em;
+    user-select: none;
+  }
+  .diff-line .code {
+    flex: 1;
+    white-space: pre;
+  }
+  /* Syntax highlighting classes */
+  .diff-line .code .kw { color: #ff7b72; }
+  .diff-line .code .str { color: #a5d6ff; }
+  .diff-line .code .ann { color: #d2a8ff; }
+  .diff-line .code .type { color: #79c0ff; }
+  .diff-line .code .comment { color: var(--text-subtle); font-style: italic; }
+  .diff-line .code .prop { color: #7ee787; }
+  .diff-line .code .val { color: #a5d6ff; }
+  .diff-line .code .num { color: #79c0ff; }
+  .diff-line .code .param { color: #ffa657; }
+
+  /* Annotation inline */
+  .annotation {
+    background: var(--surface-raised);
+    border-left: 3px solid var(--accent);
+    padding: 0.7rem 1rem;
+    margin: 0 1rem 0.3rem 1rem;
+    border-radius: 0 6px 6px 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+  .annotation strong { color: var(--text); }
+  .annotation code {
+    background: rgba(88,166,255,0.1);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: var(--accent);
+  }
+  .annotation.security-note { border-left-color: var(--red); }
+  .annotation.future-note { border-left-color: var(--purple); }
+
+  /* --- Architecture diagrams (inline SVG) --- */
+  .diagram {
+    margin-bottom: 1.5rem;
+  }
+  .diagram svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .diagram-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    overflow-x: auto;
+  }
+
+  /* --- Slice / scope columns --- */
+  .slice-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (max-width: 768px) { .slice-columns { grid-template-columns: 1fr; } }
+  .slice-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem;
+  }
+  .slice-col.this-pr { border-color: var(--green-border); }
+  .slice-col.future-col { border-color: var(--border); opacity: 0.7; }
+  .slice-col .slice-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .slice-col.this-pr .slice-title { color: var(--green); }
+  .slice-col.future-col .slice-title { color: var(--text-subtle); }
+  .slice-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .slice-item .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .slice-col.this-pr .dot { background: var(--green); }
+  .slice-col.future-col .dot { background: var(--text-subtle); }
+  .slice-item strong { color: var(--text); font-weight: 500; }
+
+  /* --- Roadmap table --- */
+  .roadmap-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+  }
+  .roadmap-table th {
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  .roadmap-table td {
+    padding: 0.45rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+  .roadmap-table tr:last-child td { border-bottom: none; }
+  .roadmap-table .jira-link {
+    font-family: 'SF Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .roadmap-table .jira-link:hover { text-decoration: underline; }
+  .roadmap-table .slice-name { color: var(--text); font-weight: 500; }
+  .roadmap-table .current-row td {
+    background: var(--green-bg);
+    border-bottom-color: var(--green-border);
+  }
+  .roadmap-table .current-row .slice-name { color: var(--green); font-weight: 600; }
+  .roadmap-table .current-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--green-bg);
+    color: var(--green);
+    border: 1px solid var(--green-border);
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
+
+  /* --- File summary table --- */
+  .file-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+  }
+  .file-table th {
+    text-align: left;
+    padding: 0.6rem 1rem;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  .file-table td {
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .file-table td:first-child {
+    font-family: 'SF Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--accent);
+  }
+  .file-table tr:last-child td { border-bottom: none; }
+  .file-table .addition { color: var(--green); }
+  .file-table .deletion { color: var(--red); }
+
+  /* --- Standard Pattern (collapsible boilerplate) --- */
+  .standard-pattern {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .standard-pattern summary {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: var(--surface-raised);
+    border-bottom: 1px solid transparent;
+    list-style: none;
+    transition: background 0.15s;
+  }
+  .standard-pattern summary::-webkit-details-marker { display: none; }
+  .standard-pattern summary::before {
+    content: '\25B6';
+    font-size: 0.65rem;
+    color: var(--text-subtle);
+    transition: transform 0.15s;
+    flex-shrink: 0;
+  }
+  .standard-pattern[open] summary::before { transform: rotate(90deg); }
+  .standard-pattern[open] summary { border-bottom-color: var(--border); }
+  .standard-pattern summary:hover { background: rgba(88,166,255,0.06); }
+  .standard-pattern .sp-icon {
+    width: 16px; height: 16px;
+    fill: var(--text-subtle);
+    flex-shrink: 0;
+  }
+  .standard-pattern .sp-title {
+    color: var(--text);
+    font-weight: 600;
+    flex: 1;
+  }
+  .standard-pattern .sp-files {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.78rem;
+    color: var(--text-subtle);
+  }
+  .standard-pattern .sp-ref {
+    font-size: 0.78rem;
+    color: var(--text-subtle);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .badge-standard {
+    background: rgba(139,148,158,0.15);
+    color: var(--text-muted);
+    border: 1px solid rgba(139,148,158,0.3);
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .standard-pattern .sp-body {
+    padding: 0.8rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .standard-pattern .sp-body code {
+    background: var(--surface-raised);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  /* --- Novelty badges for file summary table --- */
+  .file-table .novelty { text-align: center; }
+  .novelty-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+  }
+  .novelty-badge.novel { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .novelty-badge.standard { background: rgba(139,148,158,0.12); color: var(--text-subtle); border: 1px solid rgba(139,148,158,0.25); }
+  .novelty-badge.pattern { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+
+  /* --- Footer --- */
+  footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-subtle);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+    margin-top: 3rem;
+  }
+
+  /* --- Responsive --- */
+  @media (max-width: 768px) {
+    .hero { padding: 2rem 1rem; }
+    .hero h1 { font-size: 1.6rem; }
+    main { padding: 1.5rem 1rem 4rem; }
+    nav ol { gap: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <span class="hero-badge">PR #116 &middot; AIML-757</span>
+  <h1>Publish contrast-mcp-core Artifact</h1>
+  <p class="subtitle">
+    Make the core module consumable by the hosted MCP server &mdash; with two layers of verification proving the published artifact carries the right dependencies and excludes local-only classes.
+  </p>
+  <div class="hero-meta">
+    <span class="hero-meta-item"><strong>Branch:</strong> AIML-757-s3b-publish-core</span>
+    <span class="hero-meta-item"><strong>Base:</strong> AIML-757-gradle-migration (PR #115)</span>
+    <span class="hero-meta-item"><strong>Files:</strong> 7 changed</span>
+    <span class="hero-meta-item"><strong>Lines:</strong> +217 / &minus;12</span>
+  </div>
+</div>
+
+<!-- ===== NAV ===== -->
+<nav>
+  <ol>
+    <li><a href="#context"><span class="nav-number">1</span>Context</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#scope"><span class="nav-number">2</span>Scope</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#bom-split"><span class="nav-number">3</span>BOM Split</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#publishing"><span class="nav-number">4</span>Publishing</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#metadata-verification"><span class="nav-number">5</span>Metadata Verification</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#e2e-verification"><span class="nav-number">6</span>E2E Script</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#ci-hardening"><span class="nav-number">7</span>CI Hardening</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#file-summary"><span class="nav-number">8</span>Files</a></li>
+  </ol>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main>
+
+<!-- ========== CHAPTER 1: Context ========== -->
+<section class="chapter" id="context">
+  <div class="chapter-header">
+    <span class="chapter-number blue">1</span>
+    <h2>Context</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>Contrast is building a hosted (remote) MCP server alongside the existing public stdio-based one, and the two servers need to share ~6,000 lines of tool logic without duplicating code.</strong>
+    <a href="https://contrast.atlassian.net/browse/AIML-757" style="color: var(--accent);">ADR-011</a> evaluated six options for code sharing and chose Option A: two repos, shared core library on Artifactory. The alternative most seriously considered &mdash; a single-codebase dual-mode model (Option F) &mdash; was rejected because it would create a "snowflake service" that drifts from Contrast's internal platform conventions (ArgoCD GitOps, <code>contrast.aiml-service-conventions</code> Gradle plugin, <code>dp-observation-api-client</code>, and the upcoming Spring Boot 4 upgrade). Option A keeps the hosted server inside the ecosystem it deploys into.
+  </p>
+
+  <p class="narrative">
+    <strong>This PR is the second of three steps in <a href="https://contrast.atlassian.net/browse/AIML-757" style="color: var(--accent);">AIML-757</a> (Slice 3) to make that code-sharing strategy real.</strong>
+    PR #115 (S3A) created the Gradle multi-module skeleton with <code>:contrast-mcp-core</code> and <code>:contrast-mcp-stdio-app</code>. But the core module couldn't yet be published or consumed. This PR (S3B) adds the publication configuration and verification to prove the boundary holds. The core is intentionally minimal right now &mdash; just DTOs, validation, and hints &mdash; because the production tools and base classes (<code>BaseTool</code>, <code>SingleTool</code>, <code>PaginatedTool</code>) still have hard dependencies on local SDK factories. They'll migrate iteratively: Slice 4 introduces <code>ContrastApiClient</code> to decouple tools from local SDK wiring, Slice 5 ports the first shared tool, and subsequent slices continue until all 12 remote-eligible tools live in core.
+  </p>
+
+  <div class="diagram">
+    <div class="diagram-container">
+      <svg viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <!-- Title -->
+        <text x="450" y="28" fill="#8b949e" font-size="13" text-anchor="middle" font-weight="600">Core Publication &amp; Consumption Flow</text>
+
+        <!-- mcp-contrast repo box -->
+        <rect x="30" y="55" width="380" height="240" rx="10" fill="none" stroke="#30363d" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <text x="50" y="78" fill="#6e7681" font-size="11" font-weight="600">mcp-contrast (this repo)</text>
+
+        <!-- core module -->
+        <rect x="60" y="95" width="160" height="55" rx="8" fill="rgba(63,185,80,0.12)" stroke="rgba(63,185,80,0.4)" stroke-width="1.5"/>
+        <text x="140" y="118" fill="#3fb950" font-size="12" text-anchor="middle" font-weight="600">:contrast-mcp-core</text>
+        <text x="140" y="135" fill="#8b949e" font-size="10" text-anchor="middle">DTOs, validation, hints</text>
+
+        <!-- stdio app module -->
+        <rect x="240" y="95" width="155" height="55" rx="8" fill="rgba(210,153,34,0.12)" stroke="rgba(210,153,34,0.3)" stroke-width="1.5"/>
+        <text x="317" y="118" fill="#d29922" font-size="12" text-anchor="middle" font-weight="600">:stdio-app</text>
+        <text x="317" y="135" fill="#8b949e" font-size="10" text-anchor="middle">Local server, SDK wiring</text>
+
+        <!-- dependency arrow: stdio -> core -->
+        <line x1="240" y1="122" x2="225" y2="122" stroke="#8b949e" stroke-width="1.2" marker-end="url(#arrowGray)"/>
+
+        <!-- publish arrow down from core -->
+        <line x1="140" y1="150" x2="140" y2="185" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrowGreen)"/>
+        <text x="140" y="200" fill="#3fb950" font-size="10" text-anchor="middle" font-weight="600">publishToMavenLocal</text>
+
+        <!-- verification box -->
+        <rect x="60" y="215" width="330" height="55" rx="8" fill="rgba(88,166,255,0.08)" stroke="rgba(88,166,255,0.3)" stroke-width="1.2"/>
+        <text x="225" y="238" fill="#58a6ff" font-size="11" text-anchor="middle" font-weight="600">Verification Layer</text>
+        <text x="225" y="255" fill="#8b949e" font-size="10" text-anchor="middle">verifyCorePublicationMetadata (Gradle) + verify-core-publication.sh (E2E)</text>
+
+        <!-- aiml-services repo box -->
+        <rect x="490" y="55" width="380" height="155" rx="10" fill="none" stroke="#30363d" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <text x="510" y="78" fill="#6e7681" font-size="11" font-weight="600">aiml-services (companion repo)</text>
+
+        <!-- hosted mcp module -->
+        <rect x="520" y="95" width="200" height="55" rx="8" fill="rgba(188,140,255,0.12)" stroke="rgba(188,140,255,0.3)" stroke-width="1.5"/>
+        <text x="620" y="118" fill="#bc8cff" font-size="12" text-anchor="middle" font-weight="600">aiml-hosted-mcp-server</text>
+        <text x="620" y="135" fill="#8b949e" font-size="10" text-anchor="middle">Remote MCP server</text>
+
+        <!-- composite build arrow -->
+        <path d="M 220 122 C 350 122, 430 80, 520 122" fill="none" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowBlue)"/>
+        <text x="370" y="86" fill="#58a6ff" font-size="10" text-anchor="middle">composite build</text>
+        <text x="370" y="100" fill="#58a6ff" font-size="10" text-anchor="middle">substitution</text>
+
+        <!-- classpath verification in hosted -->
+        <rect x="520" y="165" width="320" height="30" rx="6" fill="rgba(188,140,255,0.08)" stroke="rgba(188,140,255,0.2)" stroke-width="1"/>
+        <text x="680" y="184" fill="#8b949e" font-size="10" text-anchor="middle">verify-hosted-mcp-core-classpath.sh</text>
+
+        <!-- Arrow markers -->
+        <defs>
+          <marker id="arrowGray" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="none" stroke="#8b949e" stroke-width="1.2"/></marker>
+          <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="none" stroke="#3fb950" stroke-width="1.2"/></marker>
+          <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6" fill="none" stroke="#58a6ff" stroke-width="1.2"/></marker>
+        </defs>
+      </svg>
+    </div>
+  </div>
+
+  <div class="callout note">
+    <span class="callout-label">Companion PR</span>
+    <strong>This PR must be merged together with <a href="https://github.com/Contrast-Security-Inc/aiml-services/pull/203" style="color: var(--accent);">aiml-services#203</a>, which wires up the hosted server's consumption of <code>contrast-mcp-core</code> via composite build.</strong> That PR adds the <code>includeBuild</code> in <code>settings.gradle.kts</code>, the hosted classpath boundary verification task, and the unit test proving forbidden classes are absent. Neither PR is complete without the other &mdash; this one publishes, that one consumes.
+  </div>
+
+  <table class="roadmap-table">
+    <thead><tr><th>Bead</th><th>Scope</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-757">S3A</a></td>
+        <td><span class="slice-name">Gradle Migration</span></td>
+        <td>Convert Maven &rarr; Gradle multi-module, Java 21 compile target, module skeleton (PR #115)</td>
+      </tr>
+      <tr class="current-row">
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-757">S3B</a></td>
+        <td><span class="slice-name">Core Publication</span><span class="current-badge">This PR</span></td>
+        <td>Publish <code>contrast-mcp-core</code>, verify POM/metadata, prove classpath boundary</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-757">S3C</a></td>
+        <td><span class="slice-name">Workflow Alignment</span></td>
+        <td>Update CI, Makefile, contributor docs, Dependabot for Gradle (not started)</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========== CHAPTER 2: Scope ========== -->
+<section class="chapter" id="scope">
+  <div class="chapter-header">
+    <span class="chapter-number green">2</span>
+    <h2>Scope</h2>
+  </div>
+
+  <div class="slice-columns">
+    <div class="slice-col this-pr">
+      <div class="slice-title">This PR (S3B)</div>
+      <div class="slice-item"><span class="dot"></span><strong>maven-publish</strong> &mdash; POM metadata, Artifactory repository config</div>
+      <div class="slice-item"><span class="dot"></span><strong>BOM scoping</strong> &mdash; <code>platform()</code> for core, <code>enforcedPlatform()</code> for app</div>
+      <div class="slice-item"><span class="dot"></span><strong>Metadata verification</strong> &mdash; Gradle task validates POM + module JSON</div>
+      <div class="slice-item"><span class="dot"></span><strong>E2E boundary script</strong> &mdash; temporary tracer bullet for JAR content validation</div>
+    </div>
+    <div class="slice-col future-col">
+      <div class="slice-title">Future Work</div>
+      <div class="slice-item"><span class="dot"></span>S3C: CI/Makefile/contributor doc alignment</div>
+      <div class="slice-item"><span class="dot"></span>S4: Extract <code>ContrastApiClient</code> and auth strategy hook</div>
+      <div class="slice-item"><span class="dot"></span>S5: Port first shared tool to hosted server via core</div>
+      <div class="slice-item"><span class="dot"></span>Artifactory publishing approval (currently local-only)</div>
+    </div>
+  </div>
+
+  <div class="callout why">
+    <span class="callout-label">Why this matters</span>
+    <strong>This PR is the gate between "the modules exist" and "they can actually be consumed."</strong> Downstream slices (S4 and S5) depend on the hosted server being able to compile against <code>contrast-mcp-core</code>. Without this PR's publication config and boundary verification, that consumption path is unproven and could silently leak local-only classes into the hosted classpath.
+  </div>
+</section>
+
+<!-- ========== CHAPTER 3: BOM Split ========== -->
+<section class="chapter" id="bom-split">
+  <div class="chapter-header">
+    <span class="chapter-number purple">3</span>
+    <h2>Spring Boot BOM Split</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>Published libraries must not dictate their consumers' dependency versions &mdash; but deployable apps want exact reproducibility.</strong>
+    Before this change, every subproject used <code>enforcedPlatform()</code> for the Spring Boot BOM, which forces all transitive dependency versions to match the BOM. That's ideal for the stdio app (you want the exact tested dependency set), but if the published core library carries <code>enforcedPlatform()</code>, it silently overrides the hosted server's own Spring Boot version management. Gradle doesn't reject the conflict &mdash; it just picks the enforced version. So if this repo pins Spring Boot 3.5.7 but <code>aiml-services</code> upgrades to 3.6.x via its convention plugin, the core library would drag shared transitive versions back to 3.5.7 while the hosted server's own dependencies stay at 3.6.x. The result: a Frankenstein dependency set with no warning. The fix: core uses <code>platform()</code> (recommendation, not enforcement), everything else keeps <code>enforcedPlatform()</code>.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">build.gradle</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">87</span><span class="code">    <span class="prop">dependencies</span> {</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">88</span><span class="code">        <span class="type">implementation</span> <span class="kw">enforcedPlatform</span>(<span class="str">"org.springframework.boot:spring-boot-dependencies:${springBootVersion}"</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">88</span><span class="code">        <span class="kw">if</span> (project.name == <span class="str">'contrast-mcp-core'</span>) {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">89</span><span class="code">            <span class="comment">// Published libraries should not force Spring-managed dependency versions on consumers.</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">90</span><span class="code">            <span class="comment">// The tested baseline is the Spring Boot BOM version pinned by springBootVersion.</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">91</span><span class="code">            <span class="type">implementation</span> <span class="kw">platform</span>(<span class="str">"org.springframework.boot:spring-boot-dependencies:${springBootVersion}"</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">92</span><span class="code">        } <span class="kw">else</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">93</span><span class="code">            <span class="comment">// Deployable modules run with the exact Spring Boot dependency set tested by this repo.</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">94</span><span class="code">            <span class="type">implementation</span> <span class="kw">enforcedPlatform</span>(<span class="str">"org.springframework.boot:spring-boot-dependencies:${springBootVersion}"</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">95</span><span class="code">        }</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>The <code>project.name</code> conditional is the simplest way to express this without restructuring the build.</strong> If more published modules appear later, this could become a set check, but for now it's just core.
+    </div>
+  </div>
+</section>
+
+<!-- ========== CHAPTER 4: Publishing Configuration ========== -->
+<section class="chapter" id="publishing">
+  <div class="chapter-header">
+    <span class="chapter-number yellow">4</span>
+    <h2>Publishing Configuration</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>The core module can now publish to Maven Local (for composite builds) and Contrast Artifactory (for engineers without a local checkout).</strong>
+    The <code>maven-publish</code> plugin generates a POM with proper metadata &mdash; name, description, Apache 2.0 license, and the repository URL. The Artifactory repository selector automatically targets snapshot vs. release based on the version suffix.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-core/build.gradle</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">6</span><span class="code"><span class="kw">plugins</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">7</span><span class="code">    <span class="type">id</span> <span class="str">'maven-publish'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">8</span><span class="code">}</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"> </span><span class="code"></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">10</span><span class="code"><span class="prop">dependencies</span> {</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">11</span><span class="code">    <span class="type">api</span> <span class="str">'org.springframework:spring-core'</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">12</span><span class="code">    <span class="type">api</span> <span class="str">'com.google.code.gson:gson'</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">13</span><span class="code"></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">14</span><span class="code">    <span class="type">implementation</span> <span class="str">'org.slf4j:slf4j-api'</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">15</span><span class="code">}</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"> </span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">17</span><span class="code"><span class="prop">publishing</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">18</span><span class="code">    <span class="prop">publications</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">19</span><span class="code">        <span class="type">mavenJava</span>(<span class="type">MavenPublication</span>) {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">20</span><span class="code">            <span class="kw">from</span> components.java</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">21</span><span class="code">            <span class="prop">pom</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">22</span><span class="code">                name = <span class="str">'contrast-mcp-core'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">23</span><span class="code">                description = <span class="str">'Transport-neutral shared support library for Contrast MCP servers.'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">24</span><span class="code">                url = <span class="str">'https://github.com/Contrast-Security-Inc/mcp-contrast'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">25</span><span class="code">                <span class="prop">licenses</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">26</span><span class="code">                    <span class="prop">license</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">27</span><span class="code">                        name = <span class="str">'Apache License, Version 2.0'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">28</span><span class="code">                        url = <span class="str">'https://www.apache.org/licenses/LICENSE-2.0'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">29</span><span class="code">                    }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">30</span><span class="code">                }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">31</span><span class="code">            }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">32</span><span class="code">        }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">33</span><span class="code">    }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">34</span><span class="code">    <span class="prop">repositories</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">35</span><span class="code">        <span class="type">maven</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">36</span><span class="code">            name = version.toString().endsWith(<span class="str">'-SNAPSHOT'</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">37</span><span class="code">                ? <span class="str">'contrastInternalSnapshot'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">38</span><span class="code">                : <span class="str">'contrastInternalRelease'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">39</span><span class="code">            url = uri(version.toString().endsWith(<span class="str">'-SNAPSHOT'</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">40</span><span class="code">                ? <span class="str">'https://pkg.contrastsecurity.com/artifactory/maven-snapshot-local'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">41</span><span class="code">                : <span class="str">'https://pkg.contrastsecurity.com/artifactory/maven-release-local'</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">42</span><span class="code">            <span class="prop">credentials</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">43</span><span class="code">                username = findProperty(<span class="str">'contrastArtifactoryUser'</span>) ?: <span class="str">''</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">44</span><span class="code">                password = findProperty(<span class="str">'contrastArtifactoryPassword'</span>) ?: <span class="str">''</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">45</span><span class="code">            }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">46</span><span class="code">        }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">47</span><span class="code">    }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">48</span><span class="code">}</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Credentials resolve from <code>~/.gradle/gradle.properties</code> via <code>findProperty</code>.</strong> The empty-string fallback means local <code>publishToMavenLocal</code> works without any Artifactory config. Engineers who need to push to Artifactory configure <code>contrastArtifactoryUser</code> and <code>contrastArtifactoryPassword</code> in their user-level Gradle properties. The snapshot/release selector is evaluated at configuration time from the project version.
+    </div>
+  </div>
+
+  <div class="callout note">
+    <span class="callout-label">Note</span>
+    <strong>Artifactory publishing is not yet approved for this public repo.</strong> The configuration is in place so the path is ready when approval comes, but the primary consumption path today is local composite builds where <code>aiml-services/settings.gradle.kts</code> conditionally includes <code>../mcp-contrast</code>.
+  </div>
+</section>
+
+<!-- ========== CHAPTER 5: Metadata Verification ========== -->
+<section class="chapter" id="metadata-verification">
+  <div class="chapter-header">
+    <span class="chapter-number orange">5</span>
+    <h2>Publication Metadata Verification</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>The <code>verifyCorePublicationMetadata</code> task is the build-time guardian of the published artifact's dependency surface.</strong>
+    It generates the POM and Gradle module metadata, then parses both to assert two things: (1) the expected dependencies are present with correct Maven scopes, and (2) forbidden dependencies never leak into the published metadata. This runs as part of <code>check</code>, so every <code>make check-test</code> validates the publication contract.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-core/build.gradle &mdash; verifyCorePublicationMetadata</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">50</span><span class="code">tasks.register(<span class="str">'verifyCorePublicationMetadata'</span>) {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">51</span><span class="code">    description = <span class="str">'Validates published contrast-mcp-core POM and Gradle module metadata.'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">52</span><span class="code">    group = <span class="str">'verification'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">53</span><span class="code">    <span class="kw">dependsOn</span> <span class="str">'generateMetadataFileForMavenJavaPublication'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">54</span><span class="code">    <span class="kw">dependsOn</span> <span class="str">'generatePomFileForMavenJavaPublication'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">55</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">56</span><span class="code">    doLast {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">57</span><span class="code">        <span class="kw">def</span> <span class="param">pomFile</span> = layout.buildDirectory.file(<span class="str">'publications/mavenJava/pom-default.xml'</span>).get().asFile</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">58</span><span class="code">        <span class="kw">def</span> <span class="param">moduleFile</span> = layout.buildDirectory.file(<span class="str">'publications/mavenJava/module.json'</span>).get().asFile</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>The task depends on Gradle's own POM and module generation tasks.</strong> By reading the generated files rather than the Gradle model directly, we verify the exact artifacts that would be published &mdash; catching issues like Gradle silently upgrading a scope or including a transitive.
+    </div>
+  </div>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-core/build.gradle &mdash; POM expected dependencies</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">76</span><span class="code">        [</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">77</span><span class="code">            <span class="str">'org.springframework:spring-core:compile'</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">78</span><span class="code">            <span class="str">'com.google.code.gson:gson:compile'</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">79</span><span class="code">            <span class="str">'org.slf4j:slf4j-api:runtime'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">80</span><span class="code">        ].each { <span class="param">expectedDependency</span> -&gt;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">81</span><span class="code">            <span class="kw">if</span> (!dependencies.contains(expectedDependency)) {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">82</span><span class="code">                <span class="kw">throw new</span> <span class="type">GradleException</span>(</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">83</span><span class="code">                    <span class="str">"Missing expected POM dependency ${expectedDependency}; found ${dependencies}"</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">84</span><span class="code">            }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">85</span><span class="code">        }</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Note the scope assertions: <code>spring-core</code> and <code>gson</code> are <code>compile</code> (because they're declared as <code>api</code>), while <code>slf4j-api</code> is <code>runtime</code> (because it's <code>implementation</code>).</strong> This catches the Gradle-to-Maven scope mapping bug where <code>implementation</code> dependencies sometimes appear as <code>compile</code> in the POM, which would force them onto consumers' compile classpaths.
+    </div>
+  </div>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-core/build.gradle &mdash; forbidden dependencies</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">87</span><span class="code">        [</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">88</span><span class="code">            <span class="str">'org.projectlombok:lombok'</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">89</span><span class="code">            <span class="str">'com.contrast.labs.ai.mcp:contrast-mcp-stdio-app'</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">90</span><span class="code">            <span class="str">'com.contrastsecurity:contrast-sdk-java'</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">91</span><span class="code">            <span class="str">'org.springframework.ai:spring-ai-starter-mcp-server'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">92</span><span class="code">        ].each { <span class="param">forbiddenDependency</span> -&gt;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">93</span><span class="code">            <span class="kw">if</span> (dependencies.any { it.startsWith(<span class="str">"${forbiddenDependency}:"</span>) }) {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">94</span><span class="code">                <span class="kw">throw new</span> <span class="type">GradleException</span>(<span class="str">"POM must not publish ${forbiddenDependency}"</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">95</span><span class="code">            }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">96</span><span class="code">        }</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Four categories of dependency are forbidden in the published core today:</strong> (1) Lombok &mdash; compile-only annotation processor, must not appear in published metadata. (2) The stdio app module &mdash; core must not depend on its consumer. (3) The Contrast SDK &mdash; the core doesn't directly use the SDK yet; whether it becomes a core dependency in Slice 4 depends on whether the SDK can support OAuth tokens for the hosted auth path (still being discussed with the security team). (4) The Spring AI MCP server starter &mdash; that's a transport concern belonging to the stdio app. This forbidden list will evolve as the core boundary expands.
+    </div>
+  </div>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-core/build.gradle &mdash; wired into check</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">123</span><span class="code">check.dependsOn tasks.named(<span class="str">'verifyCorePublicationMetadata'</span>)</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>This single line is what makes the verification automatic.</strong> Every <code>make check-test</code> (and every CI run) validates the publication contract. No one has to remember to run a separate task.
+    </div>
+  </div>
+</section>
+
+<!-- ========== CHAPTER 6: E2E Verification Script ========== -->
+<section class="chapter" id="e2e-verification">
+  <div class="chapter-header">
+    <span class="chapter-number green">6</span>
+    <h2>E2E Boundary Verification Script</h2>
+  </div>
+
+  <div class="callout note">
+    <span class="callout-label">Tracer bullet</span>
+    <strong>This script is a temporary tracer bullet, not permanent infrastructure.</strong> It was written to validate assumptions and mitigate unknowns early in the Gradle migration &mdash; specifically, to prove the publication pipeline works end-to-end before downstream slices depend on it. The <code>verifyCorePublicationMetadata</code> Gradle task (Chapter 5) is the durable verification layer; this script will be removed once the publication path is proven in CI. Don't invest review time in its error handling or logging conventions.
+  </div>
+
+  <p class="narrative">
+    <strong>The Gradle task validates metadata; the E2E script validates the actual JAR contents.</strong>
+    They cover complementary failure modes: the Gradle task catches wrong dependency scopes or leaked transitives in the POM/module.json. The shell script catches the case where the JAR itself contains classes that shouldn't be there &mdash; for example, if someone accidentally puts a local-only source file under <code>contrast-mcp-core/src</code>.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">hack/verify-core-publication.sh</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">1</span><span class="code"><span class="comment">#!/usr/bin/env bash</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">2</span><span class="code"><span class="kw">set</span> -euo pipefail</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">3</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">4</span><span class="code">ROOT_DIR=<span class="str">"$(cd "$(dirname "${BASH_SOURCE[0]}")/.." &amp;&amp; pwd)"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">5</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">6</span><span class="code">log() {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">7</span><span class="code">  printf <span class="str">'[core-publication] %s\n'</span> <span class="str">"$*"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">8</span><span class="code">}</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">9</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">10</span><span class="code"><span class="kw">cd</span> <span class="str">"${ROOT_DIR}"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">11</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">12</span><span class="code">version=<span class="str">"$(./gradlew -q printVersion)"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">13</span><span class="code">jar_path=<span class="str">"${ROOT_DIR}/contrast-mcp-core/build/libs/contrast-mcp-core-${version}.jar"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">14</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">15</span><span class="code">log <span class="str">"gate=S3B-CORE-BOUNDARY-SMOKE step=publishToMavenLocal version=${version}"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">16</span><span class="code">./gradlew --no-daemon :contrast-mcp-core:publishToMavenLocal :contrast-mcp-core:verifyCorePublicationMetadata</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>The script runs both <code>publishToMavenLocal</code> and the metadata verification in one Gradle invocation.</strong> After this step, the JAR exists on disk and the POM/module.json have been validated. The structured log format (<code>gate=</code>, <code>step=</code>, <code>assertion=</code>) follows the project's E2E script convention for machine-parseable diagnostics.
+    </div>
+  </div>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">hack/verify-core-publication.sh &mdash; required &amp; forbidden classes</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">24</span><span class="code">required_classes=(</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">25</span><span class="code">  <span class="str">"com/contrast/labs/ai/mcp/contrast/tool/validation/ToolValidationContext.class"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">26</span><span class="code">  <span class="str">"com/contrast/labs/ai/mcp/contrast/tool/base/ToolParams.class"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">27</span><span class="code">  <span class="str">"com/contrast/labs/ai/mcp/contrast/hints/HintGenerator.class"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">28</span><span class="code">)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">29</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">39</span><span class="code">forbidden_classes=(</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">40</span><span class="code">  <span class="str">"com/contrast/labs/ai/mcp/contrast/McpContrastApplication.class"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">41</span><span class="code">  <span class="str">"com/contrast/labs/ai/mcp/contrast/config/ContrastProperties.class"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">42</span><span class="code">  <span class="str">"com/contrast/labs/ai/mcp/contrast/config/ContrastSDKFactory.class"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">43</span><span class="code">  <span class="str">"com/contrast/labs/ai/mcp/contrast/config/SDKExtensionFactory.class"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">44</span><span class="code">  <span class="str">"com/contrast/labs/ai/mcp/contrast/client/SdkApiClient.class"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">45</span><span class="code">  <span class="str">"com/contrast/labs/ai/mcp/contrast/sdkextension/SDKHelper.class"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">46</span><span class="code">  <span class="str">"com/contrast/labs/ai/mcp/contrast/sdkextension/SDKExtension.class"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">47</span><span class="code">  <span class="str">"com/contrast/labs/ai/mcp/contrast/tool/sast/GetSastResultsTool.class"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">48</span><span class="code">)</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>These two lists encode the boundary contract from the bead's acceptance criteria.</strong> Required classes (<code>ToolValidationContext</code>, <code>ToolParams</code>, <code>HintGenerator</code>) are the transport-neutral support types that the hosted server needs. Forbidden classes are local-only runtime concerns: the Spring Boot application entry point, credential/SDK factory wiring, extension caches, and the local-only SAST tool.
+    </div>
+  </div>
+
+  <div class="callout security">
+    <span class="callout-label">Security consideration</span>
+    <strong>The forbidden class list includes <code>ContrastProperties</code> and <code>SdkApiClient</code>.</strong> These classes handle Contrast API credentials. Their presence in the hosted server's classpath would mean the local credential-handling code could accidentally be instantiated in a shared cloud environment &mdash; a security boundary violation. The E2E script enforces this at the class level, not just at the dependency level.
+  </div>
+</section>
+
+<!-- ========== CHAPTER 7: CI Hardening ========== -->
+<section class="chapter" id="ci-hardening">
+  <div class="chapter-header">
+    <span class="chapter-number yellow">7</span>
+    <h2>CI Hardening &amp; Housekeeping</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>The release workflow's Docker content trust secrets were leaked as workflow-level environment variables, visible to every step in the job.</strong>
+    This was caught during code review of the S3A Gradle migration work and fixed opportunistically here rather than as a separate PR. The change scopes secrets to only the three steps that actually use them: key loading, trust loading, and the final push-and-sign step. It also quotes the <code>docker push</code> argument to prevent word splitting on tags with spaces (unlikely but defensive), and adds <code>.env*</code> to <code>.dockerignore</code> so credential files can't accidentally end up in the Docker build context.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">.github/workflows/gradle-release.yml</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">6</span><span class="code"><span class="prop">env:</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">7</span><span class="code">  <span class="prop">DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE:</span> <span class="str">"${{secrets.DIGICERT_PKEY_PASSPHRASE}}"</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">8</span><span class="code">  <span class="prop">DOCKER_CONTENT_TRUST_KEY_FILENAME:</span> <span class="str">"${{secrets.DIGICERT_PKEY_FILENAME}}"</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">9</span><span class="code">  <span class="prop">DOCKER_CONTENT_TRUST_PKEY_ROLE:</span> <span class="str">"${{secrets.DIGICERT_PKEY_ROLE}}"</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">10</span><span class="code">  <span class="prop">DOCKER_CONTENT_TRUST:</span> <span class="val">1</span></span></span>
+    </pre></div>
+    <div class="annotation security-note">
+      <strong>These four workflow-level env vars made Docker content trust secrets available to every step in the job</strong> &mdash; including the Java build, Git config, and GitHub Release steps that don't need them. The scoped version exposes each secret only where it's consumed.
+    </div>
+  </div>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">.github/workflows/gradle-release.yml &mdash; Push and sign</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">151</span><span class="code">      - name: Push and sign Docker image with DCT</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">152</span><span class="code">        <span class="prop">env:</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">153</span><span class="code">          <span class="prop">DOCKER_CONTENT_TRUST:</span> <span class="val">1</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">154</span><span class="code">          <span class="prop">DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE:</span> <span class="str">${{ secrets.DIGICERT_PKEY_PASSPHRASE }}</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">155</span><span class="code">        <span class="prop">run:</span> |</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">156</span><span class="code">          echo "${{ steps.meta.outputs.tags }}" | while read -r tag; do</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">157</span><span class="code">            echo "Pushing and signing $tag"</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">158</span><span class="code">            docker push $tag</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">158</span><span class="code">            docker push <span class="str">"$tag"</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">159</span><span class="code">          done</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Only two secrets are needed at push time: <code>DOCKER_CONTENT_TRUST=1</code> and the repository passphrase.</strong> The key filename and role were already consumed in the earlier key-loading steps and aren't needed here.
+    </div>
+  </div>
+
+  <!-- Standard pattern: dockerignore and doc updates -->
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">Documentation &amp; Config Updates</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-files">.dockerignore, CLAUDE.md, README.md</span>
+    </summary>
+    <div class="sp-body">
+      <strong>Three files with minor documentation and config updates.</strong>
+      <code>.dockerignore</code> adds <code>.env*</code> to prevent credential files from entering the Docker build context.
+      <code>CLAUDE.md</code> adds a project status note and clarifies integration test skip behavior.
+      <code>README.md</code> documents the Spring Boot dependency baseline for downstream consumers.
+    </div>
+
+    <div class="diff-block">
+      <div class="diff-header">
+        <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+        <span class="filename">.dockerignore</span>
+        <span class="badge badge-modified">MODIFIED</span>
+      </div>
+      <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">1</span><span class="code">.git</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">2</span><span class="code">.gradle</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">3</span><span class="code">.env*</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">4</span><span class="code">**/.gradle</span></span>
+      </pre></div>
+    </div>
+
+    <div class="diff-block">
+      <div class="diff-header">
+        <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+        <span class="filename">README.md &mdash; Build Compatibility section</span>
+        <span class="badge badge-modified">MODIFIED</span>
+      </div>
+      <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">176</span><span class="code">### Build Compatibility</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">177</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">178</span><span class="code">This repository builds and tests against Java 21 and the Spring Boot dependency-management</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">179</span><span class="code">version pinned by `springBootVersion` in `gradle.properties` (currently Spring Boot 3.5.7).</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">180</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">181</span><span class="code">The `contrast-mcp-core` module imports the Spring Boot BOM as a regular Gradle `platform()`</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">182</span><span class="code">so published-library consumers can keep control of their dependency graph. The deployable</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">183</span><span class="code">`contrast-mcp-stdio-app` module uses `enforcedPlatform()` so the shipped application runs</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">184</span><span class="code">with the exact Spring-managed dependency set tested by this repository.</span></span>
+      </pre></div>
+    </div>
+  </details>
+</section>
+
+<!-- ========== CHAPTER 8: File Summary ========== -->
+<section class="chapter" id="file-summary">
+  <div class="chapter-header">
+    <span class="chapter-number blue">8</span>
+    <h2>File Summary</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>Suggested review order: start with the BOM split in <code>build.gradle</code>, then the core publishing + verification in <code>contrast-mcp-core/build.gradle</code>, then the E2E script, then the CI hardening.</strong> The documentation files are safe to skim last.
+  </p>
+
+  <table class="file-table">
+    <thead><tr><th>File</th><th>Purpose</th><th>Lines</th><th>Novelty</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>contrast-mcp-core/build.gradle</td>
+        <td>maven-publish config + <code>verifyCorePublicationMetadata</code> task</td>
+        <td class="addition">+121</td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>hack/verify-core-publication.sh</td>
+        <td>E2E boundary verification: required/forbidden class validation</td>
+        <td class="addition">+58</td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>build.gradle</td>
+        <td>Split BOM binding: <code>platform()</code> for core, <code>enforcedPlatform()</code> for app</td>
+        <td class="addition">+9 / <span class="deletion">&minus;1</span></td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>.github/workflows/gradle-release.yml</td>
+        <td>Scope DCT secrets to consuming steps; quote <code>docker push</code></td>
+        <td class="addition">+17 / <span class="deletion">&minus;8</span></td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>README.md</td>
+        <td>Spring Boot dependency baseline for consumers</td>
+        <td class="addition">+10</td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+      <tr>
+        <td>CLAUDE.md</td>
+        <td>Project status note, integration test clarification</td>
+        <td class="addition">+4 / <span class="deletion">&minus;1</span></td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+      <tr>
+        <td>.dockerignore</td>
+        <td>Exclude <code>.env*</code> from Docker build context</td>
+        <td class="addition">+1</td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout future">
+    <span class="callout-label">Future work</span>
+    <strong>The core module will grow iteratively as SDK coupling is broken slice by slice.</strong> S3C aligns CI, Makefile, and contributor docs. S4 introduces <code>ContrastApiClient</code> as the abstraction that decouples tools from local SDK wiring (the exact shape depends on whether the Contrast SDK can support OAuth tokens &mdash; still being discussed with the security team). S5 ports the first shared vulnerability tool. Subsequent slices continue until all 12 remote-eligible tools, base classes, models, SDK extensions, and hints live in core &mdash; the ~6,000-line shared surface described in ADR-011.
+  </div>
+</section>
+
+</main>
+
+<footer>
+  PR #116 &middot; AIML-757 &middot; Contrast-Security-OSS/mcp-contrast
+</footer>
+
+</body>
+</html>

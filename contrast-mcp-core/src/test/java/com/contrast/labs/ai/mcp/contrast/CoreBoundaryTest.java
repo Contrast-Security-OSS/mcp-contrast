@@ -47,30 +47,36 @@ class CoreBoundaryTest {
           "SDKHelper.java",
           "SDKExtension.java",
           "GetSastResultsTool.java");
-  private static final List<String> LOCAL_ONLY_TEXT =
+  private static final List<LocalOnlyPattern> LOCAL_ONLY_TEXT =
       List.of(
-          "com.contrast.labs.ai.mcp.contrast.config",
-          "com.contrastsecurity",
-          "org.springframework.ai",
-          "spring-ai",
-          "@Configuration",
-          "ContrastSDKFactory",
-          "SDKExtensionFactory",
-          "SdkApiClient",
-          "SDKHelper",
-          "McpContrastApplication",
-          "com.google.common.cache",
-          "get_scan_results",
-          "sarif",
-          "SARIF");
+          new LocalOnlyPattern(
+              "stdio app configuration", "com.contrast.labs.ai.mcp.contrast.config"),
+          new LocalOnlyPattern("Contrast SDK direct dependency", "com.contrastsecurity"),
+          new LocalOnlyPattern("Spring AI transport/runtime dependency", "org.springframework.ai"),
+          new LocalOnlyPattern("Spring AI transport/runtime dependency", "spring-ai"),
+          new LocalOnlyPattern("Spring application configuration", "@Configuration"),
+          new LocalOnlyPattern("local SDK factory", "ContrastSDKFactory"),
+          new LocalOnlyPattern("local SDK extension factory", "SDKExtensionFactory"),
+          new LocalOnlyPattern("local SDK API client", "SdkApiClient"),
+          new LocalOnlyPattern("local SDK helper/cache implementation", "SDKHelper"),
+          new LocalOnlyPattern("stdio application bootstrap", "McpContrastApplication"),
+          new LocalOnlyPattern("local SDK helper/cache implementation", "com.google.common.cache"),
+          new LocalOnlyPattern("local-only raw SARIF tool", "get_scan_results"),
+          new LocalOnlyPattern("local-only raw SARIF tool", "sarif"),
+          new LocalOnlyPattern("local-only raw SARIF tool", "SARIF"));
 
   @Test
-  void core_should_include_current_shared_support_types_and_no_local_only_types()
-      throws IOException {
+  void core_should_include_current_shared_support_types() throws IOException {
     var sourceFiles = javaSources().toList();
 
     assertThat(sourceFiles).as("core module must contain Java sources").isNotEmpty();
     assertThat(sourceFiles.stream().map(CORE_MAIN::relativize)).containsAll(REQUIRED_SUPPORT_TYPES);
+  }
+
+  @Test
+  void core_should_not_include_local_only_type_names() throws IOException {
+    var sourceFiles = javaSources().toList();
+
     assertThat(sourceFiles)
         .extracting(path -> path.getFileName().toString())
         .doesNotContainAnyElementsOf(LOCAL_ONLY_TYPES);
@@ -80,13 +86,11 @@ class CoreBoundaryTest {
   void core_should_not_reference_local_app_runtime_sdk_wiring_cache_or_sarif_tools()
       throws IOException {
     var localOnlyMatches =
-        javaSources()
-            .flatMap(CoreBoundaryTest::localOnlyMatches)
-            .map(Path::toString)
-            .distinct()
-            .toList();
+        javaSources().flatMap(CoreBoundaryTest::localOnlyMatches).distinct().toList();
 
-    assertThat(localOnlyMatches).isEmpty();
+    assertThat(localOnlyMatches)
+        .as("core source must not reference local-only stdio, SDK, cache, or SARIF concerns")
+        .isEmpty();
   }
 
   private static Stream<Path> javaSources() throws IOException {
@@ -100,15 +104,19 @@ class CoreBoundaryTest {
     return Path.of(parts[0], Arrays.copyOfRange(parts, 1, parts.length));
   }
 
-  private static Stream<Path> localOnlyMatches(Path path) {
+  private static Stream<String> localOnlyMatches(Path path) {
     try {
       var text = Files.readString(path, StandardCharsets.UTF_8);
-      if (LOCAL_ONLY_TEXT.stream().anyMatch(text::contains)) {
-        return Stream.of(path);
-      }
-      return Stream.empty();
+      return LOCAL_ONLY_TEXT.stream()
+          .filter(pattern -> text.contains(pattern.token()))
+          .map(
+              pattern ->
+                  "%s references %s token `%s`"
+                      .formatted(CORE_MAIN.relativize(path), pattern.category(), pattern.token()));
     } catch (IOException e) {
       throw new IllegalStateException("Failed to read " + path, e);
     }
   }
+
+  private record LocalOnlyPattern(String category, String token) {}
 }

@@ -1,6 +1,127 @@
+import groovy.json.JsonSlurper
+import javax.xml.parsers.DocumentBuilderFactory
+import javax.xml.xpath.XPathConstants
+import javax.xml.xpath.XPathFactory
+
+plugins {
+    id 'maven-publish'
+}
+
 dependencies {
     api 'org.springframework:spring-core'
     api 'com.google.code.gson:gson'
 
     implementation 'org.slf4j:slf4j-api'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            pom {
+                name = 'contrast-mcp-core'
+                description = 'Transport-neutral shared support library for Contrast MCP servers.'
+                url = 'https://github.com/Contrast-Security-Inc/mcp-contrast'
+                licenses {
+                    license {
+                        name = 'Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0'
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = version.toString().endsWith('-SNAPSHOT')
+                ? 'contrastInternalSnapshot'
+                : 'contrastInternalRelease'
+            url = uri(version.toString().endsWith('-SNAPSHOT')
+                ? 'https://pkg.contrastsecurity.com/artifactory/maven-snapshot-local'
+                : 'https://pkg.contrastsecurity.com/artifactory/maven-release-local')
+            credentials {
+                username = findProperty('contrastArtifactoryUser') ?: ''
+                password = findProperty('contrastArtifactoryPassword') ?: ''
+            }
+        }
+    }
+}
+
+tasks.register('verifyCorePublicationMetadata') {
+    description = 'Validates published contrast-mcp-core POM and Gradle module metadata.'
+    group = 'verification'
+    dependsOn 'generateMetadataFileForMavenJavaPublication'
+    dependsOn 'generatePomFileForMavenJavaPublication'
+
+    doLast {
+        def pomFile = layout.buildDirectory.file('publications/mavenJava/pom-default.xml').get().asFile
+        def moduleFile = layout.buildDirectory.file('publications/mavenJava/module.json').get().asFile
+        def documentBuilderFactory = DocumentBuilderFactory.newInstance()
+        documentBuilderFactory.setNamespaceAware(true)
+        def pom = documentBuilderFactory.newDocumentBuilder().parse(pomFile)
+        def xpath = XPathFactory.newInstance().newXPath()
+        def module = new JsonSlurper().parse(moduleFile)
+        def dependencies = []
+        def dependencyNodes = xpath.evaluate(
+            "/*[local-name()='project']/*[local-name()='dependencies']/*[local-name()='dependency']",
+            pom,
+            XPathConstants.NODESET)
+        for (def i = 0; i < dependencyNodes.length; i++) {
+            def dependencyNode = dependencyNodes.item(i)
+            dependencies.add(
+                "${textOf(xpath, dependencyNode, 'groupId')}:${textOf(xpath, dependencyNode, 'artifactId')}:${textOf(xpath, dependencyNode, 'scope')}"
+                    .toString())
+        }
+
+        [
+            'org.springframework:spring-core:compile',
+            'com.google.code.gson:gson:compile',
+            'org.slf4j:slf4j-api:runtime'
+        ].each { expectedDependency ->
+            if (!dependencies.contains(expectedDependency)) {
+                throw new GradleException(
+                    "Missing expected POM dependency ${expectedDependency}; found ${dependencies}")
+            }
+        }
+
+        [
+            'org.projectlombok:lombok',
+            'com.contrast.labs.ai.mcp:contrast-mcp-stdio-app',
+            'com.contrastsecurity:contrast-sdk-java',
+            'org.springframework.ai:spring-ai-starter-mcp-server'
+        ].each { forbiddenDependency ->
+            if (dependencies.any { it.startsWith("${forbiddenDependency}:") }) {
+                throw new GradleException("POM must not publish ${forbiddenDependency}")
+            }
+        }
+
+        def moduleDependencies = module.variants.dependencies.flatten().collect {
+            "${it.group}:${it.module}".toString()
+        }
+        [
+            'org.springframework:spring-core',
+            'com.google.code.gson:gson',
+            'org.slf4j:slf4j-api'
+        ].each { expectedDependency ->
+            if (!moduleDependencies.contains(expectedDependency)) {
+                throw new GradleException("Missing expected Gradle metadata dependency ${expectedDependency}")
+            }
+        }
+        [
+            'org.projectlombok:lombok',
+            'com.contrast.labs.ai.mcp:contrast-mcp-stdio-app',
+            'com.contrastsecurity:contrast-sdk-java',
+            'org.springframework.ai:spring-ai-starter-mcp-server'
+        ].each { forbiddenDependency ->
+            if (moduleDependencies.contains(forbiddenDependency)) {
+                throw new GradleException("Gradle metadata must not publish ${forbiddenDependency}")
+            }
+        }
+    }
+}
+
+check.dependsOn tasks.named('verifyCorePublicationMetadata')
+
+private static String textOf(def xpath, def element, String name) {
+    xpath.evaluate("*[local-name()='${name}']/text()", element)
 }

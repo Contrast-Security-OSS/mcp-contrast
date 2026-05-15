@@ -23,6 +23,10 @@ bootJar {
     archiveBaseName = 'mcp-contrast'
 }
 
+jar {
+    enabled = false
+}
+
 springBoot {
     buildInfo()
 }
@@ -32,10 +36,6 @@ processResources {
         filter ReplaceTokens, tokens: ['project.version': project.version.toString()]
     }
 }
-
-def defaultIntegrationTestMaxParallelForks = Math.max(
-    1,
-    Math.min(5, Runtime.runtime.availableProcessors().intdiv(2)))
 
 def contrastIntegrationTestCredentialEnvVars = [
     'CONTRAST_HOST_NAME',
@@ -56,8 +56,7 @@ tasks.register('integrationTest', Test) {
     testClassesDirs = sourceSets.test.output.classesDirs
     classpath = sourceSets.test.runtimeClasspath
     maxParallelForks = rootProject.ext.positiveIntProperty(
-        'integrationTestMaxParallelForks',
-        defaultIntegrationTestMaxParallelForks)
+        'integrationTestMaxParallelForks', 1)
     shouldRunAfter test
     include '**/*IT.class'
     include '**/*IntegrationTest.class'

@@ -3,11 +3,9 @@ name: Gradle Release
 on:
   workflow_dispatch:
 
-env:
-  DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: "${{secrets.DIGICERT_PKEY_PASSPHRASE}}"
-  DOCKER_CONTENT_TRUST_KEY_FILENAME: "${{secrets.DIGICERT_PKEY_FILENAME}}"
-  DOCKER_CONTENT_TRUST_PKEY_ROLE: "${{secrets.DIGICERT_PKEY_ROLE}}"
-  DOCKER_CONTENT_TRUST: 1
+concurrency:
+  group: gradle-release
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -28,6 +26,12 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+
+      - name: Ensure release runs from main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "Gradle Release must be dispatched from main, but got $GITHUB_REF"
+          exit 1
 
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
@@ -52,11 +56,11 @@ jobs:
           echo "Current version: $CURRENT"
 
           # Strip -SNAPSHOT to get release version (e.g., "0.0.12")
-          RELEASE_VERSION=$(echo $CURRENT | sed 's/-SNAPSHOT//')
+          RELEASE_VERSION=$(echo "$CURRENT" | sed 's/-SNAPSHOT//')
           echo "Release version: $RELEASE_VERSION"
 
           # Increment patch version for next dev version (e.g., "0.0.13-SNAPSHOT")
-          NEXT_VERSION=$(echo $RELEASE_VERSION | awk -F. '{$NF = $NF + 1;} 1' OFS=.)
+          NEXT_VERSION=$(echo "$RELEASE_VERSION" | awk -F. '{$NF = $NF + 1;} 1' OFS=.)
           NEXT_DEV_VERSION="${NEXT_VERSION}-SNAPSHOT"
           echo "Next dev version: $NEXT_DEV_VERSION"
 
@@ -66,18 +70,19 @@ jobs:
 
       - name: Prepare Release
         run: |
-          ./gradlew setVersion -PnewVersion=${{ steps.versions.outputs.release }} --no-daemon
+          ./gradlew setVersion -PnewVersion="${{ steps.versions.outputs.release }}" --no-daemon
           ./gradlew clean spotlessCheck check :contrast-mcp-stdio-app:integrationTest :contrast-mcp-stdio-app:bootJar --no-daemon
+          test -f "contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar"
           git add gradle.properties
           git commit -m "[gradle-release] prepare release v${{ steps.versions.outputs.release }}"
           git tag v${{ steps.versions.outputs.release }}
-          ./gradlew setVersion -PnewVersion=${{ steps.versions.outputs.next }} --no-daemon
+          ./gradlew setVersion -PnewVersion="${{ steps.versions.outputs.next }}" --no-daemon
           git add gradle.properties
           git commit -m "[gradle-release] prepare next development iteration"
 
       - name: Push Changes and Tags
         run: |
-          git push origin HEAD:main
+          git push origin HEAD:${{ github.ref_name }}
           git push origin v${{ steps.versions.outputs.release }}
 
       - name: Checkout Release Tag
@@ -104,14 +109,23 @@ jobs:
 
       - name: Save PKEY to file
         shell: sh
-        run: echo "${{secrets.DIGICERT_PKEY}}" > ~/.docker/trust/private/"${{secrets.DIGICERT_PKEY_FILENAME}}"
+        env:
+          DIGICERT_PKEY: ${{ secrets.DIGICERT_PKEY }}
+          DOCKER_CONTENT_TRUST_KEY_FILENAME: ${{ secrets.DIGICERT_PKEY_FILENAME }}
+        run: printf '%s\n' "$DIGICERT_PKEY" > ~/.docker/trust/private/"$DOCKER_CONTENT_TRUST_KEY_FILENAME"
 
       - name: Chmod key
         shell: sh
-        run: chmod 600 ~/.docker/trust/private/"${{secrets.DIGICERT_PKEY_FILENAME}}"
+        env:
+          DOCKER_CONTENT_TRUST_KEY_FILENAME: ${{ secrets.DIGICERT_PKEY_FILENAME }}
+        run: chmod 600 ~/.docker/trust/private/"$DOCKER_CONTENT_TRUST_KEY_FILENAME"
 
       - name: Docker load PKEY
-        run: docker trust key load ~/.docker/trust/private/"${{secrets.DIGICERT_PKEY_FILENAME}}" --name "${{secrets.DIGICERT_PKEY_ROLE}}"
+        env:
+          DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: ${{ secrets.DIGICERT_PKEY_PASSPHRASE }}
+          DOCKER_CONTENT_TRUST_KEY_FILENAME: ${{ secrets.DIGICERT_PKEY_FILENAME }}
+          DOCKER_CONTENT_TRUST_PKEY_ROLE: ${{ secrets.DIGICERT_PKEY_ROLE }}
+        run: docker trust key load ~/.docker/trust/private/"$DOCKER_CONTENT_TRUST_KEY_FILENAME" --name "$DOCKER_CONTENT_TRUST_PKEY_ROLE"
 
       - name: Set up Docker Buildx
         uses: step-security/setup-buildx-action@f931205d68723ad9589fd2a7e2ece238bf9de341 # v4.0.0
@@ -146,9 +160,12 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Push and sign Docker image with DCT
+        env:
+          DOCKER_CONTENT_TRUST: 1
+          DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: ${{ secrets.DIGICERT_PKEY_PASSPHRASE }}
         run: |
           # The tags are newline-separated, not comma-separated
           echo "${{ steps.meta.outputs.tags }}" | while read -r tag; do
             echo "Pushing and signing $tag"
-            docker push $tag
+            docker push "$tag"
           done
