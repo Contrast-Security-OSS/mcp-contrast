@@ -1,6 +1,6 @@
 # Contrast MCP Server
 
-[![Java CI with Maven](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml)
+[![Java CI with Gradle](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 The Contrast MCP Server allows you to connect Contrast Security to your AI coding agent to automatically remediate vulnerabilities, update insecure libraries, and analyze security coverage—all through natural language prompts.
@@ -66,7 +66,7 @@ The Contrast MCP Server provides 13 tools for security analysis and vulnerabilit
 ## Quick Start
 
 ### Prerequisites
-- Docker (recommended) or Java 17+ for JAR deployment
+- Docker (recommended) or Java 21+ for JAR deployment
 - Contrast API credentials ([how to get API credentials](https://docs.contrastsecurity.com/en/personal-keys.html))
 
 ### VS Code (GitHub Copilot) - One-Click Install
@@ -165,13 +165,13 @@ The JAR file will be named `mcp-contrast-X.X.X.jar`.
 
 ### Build from Source
 
-Alternatively, you can build from source if you need the latest development version. Requires Java 17+:
+Alternatively, you can build from source if you need the latest development version. Requires Java 21+:
 
 ```bash
-mvn clean install
+./gradlew :contrast-mcp-stdio-app:bootJar
 ```
 
-The built JAR will be located at `target/mcp-contrast-X.X.X-SNAPSHOT.jar`
+The built JAR will be located at `contrast-mcp-stdio-app/build/libs/mcp-contrast-X.X.X-SNAPSHOT.jar`
 
 
 

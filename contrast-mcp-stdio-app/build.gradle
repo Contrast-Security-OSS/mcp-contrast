@@ -1,0 +1,71 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
+plugins {
+    id 'org.springframework.boot'
+}
+
+dependencies {
+    implementation project(':contrast-mcp-core')
+    // Keep Spring Boot's enforced dependency management authoritative; Spring AI supplies only its own coordinates.
+    implementation platform("org.springframework.ai:spring-ai-bom:${springAiVersion}")
+
+    implementation 'com.google.code.gson:gson'
+    implementation "com.google.guava:guava:${guavaVersion}"
+    implementation "com.contrastsecurity:contrast-sdk-java:${contrastSdkVersion}"
+    implementation "commons-validator:commons-validator:${commonsValidatorVersion}"
+    implementation 'org.springframework.ai:spring-ai-starter-mcp-server'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation "org.mockito:mockito-inline:${mockitoInlineVersion}"
+}
+
+bootJar {
+    archiveBaseName = 'mcp-contrast'
+}
+
+springBoot {
+    buildInfo()
+}
+
+processResources {
+    filesMatching('application.properties') {
+        filter ReplaceTokens, tokens: ['project.version': project.version.toString()]
+    }
+}
+
+def defaultIntegrationTestMaxParallelForks = Math.max(
+    1,
+    Math.min(5, Runtime.runtime.availableProcessors().intdiv(2)))
+
+def contrastIntegrationTestCredentialEnvVars = [
+    'CONTRAST_HOST_NAME',
+    'CONTRAST_API_KEY',
+    'CONTRAST_SERVICE_KEY',
+    'CONTRAST_USERNAME',
+    'CONTRAST_ORG_ID'
+]
+
+test {
+    exclude '**/*IT.class'
+    exclude '**/*IntegrationTest.class'
+}
+
+tasks.register('integrationTest', Test) {
+    description = 'Runs integration tests.'
+    group = 'verification'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    maxParallelForks = rootProject.ext.positiveIntProperty(
+        'integrationTestMaxParallelForks',
+        defaultIntegrationTestMaxParallelForks)
+    shouldRunAfter test
+    include '**/*IT.class'
+    include '**/*IntegrationTest.class'
+    contrastIntegrationTestCredentialEnvVars.each { credentialEnvVar ->
+        def credentialValue = System.getenv(credentialEnvVar)
+        if (credentialValue) {
+            systemProperty credentialEnvVar, credentialValue
+            environment credentialEnvVar, credentialValue
+        }
+    }
+}

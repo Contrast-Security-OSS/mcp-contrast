@@ -26,28 +26,28 @@ This project includes integration tests that run against a real Contrast TeamSer
 
 ### Run integration tests only:
 ```bash
-mvn verify
+./gradlew :contrast-mcp-stdio-app:integrationTest
 ```
 
 ### Run all tests (unit + integration):
 ```bash
-mvn clean verify
+./gradlew clean test :contrast-mcp-stdio-app:integrationTest
 ```
 
 ### Skip integration tests:
 ```bash
-mvn verify -DskipITs
+./gradlew test
 ```
 
 ### Run only unit tests (default):
 ```bash
-mvn test
+./gradlew test
 ```
 
 ## How It Works
 
-- **Unit tests** (`*Test.java`) run during the `test` phase via Maven Surefire
-- **Integration tests** (`*IT.java`) run during the `verify` phase via Maven Failsafe
+- **Unit tests** (`*Test.java`) run with the Gradle `test` task
+- **Integration tests** (`*IT.java`) run with the Gradle `:contrast-mcp-stdio-app:integrationTest` task
 - Integration tests only execute if `CONTRAST_HOST_NAME` environment variable is set
 - If environment variables are missing, integration tests are automatically skipped
 
@@ -64,7 +64,7 @@ Example GitHub Actions workflow:
 
 ```yaml
 - name: Run integration tests
-  run: mvn verify
+  run: ./gradlew :contrast-mcp-stdio-app:integrationTest
   env:
     CONTRAST_HOST_NAME: ${{ secrets.CONTRAST_HOST_NAME }}
     CONTRAST_API_KEY: ${{ secrets.CONTRAST_API_KEY }}
@@ -83,16 +83,16 @@ Tests that environments and tags are properly populated from TeamServer API:
 
 ## Adding New Integration Tests
 
-1. Create a new test class in `src/test/java` with the `IT` suffix (e.g., `MyFeatureIT.java`)
+1. Create a new test class in `contrast-mcp-stdio-app/src/test/java` with the `IT` suffix (e.g., `MyFeatureIT.java`)
 2. Annotate with `@EnabledIfEnvironmentVariable(named = "CONTRAST_HOST_NAME", matches = ".+")`
 3. Use real Contrast SDK calls (no mocking)
-4. Run with `mvn verify` to execute
+4. Run with `./gradlew :contrast-mcp-stdio-app:integrationTest` to execute
 
 ## Troubleshooting
 
 **Integration tests don't run:**
 - Verify environment variables are set: `echo $CONTRAST_HOST_NAME`
-- Make sure you're running `mvn verify` (not just `mvn test`)
+- Make sure you're running `./gradlew :contrast-mcp-stdio-app:integrationTest` (not just `./gradlew test`)
 - Check that test class name ends with `IT.java`
 
 **Tests fail with authentication errors:**

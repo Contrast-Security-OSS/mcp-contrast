@@ -70,7 +70,7 @@ run_with_quiet() {
 run_silent_with_test_count() {
     local description="$1"
     local command="$2"
-    local test_type="${3:-maven}"  # Default to maven for this project
+    local test_type="${3:-gradle}"
 
     if [ "$VERBOSE" = "1" ]; then
         echo "  → Running: $command"
@@ -79,36 +79,21 @@ run_silent_with_test_count() {
     fi
 
     local tmp_file=$(mktemp)
+    local marker_file=$(mktemp)
+    local start_time=$(timer_now)
     local test_count=""
     local duration=""
 
+    if [ "$test_type" = "gradle" ]; then
+        find . -path "*/build/test-results" -type d -prune -exec rm -rf {} + 2>/dev/null
+    fi
+
     if eval "$command" > "$tmp_file" 2>&1; then
+        duration=$(elapsed_since "$start_time")
         # Extract test count based on test type
         case "$test_type" in
-            maven)
-                # Look for Maven Surefire/Failsafe summary
-                # Format: "Tests run: 45, Failures: 0, Errors: 0, Skipped: 2"
-                local summary=$(grep -E "Tests run: [0-9]+" "$tmp_file" | tail -1)
-                if [ -n "$summary" ]; then
-                    test_count=$(echo "$summary" | grep -oE "Tests run: [0-9]+" | grep -oE "[0-9]+")
-                    local failures=$(echo "$summary" | grep -oE "Failures: [0-9]+" | grep -oE "[0-9]+")
-                    local errors=$(echo "$summary" | grep -oE "Errors: [0-9]+" | grep -oE "[0-9]+")
-                    local skipped=$(echo "$summary" | grep -oE "Skipped: [0-9]+" | grep -oE "[0-9]+")
-
-                    # Extract time from "[INFO] Total time:" line
-                    duration=$(grep -E "Total time:" "$tmp_file" | grep -oE "[0-9.]+ s" | tail -1)
-
-                    if [ -n "$test_count" ]; then
-                        local extra=""
-                        [ "$skipped" != "0" ] && [ -n "$skipped" ] && extra=", $skipped skipped"
-                        printf "  ${GREEN}✓${NC} %s (%s tests%s%s)\n" "$description" "$test_count" "$extra" "${duration:+, $duration}"
-                    else
-                        printf "  ${GREEN}✓${NC} %s\n" "$description"
-                    fi
-                else
-                    # No test summary found (might be compile-only)
-                    printf "  ${GREEN}✓${NC} %s\n" "$description"
-                fi
+            gradle)
+                print_gradle_summary "$description" "$marker_file" "$duration"
                 ;;
             pytest)
                 # Look for pytest summary line like "45 passed in 2.3s"
@@ -152,32 +137,21 @@ run_silent_with_test_count() {
                 ;;
         esac
         rm -f "$tmp_file"
+        rm -f "$marker_file"
         return 0
     else
         local exit_code=$?
+        duration=$(elapsed_since "$start_time")
         printf "  ${RED}✗${NC} %s\n" "$description"
         printf "${RED}Command failed: %s${NC}\n" "$command"
 
-        # For Maven failures, show relevant error info
-        if [ "$test_type" = "maven" ]; then
-            printf "\n${YELLOW}=== Error Summary ===${NC}\n"
-
-            # Show test summary if tests ran
-            grep -E "Tests run:.*Failures: [1-9]|Tests run:.*Errors: [1-9]" "$tmp_file" 2>/dev/null | tail -3
-
-            # Trust Maven's [ERROR] tagging - it knows what's important
-            # Show all ERROR lines with 2 lines of context after
-            grep -A 2 "^\[ERROR\]" "$tmp_file" 2>/dev/null | head -50
-
-            # If no [ERROR] lines found, show last 20 lines as fallback
-            if ! grep -q "^\[ERROR\]" "$tmp_file" 2>/dev/null; then
-                printf "\n${YELLOW}(No [ERROR] lines found, showing tail)${NC}\n"
-                tail -20 "$tmp_file"
-            fi
+        if [ "$test_type" = "gradle" ]; then
+            print_gradle_failure_summary "$marker_file" "$tmp_file" "$duration"
         else
             cat "$tmp_file"
         fi
         rm -f "$tmp_file"
+        rm -f "$marker_file"
         return $exit_code
     fi
 }
@@ -200,54 +174,124 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
-# Maven-specific helpers
+timer_now() {
+    perl -MTime::HiRes=time -e 'printf "%.6f", time'
+}
 
-# Run Maven with quiet output, show full output on failure
-mvn_silent() {
+elapsed_since() {
+    local start_time="$1"
+    local end_time
+    end_time=$(timer_now)
+    perl -e 'printf "%.2f s", $ARGV[1] - $ARGV[0]' "$start_time" "$end_time"
+}
+
+gradle_test_reports() {
+    local marker_file="$1"
+    find . -path "*/build/test-results/*/TEST-*.xml" -newer "$marker_file" -print0 2>/dev/null
+}
+
+gradle_test_summary() {
+    local marker_file="$1"
+    gradle_test_reports "$marker_file" \
+        | xargs -0 perl -ne '
+            if (/<testsuite\b([^>]*)>/) {
+                $seen = 1;
+                $attrs = $1;
+                $tests += attr($attrs, "tests");
+                $failures += attr($attrs, "failures");
+                $errors += attr($attrs, "errors");
+                $skipped += attr($attrs, "skipped");
+                $time += attr($attrs, "time");
+            }
+            END {
+                printf "%d\t%d\t%d\t%d\t%.3f\n", $tests, $failures, $errors, $skipped, $time if $seen;
+            }
+            sub attr {
+                my ($attrs, $name) = @_;
+                return $1 if $attrs =~ /\b\Q$name\E="([^"]+)"/;
+                return 0;
+            }
+        ' 2>/dev/null
+}
+
+print_gradle_summary() {
     local description="$1"
-    local goals="$2"
-    local extra_args="${3:-}"
+    local marker_file="$2"
+    local duration_text="$3"
+    local summary
+    summary=$(gradle_test_summary "$marker_file")
 
-    run_silent_with_test_count "$description" "mvn $goals $extra_args" "maven"
-}
-
-# Run Maven tests
-# Uses full output to capture test count, but filters on failure
-mvn_test() {
-    local description="${1:-Unit tests}"
-    local test_pattern="${2:-}"
-    local quiet="${3:-false}"  # Set to "true" for minimal failure output
-
-    local cmd="mvn test"
-    [ -n "$test_pattern" ] && cmd="$cmd -Dtest=$test_pattern"
-    [ "$quiet" = "true" ] && cmd="$cmd -q"
-
-    if [ "$quiet" = "true" ]; then
-        run_silent "$description" "$cmd"
-    else
-        run_silent_with_test_count "$description" "$cmd" "maven"
+    if [ -z "$summary" ]; then
+        printf "  ${GREEN}✓${NC} %s\n" "$description"
+        return
     fi
+
+    local test_count failures errors skipped test_duration
+    IFS=$'\t' read -r test_count failures errors skipped test_duration <<< "$summary"
+    printf "  ${GREEN}✓${NC} %s (%s tests, %s failures, %s errors, %s skipped, %s)\n" \
+        "$description" "$test_count" "$failures" "$errors" "$skipped" "$duration_text"
 }
 
-# Run Maven verify (includes integration tests)
-mvn_verify() {
-    local description="${1:-All tests}"
-    local skip_its="${2:-false}"
+print_gradle_failure_summary() {
+    local marker_file="$1"
+    local tmp_file="$2"
+    local duration_text="$3"
+    local summary
+    summary=$(gradle_test_summary "$marker_file")
 
-    local cmd="mvn verify"
-    [ "$skip_its" = "true" ] && cmd="$cmd -DskipITs"
+    printf "\n${YELLOW}=== Error Summary ===${NC}\n"
 
-    run_silent_with_test_count "$description" "$cmd" "maven"
-}
+    if [ -n "$summary" ]; then
+        local test_count failures errors skipped test_duration test_duration_text
+        IFS=$'\t' read -r test_count failures errors skipped test_duration <<< "$summary"
+        test_duration_text=$(awk -v seconds="$test_duration" 'BEGIN { printf "%.2f s", seconds }')
+        printf "Tests run: %s, Failures: %s, Errors: %s, Skipped: %s, Time: %s\n" \
+            "$test_count" "$failures" "$errors" "$skipped" "$duration_text"
+        printf "Summed test time: %s\n" "$test_duration_text"
 
-# Run Maven compile
-mvn_compile() {
-    local description="${1:-Compile}"
-    run_silent "$description" "mvn compile"
-}
+        local failed_tests
+        failed_tests=$(gradle_test_reports "$marker_file" \
+            | xargs -0 perl -0777 -ne '
+                s{<testcase\b[^>]*/>}{}sg;
+                while (m{<testcase\b([^>]*)>(.*?)</testcase>}sg) {
+                    my ($case_attrs, $body) = ($1, $2);
+                    next unless $body =~ m{<(failure|error)\b([^>]*)>(.*?)</\1>}s
+                        || $body =~ m{<(failure|error)\b([^>]*)/>}s;
+                    my ($type, $failure_attrs, $body_text) = ($1, $2, $3 // "");
+                    my $classname = attr($case_attrs, "classname");
+                    my $name = attr($case_attrs, "name");
+                    my $message = attr($failure_attrs, "message");
+                    $message = $body_text if $message eq "";
+                    $message =~ s/\R.*//s;
+                    $message =~ s/^\s+|\s+$//g;
+                    $message = "(no message)" if $message eq "";
+                    print xml_unescape("$classname#$name: $type: $message\n");
+                }
+                sub attr {
+                    my ($attrs, $name) = @_;
+                    return $1 if $attrs =~ /\b\Q$name\E="([^"]*)"/;
+                    return "";
+                }
+                sub xml_unescape {
+                    my ($text) = @_;
+                    $text =~ s/&quot;/"/g;
+                    $text =~ s/&apos;/'\''/g;
+                    $text =~ s/&lt;/</g;
+                    $text =~ s/&gt;/>/g;
+                    $text =~ s/&amp;/&/g;
+                    return $text;
+                }
+            ' 2>/dev/null | head -20)
+        if [ -n "$failed_tests" ]; then
+            printf "\nFailed tests:\n%s\n" "$failed_tests"
+        fi
+    else
+        printf "No Gradle test XML reports were generated. Showing command output instead.\n"
+    fi
 
-# Run spotless
-mvn_spotless() {
-    local description="${1:-Format code}"
-    run_silent "$description" "mvn spotless:apply"
+    printf "\n${YELLOW}=== Gradle Output ===${NC}\n"
+    grep -E "FAILED|Execution failed|There were failing tests|See the report at|> Task .*FAILED|\\[ERROR\\]" "$tmp_file" 2>/dev/null | head -80 || true
+    if ! grep -Eq "FAILED|Execution failed|There were failing tests|See the report at|> Task .*FAILED|\\[ERROR\\]" "$tmp_file" 2>/dev/null; then
+        tail -80 "$tmp_file"
+    fi
 }

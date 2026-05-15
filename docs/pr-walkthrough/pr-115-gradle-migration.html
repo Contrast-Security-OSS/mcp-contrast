@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PR #115 Walkthrough: AIML-757 Migrate MCP Server to Gradle Modules</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-raised: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-subtle: #6e7681;
+    --accent: #58a6ff;
+    --accent-soft: rgba(88,166,255,0.15);
+    --green: #3fb950;
+    --green-bg: rgba(63,185,80,0.15);
+    --green-border: rgba(63,185,80,0.4);
+    --red: #f85149;
+    --red-bg: rgba(248,81,73,0.10);
+    --yellow: #d29922;
+    --yellow-bg: rgba(210,153,34,0.15);
+    --purple: #bc8cff;
+    --purple-bg: rgba(188,140,255,0.12);
+    --orange: #f0883e;
+    --line-num: #484f58;
+    --diff-add-bg: rgba(63,185,80,0.10);
+    --diff-add-text: #aff5b4;
+    --diff-add-marker: #3fb950;
+    --diff-del-bg: rgba(248,81,73,0.10);
+    --diff-del-text: #ffa198;
+    --diff-del-marker: #f85149;
+    --diff-context-bg: transparent;
+    --code-bg: #0d1117;
+    --nav-bg: rgba(13,17,23,0.95);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 40%, #1a1e2e 70%, #161b22 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 3rem 2rem 2.5rem;
+    text-align: center;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.3rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(88,166,255,0.3);
+    margin-bottom: 1rem;
+    letter-spacing: 0.03em;
+  }
+  .hero h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.6rem;
+    background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero .subtitle {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .hero-meta {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .hero-meta-item {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .hero-meta-item strong { color: var(--text); }
+
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--nav-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.6rem 2rem;
+    overflow-x: auto;
+  }
+  nav ol {
+    display: flex;
+    gap: 0.3rem;
+    list-style: none;
+    max-width: 1100px;
+    margin: 0 auto;
+    font-size: 0.82rem;
+    align-items: center;
+  }
+  nav li a {
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.35rem 0.7rem;
+    border-radius: 6px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  nav li a:hover { color: var(--accent); background: var(--accent-soft); }
+  nav .nav-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4em;
+    height: 1.4em;
+    border-radius: 50%;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 0.4em;
+  }
+  nav .nav-sep { color: var(--text-subtle); font-size: 0.75rem; }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 2rem 6rem;
+  }
+
+  .chapter {
+    margin-bottom: 3.5rem;
+    scroll-margin-top: 4rem;
+  }
+  .chapter-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .chapter-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .chapter-number.blue { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .chapter-number.green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .chapter-number.purple { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+  .chapter-number.yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .chapter-number.orange { background: rgba(240,136,62,0.12); color: var(--orange); border: 1px solid rgba(240,136,62,0.3); }
+  .chapter h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .narrative {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.75;
+    margin-bottom: 1.5rem;
+  }
+  .narrative strong { color: var(--text); font-weight: 600; }
+  .narrative code {
+    background: var(--surface-raised);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.88em;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  .callout {
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    border: 1px solid;
+  }
+  .callout.why {
+    background: var(--accent-soft);
+    border-color: rgba(88,166,255,0.25);
+    color: var(--text);
+  }
+  .callout.why .callout-label { color: var(--accent); }
+  .callout.security {
+    background: var(--red-bg);
+    border-color: rgba(248,81,73,0.25);
+  }
+  .callout.security .callout-label { color: var(--red); }
+  .callout.note {
+    background: var(--yellow-bg);
+    border-color: rgba(210,153,34,0.25);
+  }
+  .callout.note .callout-label { color: var(--yellow); }
+  .callout.future {
+    background: var(--purple-bg);
+    border-color: rgba(188,140,255,0.25);
+  }
+  .callout.future .callout-label { color: var(--purple); }
+  .callout-label {
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.3rem;
+    display: block;
+  }
+
+  .diff-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .diff-header {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    gap: 0.5rem;
+  }
+  .diff-header .file-icon {
+    width: 16px; height: 16px;
+    fill: var(--text-subtle);
+    flex-shrink: 0;
+  }
+  .diff-header .filename {
+    color: var(--text);
+    font-weight: 600;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+  }
+  .diff-header .badge {
+    margin-left: auto;
+    font-size: 0.72rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .badge-new { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .badge-modified { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .badge-deleted { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,81,73,0.3); }
+  .badge-renamed { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+
+  .diff-body {
+    overflow-x: auto;
+  }
+  .diff-body pre {
+    margin: 0;
+    padding: 0.4rem 0;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.3;
+    display: flex;
+    flex-direction: column;
+  }
+  .diff-line {
+    display: flex;
+    padding: 0 1rem;
+    min-height: 1.3em;
+  }
+  .diff-line.add { background: var(--diff-add-bg); }
+  .diff-line.del { background: var(--diff-del-bg); }
+  .diff-line.context { background: var(--diff-context-bg); }
+  .diff-line .marker {
+    width: 1.2em;
+    flex-shrink: 0;
+    color: var(--text-subtle);
+    user-select: none;
+    text-align: center;
+  }
+  .diff-line.add .marker { color: var(--diff-add-marker); }
+  .diff-line.del .marker { color: var(--diff-del-marker); }
+  .diff-line .ln {
+    width: 3.5em;
+    flex-shrink: 0;
+    color: var(--line-num);
+    text-align: right;
+    padding-right: 1em;
+    user-select: none;
+  }
+  .diff-line .code {
+    flex: 1;
+    white-space: pre;
+  }
+  .diff-line .code .kw { color: #ff7b72; }
+  .diff-line .code .str { color: #a5d6ff; }
+  .diff-line .code .ann { color: #d2a8ff; }
+  .diff-line .code .type { color: #79c0ff; }
+  .diff-line .code .comment { color: var(--text-subtle); font-style: italic; }
+  .diff-line .code .prop { color: #7ee787; }
+  .diff-line .code .val { color: #a5d6ff; }
+  .diff-line .code .num { color: #79c0ff; }
+  .diff-line .code .param { color: #ffa657; }
+
+  .annotation {
+    background: var(--surface-raised);
+    border-left: 3px solid var(--accent);
+    padding: 0.7rem 1rem;
+    margin: 0 1rem 0.3rem 1rem;
+    border-radius: 0 6px 6px 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+  .annotation strong { color: var(--text); }
+  .annotation code {
+    background: rgba(88,166,255,0.1);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: var(--accent);
+  }
+  .annotation.security-note { border-left-color: var(--red); }
+  .annotation.future-note { border-left-color: var(--purple); }
+
+  .diagram { margin-bottom: 1.5rem; }
+  .diagram svg { width: 100%; height: auto; display: block; }
+  .diagram-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    overflow-x: auto;
+  }
+
+  .slice-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (max-width: 768px) { .slice-columns { grid-template-columns: 1fr; } }
+  .slice-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem;
+  }
+  .slice-col.this-pr { border-color: var(--green-border); }
+  .slice-col.future-col { border-color: var(--border); opacity: 0.7; }
+  .slice-col .slice-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .slice-col.this-pr .slice-title { color: var(--green); }
+  .slice-col.future-col .slice-title { color: var(--text-subtle); }
+  .slice-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+  .slice-item .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .slice-col.this-pr .dot { background: var(--green); }
+  .slice-col.future-col .dot { background: var(--text-subtle); }
+  .slice-item strong { color: var(--text); font-weight: 500; }
+
+  .roadmap-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+  }
+  .roadmap-table th {
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  .roadmap-table td {
+    padding: 0.45rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+  .roadmap-table tr:last-child td { border-bottom: none; }
+  .roadmap-table .jira-link {
+    font-family: 'SF Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .roadmap-table .jira-link:hover { text-decoration: underline; }
+  .roadmap-table .slice-name { color: var(--text); font-weight: 500; }
+  .roadmap-table .current-row td {
+    background: var(--green-bg);
+    border-bottom-color: var(--green-border);
+  }
+  .roadmap-table .current-row .slice-name { color: var(--green); font-weight: 600; }
+  .roadmap-table .current-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--green-bg);
+    color: var(--green);
+    border: 1px solid var(--green-border);
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
+
+  .file-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+  }
+  .file-table th {
+    text-align: left;
+    padding: 0.6rem 1rem;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  .file-table td {
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .file-table td:first-child {
+    font-family: 'SF Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--accent);
+  }
+  .file-table tr:last-child td { border-bottom: none; }
+  .file-table .addition { color: var(--green); }
+  .file-table .deletion { color: var(--red); }
+
+  .standard-pattern {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .standard-pattern summary {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: var(--surface-raised);
+    border-bottom: 1px solid transparent;
+    list-style: none;
+    transition: background 0.15s;
+  }
+  .standard-pattern summary::-webkit-details-marker { display: none; }
+  .standard-pattern summary::before {
+    content: '\25B6';
+    font-size: 0.65rem;
+    color: var(--text-subtle);
+    transition: transform 0.15s;
+    flex-shrink: 0;
+  }
+  .standard-pattern[open] summary::before { transform: rotate(90deg); }
+  .standard-pattern[open] summary { border-bottom-color: var(--border); }
+  .standard-pattern summary:hover { background: rgba(88,166,255,0.06); }
+  .standard-pattern .sp-icon {
+    width: 16px; height: 16px;
+    fill: var(--text-subtle);
+    flex-shrink: 0;
+  }
+  .standard-pattern .sp-title {
+    color: var(--text);
+    font-weight: 600;
+    flex: 1;
+  }
+  .standard-pattern .sp-files {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.78rem;
+    color: var(--text-subtle);
+  }
+  .standard-pattern .sp-ref {
+    font-size: 0.78rem;
+    color: var(--text-subtle);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .badge-standard {
+    background: rgba(139,148,158,0.15);
+    color: var(--text-muted);
+    border: 1px solid rgba(139,148,158,0.3);
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .standard-pattern .sp-body {
+    padding: 0.8rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .standard-pattern .sp-body code {
+    background: var(--surface-raised);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  .file-table .novelty { text-align: center; }
+  .novelty-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+  }
+  .novelty-badge.novel { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .novelty-badge.standard { background: rgba(139,148,158,0.12); color: var(--text-subtle); border: 1px solid rgba(139,148,158,0.25); }
+  .novelty-badge.pattern { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+
+  footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-subtle);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+    margin-top: 3rem;
+  }
+
+  @media (max-width: 768px) {
+    .hero { padding: 2rem 1rem; }
+    .hero h1 { font-size: 1.6rem; }
+    main { padding: 1.5rem 1rem 4rem; }
+    nav ol { gap: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <span class="hero-badge">PR #115 &middot; AIML-757 &middot; PR 1 of 3</span>
+  <h1>Migrate MCP Server to Gradle Modules</h1>
+  <p class="subtitle">
+    First of three PRs for AIML-757 &mdash; establishes the Gradle multi-module skeleton and Java 21 baseline before publishing (S3B) and standards alignment (S3C) follow
+  </p>
+  <div class="hero-meta">
+    <span class="hero-meta-item"><strong>Branch:</strong> AIML-757-gradle-migration</span>
+    <span class="hero-meta-item"><strong>Base:</strong> main</span>
+    <span class="hero-meta-item"><strong>Files:</strong> 251 changed</span>
+    <span class="hero-meta-item"><strong>Lines:</strong> +2,580 / &minus;1,160</span>
+  </div>
+</div>
+
+<!-- ===== NAV ===== -->
+<nav>
+  <ol>
+    <li><a href="#context"><span class="nav-number">1</span>Context</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#module-structure"><span class="nav-number">2</span>Module Structure</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#root-build"><span class="nav-number">3</span>Root Build</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#core-module"><span class="nav-number">4</span>Core Module</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#app-module"><span class="nav-number">5</span>App Module</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#boundary-guard"><span class="nav-number">6</span>Boundary Guard</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#ci-release"><span class="nav-number">7</span>CI &amp; Release</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#devex"><span class="nav-number">8</span>Developer Experience</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#whats-next"><span class="nav-number">9</span>What&rsquo;s Next</a></li>
+  </ol>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 1: Context -->
+<!-- ============================================================ -->
+<section class="chapter" id="context">
+  <div class="chapter-header">
+    <span class="chapter-number blue">1</span>
+    <h2>Why This Migration Exists</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>Contrast is building a hosted MCP server that needs to share tool logic with the existing public local server &mdash; and Maven single-module can't produce a consumable library artifact.</strong>
+  </p>
+  <p class="narrative">
+    The AIML-110 initiative requires extracting transport-neutral tool infrastructure into a shared core that both servers consume. Maven's single-module layout made this impossible. This PR creates the Gradle multi-module structure that unblocks all shared tool work.
+  </p>
+
+  <p class="narrative">
+    <strong>Java 21 is a co-requisite, not a nice-to-have.</strong>
+    The hosted server runs on Java 21 in the <code>aiml-services</code> monorepo. The public repo must compile at the same target so the shared core artifact is binary-compatible. This PR upgrades from Java 17 to 21 across CI, Docker, and the build toolchain in one pass.
+  </p>
+
+  <div class="callout why">
+    <span class="callout-label">This is a tracer bullet, not the final state</span>
+    <strong>The core module in this PR is intentionally minimal &mdash; this is the first of three AIML-757 PRs.</strong>
+    <br/><br/>
+    What's in core today:
+    <ul style="margin: 0.4rem 0 0.4rem 1.2rem; padding: 0;">
+      <li>Validation, hints, and filter helpers &mdash; that's it</li>
+    </ul>
+    What's <em>not</em> in core yet (and why):
+    <ul style="margin: 0.4rem 0 0.6rem 1.2rem; padding: 0;">
+      <li>12+ production tools, <code>BaseTool</code> pipeline, <code>ContrastApiClient</code>, shared DTOs</li>
+      <li>Blocked by coupling to local SDK factories, SDK helpers, and Guava caches</li>
+    </ul>
+    This first PR proves the Gradle multi-module build works end-to-end (CI, release, Docker, tests). The next two PRs &mdash; S3B (publish &amp; consume) and S3C (standards alignment) &mdash; complete the migration before later slices begin filling the module with production code.
+  </div>
+
+  <div class="callout note">
+    <span class="callout-label">AIML-757 is three PRs, not one</span>
+    <strong>This is PR 1 of 3 for AIML-757 (Slice 3 of the AIML-110 delivery plan).</strong> Each PR lands independently:
+    <ul style="margin: 0.6rem 0 0.6rem 1.2rem; padding: 0; line-height: 1.8;">
+      <li><strong>S3A (this PR)</strong> &mdash; Gradle multi-module skeleton, Java 21, CI, boundary test. Proves the build works.</li>
+      <li><strong>S3B (next)</strong> &mdash; Add <code>maven-publish</code>, prove hosted server consumes core via composite-build substitution, validate classpath boundary.</li>
+      <li><strong>S3C (final)</strong> &mdash; Align contributor docs (README, AGENTS.md), Dependabot, Makefile. Document composite-build local dev for cross-repo workflow.</li>
+    </ul>
+    Without the multi-module split, the hosted server team would need to fork or duplicate ~3,000 lines of tool infrastructure. Everything after AIML-757 &mdash; <code>ContrastApiClient</code> extraction (S4A), tool migration (S5+), BearerToken transport &mdash; depends on all three PRs being in place.
+  </div>
+
+  <!-- Architecture diagram: three states -->
+  <p class="narrative" style="margin-bottom: 0.5rem;"><strong style="color: var(--text);">Module evolution: Maven &rarr; This PR &rarr; Final State</strong></p>
+  <div class="diagram">
+    <div class="diagram-container">
+      <svg viewBox="0 0 1200 440" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <defs>
+          <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#58a6ff"/></marker>
+          <marker id="greenarrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#3fb950"/></marker>
+          <marker id="purplearrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#bc8cff"/></marker>
+        </defs>
+
+        <!-- === BEFORE: Maven single-module === -->
+        <text x="150" y="28" fill="#8b949e" font-size="12" font-weight="600" text-anchor="middle" letter-spacing="0.05em">BEFORE (Maven)</text>
+        <rect x="20" y="42" width="260" height="180" rx="8" fill="#161b22" stroke="#f85149" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <text x="150" y="66" fill="#e6edf3" font-size="11" font-weight="600" text-anchor="middle">mcp-contrast (single module)</text>
+        <rect x="35" y="78" width="230" height="24" rx="4" fill="rgba(248,81,73,0.08)" stroke="#30363d"/>
+        <text x="150" y="95" fill="#8b949e" font-size="10" text-anchor="middle">Tools + SDK + Config + Hints + Validation</text>
+        <rect x="35" y="108" width="230" height="24" rx="4" fill="rgba(248,81,73,0.08)" stroke="#30363d"/>
+        <text x="150" y="125" fill="#8b949e" font-size="10" text-anchor="middle">Spring Boot + Spring AI + Contrast SDK</text>
+        <rect x="35" y="138" width="230" height="24" rx="4" fill="rgba(248,81,73,0.08)" stroke="#30363d"/>
+        <text x="150" y="155" fill="#8b949e" font-size="10" text-anchor="middle">pom.xml &bull; Java 17 &bull; Maven wrapper</text>
+        <rect x="35" y="172" width="230" height="36" rx="4" fill="rgba(248,81,73,0.15)" stroke="rgba(248,81,73,0.3)"/>
+        <text x="150" y="191" fill="#f85149" font-size="10" font-weight="600" text-anchor="middle">Cannot extract shared library</text>
+
+        <!-- Arrow 1 -->
+        <line x1="300" y1="130" x2="395" y2="130" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <text x="348" y="120" fill="#58a6ff" font-size="10" font-weight="700" text-anchor="middle">This PR</text>
+
+        <!-- === THIS PR: Intermediate state === -->
+        <text x="530" y="28" fill="#d29922" font-size="12" font-weight="600" text-anchor="middle" letter-spacing="0.05em">THIS PR (Intermediate)</text>
+        <!-- Core: small -->
+        <rect x="400" y="42" width="260" height="80" rx="8" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+        <text x="530" y="62" fill="#d29922" font-size="11" font-weight="600" text-anchor="middle">contrast-mcp-core</text>
+        <rect x="415" y="72" width="230" height="18" rx="3" fill="rgba(210,153,34,0.08)" stroke="#30363d"/>
+        <text x="530" y="85" fill="#8b949e" font-size="9" text-anchor="middle">Validation + Hints + Filters only</text>
+        <rect x="415" y="94" width="230" height="18" rx="3" fill="rgba(210,153,34,0.08)" stroke="#30363d"/>
+        <text x="530" y="107" fill="#6e7681" font-size="9" text-anchor="middle">spring-core + gson + slf4j</text>
+        <!-- App: large (most code still here) -->
+        <rect x="400" y="140" width="260" height="115" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="530" y="162" fill="#58a6ff" font-size="11" font-weight="600" text-anchor="middle">contrast-mcp-stdio-app</text>
+        <rect x="415" y="172" width="230" height="18" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="530" y="185" fill="#8b949e" font-size="9" text-anchor="middle">All 12 tools still here (SDK-coupled)</text>
+        <rect x="415" y="194" width="230" height="18" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="530" y="207" fill="#8b949e" font-size="9" text-anchor="middle">BaseTool pipeline + SDK extensions</text>
+        <rect x="415" y="216" width="230" height="18" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="530" y="229" fill="#8b949e" font-size="9" text-anchor="middle">Config + Boot + SDK + local wiring</text>
+        <!-- Dep arrow -->
+        <line x1="530" y1="140" x2="530" y2="126" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#greenarrow)"/>
+        <!-- Label -->
+        <rect x="420" y="265" width="220" height="28" rx="4" fill="rgba(210,153,34,0.12)" stroke="rgba(210,153,34,0.3)"/>
+        <text x="530" y="283" fill="#d29922" font-size="9" font-weight="600" text-anchor="middle">Baseline proven &bull; Build works end-to-end</text>
+
+        <!-- Arrow 2 -->
+        <line x1="680" y1="130" x2="775" y2="130" stroke="#bc8cff" stroke-width="2" marker-end="url(#purplearrow)"/>
+        <text x="728" y="118" fill="#bc8cff" font-size="9" font-weight="700" text-anchor="middle">Subsequent</text>
+        <text x="728" y="130" fill="#bc8cff" font-size="9" font-weight="700" text-anchor="middle">slices</text>
+
+        <!-- === FINAL: Full core module === -->
+        <text x="920" y="28" fill="#3fb950" font-size="12" font-weight="600" text-anchor="middle" letter-spacing="0.05em">FINAL STATE (Target)</text>
+        <!-- Core: large -->
+        <rect x="780" y="42" width="280" height="170" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="920" y="62" fill="#3fb950" font-size="11" font-weight="600" text-anchor="middle">contrast-mcp-core (published)</text>
+        <rect x="795" y="74" width="250" height="18" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="920" y="87" fill="#8b949e" font-size="9" text-anchor="middle">12 remote-eligible shared tools</text>
+        <rect x="795" y="96" width="250" height="18" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="920" y="109" fill="#8b949e" font-size="9" text-anchor="middle">BaseTool + PaginatedTool + SingleTool pipeline</text>
+        <rect x="795" y="118" width="250" height="18" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="920" y="131" fill="#8b949e" font-size="9" text-anchor="middle">ContrastApiClient interface + DTOs + results</text>
+        <rect x="795" y="140" width="250" height="18" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="920" y="153" fill="#8b949e" font-size="9" text-anchor="middle">Validation + Hints + Filter helpers</text>
+        <rect x="795" y="162" width="250" height="18" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="920" y="175" fill="#8b949e" font-size="9" text-anchor="middle">SDK extension data types (shared DTOs)</text>
+        <rect x="795" y="184" width="250" height="18" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="920" y="197" fill="#3fb950" font-size="9" font-weight="600" text-anchor="middle">Published to Artifactory via maven-publish</text>
+        <!-- App: small (local-only) -->
+        <rect x="780" y="230" width="280" height="80" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="920" y="250" fill="#58a6ff" font-size="11" font-weight="600" text-anchor="middle">contrast-mcp-stdio-app</text>
+        <rect x="795" y="260" width="250" height="18" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="920" y="273" fill="#8b949e" font-size="9" text-anchor="middle">Local config + SdkApiClient + Boot + get_scan_results</text>
+        <rect x="795" y="282" width="250" height="18" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="920" y="295" fill="#8b949e" font-size="9" text-anchor="middle">Local-only concerns &bull; Boot JAR</text>
+        <!-- Dep arrow -->
+        <line x1="920" y1="230" x2="920" y2="210" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#greenarrow)"/>
+        <!-- Hosted server -->
+        <rect x="780" y="325" width="280" height="40" rx="8" fill="rgba(188,140,255,0.06)" stroke="rgba(188,140,255,0.3)"/>
+        <text x="920" y="350" fill="#bc8cff" font-size="10" font-weight="600" text-anchor="middle">aiml-hosted-mcp-server (consumer)</text>
+        <line x1="920" y1="325" x2="920" y2="210" stroke="#bc8cff" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>
+
+        <!-- Phase labels at bottom -->
+        <rect x="400" y="305" width="260" height="42" rx="6" fill="rgba(210,153,34,0.06)" stroke="rgba(210,153,34,0.2)"/>
+        <text x="530" y="322" fill="#d29922" font-size="9" font-weight="600" text-anchor="middle">Tools stay in app because they</text>
+        <text x="530" y="336" fill="#d29922" font-size="9" font-weight="600" text-anchor="middle">still depend on local SDK factories</text>
+
+        <rect x="780" y="380" width="280" height="42" rx="6" fill="rgba(63,185,80,0.06)" stroke="rgba(63,185,80,0.2)"/>
+        <text x="920" y="397" fill="#3fb950" font-size="9" font-weight="600" text-anchor="middle">After ContrastApiClient decouples tools</text>
+        <text x="920" y="411" fill="#3fb950" font-size="9" font-weight="600" text-anchor="middle">from local SDK, they move to core</text>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Package redistribution diagram -->
+  <p class="narrative" style="margin-bottom: 0.5rem;"><strong style="color: var(--text);">Package redistribution: what moved where (214 files)</strong></p>
+  <div class="diagram">
+    <div class="diagram-container">
+      <svg viewBox="0 0 1100 520" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <defs>
+          <marker id="arr-green" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="#3fb950"/></marker>
+          <marker id="arr-blue" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0, 7 2.5, 0 5" fill="#58a6ff"/></marker>
+        </defs>
+
+        <!-- === BEFORE column === -->
+        <text x="170" y="24" fill="#8b949e" font-size="13" font-weight="700" text-anchor="middle" letter-spacing="0.04em">BEFORE</text>
+        <text x="170" y="40" fill="#6e7681" font-size="10" text-anchor="middle">src/main/java/...contrast/</text>
+
+        <rect x="20" y="52" width="300" height="456" rx="8" fill="#161b22" stroke="#f85149" stroke-width="1.5" stroke-dasharray="6,3"/>
+
+        <!-- hints/ -->
+        <rect x="36" y="64" width="268" height="30" rx="4" fill="rgba(63,185,80,0.10)" stroke="rgba(63,185,80,0.3)"/>
+        <text x="50" y="84" fill="#3fb950" font-size="11" font-weight="600">hints/</text>
+        <text x="268" y="84" fill="#6e7681" font-size="9" text-anchor="end">4 files</text>
+
+        <!-- tool/validation/ -->
+        <rect x="36" y="100" width="268" height="30" rx="4" fill="rgba(63,185,80,0.10)" stroke="rgba(63,185,80,0.3)"/>
+        <text x="50" y="120" fill="#3fb950" font-size="11" font-weight="600">tool/validation/</text>
+        <text x="268" y="120" fill="#6e7681" font-size="9" text-anchor="end">9 files</text>
+
+        <!-- tool/base/ (split) -->
+        <rect x="36" y="136" width="268" height="44" rx="4" fill="rgba(210,153,34,0.10)" stroke="rgba(210,153,34,0.3)"/>
+        <text x="50" y="155" fill="#d29922" font-size="11" font-weight="600">tool/base/</text>
+        <text x="268" y="150" fill="#6e7681" font-size="9" text-anchor="end">12 files</text>
+        <text x="62" y="170" fill="#6e7681" font-size="9">3 to core (FilterHelper, LoggingKeys, ToolParams)</text>
+
+        <!-- config/ -->
+        <rect x="36" y="188" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="208" fill="#58a6ff" font-size="11" font-weight="600">config/</text>
+        <text x="268" y="208" fill="#6e7681" font-size="9" text-anchor="end">local wiring</text>
+
+        <!-- tool/vulnerability/ -->
+        <rect x="36" y="224" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="244" fill="#58a6ff" font-size="11" font-weight="600">tool/vulnerability/</text>
+        <text x="268" y="244" fill="#6e7681" font-size="9" text-anchor="end">SDK-coupled</text>
+
+        <!-- tool/application/ -->
+        <rect x="36" y="260" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="280" fill="#58a6ff" font-size="11" font-weight="600">tool/application/</text>
+        <text x="268" y="280" fill="#6e7681" font-size="9" text-anchor="end">SDK-coupled</text>
+
+        <!-- tool/attack/ -->
+        <rect x="36" y="296" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="316" fill="#58a6ff" font-size="11" font-weight="600">tool/attack/</text>
+        <text x="268" y="316" fill="#6e7681" font-size="9" text-anchor="end">SDK-coupled</text>
+
+        <!-- tool/library/ + tool/coverage/ + tool/sast/ -->
+        <rect x="36" y="332" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="352" fill="#58a6ff" font-size="11" font-weight="600">tool/{library,coverage,sast}/</text>
+        <text x="268" y="352" fill="#6e7681" font-size="9" text-anchor="end">SDK-coupled</text>
+
+        <!-- sdkextension/ -->
+        <rect x="36" y="368" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="388" fill="#58a6ff" font-size="11" font-weight="600">sdkextension/</text>
+        <text x="268" y="388" fill="#6e7681" font-size="9" text-anchor="end">SDK data types</text>
+
+        <!-- result/ -->
+        <rect x="36" y="404" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="424" fill="#58a6ff" font-size="11" font-weight="600">result/</text>
+        <text x="268" y="424" fill="#6e7681" font-size="9" text-anchor="end">response types</text>
+
+        <!-- McpContrastApplication -->
+        <rect x="36" y="440" width="268" height="30" rx="4" fill="rgba(88,166,255,0.10)" stroke="rgba(88,166,255,0.3)"/>
+        <text x="50" y="460" fill="#58a6ff" font-size="11" font-weight="600">McpContrastApplication.java</text>
+        <text x="268" y="460" fill="#6e7681" font-size="9" text-anchor="end">Boot entry</text>
+
+        <!-- Test/resource summary -->
+        <rect x="36" y="476" width="268" height="24" rx="4" fill="rgba(88,166,255,0.05)" stroke="#30363d"/>
+        <text x="170" y="493" fill="#6e7681" font-size="9" text-anchor="middle">+ 90 test files, resources, properties</text>
+
+        <!-- === ARROWS === -->
+        <!-- Green arrows to core -->
+        <path d="M 320 79 C 380 79, 420 100, 480 100" stroke="#3fb950" stroke-width="2" fill="none" marker-end="url(#arr-green)"/>
+        <path d="M 320 115 C 380 115, 420 120, 480 120" stroke="#3fb950" stroke-width="2" fill="none" marker-end="url(#arr-green)"/>
+        <path d="M 320 151 C 380 145, 420 140, 480 140" stroke="#3fb950" stroke-width="1.5" fill="none" stroke-dasharray="4,3" marker-end="url(#arr-green)"/>
+
+        <!-- Blue arrows to app -->
+        <path d="M 320 158 C 400 165, 420 310, 480 310" stroke="#58a6ff" stroke-width="1.5" fill="none" stroke-dasharray="4,3" marker-end="url(#arr-blue)"/>
+        <path d="M 320 203 C 380 220, 420 320, 480 320" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+        <path d="M 320 280 C 380 290, 420 340, 480 340" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+        <path d="M 320 350 C 380 355, 420 365, 480 365" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+        <path d="M 320 420 C 380 420, 420 390, 480 390" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+        <path d="M 320 455 C 380 450, 420 410, 480 410" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arr-blue)"/>
+
+        <!-- === AFTER column === -->
+        <text x="730" y="24" fill="#8b949e" font-size="13" font-weight="700" text-anchor="middle" letter-spacing="0.04em">AFTER</text>
+
+        <!-- Core module -->
+        <rect x="490" y="52" width="600" height="140" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="510" y="76" fill="#3fb950" font-size="12" font-weight="700">contrast-mcp-core</text>
+        <text x="1060" y="76" fill="#6e7681" font-size="10" text-anchor="end">16 src + 12 test files</text>
+
+        <rect x="506" y="88" width="280" height="22" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="518" y="104" fill="#8b949e" font-size="10">hints/ &mdash; HintGenerator, HintProvider, HintUtils, RuleHints</text>
+
+        <rect x="506" y="114" width="280" height="22" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="518" y="130" fill="#8b949e" font-size="10">tool/validation/ &mdash; ToolValidationContext, *Spec (7)</text>
+
+        <rect x="506" y="140" width="280" height="22" rx="3" fill="rgba(63,185,80,0.08)" stroke="#30363d"/>
+        <text x="518" y="156" fill="#8b949e" font-size="10">tool/base/ &mdash; FilterHelper, LoggingKeys, ToolParams</text>
+
+        <rect x="506" y="166" width="280" height="18" rx="3" fill="rgba(63,185,80,0.04)" stroke="none"/>
+        <text x="518" y="180" fill="#3fb950" font-size="9" font-weight="600">Transport-neutral &bull; No SDK dependency</text>
+
+        <!-- App module -->
+        <rect x="490" y="210" width="600" height="290" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="510" y="234" fill="#58a6ff" font-size="12" font-weight="700">contrast-mcp-stdio-app</text>
+        <text x="1060" y="234" fill="#6e7681" font-size="10" text-anchor="end">105 src + 78 test files</text>
+
+        <rect x="506" y="246" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="518" y="262" fill="#8b949e" font-size="10">tool/base/ &mdash; BaseTool, PaginatedTool, SingleTool, ExecutionResult, WarningCollector, params (9)</text>
+
+        <rect x="506" y="272" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="518" y="288" fill="#8b949e" font-size="10">tool/vulnerability/ &mdash; SearchVulnerabilities, GetVulnerability, GetVulnerabilityRecommendation, ...</text>
+
+        <rect x="506" y="298" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="518" y="314" fill="#8b949e" font-size="10">tool/{application,attack,library,coverage,sast}/ &mdash; all 12 production tools + params</text>
+
+        <rect x="506" y="324" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="518" y="340" fill="#8b949e" font-size="10">sdkextension/ &mdash; SDK data models (ADR, Application, RouteCoverage, SCA, SessionMetadata)</text>
+
+        <rect x="506" y="350" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="518" y="366" fill="#8b949e" font-size="10">result/ &mdash; response types (AttackSummary, LibrarySummary, VulnerabilityDetail, ...)</text>
+
+        <rect x="506" y="376" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="518" y="392" fill="#8b949e" font-size="10">config/ &mdash; ContrastProperties, ContrastSDKFactory, SDKExtensionFactory, SdkApiClient</text>
+
+        <rect x="506" y="402" width="572" height="22" rx="3" fill="rgba(88,166,255,0.08)" stroke="#30363d"/>
+        <text x="518" y="418" fill="#8b949e" font-size="10">McpContrastApplication.java &mdash; Spring Boot entry point</text>
+
+        <rect x="506" y="430" width="572" height="22" rx="3" fill="rgba(88,166,255,0.04)" stroke="none"/>
+        <text x="518" y="444" fill="#58a6ff" font-size="9" font-weight="600">SDK-coupled &bull; Local credential wiring &bull; Spring Boot</text>
+
+        <rect x="506" y="456" width="572" height="34" rx="3" fill="rgba(210,153,34,0.06)" stroke="rgba(210,153,34,0.2)"/>
+        <text x="518" y="472" fill="#d29922" font-size="9" font-weight="600">Future: tool/base/ pipeline + 12 production tools migrate to core after ContrastApiClient decouples them (S4A+)</text>
+        <text x="518" y="484" fill="#6e7681" font-size="9">Stays permanently: McpContrastApplication, config/, SdkApiClient, get_scan_results</text>
+
+        <!-- Legend -->
+        <rect x="20" y="514" width="10" height="3" rx="1" fill="#3fb950"/>
+        <text x="36" y="518" fill="#6e7681" font-size="9">Moved to core (16 files)</text>
+        <rect x="200" y="514" width="10" height="3" rx="1" fill="#58a6ff"/>
+        <text x="216" y="518" fill="#6e7681" font-size="9">Moved to app (105 files)</text>
+        <line x1="396" y1="515" x2="416" y2="515" stroke="#d29922" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="422" y="518" fill="#6e7681" font-size="9">Split across both (tool/base/: 3 to core, 9 to app)</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="slice-columns">
+    <div class="slice-col this-pr">
+      <div class="slice-title">This PR &mdash; Tracer Bullet (S3A)</div>
+      <div class="slice-item"><span class="dot"></span><strong>Gradle multi-module</strong> &mdash; two subprojects with centralized versions</div>
+      <div class="slice-item"><span class="dot"></span><strong>Minimal core</strong> &mdash; validation, hints, filter helpers only (intermediate)</div>
+      <div class="slice-item"><span class="dot"></span><strong>Java 21</strong> &mdash; toolchain, CI, Docker all upgraded</div>
+      <div class="slice-item"><span class="dot"></span><strong>Boundary enforcement</strong> &mdash; <code>CoreBoundaryTest</code> blocks local-only deps</div>
+      <div class="slice-item"><span class="dot"></span><strong>Zero behavior change</strong> &mdash; all existing tests pass, all renames</div>
+    </div>
+    <div class="slice-col future-col">
+      <div class="slice-title">Remaining AIML-757 PRs (S3B &amp; S3C)</div>
+      <div class="slice-item"><span class="dot"></span><strong>S3B:</strong> <code>maven-publish</code> &rarr; hosted server consumes core via composite build</div>
+      <div class="slice-item"><span class="dot"></span><strong>S3B:</strong> Classpath boundary proof &mdash; no stdio classes in hosted service</div>
+      <div class="slice-item"><span class="dot"></span><strong>S3C:</strong> Align README, AGENTS.md, Dependabot with Gradle split</div>
+      <div class="slice-item"><span class="dot"></span><strong>S3C:</strong> Document composite-build local dev for cross-repo workflow</div>
+      <div class="slice-item"><span class="dot"></span><em>After AIML-757:</em> <code>ContrastApiClient</code> (S4A), tool migration (S5+)</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 2: Module Structure -->
+<!-- ============================================================ -->
+<section class="chapter" id="module-structure">
+  <div class="chapter-header">
+    <span class="chapter-number blue">2</span>
+    <h2>Module Structure</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>Two modules, one clear boundary: core holds transport-neutral support types, the app holds everything that touches the Contrast SDK or Spring Boot.</strong>
+    The <code>settings.gradle</code> defines the project topology. <code>FAIL_ON_PROJECT_REPOS</code> ensures no subproject can declare its own repository &mdash; all dependency resolution goes through the centralized <code>mavenCentral()</code> declaration.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">settings.gradle</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">1</span><span class="code"><span class="prop">pluginManagement</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">2</span><span class="code">    <span class="prop">repositories</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">3</span><span class="code">        gradlePluginPortal()</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">4</span><span class="code">        mavenCentral()</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">5</span><span class="code">    }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">6</span><span class="code">}</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">7</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">8</span><span class="code"><span class="prop">dependencyResolutionManagement</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">9</span><span class="code">    repositoriesMode.set(<span class="type">RepositoriesMode</span>.<span class="val">FAIL_ON_PROJECT_REPOS</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">10</span><span class="code">    <span class="prop">repositories</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">11</span><span class="code">        mavenCentral()</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">12</span><span class="code">    }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">13</span><span class="code">}</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">14</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">15</span><span class="code">rootProject.name = <span class="str">'mcp-contrast'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">16</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">17</span><span class="code"><span class="kw">include</span> <span class="str">'contrast-mcp-core'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">18</span><span class="code"><span class="kw">include</span> <span class="str">'contrast-mcp-stdio-app'</span></span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong><code>FAIL_ON_PROJECT_REPOS</code> prevents subprojects from declaring their own repositories</strong>, ensuring all dependency resolution is centralized. This prevents a future contributor from accidentally pulling from an unapproved source inside a subproject <code>build.gradle</code>.
+    </div>
+  </div>
+
+  <p class="narrative">
+    <strong>All dependency versions live in a single <code>gradle.properties</code> file.</strong>
+    No version string appears inline in any <code>build.gradle</code>. This satisfies the project's dependency policy (no dynamic versions) and makes version bumps atomic single-line changes &mdash; exactly what Dependabot needs to submit clean PRs.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">gradle.properties</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">1</span><span class="code"><span class="prop">version</span>=<span class="val">1.0.1-SNAPSHOT</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">2</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">3</span><span class="code"><span class="prop">springBootVersion</span>=<span class="val">3.5.7</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">4</span><span class="code"><span class="prop">springAiVersion</span>=<span class="val">1.1.4</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">5</span><span class="code"><span class="prop">spotlessGradlePluginVersion</span>=<span class="val">7.0.4</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">6</span><span class="code"><span class="prop">googleJavaFormatVersion</span>=<span class="val">1.26.0</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">7</span><span class="code"><span class="prop">guavaVersion</span>=<span class="val">33.5.0-jre</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">8</span><span class="code"><span class="prop">contrastSdkVersion</span>=<span class="val">3.7.0</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">9</span><span class="code"><span class="prop">commonsValidatorVersion</span>=<span class="val">1.10.1</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">10</span><span class="code"><span class="prop">mockitoInlineVersion</span>=<span class="val">5.2.0</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">11</span><span class="code"><span class="prop">assertjVersion</span>=<span class="val">3.27.7</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">12</span><span class="code"><span class="prop">checkstyleVersion</span>=<span class="val">13.4.1</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">13</span><span class="code"><span class="prop">lombokVersion</span>=<span class="val">1.18.38</span></span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>The release workflow reads and writes the <code>version</code> line via <code>printVersion</code>/<code>setVersion</code> tasks</strong>, replacing Maven's <code>release:prepare</code> plugin. Dependabot updates land as single-line changes to this file.
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 3: Root Build -->
+<!-- ============================================================ -->
+<section class="chapter" id="root-build">
+  <div class="chapter-header">
+    <span class="chapter-number green">3</span>
+    <h2>The Root Build</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>The root <code>build.gradle</code> is the single source of truth for shared configuration &mdash; Java toolchain, Spotless, Checkstyle, Lombok, and test dependencies are configured once and inherited by both modules.</strong>
+    This eliminates the duplication that would otherwise creep in as modules are added. The root also provides two custom tasks for the release workflow: <code>printVersion</code> and <code>setVersion</code>.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">build.gradle</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">1</span><span class="code"><span class="kw">import</span> <span class="type">org.gradle.api.plugins.quality.Checkstyle</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">2</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">3</span><span class="code"><span class="prop">plugins</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">4</span><span class="code">    id <span class="str">'base'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">5</span><span class="code">    id <span class="str">'com.diffplug.spotless'</span> version <span class="str">"${spotlessGradlePluginVersion}"</span> <span class="kw">apply</span> <span class="val">false</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">6</span><span class="code">    id <span class="str">'org.springframework.boot'</span> version <span class="str">"${springBootVersion}"</span> <span class="kw">apply</span> <span class="val">false</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">7</span><span class="code">}</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Plugins are declared with <code>apply false</code> at the root</strong> so they're resolved once (pinning the version) but only applied in the subprojects that need them. Spring Boot is applied only in <code>contrast-mcp-stdio-app</code>.
+    </div>
+  </div>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">build.gradle &mdash; subprojects block</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">45</span><span class="code"><span class="prop">subprojects</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">46</span><span class="code">    <span class="kw">apply</span> plugin: <span class="str">'java-library'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">47</span><span class="code">    <span class="kw">apply</span> plugin: <span class="str">'checkstyle'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">48</span><span class="code">    <span class="kw">apply</span> plugin: <span class="str">'com.diffplug.spotless'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">49</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">50</span><span class="code">    java {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">51</span><span class="code">        toolchain {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">52</span><span class="code">            languageVersion = <span class="type">JavaLanguageVersion</span>.of(<span class="num">21</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">53</span><span class="code">        }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">54</span><span class="code">    }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">55</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">56</span><span class="code">    tasks.withType(<span class="type">JavaCompile</span>).configureEach {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">57</span><span class="code">        options.encoding = <span class="str">'UTF-8'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">58</span><span class="code">        options.release = <span class="num">21</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">59</span><span class="code">    }</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Both <code>toolchain</code> and <code>options.release</code> are set to 21.</strong> The toolchain controls which JDK Gradle uses to compile. The <code>release</code> flag is a javac cross-compilation guard &mdash; it ensures the compiled bytecode only uses APIs available in Java 21, even if a newer JDK is on the path.
+    </div>
+  </div>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">build.gradle &mdash; shared dependencies</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">87</span><span class="code">    <span class="prop">dependencies</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">88</span><span class="code">        implementation <span class="type">enforcedPlatform</span>(<span class="str">"org.springframework.boot:spring-boot-dependencies:${springBootVersion}"</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">89</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">90</span><span class="code">        compileOnly <span class="str">"org.projectlombok:lombok:${lombokVersion}"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">91</span><span class="code">        annotationProcessor <span class="str">"org.projectlombok:lombok:${lombokVersion}"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">92</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">93</span><span class="code">        testCompileOnly <span class="str">"org.projectlombok:lombok:${lombokVersion}"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">94</span><span class="code">        testAnnotationProcessor <span class="str">"org.projectlombok:lombok:${lombokVersion}"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">95</span><span class="code">        testImplementation <span class="str">'org.junit.jupiter:junit-jupiter'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">96</span><span class="code">        testImplementation <span class="str">"org.assertj:assertj-core:${assertjVersion}"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">97</span><span class="code">        testRuntimeOnly <span class="str">'org.junit.platform:junit-platform-launcher'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">98</span><span class="code">    }</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong><code>enforcedPlatform()</code> is the key to BOM precedence &mdash; and it's resolving real conflicts today.</strong> Unlike a regular <code>platform()</code>, an enforced platform overrides any transitive version that disagrees. This build has concrete examples:
+      <br/><br/>
+      <code style="font-size: 0.82em; color: var(--text-muted);">
+      Jackson &nbsp;&mdash; Spring AI wants 2.19.4, Boot pins 2.19.2<br/>
+      Reactor &mdash; Spring AI wants 3.7.16, Boot pins 3.7.12
+      </code>
+      <br/><br/>
+      Without <code>enforcedPlatform()</code>, the higher Spring AI versions would silently win at resolve time, producing a classpath that Boot's integration testing never validated. The enforced BOM ensures we run on the exact dependency set that Spring Boot was tested against.
+    </div>
+  </div>
+
+  <div class="callout note">
+    <span class="callout-label">Note</span>
+    The <code>positiveIntProperty</code> helper (lines 14&ndash;25) validates integer Gradle properties like <code>testMaxParallelForks</code> and <code>integrationTestMaxParallelForks</code>. It exists because Gradle properties are untyped strings &mdash; without validation, a typo like <code>-PtestMaxParallelForks=abc</code> would produce a confusing <code>NumberFormatException</code> deep inside a task configuration.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 4: Core Module -->
+<!-- ============================================================ -->
+<section class="chapter" id="core-module">
+  <div class="chapter-header">
+    <span class="chapter-number green">4</span>
+    <h2>The Core Module</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>The core module's build file is intentionally minimal <em>right now</em> &mdash; this is an intermediate state, not the final boundary.</strong>
+  </p>
+  <p class="narrative">
+    Today it has three dependencies and only validation/hints/filter helpers:
+  </p>
+  <ul style="margin: -0.5rem 0 1.2rem 1.5rem; color: var(--text-muted); font-size: 0.95rem; line-height: 1.8;">
+    <li><code>spring-core</code> &mdash; <code>StringUtils</code> for validation</li>
+    <li><code>gson</code> &mdash; hint generation</li>
+    <li><code>slf4j-api</code> &mdash; logging</li>
+  </ul>
+  <p class="narrative">
+    The production tools, <code>BaseTool</code> pipeline, <code>ContrastApiClient</code>, and shared DTOs aren't here yet &mdash; they still depend directly on local SDK factories and SDK helpers that must be decoupled first. Once <code>ContrastApiClient</code> is introduced (S4A, after AIML-757), tools migrate here incrementally.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-core/build.gradle</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">1</span><span class="code"><span class="prop">dependencies</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">2</span><span class="code">    api <span class="str">'org.springframework:spring-core'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">3</span><span class="code">    api <span class="str">'com.google.code.gson:gson'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">4</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">5</span><span class="code">    implementation <span class="str">'org.slf4j:slf4j-api'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">6</span><span class="code">}</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong><code>api</code> vs <code>implementation</code> matters here.</strong> <code>spring-core</code> and <code>gson</code> use <code>api</code> because the core module's public types expose these in their signatures (e.g., <code>StringUtils</code> in validation, Gson types in hints). <code>slf4j-api</code> uses <code>implementation</code> because it's an internal detail &mdash; consumers shouldn't see it on their compile classpath.
+    </div>
+  </div>
+
+  <p class="narrative">
+    <strong>No version numbers appear here because the root <code>build.gradle</code> applies Spring Boot's <code>enforcedPlatform</code> to all subprojects.</strong>
+    The Boot BOM manages <code>spring-core</code>, <code>gson</code>, and <code>slf4j-api</code> versions. This is how the core module gets version alignment for free without importing Boot itself.
+  </p>
+
+  <div class="callout future">
+    <span class="callout-label">This module will grow substantially</span>
+    <strong>The eventual contents of <code>contrast-mcp-core</code> go far beyond what's here today.</strong>
+    <br/><br/>
+    What will move into core (after AIML-757):
+    <ul style="margin: 0.4rem 0 0.6rem 1.2rem; padding: 0; line-height: 1.8;">
+      <li>All 12 remote-eligible shared tools</li>
+      <li><code>BaseTool</code> / <code>PaginatedTool</code> / <code>SingleTool</code> / <code>CursorPaginatedTool</code> pipeline</li>
+      <li><code>ContrastApiClient</code> interface</li>
+      <li>Shared DTOs and result types</li>
+    </ul>
+    Why they can't move yet: they import <code>ContrastSDKFactory</code>, <code>SDKHelper</code>, Guava caches, and other local implementation details. S4A introduces the <code>ContrastApiClient</code> abstraction that breaks this coupling.
+    <br/><br/>
+    What stays permanently in <code>contrast-mcp-stdio-app</code>:
+    <ul style="margin: 0.4rem 0 0.2rem 1.2rem; padding: 0; line-height: 1.8;">
+      <li><code>McpContrastApplication</code> and local credential/config wiring</li>
+      <li><code>SdkApiClient</code> and SDK helper/cache implementations</li>
+      <li>The deprecated <code>get_scan_results</code></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 5: App Module -->
+<!-- ============================================================ -->
+<section class="chapter" id="app-module">
+  <div class="chapter-header">
+    <span class="chapter-number blue">5</span>
+    <h2>The App Module</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>The app module is where the interesting dependency management decisions live &mdash; particularly how Spring Boot's BOM and Spring AI's BOM coexist without stepping on each other.</strong>
+    This module also defines a custom <code>integrationTest</code> task that solves the credential forwarding problem that plagued the Maven build.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-stdio-app/build.gradle &mdash; dependencies</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">7</span><span class="code"><span class="prop">dependencies</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">8</span><span class="code">    implementation project(<span class="str">':contrast-mcp-core'</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">9</span><span class="code">    <span class="comment">// Keep Spring Boot's enforced dependency management authoritative; Spring AI supplies only its own coordinates.</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">10</span><span class="code">    implementation platform(<span class="str">"org.springframework.ai:spring-ai-bom:${springAiVersion}"</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">11</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">12</span><span class="code">    implementation <span class="str">'com.google.code.gson:gson'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">13</span><span class="code">    implementation <span class="str">"com.google.guava:guava:${guavaVersion}"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">14</span><span class="code">    implementation <span class="str">"com.contrastsecurity:contrast-sdk-java:${contrastSdkVersion}"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">15</span><span class="code">    implementation <span class="str">"commons-validator:commons-validator:${commonsValidatorVersion}"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">16</span><span class="code">    implementation <span class="str">'org.springframework.ai:spring-ai-starter-mcp-server'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">17</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">18</span><span class="code">    testImplementation <span class="str">'org.springframework.boot:spring-boot-starter-test'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">19</span><span class="code">    testImplementation <span class="str">"org.mockito:mockito-inline:${mockitoInlineVersion}"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">20</span><span class="code">}</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Line 10 is the BOM precedence decision.</strong> Spring AI's BOM is imported as a regular <code>platform()</code> &mdash; not <code>enforcedPlatform()</code>. The root already applies Spring Boot's BOM as enforced. The practical effect: when both BOMs manage the same dependency (Jackson, Reactor, etc.), Boot's version wins. Spring AI's BOM only contributes versions for coordinates it uniquely owns, like <code>spring-ai-starter-mcp-server</code>. If someone changed this to <code>enforcedPlatform()</code>, Spring AI would override Boot's pinned versions &mdash; producing an untested dependency combination.
+    </div>
+  </div>
+
+  <p class="narrative">
+    <strong>The integration test task reproduces Maven Failsafe's dual credential forwarding in Gradle's idiom.</strong>
+    Maven's <code>&lt;systemPropertyVariables&gt;</code> and <code>&lt;environmentVariables&gt;</code> blocks both forwarded Contrast credentials to the forked test JVM. Gradle's <code>Test</code> task doesn't inherit the parent process's environment by default, so the same dual forwarding must be wired explicitly via <code>systemProperty</code> and <code>environment</code> calls.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-stdio-app/build.gradle &mdash; integrationTest task</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">48</span><span class="code"><span class="prop">test</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">49</span><span class="code">    exclude <span class="str">'**/*IT.class'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">50</span><span class="code">    exclude <span class="str">'**/*IntegrationTest.class'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">51</span><span class="code">}</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">52</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">53</span><span class="code">tasks.register(<span class="str">'integrationTest'</span>, <span class="type">Test</span>) {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">54</span><span class="code">    description = <span class="str">'Runs integration tests.'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">55</span><span class="code">    group = <span class="str">'verification'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">56</span><span class="code">    testClassesDirs = sourceSets.test.output.classesDirs</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">57</span><span class="code">    classpath = sourceSets.test.runtimeClasspath</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">58</span><span class="code">    maxParallelForks = rootProject.ext.positiveIntProperty(</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">59</span><span class="code">        <span class="str">'integrationTestMaxParallelForks'</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">60</span><span class="code">        defaultIntegrationTestMaxParallelForks)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">61</span><span class="code">    shouldRunAfter test</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">62</span><span class="code">    include <span class="str">'**/*IT.class'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">63</span><span class="code">    include <span class="str">'**/*IntegrationTest.class'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">64</span><span class="code">    contrastIntegrationTestCredentialEnvVars.each { credentialEnvVar -&gt;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">65</span><span class="code">        <span class="kw">def</span> credentialValue = System.getenv(credentialEnvVar)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">66</span><span class="code">        <span class="kw">if</span> (credentialValue) {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">67</span><span class="code">            systemProperty credentialEnvVar, credentialValue</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">68</span><span class="code">            environment credentialEnvVar, credentialValue</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">69</span><span class="code">        }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">70</span><span class="code">    }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">71</span><span class="code">}</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Lines 67&ndash;68 replicate what Maven Failsafe did via XML config.</strong> Gradle's <code>Test</code> task forks a clean JVM that doesn't inherit environment variables. <code>systemProperty</code> makes credentials available via <code>System.getProperty()</code>; <code>environment</code> makes them available via <code>System.getenv()</code>. Both paths are needed because Spring Boot's <code>@Value</code> resolution and <code>@EnabledIfEnvironmentVariable</code> test guards use different lookup mechanisms.
+    </div>
+  </div>
+
+  <div class="callout note">
+    <span class="callout-label">Design note</span>
+    The default parallelism for integration tests is <code>min(5, availableProcessors / 2)</code>. This balances speed against the Contrast API rate limits that integration tests hit. Unit tests default to 1 fork (safe for tests that share in-memory state).
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 6: Boundary Guard -->
+<!-- ============================================================ -->
+<section class="chapter" id="boundary-guard">
+  <div class="chapter-header">
+    <span class="chapter-number purple">6</span>
+    <h2>The Boundary Guard</h2>
+  </div>
+
+  <p class="narrative">
+    <strong><code>CoreBoundaryTest</code> guards the boundary by blocking local-only dependencies &mdash; but deliberately does <em>not</em> block shared tool abstractions that belong in core's future.</strong>
+  </p>
+  <p class="narrative">
+    What the test forbids (permanently local-only concerns):
+  </p>
+  <ul style="margin: -0.5rem 0 1rem 1.5rem; color: var(--text-muted); font-size: 0.95rem; line-height: 1.8;">
+    <li>SDK factories (<code>ContrastSDKFactory</code>, <code>SDKExtensionFactory</code>, <code>SdkApiClient</code>)</li>
+    <li>Local config classes, Guava caches, SARIF code</li>
+  </ul>
+  <p class="narrative">
+    What the test does <em>not</em> forbid:
+  </p>
+  <ul style="margin: -0.5rem 0 1.2rem 1.5rem; color: var(--text-muted); font-size: 0.95rem; line-height: 1.8;">
+    <li><code>BaseTool</code>, <code>SingleTool</code>, <code>PaginatedTool</code>, shared tool implementations</li>
+    <li>These aren't in core <em>yet</em> only because they're coupled to local SDK factories &mdash; not because they don't belong here</li>
+  </ul>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-core/src/test/java/.../CoreBoundaryTest.java</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">29</span><span class="code"><span class="kw">class</span> <span class="type">CoreBoundaryTest</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">30</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">31</span><span class="code">  <span class="kw">private static final</span> <span class="type">Path</span> <span class="val">CORE_MAIN</span> = <span class="type">Path</span>.of(<span class="str">"src/main/java"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">32</span><span class="code">  <span class="kw">private static final</span> <span class="type">List</span>&lt;<span class="type">Path</span>&gt; <span class="val">REQUIRED_SUPPORT_TYPES</span> =</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">33</span><span class="code">      <span class="type">List</span>.of(</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">34</span><span class="code">          sourcePath(<span class="str">"com/contrast/.../tool/base/FilterHelper.java"</span>),</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">35</span><span class="code">          sourcePath(<span class="str">"com/contrast/.../tool/base/LoggingKeys.java"</span>),</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">36</span><span class="code">          sourcePath(<span class="str">"com/contrast/.../tool/base/ToolParams.java"</span>),</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">37</span><span class="code">          sourcePath(<span class="str">"com/contrast/.../tool/validation/ToolValidationContext.java"</span>),</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">38</span><span class="code">          sourcePath(<span class="str">"com/contrast/.../hints/HintGenerator.java"</span>));</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>This list represents the <em>current</em> minimum, not the final contract.</strong> It will grow significantly as tools are decoupled from local SDK factories and migrated into core. Today it's 5 support types; the final state includes 12+ tools, the <code>BaseTool</code> pipeline, <code>ContrastApiClient</code>, and shared DTOs. If any of these files get accidentally removed from core, the test fails immediately.
+    </div>
+  </div>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">CoreBoundaryTest.java &mdash; prohibited patterns</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">50</span><span class="code">  <span class="kw">private static final</span> <span class="type">List</span>&lt;<span class="type">String</span>&gt; <span class="val">LOCAL_ONLY_TEXT</span> =</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">51</span><span class="code">      <span class="type">List</span>.of(</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">52</span><span class="code">          <span class="str">"com.contrast.labs.ai.mcp.contrast.config"</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">53</span><span class="code">          <span class="str">"com.contrastsecurity"</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">54</span><span class="code">          <span class="str">"org.springframework.ai"</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">55</span><span class="code">          <span class="str">"spring-ai"</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">56</span><span class="code">          <span class="str">"@Configuration"</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">57</span><span class="code">          <span class="str">"ContrastSDKFactory"</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">58</span><span class="code">          <span class="str">"SDKExtensionFactory"</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">59</span><span class="code">          <span class="str">"SdkApiClient"</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">60</span><span class="code">          <span class="str">"SDKHelper"</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">61</span><span class="code">          <span class="str">"McpContrastApplication"</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">62</span><span class="code">          <span class="str">"com.google.common.cache"</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">63</span><span class="code">          <span class="str">"get_scan_results"</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">64</span><span class="code">          <span class="str">"sarif"</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">65</span><span class="code">          <span class="str">"SARIF"</span>);</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Most of these are <em>permanently</em> forbidden patterns &mdash; local credential wiring, config classes, Guava caches, SARIF code, and direct Contrast SDK imports must never enter core.</strong> One exception to watch: <code>org.springframework.ai</code> is forbidden today because core has no Spring AI dependency, but when <code>@Tool</code>-annotated classes migrate to core in S5+, this pattern will need to be narrowed (e.g., allow <code>@Tool</code> but still block MCP server internals). That's a deliberate future refinement, not an oversight. <code>BaseTool</code>, <code>PaginatedTool</code>, and shared tool names are deliberately <em>absent</em> from this list &mdash; they belong in core's future.
+    </div>
+  </div>
+
+  <p class="narrative">
+    <strong>The test uses two complementary strategies: structural and textual.</strong>
+    The first test method checks file presence (required types exist) and absence (local-only types aren't here). The second walks every <code>.java</code> file and does substring matching against the prohibited patterns. Together they form a fast, zero-dependency boundary check that runs on every <code>./gradlew test</code>.
+  </p>
+
+  <div class="callout why">
+    <span class="callout-label">Why the test is shaped this way</span>
+    <strong>The boundary test blocks local-only <em>concerns</em>, not shared tool <em>categories</em>.</strong>
+    <br/><br/>
+    An earlier iteration explicitly forbade <code>BaseTool</code>, <code>SingleTool</code>, <code>PaginatedTool</code>, and tool implementation names from appearing in core. That was wrong &mdash; it would have encoded the temporary S3A minimal state as a permanent rule, blocking the very migrations that are the whole point of this split.
+    <br/><br/>
+    The corrected test asks one question: <em>does this file reference local SDK factories, credential wiring, or SARIF code?</em> If a class can be decoupled from those concerns, it's welcome in core.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 7: CI & Release -->
+<!-- ============================================================ -->
+<section class="chapter" id="ci-release">
+  <div class="chapter-header">
+    <span class="chapter-number yellow">7</span>
+    <h2>CI &amp; Release Pipeline</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>The CI workflow consolidates what were separate Maven steps into a single Gradle invocation, and adds wrapper validation as a supply chain security measure.</strong>
+    The release workflow replaces Maven's <code>release:prepare</code> plugin with explicit <code>setVersion</code>/<code>printVersion</code> tasks that read and write <code>gradle.properties</code>.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">.github/workflows/build.yml</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code"><span class="prop">name</span>: <span class="val">Java CI with Maven</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">1</span><span class="code"><span class="prop">name</span>: <span class="val">Java CI with Gradle</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"> </span><span class="code">...</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">23</span><span class="code">    - <span class="prop">name</span>: <span class="val">Validate Gradle wrapper</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">24</span><span class="code">      <span class="prop">uses</span>: <span class="val">gradle/actions/wrapper-validation@0b6dd653...  # v4</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"> </span><span class="code">...</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">        <span class="prop">java-version</span>: <span class="str">'17'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">30</span><span class="code">        <span class="prop">java-version</span>: <span class="str">'21'</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"> </span><span class="code">...</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">        <span class="prop">cache</span>: <span class="val">maven</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">32</span><span class="code">        <span class="prop">cache</span>: <span class="val">gradle</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">    - <span class="prop">name</span>: <span class="val">Build with Maven</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">      <span class="prop">run</span>: ./mvnw clean package -DskipTests</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">    - <span class="prop">name</span>: <span class="val">Run tests</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">      <span class="prop">run</span>: ./mvnw test</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">33</span><span class="code">    - <span class="prop">name</span>: <span class="val">Run checks, tests, and build</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">34</span><span class="code">      <span class="prop">run</span>: ./gradlew spotlessCheck checkstyleMain checkstyleTest test :contrast-mcp-stdio-app:bootJar --no-daemon</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>The wrapper validation step is a supply chain security guard.</strong> It verifies the <code>gradle-wrapper.jar</code> checksum against known Gradle distributions, preventing an attacker from slipping a malicious wrapper JAR into the repo. The single consolidated <code>./gradlew</code> invocation replaces two separate Maven commands, running formatting checks, Checkstyle, tests, and the boot JAR build in one pass.
+    </div>
+  </div>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">gradle-release.yml &mdash; version management (excerpt)</span>
+      <span class="badge badge-renamed">RENAMED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">          CURRENT=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">51</span><span class="code">          CURRENT=$(./gradlew -q printVersion --no-daemon)</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"> </span><span class="code">          ...</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">          ./mvnw release:prepare \</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">            -DreleaseVersion=${{ steps.versions.outputs.release }} \</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">            -DdevelopmentVersion=${{ steps.versions.outputs.next }} \</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">            -Dtag=v${{ steps.versions.outputs.release }} \</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">            -DpushChanges=false \</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">            -B</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">69</span><span class="code">          ./gradlew setVersion -PnewVersion=${{ steps.versions.outputs.release }} --no-daemon</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">70</span><span class="code">          ./gradlew clean spotlessCheck check :contrast-mcp-stdio-app:integrationTest :contrast-mcp-stdio-app:bootJar --no-daemon</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">71</span><span class="code">          git add gradle.properties</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">72</span><span class="code">          git commit -m <span class="str">"[gradle-release] prepare release v${{ steps.versions.outputs.release }}"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">73</span><span class="code">          git tag v${{ steps.versions.outputs.release }}</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">74</span><span class="code">          ./gradlew setVersion -PnewVersion=${{ steps.versions.outputs.next }} --no-daemon</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">75</span><span class="code">          git add gradle.properties</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">76</span><span class="code">          git commit -m <span class="str">"[gradle-release] prepare next development iteration"</span></span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>The release prepare step now runs the full verification suite at the release version before tagging.</strong> Maven's <code>release:prepare</code> was a black box. The Gradle equivalent is explicit: set version, verify everything (including integration tests), commit, tag, advance to next snapshot, commit. Each step is visible and auditable.
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 8: Developer Experience -->
+<!-- ============================================================ -->
+<section class="chapter" id="devex">
+  <div class="chapter-header">
+    <span class="chapter-number orange">8</span>
+    <h2>Developer Experience</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>The Makefile, Docker build, and test output formatting all got updated to speak Gradle instead of Maven &mdash; but the developer-facing interface (<code>make check-test</code>, <code>make verify</code>, etc.) is unchanged.</strong>
+    A developer who never reads this PR will notice nothing different about their workflow.
+  </p>
+
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">Makefile &mdash; Maven-to-Gradle command substitution</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-files">Makefile (87 lines)</span>
+      <span class="sp-ref">Mechanical: mvn &rarr; ./gradlew</span>
+    </summary>
+    <div class="sp-body">
+      Every <code>$(MVN)</code> reference becomes <code>$(GRADLE)</code> (defaulting to <code>./gradlew</code>). Target names and the <code>make help</code> output are unchanged. The <code>verify</code> target now runs <code>test :contrast-mcp-stdio-app:integrationTest</code> instead of <code>mvn verify</code>.
+    </div>
+  </details>
+
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">run_silent.sh &mdash; token-optimization helper rewritten for Gradle</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-files">hack/run_silent.sh</span>
+      <span class="sp-ref">Dev tooling, not production code</span>
+    </summary>
+    <div class="sp-body">
+      This script reduces token consumption when AI agents run tests by suppressing verbose Gradle output and emitting only a compact summary (test count, failures, elapsed time). Maven printed test counts inline (<code>Tests run: 45, Failures: 0</code>); Gradle doesn't. The rewrite parses JUnit XML reports from <code>build/test-results</code> via a Perl one-liner, using a marker-file timestamp to exclude stale results from prior runs.
+    </div>
+  </details>
+
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">Dockerfile &mdash; Java 21 Alpine base images</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-files">Dockerfile (24 lines)</span>
+      <span class="sp-ref">Pattern: multi-stage build</span>
+    </summary>
+    <div class="sp-body">
+      Builder stage: <code>maven:3.9-eclipse-temurin-17</code> &rarr; <code>eclipse-temurin:21-jdk-alpine</code> (with digest pin). Runtime stage: <code>eclipse-temurin:25-jre-alpine</code> &rarr; <code>eclipse-temurin:21-jre-alpine</code>. The runtime "downgrade" from JRE 25 to 21 is intentional &mdash; the old builder compiled Java 17 bytecode that happened to run on a JRE 25 runtime; now builder and runtime are aligned at 21. Build command: <code>mvn clean package</code> &rarr; <code>./gradlew :contrast-mcp-stdio-app:bootJar</code>. JAR path: <code>target/</code> &rarr; <code>contrast-mcp-stdio-app/build/libs/</code>. A <code>.dockerignore</code> was added to exclude <code>.git</code>, <code>.gradle</code>, and <code>build/</code> directories from the build context.
+    </div>
+  </details>
+
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">Documentation updates &mdash; Maven&rarr;Gradle references across 9 files</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-files">CLAUDE.md, RELEASING.md, INTEGRATION_TESTS.md, MCP_STANDARDS.md, SECURITY.md, WORKFLOW.md, README.md, 6 install guides</span>
+      <span class="sp-ref">Mechanical text substitution</span>
+    </summary>
+    <div class="sp-body">
+      All Maven command references updated to Gradle equivalents. <code>RELEASING.md</code> was substantially rewritten to document the new <code>gradle-release.yml</code> workflow. Install guides update the JAR path from <code>target/mcp-contrast-*.jar</code> to <code>contrast-mcp-stdio-app/build/libs/mcp-contrast-*.jar</code>. <code>dependabot.yml</code> changed <code>package-ecosystem</code> from <code>maven</code> to <code>gradle</code>.
+    </div>
+  </details>
+
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">Source file renames &mdash; 214 files moved to module paths</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-files">214 renamed files (202 identical, 12 with Javadoc edits)</span>
+      <span class="sp-ref">Pure renames (R100 in git)</span>
+    </summary>
+    <div class="sp-body">
+      All source files under <code>src/</code> were moved to either <code>contrast-mcp-core/src/</code> or <code>contrast-mcp-stdio-app/src/</code>. 202 of 214 renames are <code>R100</code> (100% identical). The remaining 12 have minor Javadoc edits updating <code>mvn verify</code> references to Gradle commands &mdash; no logic changes. The only package that split across both modules is <code>tool/base/</code>: 3 transport-neutral helpers (FilterHelper, LoggingKeys, ToolParams) went to core; the 9 SDK-coupled pipeline classes (BaseTool, PaginatedTool, SingleTool, etc.) stayed in the app module.
+    </div>
+  </details>
+
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">Deleted Maven artifacts &mdash; pom.xml, mvnw, .mvn/</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-files">pom.xml (274 lines), mvnw, mvnw.cmd, .mvn/wrapper/</span>
+      <span class="sp-ref">Replaced by Gradle equivalents</span>
+    </summary>
+    <div class="sp-body">
+      The Maven POM, wrapper scripts, and wrapper properties are deleted. Their Gradle equivalents are <code>build.gradle</code>, <code>settings.gradle</code>, <code>gradle.properties</code>, <code>gradlew</code>, <code>gradlew.bat</code>, and <code>gradle/wrapper/*</code>. The Gradle wrapper JAR is added (43KB binary).
+    </div>
+  </details>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 9: What's Next -->
+<!-- ============================================================ -->
+<section class="chapter" id="whats-next">
+  <div class="chapter-header">
+    <span class="chapter-number purple">9</span>
+    <h2>What&rsquo;s Next</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>This is PR 1 of 3 for AIML-757.</strong> Two more PRs follow to complete the Gradle migration:
+  </p>
+  <ul style="margin: -0.5rem 0 1rem 1.5rem; color: var(--text-muted); font-size: 0.95rem; line-height: 1.8;">
+    <li><strong>S3B</strong> &mdash; adds publishing and proves the hosted server can consume the core artifact</li>
+    <li><strong>S3C</strong> &mdash; aligns contributor docs and workflow tooling</li>
+  </ul>
+  <p class="narrative">
+    Only after all three merge do later slices (S4A, S5+) begin decoupling and migrating tools.
+  </p>
+  <p class="narrative">
+    <strong>Suggested review order:</strong> <code>settings.gradle</code> &rarr; <code>gradle.properties</code> &rarr; root <code>build.gradle</code> &rarr; module build files &rarr; <code>CoreBoundaryTest</code>. CI workflows are worth a look. Everything else is mechanical.
+  </p>
+
+  <table class="roadmap-table">
+    <thead><tr><th>Slice</th><th>Scope</th><th>What Happens to Core</th></tr></thead>
+    <tbody>
+      <tr class="current-row">
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-757">S3A</a></td>
+        <td><span class="slice-name">Gradle Skeleton</span><span class="current-badge">PR 1 of 3</span></td>
+        <td>Core gets validation, hints, filter helpers &mdash; proves the build works</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-757">S3B</a></td>
+        <td><span class="slice-name">Publish &amp; Consume</span></td>
+        <td><code>maven-publish</code> added; hosted server consumes core via composite build; classpath boundary proven</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-757">S3C</a></td>
+        <td><span class="slice-name">Standards &amp; Docs</span></td>
+        <td>README, AGENTS.md, Dependabot, Makefile aligned with Gradle split; composite-build dev documented</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout future">
+    <span class="callout-label">After AIML-757 completes</span>
+    <strong>Once all three S3 PRs have merged, later slices begin to fill the core module with production code:</strong>
+    <ul style="margin: 0.6rem 0 0.2rem 1.2rem; padding: 0; line-height: 1.8;">
+      <li><strong>S4A</strong> (<a href="https://contrast.atlassian.net/browse/AIML-758" style="color: var(--accent)">AIML-758</a>) &mdash; introduces <code>ContrastApiClient</code> and the auth strategy hook, decoupling tools from local SDK factories</li>
+      <li><strong>S5+</strong> (<a href="https://contrast.atlassian.net/browse/AIML-759" style="color: var(--accent)">AIML-759</a>) &mdash; migrates 12 shared tools, the <code>BaseTool</code> pipeline, and DTOs into core. App shrinks to: local config, <code>SdkApiClient</code>, <code>get_scan_results</code></li>
+    </ul>
+  </div>
+
+  <table class="file-table">
+    <thead><tr><th>File</th><th>Purpose</th><th>Lines</th><th>Novelty</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>settings.gradle</td>
+        <td>Module topology + centralized repo config</td>
+        <td class="addition">+18</td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>gradle.properties</td>
+        <td>Centralized dependency versions</td>
+        <td class="addition">+13</td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>build.gradle</td>
+        <td>Shared Java 21 toolchain, Spotless, Checkstyle, Lombok, BOM</td>
+        <td class="addition">+106</td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>contrast-mcp-core/build.gradle</td>
+        <td>Core module: spring-core + gson + slf4j</td>
+        <td class="addition">+6</td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>contrast-mcp-stdio-app/build.gradle</td>
+        <td>App module: Boot, SDK, Spring AI, integration tests</td>
+        <td class="addition">+71</td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>CoreBoundaryTest.java</td>
+        <td>Boundary enforcement: required types + prohibited patterns</td>
+        <td class="addition">+114</td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>.github/workflows/build.yml</td>
+        <td>CI: wrapper validation, Java 21, consolidated Gradle step</td>
+        <td>+10/&minus;8</td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>.github/workflows/gradle-release.yml</td>
+        <td>Release: setVersion/printVersion, explicit prepare steps</td>
+        <td>+16/&minus;9</td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>hack/run_silent.sh</td>
+        <td>Token-optimization helper rewritten for Gradle test reports</td>
+        <td>+120/&minus;80</td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>Makefile</td>
+        <td>mvn &rarr; ./gradlew command substitution</td>
+        <td>+13/&minus;13</td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+      <tr>
+        <td>Dockerfile</td>
+        <td>Java 21 Alpine images, Gradle build command</td>
+        <td>+4/&minus;4</td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+      <tr>
+        <td>.dockerignore</td>
+        <td>Exclude .git, .gradle, build/ from Docker context</td>
+        <td class="addition">+5</td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+      <tr>
+        <td>checkstyle.xml</td>
+        <td>Added suppressions file config property</td>
+        <td class="addition">+3</td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+      <tr>
+        <td>CLAUDE.md + 8 doc files</td>
+        <td>Maven&rarr;Gradle command updates across all docs</td>
+        <td>+44/&minus;44</td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+      <tr>
+        <td>~200 .java files</td>
+        <td>Pure renames into module src/ paths (R100)</td>
+        <td>&mdash;</td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+      <tr>
+        <td>pom.xml + Maven wrapper</td>
+        <td>Deleted (replaced by Gradle equivalents)</td>
+        <td class="deletion">&minus;701</td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+</main>
+
+<footer>
+  PR #115 &middot; AIML-757 (S3A &mdash; PR 1 of 3) &middot; mcp-contrast
+</footer>
+
+</body>
+</html>

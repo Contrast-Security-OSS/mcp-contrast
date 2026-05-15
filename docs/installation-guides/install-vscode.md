@@ -11,7 +11,7 @@ This guide covers how to install and configure the Contrast MCP Server in VS Cod
 - Contrast API credentials ([how to get API credentials](https://docs.contrastsecurity.com/en/personal-keys.html))
 - **Choose one deployment method:**
   - Docker (recommended for one-click install)
-  - Java 17+ and the built JAR file
+  - Java 21+ and the built JAR file
 
 ## Installation Methods
 
@@ -110,7 +110,7 @@ After adding the configuration, you should see a small start button appear in th
 
 ### Option 3: JAR Deployment
 
-If you prefer to run the JAR directly (requires Java 17+):
+If you prefer to run the JAR directly (requires Java 21+):
 
 ```json
 "contrast": {
