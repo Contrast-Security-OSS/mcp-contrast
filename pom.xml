@@ -38,7 +38,7 @@
 		<spotless-maven-plugin.version>3.4.0</spotless-maven-plugin.version>
 		<google-java-format.version>1.26.0</google-java-format.version>
 		<maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
-		<checkstyle.version>13.4.1</checkstyle.version>
+		<checkstyle.version>13.4.2</checkstyle.version>
 	</properties>
 	<dependencies>
 		<dependency>
