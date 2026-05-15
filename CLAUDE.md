@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an MCP (Model Context Protocol) server for Contrast Security that enables AI agents to access and analyze vulnerability data from Contrast's security platform. It serves as a bridge between Contrast Security's API and AI tools like Claude, enabling automated vulnerability remediation and security analysis.
 
-**This service is currently under construction.** The PRD is `docs/plans/AIML-110-prd-v4.md` — refer to it for full scope and details. Work is tracked as beads hydrated from the PRD. Implementation slices are child beads of parent bead `mcp-325e`; each slice is further broken into smaller child beads. Beads are prefixed with an `AIML-???` Jira ticket ID referring to the slice (child beads share the slice's Jira ID even though they cover only a portion of it). This work spans two repos: the public stdio MCP server (this repo) and the new hosted (remote) MCP server (`aiml-services`). Each bead has a `repo:*` label declaring which repo the work should be done in (if a bead touches two repos, only the primary is indicated by the label).
+**This service is currently under construction.** The PRD is `plans/AIML-110/AIML-110-prd-v4.md` — refer to it for full scope and details. Work is tracked as beads hydrated from the PRD. Implementation slices are child beads of parent bead `mcp-325e`; each slice is further broken into smaller child beads. Beads are prefixed with an `AIML-???` Jira ticket ID referring to the slice (child beads share the slice's Jira ID even though they cover only a portion of it). This work spans two repos: the public stdio MCP server (this repo) and the new hosted (remote) MCP server (`aiml-services`). Each bead has a `repo:*` label declaring which repo the work should be done in (if a bead touches two repos, only the primary is indicated by the label).
 
 ## Branching Requirements
 
@@ -33,8 +33,9 @@ Use these make targets for all checks and tests:
 ```bash
 make check       # Auto-format then run static analysis (no need to run make format first)
 make test        # Run unit tests (quiet output)
-make check-test  # Run both checks and tests — use this before committing
+make check-test  # Run workflow alignment, static analysis, and unit tests
 make verify      # Run all tests including integration
+make workflow-check  # Temporary AIML-757 S3C tracer gate; remove with script later
 make format      # Auto-format code with Spotless (also runs automatically via make check)
 make build       # Build the project
 make clean       # Clean build artifacts
@@ -50,10 +51,12 @@ make check VERBOSE=1
 - **Build**: `./gradlew :contrast-mcp-stdio-app:bootJar`
 - **Test (unit)**: `./gradlew test`
 - **Test (all)**: `source .env.integration-test && ./gradlew test :contrast-mcp-stdio-app:integrationTest`
+- **Static analysis**: `./gradlew spotlessCheck checkstyleMain checkstyleTest`
+- **Core publication metadata**: `./gradlew :contrast-mcp-core:verifyCorePublicationMetadata`
 - **Format code**: `./gradlew spotlessApply`
-- **Run locally**: `java -jar contrast-mcp-stdio-app/build/libs/mcp-contrast-0.0.11.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
+- **Run locally**: `java -jar contrast-mcp-stdio-app/build/libs/mcp-contrast-*.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
 
-**Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard pre-commit verification command.
+**Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard local verification command. It includes `make workflow-check`, which is a temporary AIML-757 S3C tracer gate and should be removed with `hack/verify-public-workflow-alignment.sh` once that slice is proven.
 
 **Integration Tests:** Require Contrast credentials in `.env.integration-test` (copy from `.env.integration-test.template`). See INTEGRATION_TESTS.md for details. Integration tests are intentionally skipped when credentials are not available (e.g., in CI forks or local builds without `.env.integration-test`).
 
@@ -185,7 +188,7 @@ When creating or modifying MCP tools:
 - No fully-qualified class names - use imports
 - `isEmpty()` not `size() > 0` for collections
 
-**Checkstyle:** 18 rules enforced at `error` severity (run in `validate` phase via `make check`). The full list lives in `checkstyle.xml`. Highlights:
+**Checkstyle:** 18 rules enforced at `error` severity by Gradle Checkstyle tasks via `make check`. The full list lives in `checkstyle.xml`. Highlights:
 - **Imports:** `AvoidStarImport`, `UnusedImports`, `RedundantImport`, `RegexpSinglelineJava` (no FQCN — use imports)
 - **Numbers:** `MagicNumber` — no raw numeric literals; use named constants (HTTP status codes and -1/0/1/2/100 are ignored). **Before writing any numeric literal**, check `ValidationConstants` first — it has `DEFAULT_PAGE_SIZE`, `MAX_PAGE_SIZE`, `API_MAX_PAGE_SIZE`, `DEFAULT_LIBRARY_OBS_PAGE_SIZE`, `MIN_PAGE`, `DEFAULT_PAGE`. If no existing constant fits, declare `private static final int MY_CONSTANT = <value>` in the same class. `UpperEll` (`1L` not `1l`).
 - **Correctness:** `EmptyCatchBlock`, `MissingOverride`, `EqualsHashCode`, `StringLiteralEquality` (`s == "FOO"` is always wrong), `FallThrough`, `DefaultComesLast`, `MissingSwitchDefault`, `ModifiedControlVariable`
@@ -451,13 +454,14 @@ NOTE: This is not for parent-child dependencies, these are blocks dependencies.
 
 **Build and verify artifacts** as needed for testing:
 - Build JAR for MCP server manual testing: `./gradlew :contrast-mcp-stdio-app:bootJar`
+- Run temporary S3C workflow gate when public docs/CI/Makefile/build workflow changes: `make workflow-check`
 - Verify version logging to confirm correct build is running
 
 ### Testing Requirements Before Moving to Review
 
 **CRITICAL: Before requesting review, you MUST:**
 1. **Write tests for ALL code changes** - No exceptions
-2. **Run unit tests** - `make format && make check-test` must pass with 0 failures
+2. **Run local verification** - `make check-test` must pass with 0 failures
 3. **Run integration tests** - `make verify` must pass (requires credentials in `.env.integration-test`)
    - If credentials unavailable, verify integration tests pass in CI/CD
 4. **Verify new tests are included** - Ensure your tests ran and passed

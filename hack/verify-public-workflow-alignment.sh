@@ -81,6 +81,10 @@ assert_contains "README.md" 'includeBuild\("\.\./mcp-contrast"\)' "README docume
 assert_contains "AGENTS.md" '\./gradlew' "AGENTS documents Gradle wrapper commands"
 assert_contains "AGENTS.md" 'JDK 21|Java 21' "AGENTS documents Java 21"
 assert_contains "AGENTS.md" 'aiml-hosted-mcp-server' "AGENTS documents hosted local-dev consumer"
+assert_contains "CLAUDE.md" 'make workflow-check' "CLAUDE documents temporary workflow-check target"
+assert_contains "CLAUDE.md" 'contrast-mcp-stdio-app:bootJar' "CLAUDE documents stdio app bootJar"
+assert_contains "CLAUDE.md" 'contrast-mcp-core:verifyCorePublicationMetadata' "CLAUDE documents core publication metadata verification"
+assert_not_contains "CLAUDE.md" 'docs/plans|mcp-contrast-0\.0\.11|make format && make check-test|validate phase|(^|[[:space:]`])(\./mvnw|mvn)([[:space:]]|$)' "CLAUDE has no stale Maven or old build command references"
 
 assert_contains "WORKFLOW.md" 'br ready' "WORKFLOW uses br ready"
 assert_not_contains "WORKFLOW.md" '(^|[[:space:]`])bd (ready|list|show|create|update|close|dep|stats|sync)' "WORKFLOW has no bd commands"
