@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Temporary tracer-bullet gate for AIML-757 S3C. This script and the Makefile
+# workflow-check target exist only to prove the public Gradle/docs/CI alignment
+# during this implementation slice; remove both once the tracer has served its
+# purpose and the durable CI/docs shape is settled.
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GATE="S3C-PUBLIC-WORKFLOW-ALIGNMENT"
 START_NS="$(date +%s%N)"
