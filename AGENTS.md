@@ -4,7 +4,7 @@
 
 **IMPORTANT**: This project uses **br (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
 
-**Note:** `br` is non-invasive and never executes git commands. It can flush issue state to `.beads/issues.jsonl`, but you must explicitly `git add .beads/` and commit that state with the related code changes.
+**Note:** `br` is non-invasive and never executes git commands. In this repo, bead state is local issue-tracker state and is not committed with code changes unless the user explicitly asks for it.
 
 ### Why br?
 
@@ -61,7 +61,7 @@ br close br-42 --reason "Completed" --json
 4. **Discover new work?** Create linked issue:
    - `br create "Found bug" -p 1 --deps discovered-from:<parent-id>`
 5. **Complete**: `br close <id> --reason "Done"`
-6. **Commit together**: Always commit the `.beads/issues.jsonl` file together with the code changes so issue state stays in sync with code state
+6. **Leave bead files unstaged**: Do not include `.beads/` changes in code/doc commits for this repo unless the user explicitly asks for them
 
 ## Build and Local Development
 
@@ -114,7 +114,7 @@ br automatically syncs the local database and JSONL files:
 - Exports to `.beads/issues.jsonl` after changes (5s debounce)
 - Imports from JSONL when newer (e.g., after `git pull`)
 - No manual export/import needed for normal use
-- Git commits are still explicit; commit `.beads/issues.jsonl` together with the related code changes
+- This repo does not commit bead state to git during normal development
 
 ### MCP Server (Recommended)
 

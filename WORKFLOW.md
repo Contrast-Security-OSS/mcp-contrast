@@ -2,7 +2,7 @@
 
 Personal workflow guide for Chris Edwards - how to use beads + Jira + Claude Code effectively.
 
-**Note:** `br` is non-invasive and never executes git commands. After `br sync --flush-only`, manually run `git add .beads/ && git commit` with the related code changes.
+**Note:** `br` is non-invasive and never executes git commands. In this repo, bead state is local issue-tracker state and is not committed with code changes unless explicitly requested.
 
 ## Starting New Work
 
@@ -74,12 +74,11 @@ br show mcp-XXX --json
 
 ### Syncing Beads
 
-`br` writes issue state to `.beads/issues.jsonl` but does not run git commands for you. Keep issue state in the same commit as the code/docs it describes:
+`br` writes issue state to the local `.beads/` workspace but does not run git commands for you. Do not stage or commit `.beads/` for this repo unless explicitly requested:
 
 ```bash
 br sync --flush-only
-git add .beads/
-git commit -m "record bead state"
+git status --short .beads
 ```
 
 ## Moving to Review
@@ -152,7 +151,7 @@ br list --status in_progress --json         # Your current work
 br show mcp-XXX --json                      # Show bead details
 br update mcp-XXX --priority 0 --json       # Bump priority
 br dep add mcp-child mcp-parent --json      # Add dependency
-br sync --flush-only                        # Flush bead JSONL before committing .beads/
+br sync --flush-only                        # Flush local bead state; do not commit .beads/ here
 ```
 
 ### Git
@@ -234,7 +233,7 @@ Claude will research and regenerate.
 - `CLAUDE.md` - Instructions for Claude Code (AI workflow)
 - `AGENTS.md` - General beads usage patterns
 - `WORKFLOW.md` - This file (your reference)
-- `.beads/issues.jsonl` - Bead JSONL state; commit it with related code changes
+- `.beads/` - Local bead workspace; do not commit it with code changes in this repo
 - `voice-notes/YYYY-MM-DD.md` - Daily work log
 
 ## Remember
