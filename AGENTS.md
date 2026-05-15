@@ -4,6 +4,8 @@
 
 **IMPORTANT**: This project uses **br (beads)** for ALL issue tracking. Do NOT use markdown TODOs, task lists, or other tracking methods.
 
+**Note:** `br` is non-invasive and never executes git commands. It can flush issue state to `.beads/issues.jsonl`, but you must explicitly `git add .beads/` and commit that state with the related code changes.
+
 ### Why br?
 
 - Dependency-aware: Track blockers and relationships between issues
@@ -108,10 +110,11 @@ When creating beads that relate to Jira tickets:
 
 ### Auto-Sync
 
-br automatically syncs with git:
+br automatically syncs the local database and JSONL files:
 - Exports to `.beads/issues.jsonl` after changes (5s debounce)
 - Imports from JSONL when newer (e.g., after `git pull`)
-- No manual export/import needed!
+- No manual export/import needed for normal use
+- Git commits are still explicit; commit `.beads/issues.jsonl` together with the related code changes
 
 ### MCP Server (Recommended)
 

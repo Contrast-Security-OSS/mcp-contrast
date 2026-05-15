@@ -234,7 +234,7 @@ Claude will research and regenerate.
 - `CLAUDE.md` - Instructions for Claude Code (AI workflow)
 - `AGENTS.md` - General beads usage patterns
 - `WORKFLOW.md` - This file (your reference)
-- `.beads/issues.jsonl` - Bead database (auto-synced with git)
+- `.beads/issues.jsonl` - Bead JSONL state; commit it with related code changes
 - `voice-notes/YYYY-MM-DD.md` - Daily work log
 
 ## Remember
