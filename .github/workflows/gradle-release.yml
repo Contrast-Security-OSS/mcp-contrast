@@ -3,6 +3,10 @@ name: Gradle Release
 on:
   workflow_dispatch:
 
+concurrency:
+  group: gradle-release
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -22,6 +26,12 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+
+      - name: Ensure release runs from main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "Gradle Release must be dispatched from main, but got $GITHUB_REF"
+          exit 1
 
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
@@ -46,11 +56,11 @@ jobs:
           echo "Current version: $CURRENT"
 
           # Strip -SNAPSHOT to get release version (e.g., "0.0.12")
-          RELEASE_VERSION=$(echo $CURRENT | sed 's/-SNAPSHOT//')
+          RELEASE_VERSION=$(echo "$CURRENT" | sed 's/-SNAPSHOT//')
           echo "Release version: $RELEASE_VERSION"
 
           # Increment patch version for next dev version (e.g., "0.0.13-SNAPSHOT")
-          NEXT_VERSION=$(echo $RELEASE_VERSION | awk -F. '{$NF = $NF + 1;} 1' OFS=.)
+          NEXT_VERSION=$(echo "$RELEASE_VERSION" | awk -F. '{$NF = $NF + 1;} 1' OFS=.)
           NEXT_DEV_VERSION="${NEXT_VERSION}-SNAPSHOT"
           echo "Next dev version: $NEXT_DEV_VERSION"
 
@@ -60,18 +70,19 @@ jobs:
 
       - name: Prepare Release
         run: |
-          ./gradlew setVersion -PnewVersion=${{ steps.versions.outputs.release }} --no-daemon
+          ./gradlew setVersion -PnewVersion="${{ steps.versions.outputs.release }}" --no-daemon
           ./gradlew clean spotlessCheck check :contrast-mcp-stdio-app:integrationTest :contrast-mcp-stdio-app:bootJar --no-daemon
+          test -f "contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar"
           git add gradle.properties
           git commit -m "[gradle-release] prepare release v${{ steps.versions.outputs.release }}"
           git tag v${{ steps.versions.outputs.release }}
-          ./gradlew setVersion -PnewVersion=${{ steps.versions.outputs.next }} --no-daemon
+          ./gradlew setVersion -PnewVersion="${{ steps.versions.outputs.next }}" --no-daemon
           git add gradle.properties
           git commit -m "[gradle-release] prepare next development iteration"
 
       - name: Push Changes and Tags
         run: |
-          git push origin HEAD:main
+          git push origin HEAD:${{ github.ref_name }}
           git push origin v${{ steps.versions.outputs.release }}
 
       - name: Checkout Release Tag
