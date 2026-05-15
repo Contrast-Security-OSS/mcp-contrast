@@ -73,10 +73,15 @@ assert_contains ".github/workflows/build.yml" 'verify-public-workflow-alignment\
 assert_contains ".github/dependabot.yml" 'package-ecosystem: "gradle"' "Dependabot tracks Gradle"
 assert_not_contains ".github/dependabot.yml" 'package-ecosystem: "maven"' "Dependabot has no Maven ecosystem"
 
-assert_contains "README.md" 'JDK 21|Java 21' "README documents Java 21"
-assert_contains "README.md" '\./gradlew' "README documents Gradle wrapper commands"
-assert_contains "README.md" 'aiml-hosted-mcp-server' "README documents hosted local-dev consumer"
-assert_contains "README.md" 'includeBuild\("\.\./mcp-contrast"\)' "README documents composite build substitution"
+assert_contains "README.md" '\./gradlew :contrast-mcp-stdio-app:bootJar' "README documents user-facing JAR build command"
+assert_not_contains "README.md" 'Contributor Build Workflow|aiml-hosted-mcp-server|includeBuild\("\.\./mcp-contrast"\)|checkstyle-suppressions|verifyCorePublicationMetadata' "README omits developer-facing contributor workflow"
+
+assert_contains "CONTRIBUTING.md" 'JDK 21|Java 21' "CONTRIBUTING documents Java 21"
+assert_contains "CONTRIBUTING.md" '\./gradlew' "CONTRIBUTING documents Gradle wrapper commands"
+assert_contains "CONTRIBUTING.md" 'aiml-hosted-mcp-server' "CONTRIBUTING documents hosted local-dev consumer"
+assert_contains "CONTRIBUTING.md" 'includeBuild\("\.\./mcp-contrast"\)' "CONTRIBUTING documents composite build substitution"
+assert_contains "CONTRIBUTING.md" 'checkstyle-suppressions\.xml' "CONTRIBUTING documents Checkstyle suppressions"
+assert_contains "CONTRIBUTING.md" 'verifyCorePublicationMetadata' "CONTRIBUTING documents core publication metadata verification"
 
 assert_contains "AGENTS.md" '\./gradlew' "AGENTS documents Gradle wrapper commands"
 assert_contains "AGENTS.md" 'JDK 21|Java 21' "AGENTS documents Java 21"
