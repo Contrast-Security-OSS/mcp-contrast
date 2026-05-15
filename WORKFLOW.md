@@ -2,11 +2,13 @@
 
 Personal workflow guide for Chris Edwards - how to use beads + Jira + Claude Code effectively.
 
+**Note:** `br` is non-invasive and never executes git commands. After `br sync --flush-only`, manually run `git add .beads/ && git commit` with the related code changes.
+
 ## Starting New Work
 
 ### 1. Check for Ready Work
 ```bash
-bd ready
+br ready --json
 ```
 
 ### 2. Create or Pick a Bead
@@ -15,13 +17,13 @@ bd ready
 - Create Jira ticket first in AIML project
 - Create bead with Jira ID in title and external_ref:
   ```bash
-  bd create "AIML-XXX: Description" -t task -p 1 --external-ref AIML-XXX
+  br create "AIML-XXX: Description" -t task -p 1 --external-ref AIML-XXX --json
   ```
 
 **For discovered work during implementation:**
 - Create child bead linked to parent:
   ```bash
-  bd create "Fix bug found in feature X" -t bug -p 1 --deps discovered-from:mcp-parent-id
+  br create "Fix bug found in feature X" -t bug -p 1 --deps discovered-from:mcp-parent-id --json
   ```
 
 ### 3. Start Work with Claude Code
@@ -54,6 +56,8 @@ Claude will:
 - Writes tests for all code changes
 - Runs `./gradlew test` and `./gradlew :contrast-mcp-stdio-app:integrationTest`
 - Builds artifacts when needed (`./gradlew :contrast-mcp-stdio-app:bootJar`)
+- Uses JDK 21 and the Gradle wrapper; Maven commands are no longer part of the maintained workflow
+- Runs `hack/verify-public-workflow-alignment.sh` when changing public docs, CI, Makefile, or the Gradle split
 - Records branch name in bead
 
 ### Managing Related Work
@@ -65,7 +69,17 @@ Claude will:
 
 **Check dependencies:**
 ```bash
-bd show mcp-XXX
+br show mcp-XXX --json
+```
+
+### Syncing Beads
+
+`br` writes issue state to `.beads/issues.jsonl` but does not run git commands for you. Keep issue state in the same commit as the code/docs it describes:
+
+```bash
+br sync --flush-only
+git add .beads/
+git commit -m "record bead state"
 ```
 
 ## Moving to Review
@@ -133,11 +147,12 @@ Claude will ask which branch to base off and show recent branches.
 
 ### Beads
 ```bash
-bd ready                                    # Show unblocked work
-bd list --status in_progress                # Your current work
-bd show mcp-XXX                             # Show bead details
-bd update mcp-XXX --priority 0              # Bump priority
-bd dep add mcp-child mcp-parent             # Add dependency
+br ready --json                             # Show unblocked work
+br list --status in_progress --json         # Your current work
+br show mcp-XXX --json                      # Show bead details
+br update mcp-XXX --priority 0 --json       # Bump priority
+br dep add mcp-child mcp-parent --json      # Add dependency
+br sync --flush-only                        # Flush bead JSONL before committing .beads/
 ```
 
 ### Git
@@ -153,6 +168,28 @@ gh pr checks                                # Check CI status
 ./gradlew test                              # Run unit tests
 ./gradlew :contrast-mcp-stdio-app:integrationTest  # Run integration tests
 ./gradlew :contrast-mcp-stdio-app:bootJar   # Build JAR
+./gradlew :contrast-mcp-core:publishToMavenLocal :contrast-mcp-core:verifyCorePublicationMetadata
+```
+
+### Cross-Repo Local Development
+
+For hosted MCP work, keep `aiml-services` and `mcp-contrast` checked out as siblings. The private `services/aiml-hosted-mcp-server` module consumes local public core changes through Gradle composite-build substitution:
+
+```kotlin
+includeBuild("../mcp-contrast") {
+    dependencySubstitution {
+        substitute(module("com.contrast.labs.ai.mcp:contrast-mcp-core"))
+            .using(project(":contrast-mcp-core"))
+    }
+}
+```
+
+Run the public-side diagnostics before moving a Slice 3 PR to review:
+
+```bash
+hack/verify-public-workflow-alignment.sh
+hack/verify-core-publication.sh
+make check-test
 ```
 
 ### Log Work

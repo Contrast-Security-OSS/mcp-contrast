@@ -61,6 +61,38 @@ br close br-42 --reason "Completed" --json
 5. **Complete**: `br close <id> --reason "Done"`
 6. **Commit together**: Always commit the `.beads/issues.jsonl` file together with the code changes so issue state stays in sync with code state
 
+## Build and Local Development
+
+This repository uses the Gradle wrapper and Java 21. Do not use Maven commands or assume a single-module project shape.
+
+**Common commands:**
+```bash
+./gradlew spotlessCheck checkstyleMain checkstyleTest test
+./gradlew :contrast-mcp-stdio-app:bootJar
+./gradlew :contrast-mcp-core:publishToMavenLocal :contrast-mcp-core:verifyCorePublicationMetadata
+make check-test
+make verify
+```
+
+**Module split:**
+- `contrast-mcp-core` is the transport-neutral shared library published as `com.contrast.labs.ai.mcp:contrast-mcp-core`.
+- `contrast-mcp-stdio-app` is the local stdio Spring Boot app and keeps local Contrast SDK credential wiring, SDK helper/cache implementations, and local-only raw SARIF behavior.
+
+**Checkstyle:** Gradle binds the existing `checkstyle.xml` and `checkstyle-suppressions.xml` to the module source sets. Keep the existing error-severity rule set intact unless the user explicitly asks to change lint policy.
+
+**Hosted local development:** The private `aiml-services/services/aiml-hosted-mcp-server` project consumes `contrast-mcp-core`. For cross-repo work, check out `aiml-services` and `mcp-contrast` as siblings and use Gradle composite-build substitution:
+
+```kotlin
+includeBuild("../mcp-contrast") {
+    dependencySubstitution {
+        substitute(module("com.contrast.labs.ai.mcp:contrast-mcp-core"))
+            .using(project(":contrast-mcp-core"))
+    }
+}
+```
+
+Use `hack/verify-core-publication.sh` for the public core publication/classpath gate and `hack/verify-public-workflow-alignment.sh` for the S3C public docs/CI/Makefile alignment gate.
+
 ### Jira Integration
 
 When creating beads that relate to Jira tickets:

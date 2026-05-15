@@ -29,5 +29,7 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
         cache: gradle
+    - name: Verify public workflow alignment
+      run: ./hack/verify-public-workflow-alignment.sh
     - name: Run checks, tests, and build
       run: ./gradlew spotlessCheck checkstyleMain checkstyleTest test :contrast-mcp-stdio-app:bootJar --no-daemon
