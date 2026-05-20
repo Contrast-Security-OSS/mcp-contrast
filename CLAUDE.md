@@ -35,7 +35,7 @@ make check       # Auto-format then run static analysis (no need to run make for
 make test        # Run unit tests (quiet output)
 make check-test  # Run workflow alignment, static analysis, and unit tests
 make verify      # Run all tests including integration
-make workflow-check  # Temporary AIML-757 S3C tracer gate; remove with script later
+make workflow-check  # Temporary AIML-757 S3C tracer gate (see removal note below)
 make format      # Auto-format code with Spotless (also runs automatically via make check)
 make build       # Build the project
 make clean       # Clean build artifacts
@@ -56,7 +56,7 @@ make check VERBOSE=1
 - **Format code**: `./gradlew spotlessApply`
 - **Run locally**: `java -jar contrast-mcp-stdio-app/build/libs/mcp-contrast-*.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
 
-**Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard local verification command. It includes `make workflow-check`, which is a temporary AIML-757 S3C tracer gate and should be removed with `hack/verify-public-workflow-alignment.sh` once that slice is proven.
+**Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard local verification command. It includes `make workflow-check`, which is a temporary AIML-757 S3C tracer gate. **Removal:** once the S3C slice is proven, delete these three together: `hack/verify-public-workflow-alignment.sh`, the `workflow-check` Makefile target, and the "Verify public workflow alignment" step in `.github/workflows/build.yml`.
 
 **Integration Tests:** Require Contrast credentials in `.env.integration-test` (copy from `.env.integration-test.template`). See INTEGRATION_TESTS.md for details. Integration tests are intentionally skipped when credentials are not available (e.g., in CI forks or local builds without `.env.integration-test`).
 
@@ -84,7 +84,7 @@ tool/
 ├── application/    # Application tools (search_applications, get_session_metadata)
 ├── library/        # Library tools (list_application_libraries, list_applications_by_cve)
 ├── attack/         # Attack tools (search_attacks, get_protect_rules)
-├── sast/           # SAST tools (get_sast_project, get_sast_results)
+├── sast/           # SAST tools (get_sast_project, get_scan_results)
 └── coverage/       # Coverage tools (get_route_coverage)
 ```
 
