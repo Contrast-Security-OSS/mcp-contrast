@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
+import java.util.Objects;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
@@ -48,7 +49,8 @@ public abstract class BaseTool {
       return NOOP_AUTHENTICATION_SCOPE;
     }
     var scope = authenticationStrategy.authenticate(toolContext);
-    return scope != null ? scope : NOOP_AUTHENTICATION_SCOPE;
+    return Objects.requireNonNull(
+        scope, "AuthenticationStrategy returned null authentication scope");
   }
 
   /**

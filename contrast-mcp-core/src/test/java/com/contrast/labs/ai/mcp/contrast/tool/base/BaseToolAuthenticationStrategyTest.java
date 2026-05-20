@@ -57,6 +57,44 @@ class BaseToolAuthenticationStrategyTest {
   }
 
   @Test
+  void paginatedExecutePipeline_should_forward_toolContext_to_configured_strategy() {
+    var events = new ArrayList<String>();
+    var tool = new RecordingPaginatedTool(events);
+    var context = new ToolContext(java.util.Map.of("requestId", "req-456"));
+    tool.setAuthenticationStrategy(
+        toolContext -> {
+          events.add("authenticate");
+          assertThat(toolContext).isSameAs(context);
+          return () -> events.add("close");
+        });
+
+    var result = tool.executePipeline(1, 10, TestParams::valid, context);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.items()).containsExactly("ok");
+    assertThat(events).containsExactly("authenticate", "doExecute", "close");
+  }
+
+  @Test
+  void executePipeline_should_fail_closed_when_configured_strategy_returns_null_scope() {
+    var events = new ArrayList<String>();
+    var tool = new RecordingSingleTool(events);
+    tool.setAuthenticationStrategy(
+        toolContext -> {
+          events.add("authenticate");
+          return null;
+        });
+
+    var result = tool.executePipeline(TestParams::valid, null);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors())
+        .singleElement()
+        .satisfies(error -> assertThat(error).startsWith("An internal error occurred (ref: "));
+    assertThat(events).containsExactly("authenticate");
+  }
+
+  @Test
   void isAuthenticationStrategyConfigured_should_expose_only_boolean_state() {
     var tool = new RecordingSingleTool(new ArrayList<>());
 
@@ -79,6 +117,22 @@ class BaseToolAuthenticationStrategyTest {
     protected String doExecute(TestParams params, WarningCollector collector) {
       events.add("doExecute");
       return "ok";
+    }
+  }
+
+  private static final class RecordingPaginatedTool extends PaginatedTool<TestParams, String> {
+
+    private final List<String> events;
+
+    private RecordingPaginatedTool(List<String> events) {
+      this.events = events;
+    }
+
+    @Override
+    protected ExecutionResult<String> doExecute(
+        PaginationParams pagination, TestParams params, WarningCollector collector) {
+      events.add("doExecute");
+      return ExecutionResult.of(List.of("ok"), 1);
     }
   }
 
