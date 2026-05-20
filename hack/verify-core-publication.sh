@@ -24,6 +24,7 @@ fi
 required_classes=(
   "com/contrast/labs/ai/mcp/contrast/tool/validation/ToolValidationContext.class"
   "com/contrast/labs/ai/mcp/contrast/tool/base/ToolParams.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/ListVulnerabilityTypesTool.class"
   "com/contrast/labs/ai/mcp/contrast/hints/HintGenerator.class"
 )
 
