@@ -1,6 +1,6 @@
 GRADLE ?= ./gradlew
 
-.PHONY: help build test test-verbose check check-verbose check-test format clean verify verify-verbose
+.PHONY: help build test test-verbose check check-verbose check-test workflow-check format clean verify verify-verbose
 
 help: ## Display available make targets
 	@awk 'BEGIN {FS=":.*##"; printf "\nUsage: make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_\-]+:.*##/ {printf "  %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -66,10 +66,14 @@ verify-verbose: ## Run all tests with verbose output
 ## Combined targets
 
 check-test: ## Run all checks and tests
+	@$(MAKE) workflow-check
 	@$(MAKE) check
 	@$(MAKE) test
 
 ## Other targets
+
+workflow-check: ## Verify public Gradle/docs/CI workflow alignment
+	@./hack/verify-public-workflow-alignment.sh
 
 format: ## Auto-format code with Spotless
 	@if [ -n "$$VERBOSE" ]; then \

@@ -173,19 +173,6 @@ Alternatively, you can build from source if you need the latest development vers
 
 The built JAR will be located at `contrast-mcp-stdio-app/build/libs/mcp-contrast-X.X.X-SNAPSHOT.jar`
 
-### Build Compatibility
-
-This repository builds and tests against Java 21 and the Spring Boot dependency-management
-version pinned by `springBootVersion` in `gradle.properties` (currently Spring Boot 3.5.7).
-
-The `contrast-mcp-core` module imports the Spring Boot BOM as a regular Gradle `platform()`
-so published-library consumers can keep control of their dependency graph. The deployable
-`contrast-mcp-stdio-app` module uses `enforcedPlatform()` so the shipped application runs
-with the exact Spring-managed dependency set tested by this repository.
-
-No broader Spring Boot compatibility range is claimed unless a downstream consumer validates
-that override with the full test suite.
-
 ## Proxy Configuration
 
 If you're behind a corporate firewall or proxy, you'll need to configure proxy settings for the MCP server to reach your Contrast instance. The configuration differs depending on whether you're using Docker or JAR deployment.
