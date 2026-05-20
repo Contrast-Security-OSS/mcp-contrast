@@ -125,6 +125,59 @@ class BaseToolAuthenticationStrategyTest {
   }
 
   @Test
+  void paginatedExecutePipeline_should_remain_noop_when_authentication_strategy_is_not_configured() {
+    var events = new ArrayList<String>();
+    var tool = new RecordingPaginatedTool(events);
+
+    var result = tool.executePipeline(1, 2, TestParams::valid, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.items()).containsExactly("ok");
+    assertThat(tool.isAuthenticationStrategyConfigured()).isFalse();
+    assertThat(events).containsExactly("doExecute");
+  }
+
+  @Test
+  void paginatedExecutePipeline_should_bind_configured_strategy_before_doExecute_and_close_afterward() {
+    var events = new ArrayList<String>();
+    var tool = new RecordingPaginatedTool(events);
+    var context = new ToolContext(java.util.Map.of("requestId", "req-123"));
+    tool.setAuthenticationStrategy(
+        toolContext -> {
+          events.add("authenticate");
+          assertThat(toolContext).isSameAs(context);
+          return () -> events.add("close");
+        });
+
+    var result = tool.executePipeline(1, 2, TestParams::valid, context);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(tool.isAuthenticationStrategyConfigured()).isTrue();
+    assertThat(events).containsExactly("authenticate", "doExecute", "close");
+  }
+
+  @Test
+  void paginatedExecutePipeline_should_return_error_when_authentication_strategy_throws() {
+    var events = new ArrayList<String>();
+    var tool = new RecordingPaginatedTool(events);
+    var context = new ToolContext(java.util.Map.of("requestId", "req-123"));
+    tool.setAuthenticationStrategy(
+        toolContext -> {
+          events.add("authenticate");
+          throw new IllegalStateException("raw-token-value must not reach tool output");
+        });
+
+    var result = tool.executePipeline(1, 2, TestParams::valid, context);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.items()).isEmpty();
+    assertThat(result.errors()).hasSize(1);
+    assertThat(result.errors().get(0)).matches("An internal error occurred \\(ref: [0-9a-f]{8}\\)");
+    assertThat(String.join(" ", result.errors())).doesNotContain("raw-token-value");
+    assertThat(events).containsExactly("authenticate");
+  }
+
+  @Test
   void executePipeline_unexpected_error_logs_should_not_attach_stack_traces() throws Exception {
     for (var sourcePath : PIPELINE_SOURCES) {
       var source = Files.readString(sourcePath, StandardCharsets.UTF_8);
