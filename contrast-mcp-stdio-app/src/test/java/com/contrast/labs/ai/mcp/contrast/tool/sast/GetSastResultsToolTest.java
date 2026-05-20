@@ -27,6 +27,9 @@ import com.contrastsecurity.sdk.scan.Projects;
 import com.contrastsecurity.sdk.scan.ScanManager;
 import com.contrastsecurity.sdk.scan.Scans;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +44,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class GetSastResultsToolTest {
+
+  private static final Path TOOL_SOURCE =
+      Path.of("src/main/java/com/contrast/labs/ai/mcp/contrast/tool/sast/GetSastResultsTool.java");
 
   private GetSastResultsTool tool;
 
@@ -193,5 +199,15 @@ class GetSastResultsToolTest {
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).anyMatch(e -> e.startsWith("An internal error occurred (ref: "));
+  }
+
+  @Test
+  void getScanResults_should_remain_local_only_and_absent_from_contrast_api_client()
+      throws IOException {
+    var source = Files.readString(TOOL_SOURCE, StandardCharsets.UTF_8);
+
+    assertThat(source).contains("extends LocalSdkSingleTool");
+    assertThat(source).contains("getContrastSDK()");
+    assertThat(source).doesNotContain("ContrastApiClient");
   }
 }
