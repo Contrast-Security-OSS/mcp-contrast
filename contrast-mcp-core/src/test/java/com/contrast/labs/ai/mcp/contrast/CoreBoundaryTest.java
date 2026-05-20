@@ -31,6 +31,11 @@ class CoreBoundaryTest {
   private static final Path CORE_MAIN = Path.of("src/main/java");
   private static final List<Path> REQUIRED_SUPPORT_TYPES =
       List.of(
+          sourcePath("com/contrast/labs/ai/mcp/contrast/client/ContrastApiClient.java"),
+          sourcePath("com/contrast/labs/ai/mcp/contrast/tool/base/AuthenticationStrategy.java"),
+          sourcePath("com/contrast/labs/ai/mcp/contrast/tool/base/BaseTool.java"),
+          sourcePath("com/contrast/labs/ai/mcp/contrast/tool/base/SingleTool.java"),
+          sourcePath("com/contrast/labs/ai/mcp/contrast/tool/base/PaginatedTool.java"),
           sourcePath("com/contrast/labs/ai/mcp/contrast/tool/base/FilterHelper.java"),
           sourcePath("com/contrast/labs/ai/mcp/contrast/tool/base/LoggingKeys.java"),
           sourcePath("com/contrast/labs/ai/mcp/contrast/tool/base/ToolParams.java"),
@@ -51,9 +56,11 @@ class CoreBoundaryTest {
       List.of(
           new LocalOnlyPattern(
               "stdio app configuration", "com.contrast.labs.ai.mcp.contrast.config"),
-          new LocalOnlyPattern("Contrast SDK direct dependency", "com.contrastsecurity"),
-          new LocalOnlyPattern("Spring AI transport/runtime dependency", "org.springframework.ai"),
           new LocalOnlyPattern("Spring AI transport/runtime dependency", "spring-ai"),
+          new LocalOnlyPattern(
+              "Spring AI transport/runtime dependency", "org.springframework.ai.tool.annotation"),
+          new LocalOnlyPattern(
+              "Spring AI transport/runtime dependency", "org.springframework.ai.support"),
           new LocalOnlyPattern("Spring application configuration", "@Configuration"),
           new LocalOnlyPattern("local SDK factory", "ContrastSDKFactory"),
           new LocalOnlyPattern("local SDK extension factory", "SDKExtensionFactory"),

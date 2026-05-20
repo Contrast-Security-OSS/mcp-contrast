@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.sast;
 
-import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkSingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.sast.params.GetSastResultsParams;
@@ -36,7 +36,7 @@ import org.springframework.stereotype.Service;
 @Deprecated
 @Service
 @Slf4j
-public class GetSastResultsTool extends SingleTool<GetSastResultsParams, String> {
+public class GetSastResultsTool extends LocalSdkSingleTool<GetSastResultsParams, String> {
 
   @Tool(
       name = "get_scan_results",

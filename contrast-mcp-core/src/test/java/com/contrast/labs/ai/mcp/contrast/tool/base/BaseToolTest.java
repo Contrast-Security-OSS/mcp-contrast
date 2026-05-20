@@ -16,49 +16,13 @@
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
-import com.contrastsecurity.sdk.ContrastSDK;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.springframework.test.util.ReflectionTestUtils;
 
 /** Unit tests for {@link BaseTool}. */
 class BaseToolTest {
-
-  private TestableTool tool;
-  private ContrastSDKFactory sdkFactory;
-  private ContrastSDK sdk;
-
-  @BeforeEach
-  void setUp() {
-    tool = new TestableTool();
-    sdkFactory = mock();
-    sdk = mock();
-
-    when(sdkFactory.getSDK()).thenReturn(sdk);
-    when(sdkFactory.getOrgId()).thenReturn("test-org-123");
-
-    ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
-  }
-
-  @Test
-  void getContrastSDK_should_return_sdk_from_factory() {
-    var result = tool.getContrastSDK();
-
-    assertThat(result).isSameAs(sdk);
-  }
-
-  @Test
-  void getOrgId_should_return_orgId_from_factory() {
-    var result = tool.getOrgId();
-
-    assertThat(result).isEqualTo("test-org-123");
-  }
 
   @ParameterizedTest
   @CsvSource({
@@ -73,24 +37,22 @@ class BaseToolTest {
     "418, API error (HTTP 418)"
   })
   void mapHttpErrorCode_should_return_user_friendly_message(int code, String expectedMessage) {
+    var tool = new TestableTool();
+
     var result = tool.mapHttpErrorCode(code);
 
     assertThat(result).isEqualTo(expectedMessage);
   }
 
+  @Test
+  void isAuthenticationStrategyConfigured_should_default_to_false() {
+    var tool = new TestableTool();
+
+    assertThat(tool.isAuthenticationStrategyConfigured()).isFalse();
+  }
+
   /** Concrete implementation for testing abstract base class. */
   private static class TestableTool extends BaseTool {
-    // Expose protected methods for testing
-    @Override
-    public ContrastSDK getContrastSDK() {
-      return super.getContrastSDK();
-    }
-
-    @Override
-    public String getOrgId() {
-      return super.getOrgId();
-    }
-
     @Override
     public String mapHttpErrorCode(int code) {
       return super.mapHttpErrorCode(code);

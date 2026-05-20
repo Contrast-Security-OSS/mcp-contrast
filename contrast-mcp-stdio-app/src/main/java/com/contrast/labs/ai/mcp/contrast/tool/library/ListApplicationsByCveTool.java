@@ -21,7 +21,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.App;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
-import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkSingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.library.params.ListApplicationsByCveParams;
@@ -41,7 +41,8 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @Slf4j
-public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveParams, CveData> {
+public class ListApplicationsByCveTool
+    extends LocalSdkSingleTool<ListApplicationsByCveParams, CveData> {
 
   @Tool(
       name = "list_applications_by_cve",
