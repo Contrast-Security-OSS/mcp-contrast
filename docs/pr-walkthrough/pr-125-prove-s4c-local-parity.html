@@ -405,18 +405,19 @@
   .slice-col.this-pr .slice-title { color: var(--green); }
   .slice-col.future-col .slice-title { color: var(--text-subtle); }
   .slice-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.3rem 0;
+    position: relative;
+    padding: 0.3rem 0 0.3rem 1rem;
     font-size: 0.85rem;
     color: var(--text-muted);
+    line-height: 1.5;
   }
   .slice-item .dot {
+    position: absolute;
+    left: 0;
+    top: 0.65rem;
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    flex-shrink: 0;
   }
   .slice-col.this-pr .dot { background: var(--green); }
   .slice-col.future-col .dot { background: var(--text-subtle); }
@@ -768,7 +769,117 @@
 
   <p class="narrative">
     <strong>S4C uses three complementary proof strategies &mdash; each catches a different class of regression that the others miss.</strong>
+    No classes were moved in this PR (that was S4B). The scope here is two one-line production fixes and four new/expanded test files, distributed across both modules. The diagram below maps every changed file to its module and shows which test proves which production behavior.
   </p>
+
+  <div class="diagram">
+    <div class="diagram-container">
+      <svg viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <!-- Title -->
+        <text x="450" y="28" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">PR #125 Change Map</text>
+        <text x="450" y="48" text-anchor="middle" fill="#8b949e" font-size="11">2 production fixes &middot; 4 test files &middot; 1 gate script</text>
+
+        <!-- ── contrast-mcp-core module ── -->
+        <rect x="30" y="70" width="410" height="340" rx="10" fill="none" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <text x="50" y="92" fill="#58a6ff" font-size="12" font-weight="700">:contrast-mcp-core</text>
+        <text x="50" y="108" fill="#6e7681" font-size="10">Shared between local &amp; hosted servers</text>
+
+        <!-- Production files (core) -->
+        <text x="50" y="135" fill="#8b949e" font-size="10" font-weight="600" text-transform="uppercase" letter-spacing="0.05em">PRODUCTION (src/main)</text>
+
+        <!-- SingleTool.java -->
+        <rect x="50" y="145" width="370" height="36" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+        <circle cx="68" cy="163" r="5" fill="#d29922"/>
+        <text x="82" y="159" fill="#e6edf3" font-size="11" font-weight="600">SingleTool.java</text>
+        <text x="82" y="173" fill="#8b949e" font-size="9">.setCause(e) &rarr; .addKeyValue(EXCEPTION_TYPE, ...) &nbsp; <tspan fill="#3fb950">+1</tspan> <tspan fill="#f85149">&minus;1</tspan></text>
+
+        <!-- PaginatedTool.java -->
+        <rect x="50" y="189" width="370" height="36" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+        <circle cx="68" cy="207" r="5" fill="#d29922"/>
+        <text x="82" y="203" fill="#e6edf3" font-size="11" font-weight="600">PaginatedTool.java</text>
+        <text x="82" y="217" fill="#8b949e" font-size="9">.setCause(e) &rarr; .addKeyValue(EXCEPTION_TYPE, ...) &nbsp; <tspan fill="#3fb950">+1</tspan> <tspan fill="#f85149">&minus;1</tspan></text>
+
+        <!-- Test files (core) -->
+        <text x="50" y="250" fill="#8b949e" font-size="10" font-weight="600">TESTS (src/test)</text>
+
+        <!-- BaseToolAuthenticationStrategyTest -->
+        <rect x="50" y="260" width="370" height="48" rx="6" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <circle cx="68" cy="284" r="5" fill="#3fb950"/>
+        <text x="82" y="276" fill="#e6edf3" font-size="11" font-weight="600">BaseToolAuthenticationStrategyTest.java</text>
+        <text x="82" y="290" fill="#8b949e" font-size="9">+5 tests: auth failure (Single + Paginated), paginated</text>
+        <text x="82" y="302" fill="#8b949e" font-size="9">happy path, paginated no-op, source-code regression &nbsp; <tspan fill="#3fb950">+108</tspan></text>
+
+        <!-- Legend: yellow = modified, green = new/expanded -->
+        <circle cx="50" cy="330" r="5" fill="#d29922"/>
+        <text x="62" y="334" fill="#8b949e" font-size="9">Modified (production fix)</text>
+        <circle cx="200" cy="330" r="5" fill="#3fb950"/>
+        <text x="212" y="334" fill="#8b949e" font-size="9">New / expanded test</text>
+
+        <!-- ── contrast-mcp-stdio-app module ── -->
+        <rect x="470" y="70" width="400" height="270" rx="10" fill="none" stroke="#bc8cff" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <text x="490" y="92" fill="#bc8cff" font-size="12" font-weight="700">:contrast-mcp-stdio-app</text>
+        <text x="490" y="108" fill="#6e7681" font-size="10">Local stdio server only</text>
+
+        <!-- Test files (stdio) -->
+        <text x="490" y="135" fill="#8b949e" font-size="10" font-weight="600">TESTS (src/test)</text>
+
+        <!-- ListVulnerabilityTypesLocalParityTest -->
+        <rect x="490" y="145" width="360" height="48" rx="6" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <circle cx="508" cy="169" r="5" fill="#3fb950"/>
+        <text x="522" y="161" fill="#e6edf3" font-size="11" font-weight="600">ListVulnerabilityTypesLocalParityTest.java</text>
+        <text x="522" y="175" fill="#8b949e" font-size="9">Golden JSON byte-equivalence through SdkApiClient &nbsp; <tspan fill="#3fb950">+84</tspan></text>
+        <text x="850" y="155" fill="#3fb950" font-size="10" font-weight="700" text-anchor="end">NEW</text>
+
+        <!-- GetSastResultsToolTest -->
+        <rect x="490" y="205" width="360" height="48" rx="6" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <circle cx="508" cy="229" r="5" fill="#3fb950"/>
+        <text x="522" y="221" fill="#e6edf3" font-size="11" font-weight="600">GetSastResultsToolTest.java</text>
+        <text x="522" y="235" fill="#8b949e" font-size="9">Source-code guard: get_scan_results stays local-only &nbsp; <tspan fill="#3fb950">+16</tspan></text>
+
+        <!-- ── hack/ gate script ── -->
+        <rect x="470" y="280" width="400" height="48" rx="6" fill="#161b22" stroke="#6e7681" stroke-width="1"/>
+        <circle cx="488" cy="304" r="5" fill="#3fb950"/>
+        <text x="502" y="300" fill="#e6edf3" font-size="11" font-weight="600">hack/verify-s4c-local-parity.sh</text>
+        <text x="502" y="314" fill="#8b949e" font-size="9">Temporary gate: runs targeted tests, scans for secrets &nbsp; <tspan fill="#3fb950">+49</tspan></text>
+        <text x="870" y="290" fill="#3fb950" font-size="10" font-weight="700" text-anchor="end">NEW</text>
+
+        <!-- ── "Proves" arrows ── -->
+
+        <!-- BaseToolAuthStrategyTest proves SingleTool + PaginatedTool -->
+        <line x1="235" y1="260" x2="235" y2="230" stroke="#3fb950" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#proveArrow)"/>
+        <line x1="235" y1="230" x2="235" y2="225" stroke="#3fb950" stroke-width="1.2" marker-end="url(#proveArrow)"/>
+
+        <line x1="200" y1="260" x2="200" y2="186" stroke="#3fb950" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#proveArrow)"/>
+
+        <!-- Labels for prove arrows -->
+        <text x="256" y="242" fill="#3fb950" font-size="8" font-weight="600">proves fix</text>
+
+        <!-- LocalParityTest proves the tool through SdkApiClient (cross-module) -->
+        <line x1="490" y1="169" x2="440" y2="169" stroke="#58a6ff" stroke-width="1.2" stroke-dasharray="4,2"/>
+        <line x1="440" y1="169" x2="440" y2="395" stroke="#58a6ff" stroke-width="1.2" stroke-dasharray="4,2"/>
+
+        <!-- Cross-module label -->
+        <rect x="432" y="355" width="110" height="22" rx="4" fill="rgba(88,166,255,0.12)" stroke="rgba(88,166,255,0.3)" stroke-width="1"/>
+        <text x="487" y="370" text-anchor="middle" fill="#58a6ff" font-size="9" font-weight="600">cross-module proof</text>
+
+        <!-- What the parity test proves -->
+        <text x="450" y="405" text-anchor="middle" fill="#8b949e" font-size="10">The parity test lives in <tspan fill="#bc8cff" font-weight="600">stdio-app</tspan> but exercises</text>
+        <text x="450" y="420" text-anchor="middle" fill="#8b949e" font-size="10"><tspan fill="#58a6ff" font-weight="600">core</tspan>&rsquo;s ListVulnerabilityTypesTool through SdkApiClient</text>
+
+        <!-- Summary box at bottom -->
+        <rect x="60" y="450" width="780" height="55" rx="8" fill="rgba(63,185,80,0.06)" stroke="rgba(63,185,80,0.25)" stroke-width="1"/>
+        <text x="450" y="472" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="600">Summary: 2 lines of production code changed &middot; 257 lines of test code added</text>
+        <text x="450" y="492" text-anchor="middle" fill="#8b949e" font-size="10">Every production change has a mutation-sensitive test that fails if the change is reverted</text>
+
+        <!-- Arrow defs -->
+        <defs>
+          <marker id="proveArrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" fill="#3fb950"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+  </div>
 
   <p class="narrative">
     <strong>1. Byte-equivalent golden JSON.</strong>
@@ -794,18 +905,18 @@
   <div class="slice-columns">
     <div class="slice-col this-pr">
       <div class="slice-title">This PR (S4C)</div>
-      <div class="slice-item"><span class="dot"></span><strong>Golden JSON test</strong> &mdash; byte-equivalent local parity for <code>list_vulnerability_types</code></div>
-      <div class="slice-item"><span class="dot"></span><strong>Auth failure tests</strong> &mdash; SingleTool + PaginatedTool error sanitization</div>
-      <div class="slice-item"><span class="dot"></span><strong>.setCause(e) removal</strong> &mdash; prevent stack trace attachment in tool errors</div>
-      <div class="slice-item"><span class="dot"></span><strong>Local-only guard</strong> &mdash; <code>get_scan_results</code> stays in stdio app</div>
-      <div class="slice-item"><span class="dot"></span><strong>Gate script</strong> &mdash; <code>hack/verify-s4c-local-parity.sh</code></div>
+      <div class="slice-item"><span class="dot"></span>Golden JSON byte-equivalent parity test</div>
+      <div class="slice-item"><span class="dot"></span>Auth failure sanitization tests (Single + Paginated)</div>
+      <div class="slice-item"><span class="dot"></span>Stack trace removal (.setCause &rarr; exception type)</div>
+      <div class="slice-item"><span class="dot"></span>Local-only regression guard for get_scan_results</div>
+      <div class="slice-item"><span class="dot"></span>Temporary gate script (verify-s4c-local-parity.sh)</div>
     </div>
     <div class="slice-col future-col">
       <div class="slice-title">Not in This PR</div>
       <div class="slice-item"><span class="dot"></span>Migrating remaining 11 shared tools (Slice 8)</div>
       <div class="slice-item"><span class="dot"></span>BearerTokenApiClient for hosted server (Slice 5)</div>
       <div class="slice-item"><span class="dot"></span>Rewriting all reflection-based test injection (Slice 8)</div>
-      <div class="slice-item"><span class="dot"></span>Removing <code>LocalSdkSingleTool</code> / <code>LocalSdkPaginatedTool</code> bridges (Slice 8)</div>
+      <div class="slice-item"><span class="dot"></span>Removing LocalSdk* bridges (Slice 8)</div>
     </div>
   </div>
 </section>
