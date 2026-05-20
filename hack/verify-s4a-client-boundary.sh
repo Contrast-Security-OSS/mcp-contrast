@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Temporary S4A slice gate — remove once S4 is proven and boundary checks are covered by CI.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
