@@ -65,15 +65,15 @@ class CoreBoundaryTest {
           new LocalOnlyPattern(
               "Spring AI transport/runtime dependency", "org.springframework.ai.support"),
           new LocalOnlyPattern("Spring application configuration", "@Configuration"),
-          new LocalOnlyPattern("local SDK factory", "ContrastSDKFactory"),
+          new LocalOnlyPattern("local SDK class", "ContrastSDK"),
           new LocalOnlyPattern("local SDK extension factory", "SDKExtensionFactory"),
           new LocalOnlyPattern("local SDK API client", "SdkApiClient"),
           new LocalOnlyPattern("local SDK helper/cache implementation", "SDKHelper"),
           new LocalOnlyPattern("stdio application bootstrap", "McpContrastApplication"),
           new LocalOnlyPattern("local SDK helper/cache implementation", "com.google.common.cache"),
           new LocalOnlyPattern("local-only raw SARIF tool", "get_scan_results"),
-          new LocalOnlyPattern("local-only raw SARIF tool", "sarif"),
-          new LocalOnlyPattern("local-only raw SARIF tool", "SARIF"));
+          new LocalOnlyPattern("local-only raw SARIF tool", "GetSastResultsTool"),
+          new LocalOnlyPattern("local-only raw SARIF tool", "SarifResult"));
 
   @Test
   void core_should_include_current_shared_support_types() throws IOException {

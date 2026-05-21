@@ -91,7 +91,7 @@ assert_contains "moved_tool_uses_contrast_api_client" "${CORE_TOOL}" 'ContrastAp
 assert_contains "moved_tool_calls_rules_through_client" "${CORE_TOOL}" 'contrastApiClient\.getRules\(\)'
 assert_contains "tool_method_declares_tool_context" "${CORE_TOOL}" 'listVulnerabilityTypes\(ToolContext toolContext\)'
 assert_contains "tool_context_forwarded_to_pipeline" "${CORE_TOOL}" 'executePipeline\(ListVulnerabilityTypesParams::of, toolContext\)'
-assert_not_contains "moved_tool_has_no_local_sdk_factory_cache_or_raw_sarif_access" "${CORE_TOOL}" 'ContrastSDKFactory|SDKExtensionFactory|SDKHelper|getContrastSDK|getSDKExtension|getOrgId|new ContrastSDK|get_scan_results|sarif|SARIF'
+assert_not_contains "moved_tool_has_no_local_sdk_factory_cache_or_raw_sarif_access" "${CORE_TOOL}" 'ContrastSDK|SDKExtensionFactory|SDKHelper|getSDKExtension|getOrgId|get_scan_results|GetSastResultsTool|SarifResult'
 assert_not_contains "moved_tool_has_no_hidden_auth_or_org_parameters" "${CORE_TOOL}" 'orgId|organizationId|organizationUuid|bearer|token|apiKey|serviceKey|credential'
 
 CORE_TOOL_COUNT="$(
