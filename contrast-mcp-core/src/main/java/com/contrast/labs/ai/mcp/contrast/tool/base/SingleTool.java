@@ -111,7 +111,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
     } catch (Exception e) {
       log.atError()
           .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
-          .setCause(e)
+          .addKeyValue(LoggingKeys.EXCEPTION_TYPE, e.getClass().getSimpleName())
           .setMessage("Request failed unexpectedly")
           .log();
       return SingleToolResponse.error("An internal error occurred (ref: " + requestId + ")");

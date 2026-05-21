@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PR #125 Walkthrough: Prove S4C Local Parity Path</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-raised: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-subtle: #6e7681;
+    --accent: #58a6ff;
+    --accent-soft: rgba(88,166,255,0.15);
+    --green: #3fb950;
+    --green-bg: rgba(63,185,80,0.15);
+    --green-border: rgba(63,185,80,0.4);
+    --red: #f85149;
+    --red-bg: rgba(248,81,73,0.10);
+    --yellow: #d29922;
+    --yellow-bg: rgba(210,153,34,0.15);
+    --purple: #bc8cff;
+    --purple-bg: rgba(188,140,255,0.12);
+    --orange: #f0883e;
+    --line-num: #484f58;
+    --diff-add-bg: rgba(63,185,80,0.10);
+    --diff-add-text: #aff5b4;
+    --diff-add-marker: #3fb950;
+    --diff-del-bg: rgba(248,81,73,0.10);
+    --diff-del-text: #ffa198;
+    --diff-del-marker: #f85149;
+    --diff-context-bg: transparent;
+    --code-bg: #0d1117;
+    --nav-bg: rgba(13,17,23,0.95);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* --- Hero --- */
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 40%, #1a1e2e 70%, #161b22 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 3rem 2rem 2.5rem;
+    text-align: center;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.3rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(88,166,255,0.3);
+    margin-bottom: 1rem;
+    letter-spacing: 0.03em;
+  }
+  .hero h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.6rem;
+    background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero .subtitle {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .hero-meta {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .hero-meta-item {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .hero-meta-item strong { color: var(--text); }
+
+  /* --- Navigation --- */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--nav-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.6rem 2rem;
+    overflow-x: auto;
+  }
+  nav ol {
+    display: flex;
+    gap: 0.3rem;
+    list-style: none;
+    max-width: 1100px;
+    margin: 0 auto;
+    font-size: 0.82rem;
+    align-items: center;
+  }
+  nav li a {
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.35rem 0.7rem;
+    border-radius: 6px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  nav li a:hover { color: var(--accent); background: var(--accent-soft); }
+  nav .nav-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4em;
+    height: 1.4em;
+    border-radius: 50%;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 0.4em;
+  }
+  nav .nav-sep { color: var(--text-subtle); font-size: 0.75rem; }
+
+  /* --- Main --- */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 2rem 6rem;
+  }
+
+  /* --- Sections --- */
+  .chapter {
+    margin-bottom: 3.5rem;
+    scroll-margin-top: 4rem;
+  }
+  .chapter-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .chapter-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .chapter-number.blue { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .chapter-number.green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .chapter-number.purple { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+  .chapter-number.yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .chapter-number.orange { background: rgba(240,136,62,0.12); color: var(--orange); border: 1px solid rgba(240,136,62,0.3); }
+  .chapter h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* --- Prose --- */
+  .narrative {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.75;
+    margin-bottom: 1.5rem;
+  }
+  .narrative strong { color: var(--text); font-weight: 600; }
+  .narrative code {
+    background: var(--surface-raised);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.88em;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  /* --- Callout boxes --- */
+  .callout {
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    border: 1px solid;
+  }
+  .callout.why {
+    background: var(--accent-soft);
+    border-color: rgba(88,166,255,0.25);
+    color: var(--text);
+  }
+  .callout.why .callout-label { color: var(--accent); }
+  .callout.security {
+    background: var(--red-bg);
+    border-color: rgba(248,81,73,0.25);
+  }
+  .callout.security .callout-label { color: var(--red); }
+  .callout.note {
+    background: var(--yellow-bg);
+    border-color: rgba(210,153,34,0.25);
+  }
+  .callout.note .callout-label { color: var(--yellow); }
+  .callout.future {
+    background: var(--purple-bg);
+    border-color: rgba(188,140,255,0.25);
+  }
+  .callout.future .callout-label { color: var(--purple); }
+  .callout-label {
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.3rem;
+    display: block;
+  }
+
+  /* --- Code / Diff blocks --- */
+  .diff-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .diff-header {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    gap: 0.5rem;
+  }
+  .diff-header .file-icon {
+    width: 16px; height: 16px;
+    fill: var(--text-subtle);
+    flex-shrink: 0;
+  }
+  .diff-header .filename {
+    color: var(--text);
+    font-weight: 600;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+  }
+  .diff-header .badge {
+    margin-left: auto;
+    font-size: 0.72rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .badge-new { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .badge-modified { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .badge-deleted { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,81,73,0.3); }
+
+  .diff-body {
+    overflow-x: auto;
+  }
+  .diff-body pre {
+    margin: 0;
+    padding: 0.4rem 0;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.3;
+    display: flex;
+    flex-direction: column;
+  }
+  .diff-line {
+    display: flex;
+    padding: 0 1rem;
+    min-height: 1.3em;
+  }
+  .diff-line.add {
+    background: var(--diff-add-bg);
+  }
+  .diff-line.del {
+    background: var(--diff-del-bg);
+  }
+  .diff-line.context {
+    background: var(--diff-context-bg);
+  }
+  .diff-line .marker {
+    width: 1.2em;
+    flex-shrink: 0;
+    color: var(--text-subtle);
+    user-select: none;
+    text-align: center;
+  }
+  .diff-line.add .marker { color: var(--diff-add-marker); }
+  .diff-line.del .marker { color: var(--diff-del-marker); }
+  .diff-line .ln {
+    width: 3.5em;
+    flex-shrink: 0;
+    color: var(--line-num);
+    text-align: right;
+    padding-right: 1em;
+    user-select: none;
+  }
+  .diff-line .code {
+    flex: 1;
+    white-space: pre;
+  }
+  /* Syntax highlighting classes */
+  .diff-line .code .kw { color: #ff7b72; }
+  .diff-line .code .str { color: #a5d6ff; }
+  .diff-line .code .ann { color: #d2a8ff; }
+  .diff-line .code .type { color: #79c0ff; }
+  .diff-line .code .comment { color: var(--text-subtle); font-style: italic; }
+  .diff-line .code .prop { color: #7ee787; }
+  .diff-line .code .val { color: #a5d6ff; }
+  .diff-line .code .num { color: #79c0ff; }
+  .diff-line .code .param { color: #ffa657; }
+
+  /* Annotation inline */
+  .annotation {
+    background: var(--surface-raised);
+    border-left: 3px solid var(--accent);
+    padding: 0.7rem 1rem;
+    margin: 0 1rem 0.3rem 1rem;
+    border-radius: 0 6px 6px 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+  .annotation strong { color: var(--text); }
+  .annotation code {
+    background: rgba(88,166,255,0.1);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: var(--accent);
+  }
+  .annotation.security-note { border-left-color: var(--red); }
+  .annotation.future-note { border-left-color: var(--purple); }
+
+  /* --- Architecture diagrams (inline SVG) --- */
+  .diagram {
+    margin-bottom: 1.5rem;
+  }
+  .diagram svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .diagram-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    overflow-x: auto;
+  }
+
+  /* --- Slice / scope columns --- */
+  .slice-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (max-width: 768px) { .slice-columns { grid-template-columns: 1fr; } }
+  .slice-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem;
+  }
+  .slice-col.this-pr { border-color: var(--green-border); }
+  .slice-col.future-col { border-color: var(--border); opacity: 0.7; }
+  .slice-col .slice-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .slice-col.this-pr .slice-title { color: var(--green); }
+  .slice-col.future-col .slice-title { color: var(--text-subtle); }
+  .slice-item {
+    position: relative;
+    padding: 0.3rem 0 0.3rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .slice-item .dot {
+    position: absolute;
+    left: 0;
+    top: 0.65rem;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .slice-col.this-pr .dot { background: var(--green); }
+  .slice-col.future-col .dot { background: var(--text-subtle); }
+  .slice-item strong { color: var(--text); font-weight: 500; }
+
+  /* --- Roadmap table --- */
+  .roadmap-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+  }
+  .roadmap-table th {
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  .roadmap-table td {
+    padding: 0.45rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+  .roadmap-table tr:last-child td { border-bottom: none; }
+  .roadmap-table .jira-link {
+    font-family: 'SF Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .roadmap-table .jira-link:hover { text-decoration: underline; }
+  .roadmap-table .slice-name { color: var(--text); font-weight: 500; }
+  .roadmap-table .current-row td {
+    background: var(--green-bg);
+    border-bottom-color: var(--green-border);
+  }
+  .roadmap-table .current-row .slice-name { color: var(--green); font-weight: 600; }
+  .roadmap-table .current-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--green-bg);
+    color: var(--green);
+    border: 1px solid var(--green-border);
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
+
+  /* --- File summary table --- */
+  .file-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+  }
+  .file-table th {
+    text-align: left;
+    padding: 0.6rem 1rem;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  .file-table td {
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .file-table td:first-child {
+    font-family: 'SF Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--accent);
+  }
+  .file-table tr:last-child td { border-bottom: none; }
+  .file-table .addition { color: var(--green); }
+  .file-table .deletion { color: var(--red); }
+
+  /* --- Standard Pattern (collapsible boilerplate) --- */
+  .standard-pattern {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .standard-pattern summary {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: var(--surface-raised);
+    border-bottom: 1px solid transparent;
+    list-style: none;
+    transition: background 0.15s;
+  }
+  .standard-pattern summary::-webkit-details-marker { display: none; }
+  .standard-pattern summary::before {
+    content: '\25B6';
+    font-size: 0.65rem;
+    color: var(--text-subtle);
+    transition: transform 0.15s;
+    flex-shrink: 0;
+  }
+  .standard-pattern[open] summary::before { transform: rotate(90deg); }
+  .standard-pattern[open] summary { border-bottom-color: var(--border); }
+  .standard-pattern summary:hover { background: rgba(88,166,255,0.06); }
+  .standard-pattern .sp-icon {
+    width: 16px; height: 16px;
+    fill: var(--text-subtle);
+    flex-shrink: 0;
+  }
+  .standard-pattern .sp-title {
+    color: var(--text);
+    font-weight: 600;
+    flex: 1;
+  }
+  .standard-pattern .sp-files {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.78rem;
+    color: var(--text-subtle);
+  }
+  .standard-pattern .sp-ref {
+    font-size: 0.78rem;
+    color: var(--text-subtle);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .badge-standard {
+    background: rgba(139,148,158,0.15);
+    color: var(--text-muted);
+    border: 1px solid rgba(139,148,158,0.3);
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .standard-pattern .sp-body {
+    padding: 0.8rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .standard-pattern .sp-body code {
+    background: var(--surface-raised);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  /* --- Novelty badges for file summary table --- */
+  .file-table .novelty { text-align: center; }
+  .novelty-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+  }
+  .novelty-badge.novel { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .novelty-badge.standard { background: rgba(139,148,158,0.12); color: var(--text-subtle); border: 1px solid rgba(139,148,158,0.25); }
+  .novelty-badge.pattern { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+
+  /* --- Footer --- */
+  footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-subtle);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+    margin-top: 3rem;
+  }
+
+  /* --- Responsive --- */
+  @media (max-width: 768px) {
+    .hero { padding: 2rem 1rem; }
+    .hero h1 { font-size: 1.6rem; }
+    main { padding: 1.5rem 1rem 4rem; }
+    nav ol { gap: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <span class="hero-badge">PR #125 &middot; AIML-758 &middot; Slice 4C of 4</span>
+  <h1>Prove S4C Local Parity Path</h1>
+  <p class="subtitle">
+    The first shared tool moved into core &mdash; now prove it still returns identical output through the new abstraction layer, and harden the auth pipeline against credential leaks.
+  </p>
+  <div class="hero-meta">
+    <span class="hero-meta-item"><strong>Branch:</strong> AIML-758-s4c-prove-first-tool-local-parity</span>
+    <span class="hero-meta-item"><strong>Base:</strong> AIML-758-s4b-move-first-shared-tool (PR #124)</span>
+    <span class="hero-meta-item"><strong>Files:</strong> 6 changed</span>
+    <span class="hero-meta-item"><strong>Lines:</strong> +259 &minus;2</span>
+  </div>
+</div>
+
+<!-- ===== NAV ===== -->
+<nav>
+  <ol>
+    <li><a href="#context"><span class="nav-number">1</span>Context</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#approach"><span class="nav-number">2</span>Approach</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#security-fix"><span class="nav-number">3</span>Security Fix</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#auth-pipeline"><span class="nav-number">4</span>Auth Pipeline Tests</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#golden-json"><span class="nav-number">5</span>Golden JSON Parity</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#local-only"><span class="nav-number">6</span>Local-Only Guard</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#gate-script"><span class="nav-number">7</span>Gate Script</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#whats-next"><span class="nav-number">8</span>What&rsquo;s Next</a></li>
+  </ol>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 1: Context                                           -->
+<!-- ============================================================ -->
+<section class="chapter" id="context">
+  <div class="chapter-header">
+    <span class="chapter-number blue">1</span>
+    <h2>Context</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>This PR is the final child of Slice 4 &mdash; the slice that extracts a shared API client so the same tool code can run in both the local stdio server and the future hosted remote server.</strong>
+    Slice 4 is divided into three beads, each building on the last:
+  </p>
+
+  <ul class="narrative" style="list-style: none; padding-left: 0;">
+    <li style="padding: 0.2rem 0;"><strong>S4A</strong> (PR #123) &mdash; Introduced <code>ContrastApiClient</code>, the <code>AuthenticationStrategy</code> hook in <code>BaseTool</code>, and the local <code>SdkApiClient</code> bridge.</li>
+    <li style="padding: 0.2rem 0;"><strong>S4B</strong> (PR #124) &mdash; Moved exactly one low-risk shared tool (<code>list_vulnerability_types</code>) into <code>contrast-mcp-core</code> behind <code>ContrastApiClient</code>.</li>
+    <li style="padding: 0.2rem 0;"><strong>S4C</strong> (this PR) &mdash; Proves the move didn't break anything: byte-equivalent golden JSON, auth failure sanitization, and a local-only regression guard for <code>get_scan_results</code>.</li>
+  </ul>
+
+  <p class="narrative">
+    <strong>The core question S4C answers: does <code>list_vulnerability_types</code> produce identical output when invoked through <code>SdkApiClient</code> instead of the old reflection-injected SDK factories?</strong>
+    If yes, the abstraction layer is safe, and the remaining 11 shared tools can be migrated with confidence in Slice 8.
+    If no, we catch it here before any downstream work depends on the pattern.
+  </p>
+
+  <div class="diagram">
+    <div class="diagram-container">
+      <svg viewBox="0 0 900 340" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <!-- Title -->
+        <text x="450" y="28" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">Slice 4 Progression: From Abstraction to Proof</text>
+
+        <!-- S4A box -->
+        <rect x="30" y="60" width="250" height="110" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+        <text x="155" y="85" text-anchor="middle" fill="#8b949e" font-size="11" font-weight="600">S4A &middot; PR #123</text>
+        <text x="155" y="105" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="600">Client Boundary</text>
+        <text x="155" y="125" text-anchor="middle" fill="#8b949e" font-size="10">ContrastApiClient interface</text>
+        <text x="155" y="140" text-anchor="middle" fill="#8b949e" font-size="10">AuthenticationStrategy hook</text>
+        <text x="155" y="155" text-anchor="middle" fill="#8b949e" font-size="10">SdkApiClient local bridge</text>
+
+        <!-- Arrow S4A -> S4B -->
+        <line x1="280" y1="115" x2="320" y2="115" stroke="#3fb950" stroke-width="2" marker-end="url(#arrowGreen)"/>
+        <text x="300" y="108" text-anchor="middle" fill="#3fb950" font-size="9" font-weight="600">DONE</text>
+
+        <!-- S4B box -->
+        <rect x="320" y="60" width="250" height="110" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+        <text x="445" y="85" text-anchor="middle" fill="#8b949e" font-size="11" font-weight="600">S4B &middot; PR #124</text>
+        <text x="445" y="105" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="600">First Tool Move</text>
+        <text x="445" y="125" text-anchor="middle" fill="#8b949e" font-size="10">list_vulnerability_types &rarr; core</text>
+        <text x="445" y="140" text-anchor="middle" fill="#8b949e" font-size="10">ToolContext forwarding</text>
+        <text x="445" y="155" text-anchor="middle" fill="#8b949e" font-size="10">Core boundary tests</text>
+
+        <!-- Arrow S4B -> S4C -->
+        <line x1="570" y1="115" x2="610" y2="115" stroke="#3fb950" stroke-width="2" marker-end="url(#arrowGreen)"/>
+        <text x="590" y="108" text-anchor="middle" fill="#3fb950" font-size="9" font-weight="600">DONE</text>
+
+        <!-- S4C box (highlighted) -->
+        <rect x="610" y="55" width="260" height="120" rx="8" fill="rgba(63,185,80,0.08)" stroke="#3fb950" stroke-width="2"/>
+        <text x="740" y="80" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="700">S4C &middot; THIS PR</text>
+        <text x="740" y="100" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="600">Local Parity Proof</text>
+        <text x="740" y="120" text-anchor="middle" fill="#8b949e" font-size="10">Golden JSON byte-equivalence</text>
+        <text x="740" y="135" text-anchor="middle" fill="#8b949e" font-size="10">Auth failure sanitization</text>
+        <text x="740" y="150" text-anchor="middle" fill="#8b949e" font-size="10">.setCause(e) stack trace removal</text>
+        <text x="740" y="165" text-anchor="middle" fill="#8b949e" font-size="10">Local-only regression guard</text>
+
+        <!-- What comes after -->
+        <rect x="250" y="220" width="400" height="80" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1" stroke-dasharray="6,3"/>
+        <text x="450" y="248" text-anchor="middle" fill="#bc8cff" font-size="11" font-weight="600">Slice 5 (AIML-759) &mdash; Next</text>
+        <text x="450" y="268" text-anchor="middle" fill="#8b949e" font-size="10">Hosted server consumes contrast-mcp-core</text>
+        <text x="450" y="283" text-anchor="middle" fill="#8b949e" font-size="10">get_user_info adapts to shared BaseTool auth pipeline</text>
+
+        <!-- Arrow S4C -> Slice 5 -->
+        <line x1="740" y1="175" x2="740" y2="200" stroke="#8b949e" stroke-width="1" stroke-dasharray="4,3"/>
+        <line x1="740" y1="200" x2="650" y2="220" stroke="#8b949e" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arrowMuted)"/>
+
+        <!-- Arrow defs -->
+        <defs>
+          <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#3fb950"/>
+          </marker>
+          <marker id="arrowMuted" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#8b949e"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+  </div>
+
+  <div class="callout why">
+    <span class="callout-label">Why this matters</span>
+    <strong>Without S4C, the module split in S4B is a structural change with no behavioral proof.</strong>
+    The golden JSON test catches serialization drift, field-order changes, and accidental org ID leaks.
+    The auth failure tests catch credential leaks in error responses &mdash; a gap discovered during PR #123 review.
+    Together, they provide the confidence gate for migrating the remaining 11 tools in Slice 8.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 2: Approach                                          -->
+<!-- ============================================================ -->
+<section class="chapter" id="approach">
+  <div class="chapter-header">
+    <span class="chapter-number blue">2</span>
+    <h2>Approach</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>S4C uses three complementary proof strategies &mdash; each catches a different class of regression that the others miss.</strong>
+    No classes were moved in this PR (that was S4B). The scope here is two one-line production fixes and four new/expanded test files, distributed across both modules. The diagram below maps every changed file to its module and shows which test proves which production behavior.
+  </p>
+
+  <div class="diagram">
+    <div class="diagram-container">
+      <svg viewBox="0 0 900 520" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <!-- Title -->
+        <text x="450" y="28" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">PR #125 Change Map</text>
+        <text x="450" y="48" text-anchor="middle" fill="#8b949e" font-size="11">2 production fixes &middot; 4 test files &middot; 1 gate script</text>
+
+        <!-- ── contrast-mcp-core module ── -->
+        <rect x="30" y="70" width="410" height="340" rx="10" fill="none" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <text x="50" y="92" fill="#58a6ff" font-size="12" font-weight="700">:contrast-mcp-core</text>
+        <text x="50" y="108" fill="#6e7681" font-size="10">Shared between local &amp; hosted servers</text>
+
+        <!-- Production files (core) -->
+        <text x="50" y="135" fill="#8b949e" font-size="10" font-weight="600" text-transform="uppercase" letter-spacing="0.05em">PRODUCTION (src/main)</text>
+
+        <!-- SingleTool.java -->
+        <rect x="50" y="145" width="370" height="36" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+        <circle cx="68" cy="163" r="5" fill="#d29922"/>
+        <text x="82" y="159" fill="#e6edf3" font-size="11" font-weight="600">SingleTool.java</text>
+        <text x="82" y="173" fill="#8b949e" font-size="9">.setCause(e) &rarr; .addKeyValue(EXCEPTION_TYPE, ...) &nbsp; <tspan fill="#3fb950">+1</tspan> <tspan fill="#f85149">&minus;1</tspan></text>
+
+        <!-- PaginatedTool.java -->
+        <rect x="50" y="189" width="370" height="36" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+        <circle cx="68" cy="207" r="5" fill="#d29922"/>
+        <text x="82" y="203" fill="#e6edf3" font-size="11" font-weight="600">PaginatedTool.java</text>
+        <text x="82" y="217" fill="#8b949e" font-size="9">.setCause(e) &rarr; .addKeyValue(EXCEPTION_TYPE, ...) &nbsp; <tspan fill="#3fb950">+1</tspan> <tspan fill="#f85149">&minus;1</tspan></text>
+
+        <!-- Test files (core) -->
+        <text x="50" y="250" fill="#8b949e" font-size="10" font-weight="600">TESTS (src/test)</text>
+
+        <!-- BaseToolAuthenticationStrategyTest -->
+        <rect x="50" y="260" width="370" height="48" rx="6" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <circle cx="68" cy="284" r="5" fill="#3fb950"/>
+        <text x="82" y="276" fill="#e6edf3" font-size="11" font-weight="600">BaseToolAuthenticationStrategyTest.java</text>
+        <text x="82" y="290" fill="#8b949e" font-size="9">+5 tests: auth failure (Single + Paginated), paginated</text>
+        <text x="82" y="302" fill="#8b949e" font-size="9">happy path, paginated no-op, source-code regression &nbsp; <tspan fill="#3fb950">+108</tspan></text>
+
+        <!-- Legend: yellow = modified, green = new/expanded -->
+        <circle cx="50" cy="330" r="5" fill="#d29922"/>
+        <text x="62" y="334" fill="#8b949e" font-size="9">Modified (production fix)</text>
+        <circle cx="200" cy="330" r="5" fill="#3fb950"/>
+        <text x="212" y="334" fill="#8b949e" font-size="9">New / expanded test</text>
+
+        <!-- ── contrast-mcp-stdio-app module ── -->
+        <rect x="470" y="70" width="400" height="270" rx="10" fill="none" stroke="#bc8cff" stroke-width="1.5" stroke-dasharray="6,3"/>
+        <text x="490" y="92" fill="#bc8cff" font-size="12" font-weight="700">:contrast-mcp-stdio-app</text>
+        <text x="490" y="108" fill="#6e7681" font-size="10">Local stdio server only</text>
+
+        <!-- Test files (stdio) -->
+        <text x="490" y="135" fill="#8b949e" font-size="10" font-weight="600">TESTS (src/test)</text>
+
+        <!-- ListVulnerabilityTypesLocalParityTest -->
+        <rect x="490" y="145" width="360" height="48" rx="6" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <circle cx="508" cy="169" r="5" fill="#3fb950"/>
+        <text x="522" y="161" fill="#e6edf3" font-size="11" font-weight="600">ListVulnerabilityTypesLocalParityTest.java</text>
+        <text x="522" y="175" fill="#8b949e" font-size="9">Golden JSON byte-equivalence through SdkApiClient &nbsp; <tspan fill="#3fb950">+84</tspan></text>
+        <text x="850" y="155" fill="#3fb950" font-size="10" font-weight="700" text-anchor="end">NEW</text>
+
+        <!-- GetSastResultsToolTest -->
+        <rect x="490" y="205" width="360" height="48" rx="6" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <circle cx="508" cy="229" r="5" fill="#3fb950"/>
+        <text x="522" y="221" fill="#e6edf3" font-size="11" font-weight="600">GetSastResultsToolTest.java</text>
+        <text x="522" y="235" fill="#8b949e" font-size="9">Source-code guard: get_scan_results stays local-only &nbsp; <tspan fill="#3fb950">+16</tspan></text>
+
+        <!-- ── hack/ gate script ── -->
+        <rect x="470" y="280" width="400" height="48" rx="6" fill="#161b22" stroke="#6e7681" stroke-width="1"/>
+        <circle cx="488" cy="304" r="5" fill="#3fb950"/>
+        <text x="502" y="300" fill="#e6edf3" font-size="11" font-weight="600">hack/verify-s4c-local-parity.sh</text>
+        <text x="502" y="314" fill="#8b949e" font-size="9">Temporary gate: runs targeted tests, scans for secrets &nbsp; <tspan fill="#3fb950">+49</tspan></text>
+        <text x="870" y="290" fill="#3fb950" font-size="10" font-weight="700" text-anchor="end">NEW</text>
+
+        <!-- ── "Proves" arrows ── -->
+
+        <!-- BaseToolAuthStrategyTest proves SingleTool + PaginatedTool -->
+        <line x1="235" y1="260" x2="235" y2="230" stroke="#3fb950" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#proveArrow)"/>
+        <line x1="235" y1="230" x2="235" y2="225" stroke="#3fb950" stroke-width="1.2" marker-end="url(#proveArrow)"/>
+
+        <line x1="200" y1="260" x2="200" y2="186" stroke="#3fb950" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#proveArrow)"/>
+
+        <!-- Labels for prove arrows -->
+        <text x="256" y="242" fill="#3fb950" font-size="8" font-weight="600">proves fix</text>
+
+        <!-- LocalParityTest proves the tool through SdkApiClient (cross-module) -->
+        <line x1="490" y1="169" x2="440" y2="169" stroke="#58a6ff" stroke-width="1.2" stroke-dasharray="4,2"/>
+        <line x1="440" y1="169" x2="440" y2="395" stroke="#58a6ff" stroke-width="1.2" stroke-dasharray="4,2"/>
+
+        <!-- Cross-module label -->
+        <rect x="432" y="355" width="110" height="22" rx="4" fill="rgba(88,166,255,0.12)" stroke="rgba(88,166,255,0.3)" stroke-width="1"/>
+        <text x="487" y="370" text-anchor="middle" fill="#58a6ff" font-size="9" font-weight="600">cross-module proof</text>
+
+        <!-- What the parity test proves -->
+        <text x="450" y="405" text-anchor="middle" fill="#8b949e" font-size="10">The parity test lives in <tspan fill="#bc8cff" font-weight="600">stdio-app</tspan> but exercises</text>
+        <text x="450" y="420" text-anchor="middle" fill="#8b949e" font-size="10"><tspan fill="#58a6ff" font-weight="600">core</tspan>&rsquo;s ListVulnerabilityTypesTool through SdkApiClient</text>
+
+        <!-- Summary box at bottom -->
+        <rect x="60" y="450" width="780" height="55" rx="8" fill="rgba(63,185,80,0.06)" stroke="rgba(63,185,80,0.25)" stroke-width="1"/>
+        <text x="450" y="472" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="600">Summary: 2 lines of production code changed &middot; 257 lines of test code added</text>
+        <text x="450" y="492" text-anchor="middle" fill="#8b949e" font-size="10">Every production change has a mutation-sensitive test that fails if the change is reverted</text>
+
+        <!-- Arrow defs -->
+        <defs>
+          <marker id="proveArrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" fill="#3fb950"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+  </div>
+
+  <p class="narrative">
+    <strong>1. Byte-equivalent golden JSON.</strong>
+    The <code>ListVulnerabilityTypesLocalParityTest</code> serializes the tool's response to JSON bytes and compares against a hardcoded golden constant.
+    This catches any change to field order, field names, null handling, or serialization behavior.
+    If the <code>SingleToolResponse</code> record adds a field tomorrow, this test breaks &mdash; exactly what we want.
+  </p>
+
+  <p class="narrative">
+    <strong>2. Auth failure sanitization.</strong>
+    The <code>BaseToolAuthenticationStrategyTest</code> now covers the scenario where <code>AuthenticationStrategy.authenticate()</code> throws an exception.
+    An attacker probing the hosted server with an expired token would trigger this path.
+    The test proves the error response contains only a generic reference ID, not the exception message (which could contain token fragments or internal state).
+  </p>
+
+  <p class="narrative">
+    <strong>3. Local-only regression guard.</strong>
+    <code>get_scan_results</code> is the deprecated local-only tool that must never enter <code>contrast-mcp-core</code>.
+    A source-code assertion in <code>GetSastResultsToolTest</code> verifies it still extends <code>LocalSdkSingleTool</code> and has no <code>ContrastApiClient</code> dependency.
+    This prevents accidental migration during the Slice 8 bulk move.
+  </p>
+
+  <div class="slice-columns">
+    <div class="slice-col this-pr">
+      <div class="slice-title">This PR (S4C)</div>
+      <div class="slice-item"><span class="dot"></span>Golden JSON byte-equivalent parity test</div>
+      <div class="slice-item"><span class="dot"></span>Auth failure sanitization tests (Single + Paginated)</div>
+      <div class="slice-item"><span class="dot"></span>Stack trace removal (.setCause &rarr; exception type)</div>
+      <div class="slice-item"><span class="dot"></span>Local-only regression guard for get_scan_results</div>
+      <div class="slice-item"><span class="dot"></span>Temporary gate script (verify-s4c-local-parity.sh)</div>
+    </div>
+    <div class="slice-col future-col">
+      <div class="slice-title">Not in This PR</div>
+      <div class="slice-item"><span class="dot"></span>Migrating remaining 11 shared tools (Slice 8)</div>
+      <div class="slice-item"><span class="dot"></span>BearerTokenApiClient for hosted server (Slice 5)</div>
+      <div class="slice-item"><span class="dot"></span>Rewriting all reflection-based test injection (Slice 8)</div>
+      <div class="slice-item"><span class="dot"></span>Removing LocalSdk* bridges (Slice 8)</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 3: The Security Fix                                  -->
+<!-- ============================================================ -->
+<section class="chapter" id="security-fix">
+  <div class="chapter-header">
+    <span class="chapter-number orange">3</span>
+    <h2>The Security Fix: Stack Trace Removal</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>This is the only production code change in the entire PR &mdash; and it's a one-line fix applied to two files.</strong>
+    Both <code>PaginatedTool</code> and <code>SingleTool</code> had a <code>.setCause(e)</code> call in their catch-all exception handler.
+    That call attaches the full Java stack trace to the SLF4J log event, which means the stack trace &mdash; including internal class paths, method names, and potentially sensitive data from exception messages &mdash; flows into whatever log sink is configured.
+  </p>
+
+  <p class="narrative">
+    <strong>Imagine an attacker sending a malformed request that triggers a <code>NullPointerException</code> deep in the SDK.</strong>
+    With <code>.setCause(e)</code>, the full stack trace (containing SDK class paths, connection pool internals, and possibly credential fragments in certain exception types) would be attached to the log entry.
+    In the hosted server, log events could conceivably be exposed through monitoring dashboards.
+    The fix replaces the stack trace with just the exception's simple class name &mdash; enough for debugging, without the information disclosure risk.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-core/.../tool/base/SingleTool.java</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">111</span><span class="code">    } <span class="kw">catch</span> (<span class="type">Exception</span> <span class="param">e</span>) {</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">112</span><span class="code">      log.atError()</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">113</span><span class="code">          .addKeyValue(<span class="type">LoggingKeys</span>.REQUEST_ID, requestId)</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">114</span><span class="code">          .setCause(<span class="param">e</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">114</span><span class="code">          .addKeyValue(<span class="type">LoggingKeys</span>.EXCEPTION_TYPE, <span class="param">e</span>.getClass().getSimpleName())</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">115</span><span class="code">          .setMessage(<span class="str">"Request failed unexpectedly"</span>)</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">116</span><span class="code">          .log();</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">117</span><span class="code">      <span class="kw">return</span> <span class="type">SingleToolResponse</span>.error(<span class="str">"An internal error occurred (ref: "</span> + requestId + <span class="str">")"</span>);</span></span>
+    </pre></div>
+    <div class="annotation security-note">
+      <strong>The tool response was already safe</strong> &mdash; it only returns the generic <code>"An internal error occurred (ref: ...)"</code> message. The issue was the <em>log entry</em> attached the full stack trace via <code>.setCause(e)</code>. Now it logs only the exception class name (e.g., <code>NullPointerException</code>, <code>IOException</code>) as a structured key-value pair, which is sufficient for debugging without information disclosure.
+    </div>
+  </div>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-core/.../tool/base/PaginatedTool.java</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">128</span><span class="code">    } <span class="kw">catch</span> (<span class="type">Exception</span> <span class="param">e</span>) {</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">129</span><span class="code">      log.atError()</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">130</span><span class="code">          .addKeyValue(<span class="type">LoggingKeys</span>.REQUEST_ID, requestId)</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">131</span><span class="code">          .setCause(<span class="param">e</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">131</span><span class="code">          .addKeyValue(<span class="type">LoggingKeys</span>.EXCEPTION_TYPE, <span class="param">e</span>.getClass().getSimpleName())</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">132</span><span class="code">          .setMessage(<span class="str">"Request failed unexpectedly"</span>)</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">133</span><span class="code">          .log();</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">134</span><span class="code">      <span class="kw">return</span> <span class="type">PaginatedToolResponse</span>.error(</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Identical fix in the paginated pipeline.</strong> Both <code>SingleTool</code> and <code>PaginatedTool</code> share the same catch-all pattern &mdash; both needed the same treatment. The source-code regression test in Chapter 4 ensures <code>.setCause(e)</code> doesn't creep back into either file.
+    </div>
+  </div>
+
+  <div class="callout security">
+    <span class="callout-label">Security consideration</span>
+    <strong>This change was surfaced during PR #123 review.</strong> The auth strategy failure path (<code>AuthenticationStrategy.authenticate()</code> throwing) would pass through this same catch-all. In the hosted server, an expired OAuth token could trigger an <code>IllegalStateException</code> whose message contains the raw token value. With <code>.setCause(e)</code>, that token would appear in logs. Now it doesn't.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 4: Auth Pipeline Tests                               -->
+<!-- ============================================================ -->
+<section class="chapter" id="auth-pipeline">
+  <div class="chapter-header">
+    <span class="chapter-number green">4</span>
+    <h2>Auth Pipeline Tests</h2>
+  </div>
+
+  <p class="narrative">
+    <strong><code>BaseToolAuthenticationStrategyTest</code> started in S4A with two tests for <code>SingleTool</code>: no-op when unconfigured, and strategy-before-doExecute when configured.</strong>
+    S4C adds five new tests that cover the gaps identified during PR #123 review.
+    The tests fall into three groups: auth failure handling, paginated pipeline coverage, and a source-code regression guard.
+  </p>
+
+  <div class="diagram">
+    <div class="diagram-container">
+      <svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <!-- Title -->
+        <text x="450" y="24" text-anchor="middle" fill="#e6edf3" font-size="14" font-weight="600">executePipeline() Auth Strategy Flow &mdash; Paths Under Test</text>
+
+        <!-- Start -->
+        <rect x="360" y="48" width="180" height="32" rx="6" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="450" y="69" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="600">executePipeline()</text>
+
+        <!-- Decision: strategy configured? -->
+        <polygon points="450,100 530,140 450,180 370,140" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+        <text x="450" y="144" text-anchor="middle" fill="#8b949e" font-size="10">strategy</text>
+        <text x="450" y="156" text-anchor="middle" fill="#8b949e" font-size="10">configured?</text>
+
+        <!-- No path -->
+        <line x1="370" y1="140" x2="200" y2="140" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arrowMuted2)"/>
+        <text x="285" y="133" text-anchor="middle" fill="#8b949e" font-size="10">no</text>
+        <rect x="70" y="124" width="130" height="32" rx="6" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="135" y="144" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="600">NOOP &rarr; doExecute</text>
+        <text x="135" y="170" text-anchor="middle" fill="#6e7681" font-size="9">Tests 1 &amp; 4 (from S4A)</text>
+
+        <!-- Yes path -->
+        <line x1="530" y1="140" x2="620" y2="140" stroke="#8b949e" stroke-width="1.5" marker-end="url(#arrowMuted2)"/>
+        <text x="575" y="133" text-anchor="middle" fill="#8b949e" font-size="10">yes</text>
+
+        <!-- authenticate() -->
+        <rect x="620" y="124" width="140" height="32" rx="6" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="690" y="144" text-anchor="middle" fill="#58a6ff" font-size="10" font-weight="600">authenticate(ctx)</text>
+
+        <!-- Decision: throws? -->
+        <polygon points="690,176 750,206 690,236 630,206" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+        <text x="690" y="210" text-anchor="middle" fill="#8b949e" font-size="10">throws?</text>
+
+        <!-- No (success) -->
+        <line x1="750" y1="206" x2="830" y2="206" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrowGreen2)"/>
+        <text x="790" y="199" text-anchor="middle" fill="#3fb950" font-size="9">no</text>
+        <rect x="830" y="182" width="60" height="22" rx="4" fill="rgba(63,185,80,0.15)" stroke="#3fb950" stroke-width="1"/>
+        <text x="860" y="197" text-anchor="middle" fill="#3fb950" font-size="9" font-weight="600">doExecute</text>
+        <rect x="830" y="210" width="60" height="22" rx="4" fill="rgba(63,185,80,0.15)" stroke="#3fb950" stroke-width="1"/>
+        <text x="860" y="225" text-anchor="middle" fill="#3fb950" font-size="9" font-weight="600">close()</text>
+        <text x="860" y="248" text-anchor="middle" fill="#6e7681" font-size="9">Tests 2 &amp; 5</text>
+
+        <!-- Yes (throws) - NEW -->
+        <line x1="690" y1="236" x2="690" y2="260" stroke="#f85149" stroke-width="1.5" marker-end="url(#arrowRed)"/>
+        <text x="710" y="250" fill="#f85149" font-size="9">yes</text>
+        <rect x="600" y="260" width="180" height="32" rx="6" fill="rgba(248,81,73,0.10)" stroke="#f85149" stroke-width="2"/>
+        <text x="690" y="280" text-anchor="middle" fill="#f85149" font-size="10" font-weight="700">Sanitized error (NEW)</text>
+        <text x="690" y="298" text-anchor="middle" fill="#6e7681" font-size="9">Tests 3 &amp; 6 (this PR)</text>
+
+        <!-- Defs -->
+        <defs>
+          <marker id="arrowMuted2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#8b949e"/></marker>
+          <marker id="arrowGreen2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#3fb950"/></marker>
+          <marker id="arrowRed" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#f85149"/></marker>
+        </defs>
+      </svg>
+    </div>
+  </div>
+
+  <p class="narrative">
+    <strong>The diagram shows the seven test paths.</strong> Tests 1 and 2 (SingleTool no-op and happy path) existed from S4A. Tests 4 and 5 are the paginated equivalents added here. Tests 3 and 6 (red path) are the auth failure tests &mdash; the critical new coverage that proves exceptions from <code>authenticate()</code> produce sanitized error responses.
+  </p>
+
+  <!-- Auth failure test: SingleTool -->
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-core/.../tool/base/BaseToolAuthenticationStrategyTest.java</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">67</span><span class="code">  <span class="ann">@Test</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">68</span><span class="code">  <span class="kw">void</span> executePipeline_should_return_error_when_authentication_strategy_throws() {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">69</span><span class="code">    <span class="kw">var</span> events = <span class="kw">new</span> <span class="type">ArrayList</span>&lt;<span class="type">String</span>&gt;();</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">70</span><span class="code">    <span class="kw">var</span> tool = <span class="kw">new</span> <span class="type">RecordingSingleTool</span>(events);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">71</span><span class="code">    <span class="kw">var</span> context = <span class="kw">new</span> <span class="type">ToolContext</span>(java.util.<span class="type">Map</span>.of(<span class="str">"requestId"</span>, <span class="str">"req-123"</span>));</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">72</span><span class="code">    tool.setAuthenticationStrategy(</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">73</span><span class="code">        toolContext -&gt; {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">74</span><span class="code">          events.add(<span class="str">"authenticate"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">75</span><span class="code">          <span class="kw">throw new</span> <span class="type">IllegalStateException</span>(<span class="str">"raw-token-value must not reach tool output"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">76</span><span class="code">        });</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">77</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">78</span><span class="code">    <span class="kw">var</span> result = tool.executePipeline(<span class="type">TestParams</span>::valid, context);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">79</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">80</span><span class="code">    assertThat(result.isSuccess()).isFalse();</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">81</span><span class="code">    assertThat(result.found()).isFalse();</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">82</span><span class="code">    assertThat(result.data()).isNull();</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">83</span><span class="code">    assertThat(result.errors()).hasSize(<span class="num">1</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">84</span><span class="code">    assertThat(result.errors().get(<span class="num">0</span>)).matches(<span class="str">"An internal error occurred \\(ref: [0-9a-f]{8}\\)"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">85</span><span class="code">    assertThat(<span class="type">String</span>.join(<span class="str">" "</span>, result.errors())).doesNotContain(<span class="str">"raw-token-value"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">86</span><span class="code">    assertThat(events).containsExactly(<span class="str">"authenticate"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">87</span><span class="code">  }</span></span>
+    </pre></div>
+    <div class="annotation security-note">
+      <strong>The exception message deliberately contains <code>"raw-token-value"</code> to simulate a real credential leak.</strong> Line 85 proves the error response doesn't contain it. Line 84 proves the response matches the generic reference-ID pattern. Line 86 proves <code>doExecute</code> was never reached &mdash; the exception short-circuited the pipeline at the authentication step.
+    </div>
+  </div>
+
+  <p class="narrative">
+    <strong>The paginated pipeline has an identical set of three tests</strong> (no-op, happy path, auth failure) using a <code>RecordingPaginatedTool</code> inner class. The pattern is the same &mdash; the only difference is that <code>executePipeline</code> takes <code>(page, pageSize, paramsSupplier, context)</code> instead of <code>(paramsSupplier, context)</code>, and the result type is <code>PaginatedToolResponse</code> with <code>.items()</code> instead of <code>.data()</code>.
+  </p>
+
+  <!-- Paginated auth failure test -->
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">BaseToolAuthenticationStrategyTest.java &mdash; paginated auth failure</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">121</span><span class="code">  <span class="ann">@Test</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">122</span><span class="code">  <span class="kw">void</span> paginatedExecutePipeline_should_return_error_when_authentication_strategy_throws() {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">123</span><span class="code">    <span class="kw">var</span> events = <span class="kw">new</span> <span class="type">ArrayList</span>&lt;<span class="type">String</span>&gt;();</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">124</span><span class="code">    <span class="kw">var</span> tool = <span class="kw">new</span> <span class="type">RecordingPaginatedTool</span>(events);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">125</span><span class="code">    <span class="kw">var</span> context = <span class="kw">new</span> <span class="type">ToolContext</span>(java.util.<span class="type">Map</span>.of(<span class="str">"requestId"</span>, <span class="str">"req-123"</span>));</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">126</span><span class="code">    tool.setAuthenticationStrategy(</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">127</span><span class="code">        toolContext -&gt; {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">128</span><span class="code">          events.add(<span class="str">"authenticate"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">129</span><span class="code">          <span class="kw">throw new</span> <span class="type">IllegalStateException</span>(<span class="str">"raw-token-value must not reach tool output"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">130</span><span class="code">        });</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">131</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">132</span><span class="code">    <span class="kw">var</span> result = tool.executePipeline(<span class="num">1</span>, <span class="num">2</span>, <span class="type">TestParams</span>::valid, context);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">133</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">134</span><span class="code">    assertThat(result.isSuccess()).isFalse();</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">135</span><span class="code">    assertThat(result.items()).isEmpty();</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">136</span><span class="code">    assertThat(result.errors()).hasSize(<span class="num">1</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">137</span><span class="code">    assertThat(result.errors().get(<span class="num">0</span>)).matches(<span class="str">"An internal error occurred \\(ref: [0-9a-f]{8}\\)"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">138</span><span class="code">    assertThat(<span class="type">String</span>.join(<span class="str">" "</span>, result.errors())).doesNotContain(<span class="str">"raw-token-value"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">139</span><span class="code">    assertThat(events).containsExactly(<span class="str">"authenticate"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">140</span><span class="code">  }</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Mirror of the SingleTool test above, but for <code>PaginatedTool.executePipeline(page, pageSize, ...)</code>.</strong> Same assertions &mdash; sanitized error, no credential leak, <code>doExecute</code> never called. Both tool base classes share the same catch-all pattern, so both need the same test.
+    </div>
+  </div>
+
+  <!-- Source-code regression test -->
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">BaseToolAuthenticationStrategyTest.java &mdash; source-code regression</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">30</span><span class="code">  <span class="kw">private static final</span> <span class="type">List</span>&lt;<span class="type">Path</span>&gt; PIPELINE_SOURCES =</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">31</span><span class="code">      <span class="type">List</span>.of(</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">32</span><span class="code">          <span class="type">Path</span>.of(<span class="str">"src/main/java/.../tool/base/SingleTool.java"</span>),</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">33</span><span class="code">          <span class="type">Path</span>.of(<span class="str">"src/main/java/.../tool/base/PaginatedTool.java"</span>));</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">142</span><span class="code">  <span class="ann">@Test</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">143</span><span class="code">  <span class="kw">void</span> executePipeline_unexpected_error_logs_should_not_attach_stack_traces() <span class="kw">throws</span> <span class="type">Exception</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">144</span><span class="code">    <span class="kw">for</span> (<span class="kw">var</span> sourcePath : PIPELINE_SOURCES) {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">145</span><span class="code">      <span class="kw">var</span> source = <span class="type">Files</span>.readString(sourcePath, <span class="type">StandardCharsets</span>.UTF_8);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">146</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">147</span><span class="code">      assertThat(source).doesNotContain(<span class="str">".setCause(e)"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">148</span><span class="code">    }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">149</span><span class="code">  }</span></span>
+    </pre></div>
+    <div class="annotation security-note">
+      <strong>This is a mutation-sensitive source-code assertion.</strong> It reads the actual Java source files and verifies <code>.setCause(e)</code> is absent. If someone reintroduces it (perhaps resolving a merge conflict carelessly, or adding a new catch block by copying old code), this test fails immediately. It's the enforcement arm of the production fix in Chapter 3.
+    </div>
+  </div>
+
+  <!-- RecordingPaginatedTool helper -->
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">BaseToolAuthenticationStrategyTest.java &mdash; test helper</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">177</span><span class="code">  <span class="kw">private static final class</span> <span class="type">RecordingPaginatedTool</span> <span class="kw">extends</span> <span class="type">PaginatedTool</span>&lt;<span class="type">TestParams</span>, <span class="type">String</span>&gt; {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">178</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">179</span><span class="code">    <span class="kw">private final</span> <span class="type">List</span>&lt;<span class="type">String</span>&gt; events;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">180</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">181</span><span class="code">    <span class="kw">private</span> <span class="type">RecordingPaginatedTool</span>(<span class="type">List</span>&lt;<span class="type">String</span>&gt; <span class="param">events</span>) {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">182</span><span class="code">      <span class="kw">this</span>.events = events;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">183</span><span class="code">    }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">184</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">185</span><span class="code">    <span class="ann">@Override</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">186</span><span class="code">    <span class="kw">protected</span> <span class="type">ExecutionResult</span>&lt;<span class="type">String</span>&gt; doExecute(</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">187</span><span class="code">        <span class="type">PaginationParams</span> <span class="param">pagination</span>, <span class="type">TestParams</span> <span class="param">params</span>, <span class="type">WarningCollector</span> <span class="param">collector</span>) {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">188</span><span class="code">      events.add(<span class="str">"doExecute"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">189</span><span class="code">      <span class="kw">return</span> <span class="type">ExecutionResult</span>.of(<span class="type">List</span>.of(<span class="str">"ok"</span>), <span class="num">1</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">190</span><span class="code">    }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">191</span><span class="code">  }</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Mirrors the existing <code>RecordingSingleTool</code> pattern established in S4A.</strong> Both inner classes record lifecycle events into a shared list so assertions can verify call order (<code>authenticate &rarr; doExecute &rarr; close</code>) without mocking framework complexity.
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 5: Golden JSON Parity                                -->
+<!-- ============================================================ -->
+<section class="chapter" id="golden-json">
+  <div class="chapter-header">
+    <span class="chapter-number green">5</span>
+    <h2>Golden JSON Parity Test</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>This is the centerpiece of S4C &mdash; a byte-for-byte comparison proving that <code>list_vulnerability_types</code> produces identical JSON output after being moved to <code>contrast-mcp-core</code>.</strong>
+    Before S4B, the tool used reflection-injected <code>sdkFactory</code> and <code>sdkExtensionFactory</code> fields.
+    After S4B, it receives a <code>ContrastApiClient</code> through constructor injection.
+    This test proves the output is the same regardless of how the tool gets its data.
+  </p>
+
+  <p class="narrative">
+    <strong>Here's how it works:</strong> the test constructs a real <code>SdkApiClient</code> wrapping mocked SDK factories, injects it into <code>ListVulnerabilityTypesTool</code>, calls <code>listVulnerabilityTypes(null)</code> with no <code>ToolContext</code> (simulating local stdio mode), serializes the response to JSON bytes, and compares byte-for-byte against a hardcoded golden constant.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-stdio-app/.../vulnerability/ListVulnerabilityTypesLocalParityTest.java</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">37</span><span class="code"><span class="ann">@ExtendWith</span>(<span class="type">MockitoExtension</span>.<span class="kw">class</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">38</span><span class="code"><span class="kw">class</span> <span class="type">ListVulnerabilityTypesLocalParityTest</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">39</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">40</span><span class="code">  <span class="kw">private static final</span> <span class="type">String</span> TEST_ORG_ID = <span class="str">"local-org-id-should-not-serialize"</span>;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">41</span><span class="code">  <span class="kw">private static final</span> <span class="kw">byte</span>[] S4C_LOCAL_STDIO_GOLDEN_JSON =</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">42</span><span class="code">      (<span class="str">"{\"data\":[\"cmd-injection\",\"sql-injection\",\"xss-reflected\"],"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">43</span><span class="code">       + <span class="str">"\"errors\":[],\"warnings\":[],\"found\":true,\"success\":true}"</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">44</span><span class="code">          .getBytes(<span class="type">StandardCharsets</span>.UTF_8);</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>The golden constant captures the exact JSON that MCP clients receive.</strong> Note the data array is sorted alphabetically (<code>cmd-injection</code>, <code>sql-injection</code>, <code>xss-reflected</code>) &mdash; this matches the <code>.sorted()</code> call in <code>ListVulnerabilityTypesTool.doExecute()</code>. The org ID is a distinctive sentinel (<code>"local-org-id-should-not-serialize"</code>) so the final assertion can verify it doesn't leak into the output.
+    </div>
+  </div>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">ListVulnerabilityTypesLocalParityTest.java &mdash; setUp and test body</span>
+      <span class="badge badge-new">NEW</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">53</span><span class="code">  <span class="ann">@BeforeEach</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">54</span><span class="code">  <span class="kw">void</span> setUp() {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">55</span><span class="code">    <span class="kw">var</span> sdkApiClient = <span class="kw">new</span> <span class="type">SdkApiClient</span>(sdkFactory, sdkExtensionFactory);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">56</span><span class="code">    tool = <span class="kw">new</span> <span class="type">ListVulnerabilityTypesTool</span>(sdkApiClient);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">57</span><span class="code">    when(sdkFactory.getSDK()).thenReturn(sdk);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">58</span><span class="code">    when(sdkFactory.getOrgId()).thenReturn(TEST_ORG_ID);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">59</span><span class="code">  }</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">60</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">61</span><span class="code">  <span class="ann">@Test</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">62</span><span class="code">  <span class="kw">void</span> listVulnerabilityTypes_should_match_s4c_local_stdio_golden_json() <span class="kw">throws</span> <span class="type">Exception</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">63</span><span class="code">    <span class="type">Rules.Rule</span> rule1 = mock();</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">64</span><span class="code">    <span class="type">Rules.Rule</span> rule2 = mock();</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">65</span><span class="code">    <span class="type">Rules.Rule</span> rule3 = mock();</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">66</span><span class="code">    when(rule1.getName()).thenReturn(<span class="str">"xss-reflected"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">67</span><span class="code">    when(rule2.getName()).thenReturn(<span class="str">"sql-injection"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">68</span><span class="code">    when(rule3.getName()).thenReturn(<span class="str">"cmd-injection"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">69</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">70</span><span class="code">    <span class="type">Rules</span> rules = mock();</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">71</span><span class="code">    when(rules.getRules()).thenReturn(<span class="type">List</span>.of(rule1, rule2, rule3));</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">72</span><span class="code">    when(sdk.getRules(TEST_ORG_ID)).thenReturn(rules);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">73</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">74</span><span class="code">    <span class="kw">var</span> response = tool.listVulnerabilityTypes(<span class="kw">null</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">75</span><span class="code">    <span class="kw">var</span> actualJson = objectMapper.writeValueAsBytes(response);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">76</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">77</span><span class="code">    assertThat(actualJson)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">78</span><span class="code">        .as(<span class="str">"S4C byte-equivalent golden JSON; update constant if "</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">79</span><span class="code">            + <span class="str">"SingleToolResponse field order changes"</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">80</span><span class="code">        .isEqualTo(S4C_LOCAL_STDIO_GOLDEN_JSON);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">81</span><span class="code">    assertThat(<span class="kw">new</span> <span class="type">String</span>(actualJson, <span class="type">StandardCharsets</span>.UTF_8))</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">82</span><span class="code">        .doesNotContain(TEST_ORG_ID);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">83</span><span class="code">  }</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Notice the wiring on line 55: a real <code>SdkApiClient</code> wrapping mocked factories, not a mocked <code>ContrastApiClient</code>.</strong> This is deliberate &mdash; the test exercises the full local call chain: <code>ListVulnerabilityTypesTool</code> &rarr; <code>ContrastApiClient.getRules()</code> &rarr; <code>SdkApiClient.getRules()</code> &rarr; <code>sdkFactory.getSDK().getRules(orgId)</code>. A mocked <code>ContrastApiClient</code> would bypass <code>SdkApiClient</code> entirely and miss any bugs in the local bridge. Line 72 proves the org ID flows through correctly from the factory to the SDK call. Lines 80&ndash;82 prove the output matches the golden constant and the org ID doesn't leak into the serialized response.
+    </div>
+  </div>
+
+  <div class="callout note">
+    <span class="callout-label">Note</span>
+    <strong>The rules are deliberately given in non-alphabetical order</strong> (<code>xss-reflected</code>, <code>sql-injection</code>, <code>cmd-injection</code>) but the golden JSON has them sorted (<code>cmd-injection</code>, <code>sql-injection</code>, <code>xss-reflected</code>). This proves the <code>.sorted()</code> call in the tool's <code>doExecute()</code> method is actually working. If someone removed the sort, the golden comparison would fail.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 6: Local-Only Guard                                  -->
+<!-- ============================================================ -->
+<section class="chapter" id="local-only">
+  <div class="chapter-header">
+    <span class="chapter-number yellow">6</span>
+    <h2>Local-Only Regression Guard</h2>
+  </div>
+
+  <p class="narrative">
+    <strong><code>get_scan_results</code> is the one tool that must never leave the stdio app.</strong>
+    It's deprecated, can return unbounded SARIF data, and uses the local Contrast Scan SDK directly.
+    During Slice 8, when the remaining 11 shared tools migrate to core, there's a real risk someone moves this one too.
+    This source-code assertion makes that mistake immediately visible.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-stdio-app/.../tool/sast/GetSastResultsToolTest.java</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">45</span><span class="code">  <span class="kw">private static final</span> <span class="type">Path</span> TOOL_SOURCE =</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">46</span><span class="code">      <span class="type">Path</span>.of(<span class="str">"src/main/java/.../tool/sast/GetSastResultsTool.java"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">204</span><span class="code">  <span class="ann">@Test</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">205</span><span class="code">  <span class="kw">void</span> getScanResults_should_remain_local_only_and_absent_from_contrast_api_client()</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">206</span><span class="code">      <span class="kw">throws</span> <span class="type">IOException</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">207</span><span class="code">    <span class="kw">var</span> source = <span class="type">Files</span>.readString(TOOL_SOURCE, <span class="type">StandardCharsets</span>.UTF_8);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">208</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">209</span><span class="code">    assertThat(source).contains(<span class="str">"extends LocalSdkSingleTool"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">210</span><span class="code">    assertThat(source).contains(<span class="str">"getContrastSDK()"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">211</span><span class="code">    assertThat(source).doesNotContain(<span class="str">"ContrastApiClient"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">212</span><span class="code">  }</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Three assertions that together form a migration guard.</strong> Line 209: it extends <code>LocalSdkSingleTool</code> (the temporary stdio-only bridge, not the shared <code>SingleTool</code>). Line 210: it calls <code>getContrastSDK()</code> directly (the local SDK factory method). Line 211: it has no <code>ContrastApiClient</code> dependency. If a developer migrates <code>GetSastResultsTool</code> to use <code>ContrastApiClient</code> as part of Slice 8's bulk move, this test breaks and forces a deliberate conversation about whether the deprecated tool should really be shared.
+    </div>
+  </div>
+
+  <div class="callout future">
+    <span class="callout-label">Future work</span>
+    <strong>Both <code>LocalSdkSingleTool</code> and <code>LocalSdkPaginatedTool</code> are temporary bridges.</strong> They exist so the 11 un-migrated tools can still access the SDK factories via <code>@Autowired</code> fields while <code>BaseTool</code> in core no longer has those fields. Once Slice 8 migrates all shared tools to <code>ContrastApiClient</code>, the only tool left on <code>LocalSdkSingleTool</code> will be <code>get_scan_results</code>.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 7: Gate Script                                       -->
+<!-- ============================================================ -->
+<section class="chapter" id="gate-script">
+  <div class="chapter-header">
+    <span class="chapter-number purple">7</span>
+    <h2>Slice Gate Script</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>Every slice bead produces a temporary gate script in <code>hack/</code> that runs targeted tests and scans the output for credential markers.</strong>
+    This follows the pattern established by <code>verify-s4a-client-boundary.sh</code> and <code>verify-s4b-first-tool-boundary.sh</code> from the sibling beads.
+  </p>
+
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">Temporary Slice Gate Script</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-files">verify-s4c-local-parity.sh (49 lines)</span>
+      <span class="sp-ref">Follows: verify-s4a-client-boundary.sh, verify-s4b-first-tool-boundary.sh</span>
+    </summary>
+    <div class="sp-body">
+      All three S4 gate scripts share the same structure: set <code>-euo pipefail</code>, run targeted Gradle tests, capture output to a temp file, scan for forbidden credential markers (<code>bearer</code>, <code>api_key</code>, <code>service_key</code>, sentinel org IDs), and emit structured diagnostic logging with timing. The only difference is which test classes are targeted. This script runs:
+      <br><br>
+      <code>BaseToolAuthenticationStrategyTest</code>, <code>ListVulnerabilityTypesToolTest</code>, <code>ListVulnerabilityTypesLocalParityTest</code>, and <code>GetSastResultsToolTest</code>.
+    </div>
+
+    <div class="diff-block" style="border-radius: 0; border-left: 0; border-right: 0; margin-bottom: 0;">
+      <div class="diff-header">
+        <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+        <span class="filename">hack/verify-s4c-local-parity.sh</span>
+        <span class="badge badge-new">NEW</span>
+      </div>
+      <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">1</span><span class="code"><span class="comment">#!/usr/bin/env bash</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">2</span><span class="code"><span class="comment"># Temporary S4C slice gate &mdash; remove once first-tool local parity is covered by permanent CI gates.</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">3</span><span class="code"><span class="kw">set</span> -euo pipefail</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code"><span class="comment">  ...</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">31</span><span class="code"><span class="kw">if</span> ! (</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">32</span><span class="code">  cd <span class="str">"${ROOT_DIR}"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">33</span><span class="code">  ./gradlew --no-daemon \</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">34</span><span class="code">    :contrast-mcp-core:test \</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">35</span><span class="code">    --tests <span class="str">'*BaseToolAuthenticationStrategyTest'</span> \</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">36</span><span class="code">    --tests <span class="str">'*ListVulnerabilityTypesToolTest'</span> \</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">37</span><span class="code">    :contrast-mcp-stdio-app:test \</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">38</span><span class="code">    --tests <span class="str">'*ListVulnerabilityTypesLocalParityTest'</span> \</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">39</span><span class="code">    --tests <span class="str">'*GetSastResultsToolTest'</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">40</span><span class="code">) &gt;<span class="str">"${OUTPUT_FILE}"</span> 2&gt;&amp;1; <span class="kw">then</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code"><span class="comment">  ...</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">45</span><span class="code"><span class="kw">if</span> grep -Eiq <span class="str">'bearer[[:space:]]+[A-Za-z0-9._-]+|api[_-]?key...|raw-token-value|local-org-id-should-not-serialize'</span> \</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">46</span><span class="code">    <span class="str">"${OUTPUT_FILE}"</span>; <span class="kw">then</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">47</span><span class="code">  finish <span class="str">"failed"</span> <span class="str">"targeted checks passed but diagnostic output contained a forbidden secret marker"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">48</span><span class="code">  <span class="kw">exit</span> <span class="num">1</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">49</span><span class="code"><span class="kw">fi</span></span></span>
+      </pre></div>
+    </div>
+  </details>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 8: What's Next                                       -->
+<!-- ============================================================ -->
+<section class="chapter" id="whats-next">
+  <div class="chapter-header">
+    <span class="chapter-number purple">8</span>
+    <h2>What&rsquo;s Next</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>S4C completes Slice 4.</strong>
+    With the client boundary proven, the first tool migrated, and local parity confirmed, the next step is Slice 5: the hosted server in <code>aiml-services</code> consumes <code>contrast-mcp-core</code> and adapts <code>get_user_info</code> to use the shared <code>BaseTool</code> auth pipeline.
+    That's the first time the shared code runs in both servers simultaneously.
+  </p>
+
+  <table class="roadmap-table">
+    <thead><tr><th>Ticket</th><th>Scope</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-757">AIML-757</a></td>
+        <td><span class="slice-name">Slice 3</span></td>
+        <td>Gradle migration, core module, publication pipeline</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-758">AIML-758</a></td>
+        <td><span class="slice-name">Slice 4A</span></td>
+        <td>ContrastApiClient interface, AuthenticationStrategy hook, SdkApiClient bridge</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-758">AIML-758</a></td>
+        <td><span class="slice-name">Slice 4B</span></td>
+        <td>Move list_vulnerability_types into contrast-mcp-core</td>
+      </tr>
+      <tr class="current-row">
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-758">AIML-758</a></td>
+        <td><span class="slice-name">Slice 4C</span><span class="current-badge">This PR</span></td>
+        <td>Local parity proof, auth failure sanitization, .setCause(e) removal</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-759">AIML-759</a></td>
+        <td><span class="slice-name">Slice 5</span></td>
+        <td>Hosted server consumes core, get_user_info adapts to shared auth pipeline</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-762">AIML-762</a></td>
+        <td><span class="slice-name">Slice 8</span></td>
+        <td>Migrate remaining 11 shared tools; remove LocalSdk* bridges</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <table class="file-table">
+    <thead><tr><th>File</th><th>Purpose</th><th>Lines</th><th class="novelty">Novelty</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>SingleTool.java</td>
+        <td>Replace .setCause(e) with exception type key-value</td>
+        <td><span class="addition">+1</span> <span class="deletion">&minus;1</span></td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>PaginatedTool.java</td>
+        <td>Same .setCause(e) fix for paginated pipeline</td>
+        <td><span class="addition">+1</span> <span class="deletion">&minus;1</span></td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>BaseToolAuthenticationStrategyTest.java</td>
+        <td>Auth failure, paginated coverage, source-code regression</td>
+        <td><span class="addition">+108</span></td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>ListVulnerabilityTypesLocalParityTest.java</td>
+        <td>Golden JSON byte-equivalence through SdkApiClient</td>
+        <td><span class="addition">+84</span></td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>GetSastResultsToolTest.java</td>
+        <td>Local-only regression guard for get_scan_results</td>
+        <td><span class="addition">+16</span></td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>hack/verify-s4c-local-parity.sh</td>
+        <td>Temporary slice gate with credential marker scanning</td>
+        <td><span class="addition">+49</span></td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+</main>
+
+<footer>
+  PR #125 &middot; AIML-758 &middot; Contrast-Security-OSS/mcp-contrast
+</footer>
+
+</body>
+</html>
