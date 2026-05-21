@@ -125,7 +125,8 @@ class BaseToolAuthenticationStrategyTest {
   }
 
   @Test
-  void paginatedExecutePipeline_should_remain_noop_when_authentication_strategy_is_not_configured() {
+  void
+      paginatedExecutePipeline_should_remain_noop_when_authentication_strategy_is_not_configured() {
     var events = new ArrayList<String>();
     var tool = new RecordingPaginatedTool(events);
 
@@ -138,7 +139,8 @@ class BaseToolAuthenticationStrategyTest {
   }
 
   @Test
-  void paginatedExecutePipeline_should_bind_configured_strategy_before_doExecute_and_close_afterward() {
+  void
+      paginatedExecutePipeline_should_bind_configured_strategy_before_doExecute_and_close_afterward() {
     var events = new ArrayList<String>();
     var tool = new RecordingPaginatedTool(events);
     var context = new ToolContext(java.util.Map.of("requestId", "req-123"));
