@@ -42,6 +42,11 @@ class CoreBoundaryTest {
           sourcePath(
               "com/contrast/labs/ai/mcp/contrast/tool/validation/ToolValidationContext.java"),
           sourcePath("com/contrast/labs/ai/mcp/contrast/hints/HintGenerator.java"));
+  private static final List<Path> EXPECTED_CORE_PRODUCTION_TOOLS =
+      List.of(
+          sourcePath(
+              "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/"
+                  + "ListVulnerabilityTypesTool.java"));
   private static final List<String> LOCAL_ONLY_TYPES =
       List.of(
           "McpContrastApplication.java",
@@ -57,8 +62,6 @@ class CoreBoundaryTest {
           new LocalOnlyPattern(
               "stdio app configuration", "com.contrast.labs.ai.mcp.contrast.config"),
           new LocalOnlyPattern("Spring AI transport/runtime dependency", "spring-ai"),
-          new LocalOnlyPattern(
-              "Spring AI transport/runtime dependency", "org.springframework.ai.tool.annotation"),
           new LocalOnlyPattern(
               "Spring AI transport/runtime dependency", "org.springframework.ai.support"),
           new LocalOnlyPattern("Spring application configuration", "@Configuration"),
@@ -100,6 +103,20 @@ class CoreBoundaryTest {
         .isEmpty();
   }
 
+  @Test
+  void core_should_include_exactly_one_s4b_production_tool() throws IOException {
+    var productionToolSources =
+        javaSources()
+            .filter(
+                path -> sourceText(path).contains("org.springframework.ai.tool.annotation.Tool"))
+            .map(CORE_MAIN::relativize)
+            .toList();
+
+    assertThat(productionToolSources)
+        .as("S4B moves exactly one shared production tool into core")
+        .containsExactlyElementsOf(EXPECTED_CORE_PRODUCTION_TOOLS);
+  }
+
   private static Stream<Path> javaSources() throws IOException {
     try (var sourcePaths = Files.walk(CORE_MAIN)) {
       return sourcePaths.filter(path -> path.toString().endsWith(".java")).toList().stream();
@@ -112,14 +129,18 @@ class CoreBoundaryTest {
   }
 
   private static Stream<String> localOnlyMatches(Path path) {
+    var text = sourceText(path);
+    return LOCAL_ONLY_TEXT.stream()
+        .filter(pattern -> text.contains(pattern.token()))
+        .map(
+            pattern ->
+                "%s references %s token `%s`"
+                    .formatted(CORE_MAIN.relativize(path), pattern.category(), pattern.token()));
+  }
+
+  private static String sourceText(Path path) {
     try {
-      var text = Files.readString(path, StandardCharsets.UTF_8);
-      return LOCAL_ONLY_TEXT.stream()
-          .filter(pattern -> text.contains(pattern.token()))
-          .map(
-              pattern ->
-                  "%s references %s token `%s`"
-                      .formatted(CORE_MAIN.relativize(path), pattern.category(), pattern.token()));
+      return Files.readString(path, StandardCharsets.UTF_8);
     } catch (IOException e) {
       throw new IllegalStateException("Failed to read " + path, e);
     }
