@@ -16,7 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.tool.sast;
 
 import com.contrast.labs.ai.mcp.contrast.result.ScanProject;
-import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkSingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.sast.params.GetSastProjectParams;
@@ -31,7 +31,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @Slf4j
-public class GetSastProjectTool extends SingleTool<GetSastProjectParams, ScanProject> {
+public class GetSastProjectTool extends LocalSdkSingleTool<GetSastProjectParams, ScanProject> {
 
   @Tool(
       name = "get_scan_project",

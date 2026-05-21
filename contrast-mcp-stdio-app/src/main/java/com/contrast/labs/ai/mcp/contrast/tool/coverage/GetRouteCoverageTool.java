@@ -17,7 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 
 import com.contrast.labs.ai.mcp.contrast.result.RouteCoverageResponseLight;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
-import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkSingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.coverage.params.RouteCoverageParams;
@@ -37,7 +37,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Slf4j
 public class GetRouteCoverageTool
-    extends SingleTool<RouteCoverageParams, RouteCoverageResponseLight> {
+    extends LocalSdkSingleTool<RouteCoverageParams, RouteCoverageResponseLight> {
 
   private final RouteMapper routeMapper;
 

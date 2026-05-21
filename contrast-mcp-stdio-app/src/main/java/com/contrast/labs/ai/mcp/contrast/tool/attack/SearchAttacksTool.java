@@ -18,7 +18,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.attack;
 import com.contrast.labs.ai.mcp.contrast.result.AttackSummary;
 import com.contrast.labs.ai.mcp.contrast.tool.attack.params.AttackFilterParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
-import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkPaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
@@ -33,7 +33,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @RequiredArgsConstructor
-public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackSummary> {
+public class SearchAttacksTool extends LocalSdkPaginatedTool<AttackFilterParams, AttackSummary> {
 
   @Tool(
       name = "search_attacks",

@@ -17,7 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.attack;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.tool.attack.params.GetProtectRulesParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkSingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import java.util.List;
@@ -35,7 +35,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, ProtectData> {
+public class GetProtectRulesTool extends LocalSdkSingleTool<GetProtectRulesParams, ProtectData> {
 
   @Tool(
       name = "get_protect_rules",

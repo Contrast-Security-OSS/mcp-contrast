@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.model.ToolContext;
+import org.springframework.lang.Nullable;
 
 /**
  * Abstract base class for paginated MCP search tools. Enforces a consistent processing pipeline via
@@ -70,6 +72,14 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
    */
   protected final PaginatedToolResponse<R> executePipeline(
       Integer page, Integer pageSize, Supplier<P> paramsSupplier) {
+    return executePipeline(page, pageSize, paramsSupplier, null);
+  }
+
+  protected final PaginatedToolResponse<R> executePipeline(
+      Integer page,
+      Integer pageSize,
+      Supplier<P> paramsSupplier,
+      @Nullable ToolContext toolContext) {
 
     var requestId = UUID.randomUUID().toString().substring(0, REQUEST_ID_PREFIX_LENGTH);
     long startTime = System.currentTimeMillis();
@@ -93,7 +103,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
     }
 
     // 5. Execute - doExecute returns intermediate result, can add warnings via collector
-    try {
+    try (var ignored = authenticate(toolContext)) {
       var result = doExecute(pagination, params, collector);
       var duration = System.currentTimeMillis() - startTime;
 

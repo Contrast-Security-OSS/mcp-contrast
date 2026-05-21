@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.model.ToolContext;
+import org.springframework.lang.Nullable;
 
 /**
  * Abstract base class for non-paginated MCP get tools. Enforces a consistent processing pipeline
@@ -55,6 +57,11 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
    * @return tool response with item or errors
    */
   protected final SingleToolResponse<R> executePipeline(Supplier<P> paramsSupplier) {
+    return executePipeline(paramsSupplier, null);
+  }
+
+  protected final SingleToolResponse<R> executePipeline(
+      Supplier<P> paramsSupplier, @Nullable ToolContext toolContext) {
     var requestId = UUID.randomUUID().toString().substring(0, REQUEST_ID_PREFIX_LENGTH);
     long startTime = System.currentTimeMillis();
 
@@ -72,7 +79,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
     }
 
     // 4. Execute - doExecute returns item or null if not found
-    try {
+    try (var ignored = authenticate(toolContext)) {
       var result = doExecute(params, collector);
       var duration = System.currentTimeMillis() - startTime;
 

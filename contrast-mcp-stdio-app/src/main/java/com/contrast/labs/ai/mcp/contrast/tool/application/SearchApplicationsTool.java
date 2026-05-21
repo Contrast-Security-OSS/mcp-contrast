@@ -23,7 +23,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Applicati
 import com.contrast.labs.ai.mcp.contrast.tool.application.params.ApplicationFilterParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.FilterHelper;
-import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkPaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
@@ -43,7 +43,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 public class SearchApplicationsTool
-    extends PaginatedTool<ApplicationFilterParams, ApplicationData> {
+    extends LocalSdkPaginatedTool<ApplicationFilterParams, ApplicationData> {
 
   @Tool(
       name = "search_applications",

@@ -18,7 +18,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
-import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkPaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
@@ -40,7 +40,7 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 public class ListApplicationLibrariesTool
-    extends PaginatedTool<ListApplicationLibrariesParams, LibraryExtended> {
+    extends LocalSdkPaginatedTool<ListApplicationLibrariesParams, LibraryExtended> {
 
   @Override
   protected int getMaxPageSize() {

@@ -16,7 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.tool.application;
 
 import com.contrast.labs.ai.mcp.contrast.tool.application.params.GetSessionMetadataParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkSingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrastsecurity.models.MetadataFilterResponse;
@@ -30,7 +30,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class GetSessionMetadataTool
-    extends SingleTool<GetSessionMetadataParams, MetadataFilterResponse> {
+    extends LocalSdkSingleTool<GetSessionMetadataParams, MetadataFilterResponse> {
 
   @Tool(
       name = "get_session_metadata",

@@ -15,55 +15,42 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
-import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
-import com.contrast.labs.ai.mcp.contrast.config.SDKExtensionFactory;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
-import com.contrastsecurity.sdk.ContrastSDK;
+import java.util.Objects;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.Nullable;
 
 /**
  * Base class for all Contrast MCP tools. Provides common infrastructure shared across paginated and
  * single-item tools.
- *
- * <p>Subclasses get access to:
- *
- * <ul>
- *   <li>ContrastSDK instance via {@link #getContrastSDK()}
- *   <li>SDKExtension instance via {@link #getSDKExtension()}
- *   <li>Organization ID via {@link #getOrgId()}
- *   <li>HTTP error code mapping via {@link #mapHttpErrorCode(int)}
- * </ul>
  */
 public abstract class BaseTool {
 
-  @Autowired protected ContrastSDKFactory sdkFactory;
-  @Autowired protected SDKExtensionFactory sdkExtensionFactory;
+  private static final AutoCloseable NOOP_AUTHENTICATION_SCOPE = () -> {};
 
-  /**
-   * Returns the cached ContrastSDK instance from the factory.
-   *
-   * @return cached ContrastSDK
-   */
-  protected ContrastSDK getContrastSDK() {
-    return sdkFactory.getSDK();
+  private AuthenticationStrategy authenticationStrategy;
+
+  @Autowired(required = false)
+  public final void setAuthenticationStrategy(AuthenticationStrategy authenticationStrategy) {
+    this.authenticationStrategy = authenticationStrategy;
   }
 
   /**
-   * Returns the organization ID from the factory.
+   * Returns whether a transport-specific authentication strategy is configured.
    *
-   * @return organization ID
+   * @return true when a strategy has been injected
    */
-  protected String getOrgId() {
-    return sdkFactory.getOrgId();
+  public final boolean isAuthenticationStrategyConfigured() {
+    return authenticationStrategy != null;
   }
 
-  /**
-   * Returns the cached SDKExtension instance from the factory.
-   *
-   * @return cached SDKExtension
-   */
-  protected SDKExtension getSDKExtension() {
-    return sdkExtensionFactory.getSDKExtension();
+  protected final AutoCloseable authenticate(@Nullable ToolContext toolContext) throws Exception {
+    if (authenticationStrategy == null) {
+      return NOOP_AUTHENTICATION_SCOPE;
+    }
+    var scope = authenticationStrategy.authenticate(toolContext);
+    return Objects.requireNonNull(
+        scope, "AuthenticationStrategy returned null authentication scope");
   }
 
   /**

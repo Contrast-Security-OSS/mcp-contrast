@@ -8,10 +8,16 @@ plugins {
 }
 
 dependencies {
+    api platform("org.springframework.ai:spring-ai-bom:${springAiVersion}")
     api 'org.springframework:spring-core'
+    api 'org.springframework.ai:spring-ai-model'
     api 'com.google.code.gson:gson'
+    api "com.contrastsecurity:contrast-sdk-java:${contrastSdkVersion}"
+    api 'com.fasterxml.jackson.core:jackson-annotations'
 
     implementation 'org.slf4j:slf4j-api'
+
+    testImplementation "org.mockito:mockito-inline:${mockitoInlineVersion}"
 }
 
 publishing {
@@ -75,7 +81,10 @@ tasks.register('verifyCorePublicationMetadata') {
 
         [
             'org.springframework:spring-core:compile',
+            'org.springframework.ai:spring-ai-model:compile',
             'com.google.code.gson:gson:compile',
+            'com.contrastsecurity:contrast-sdk-java:compile',
+            'com.fasterxml.jackson.core:jackson-annotations:compile',
             'org.slf4j:slf4j-api:runtime'
         ].each { expectedDependency ->
             if (!dependencies.contains(expectedDependency)) {
@@ -87,7 +96,6 @@ tasks.register('verifyCorePublicationMetadata') {
         [
             'org.projectlombok:lombok',
             'com.contrast.labs.ai.mcp:contrast-mcp-stdio-app',
-            'com.contrastsecurity:contrast-sdk-java',
             'org.springframework.ai:spring-ai-starter-mcp-server'
         ].each { forbiddenDependency ->
             if (dependencies.any { it.startsWith("${forbiddenDependency}:") }) {
@@ -100,7 +108,10 @@ tasks.register('verifyCorePublicationMetadata') {
         }
         [
             'org.springframework:spring-core',
+            'org.springframework.ai:spring-ai-model',
             'com.google.code.gson:gson',
+            'com.contrastsecurity:contrast-sdk-java',
+            'com.fasterxml.jackson.core:jackson-annotations',
             'org.slf4j:slf4j-api'
         ].each { expectedDependency ->
             if (!moduleDependencies.contains(expectedDependency)) {
@@ -110,7 +121,6 @@ tasks.register('verifyCorePublicationMetadata') {
         [
             'org.projectlombok:lombok',
             'com.contrast.labs.ai.mcp:contrast-mcp-stdio-app',
-            'com.contrastsecurity:contrast-sdk-java',
             'org.springframework.ai:spring-ai-starter-mcp-server'
         ].each { forbiddenDependency ->
             if (moduleDependencies.contains(forbiddenDependency)) {
