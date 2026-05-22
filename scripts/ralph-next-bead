@@ -1,0 +1,204 @@
+#!/usr/bin/env bash
+# ralph-next-bead — Transition between beads: PR the completed one, set up the next.
+#
+# Orchestrates claude -p calls to create PRs, walkthroughs, and stacked branches
+# across mcp-contrast and aiml-services repos.
+
+set -euo pipefail
+
+CONTROL_REPO="/Users/chrisedwards/projects/contrast/mcp-contrast"
+AIML_REPO="/Users/chrisedwards/projects/contrast/aiml-services"
+BEADS_PATH="$CONTROL_REPO"
+
+PR_TOOLS_SCRIPTS=$(ls -d "$HOME/.claude/plugins/cache/Contrast-Security-Inc/pr-tools"/*/scripts 2>/dev/null | sort -V | tail -1)
+if [[ -z "$PR_TOOLS_SCRIPTS" ]]; then
+  echo "ERROR: pr-tools plugin not found. Install via /plugin install pr-tools@Contrast-Security-Inc"
+  exit 1
+fi
+
+COMPLETED_BEAD_ID=""
+NEXT_BEAD_ID=""
+
+usage() {
+  cat <<'EOF'
+Usage: ralph-next-bead [--completed <bead_id>] [--next <bead_id>]
+
+  --completed <bead_id>   Bead that was just finished. Creates PR + HTML walkthrough
+                          in each repo that has commits on the current branch.
+  --next <bead_id>        Next epic bead to implement. Creates a stacked branch
+                          on top of the current branch in each repo.
+
+At least one flag is required. Both can be provided.
+EOF
+  exit 1
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --completed) COMPLETED_BEAD_ID="$2"; shift 2 ;;
+    --next)      NEXT_BEAD_ID="$2"; shift 2 ;;
+    -h|--help)   usage ;;
+    *)           echo "Unknown argument: $1"; usage ;;
+  esac
+done
+
+if [[ -z "$COMPLETED_BEAD_ID" && -z "$NEXT_BEAD_ID" ]]; then
+  usage
+fi
+
+TIMESTAMP=$(date +%Y-%m-%dT%H-%M-%S)
+LOG_DIR="$CONTROL_REPO/history/ralph-next-bead/$TIMESTAMP"
+mkdir -p "$LOG_DIR"
+
+STREAM_TEXT='select(.type == "assistant").message.content[]? | select(.type == "text").text // empty | gsub("\n"; "\r\n") | . + "\r\n\n"'
+
+interrupted=false
+trap 'interrupted=true; printf "\nInterrupted.\n"; exit 130' INT TERM
+
+play_completion_sound() {
+  if command -v afplay &>/dev/null; then
+    afplay /System/Library/Sounds/Hero.aiff &
+  fi
+}
+
+play_error_sound() {
+  if command -v afplay &>/dev/null; then
+    afplay /System/Library/Sounds/Basso.aiff &
+  fi
+}
+
+log() {
+  local msg="[$(date +%H:%M:%S)] $*"
+  echo "$msg"
+  echo "$msg" >> "$LOG_DIR/summary.log"
+}
+
+run_claude() {
+  local prompt="$1"
+  local log_file="$2"
+  local tmpfile
+  tmpfile=$(mktemp)
+
+  claude \
+    --permission-mode bypassPermissions \
+    --verbose \
+    --print \
+    --output-format stream-json \
+    -p "$prompt" \
+  | { grep --line-buffered '^{' || true; } \
+  | tee "$tmpfile" \
+  | jq --unbuffered -rj "$STREAM_TEXT" || true
+
+  if $interrupted; then exit 130; fi
+
+  cp "$tmpfile" "$log_file"
+  rm -f "$tmpfile"
+}
+
+repo_has_commits() {
+  local repo_dir="$1"
+  local current_branch
+  current_branch=$(git -C "$repo_dir" branch --show-current)
+
+  local default_branch
+  default_branch=$(git -C "$repo_dir" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##' || echo "main")
+
+  if [[ "$current_branch" == "$default_branch" ]]; then
+    return 1
+  fi
+
+  local facts base_branch
+  facts=$(cd "$repo_dir" && bash "$PR_TOOLS_SCRIPTS/stacked-pr-facts.sh" detect-base-candidates 2>/dev/null) || return 1
+
+  base_branch=$(echo "$facts" | jq -r '
+    if .configuredParent != null and .configuredParent.branch != null then
+      .configuredParent.branch
+    else
+      .defaultBranch
+    end
+  ' 2>/dev/null)
+
+  if [[ -z "$base_branch" ]]; then
+    base_branch="$default_branch"
+  fi
+
+  local count
+  count=$(git -C "$repo_dir" rev-list --count "origin/$base_branch..HEAD" 2>/dev/null || echo "0")
+  [[ "$count" -gt 0 ]]
+}
+
+process_repo() {
+  local repo_dir="$1"
+  local repo_name="$2"
+
+  echo ""
+  log "============================================"
+  log "  Processing: $repo_name"
+  log "  Path: $repo_dir"
+  log "============================================"
+
+  if [[ ! -d "$repo_dir" ]]; then
+    log "SKIP: $repo_dir does not exist"
+    return 0
+  fi
+
+  local current_branch
+  current_branch=$(git -C "$repo_dir" branch --show-current)
+  log "Current branch: $current_branch"
+
+  if [[ -n "$COMPLETED_BEAD_ID" ]]; then
+    if repo_has_commits "$repo_dir"; then
+      log "$repo_name: Creating PR for $COMPLETED_BEAD_ID"
+      echo ""
+      echo "=== $repo_name: Creating PR for $COMPLETED_BEAD_ID ==="
+      (
+        cd "$repo_dir"
+        run_claude \
+          "/pr-tools:create-pr Read the prd, the bead $COMPLETED_BEAD_ID, and any child beads along with any relevant decision docs to understand the context of these changes on this branch. beads are in $BEADS_PATH" \
+          "$LOG_DIR/${repo_name}-create-pr.log"
+      )
+      log "$repo_name: PR creation complete"
+
+      log "$repo_name: Creating HTML walkthrough for $COMPLETED_BEAD_ID"
+      echo ""
+      echo "=== $repo_name: Creating HTML walkthrough for $COMPLETED_BEAD_ID ==="
+      (
+        cd "$repo_dir"
+        run_claude \
+          "/pr-tools:create-html-pr-walkthrough Read $COMPLETED_BEAD_ID and its child beads and prior/next beads along with the Jira ticket, then read the PRD, and any relevant docs in the decisions folder for context. Ensure you frame this in the context of the work that came before and comes after. Is this part of a slice? Which part? How does it relate. Use diagrams to show large file renames to simplify understanding them. Make the walkthrough easy to understand by using explanations of concepts and using concrete examples. beads are in $BEADS_PATH" \
+          "$LOG_DIR/${repo_name}-walkthrough.log"
+      )
+      log "$repo_name: Walkthrough complete"
+    else
+      log "$repo_name: No commits ahead of base — skipping PR and walkthrough"
+    fi
+  fi
+
+  if [[ -n "$NEXT_BEAD_ID" ]]; then
+    log "$repo_name: Creating stacked branch for $NEXT_BEAD_ID"
+    echo ""
+    echo "=== $repo_name: Creating stacked branch for $NEXT_BEAD_ID ==="
+    (
+      cd "$repo_dir"
+      run_claude \
+        "/pr-tools:create-stacked-branch for bead $NEXT_BEAD_ID. It should be created for that epic bead including its children. Ensure it is named prefixed with the jira ticket id like other branches. It should be stacked on top of the current branch. beads are in $BEADS_PATH" \
+        "$LOG_DIR/${repo_name}-create-branch.log"
+    )
+    log "$repo_name: Stacked branch creation complete"
+  fi
+}
+
+log "ralph-next-bead starting"
+log "Completed bead: ${COMPLETED_BEAD_ID:-none}"
+log "Next bead: ${NEXT_BEAD_ID:-none}"
+log "Logs: $LOG_DIR"
+
+process_repo "$CONTROL_REPO" "mcp-contrast"
+process_repo "$AIML_REPO" "aiml-services"
+
+log "============================================"
+log "  ralph-next-bead complete"
+log "  Logs: $LOG_DIR"
+log "============================================"
+
+play_completion_sound
