@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PR #129 Walkthrough: Improve Shared MCP Error Guidance for LLM-Readable Failures</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-raised: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-subtle: #6e7681;
+    --accent: #58a6ff;
+    --accent-soft: rgba(88,166,255,0.15);
+    --green: #3fb950;
+    --green-bg: rgba(63,185,80,0.15);
+    --green-border: rgba(63,185,80,0.4);
+    --red: #f85149;
+    --red-bg: rgba(248,81,73,0.10);
+    --yellow: #d29922;
+    --yellow-bg: rgba(210,153,34,0.15);
+    --purple: #bc8cff;
+    --purple-bg: rgba(188,140,255,0.12);
+    --orange: #f0883e;
+    --line-num: #484f58;
+    --diff-add-bg: rgba(63,185,80,0.10);
+    --diff-add-text: #aff5b4;
+    --diff-add-marker: #3fb950;
+    --diff-del-bg: rgba(248,81,73,0.10);
+    --diff-del-text: #ffa198;
+    --diff-del-marker: #f85149;
+    --diff-context-bg: transparent;
+    --code-bg: #0d1117;
+    --nav-bg: rgba(13,17,23,0.95);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 40%, #1a1e2e 70%, #161b22 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 3rem 2rem 2.5rem;
+    text-align: center;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.3rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(88,166,255,0.3);
+    margin-bottom: 1rem;
+    letter-spacing: 0.03em;
+  }
+  .hero h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.6rem;
+    background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero .subtitle {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .hero-meta {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .hero-meta-item {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .hero-meta-item strong { color: var(--text); }
+
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--nav-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.6rem 2rem;
+    overflow-x: auto;
+  }
+  nav ol {
+    display: flex;
+    gap: 0.3rem;
+    list-style: none;
+    max-width: 1100px;
+    margin: 0 auto;
+    font-size: 0.82rem;
+    align-items: center;
+  }
+  nav li a {
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.35rem 0.7rem;
+    border-radius: 6px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  nav li a:hover { color: var(--accent); background: var(--accent-soft); }
+  nav .nav-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4em;
+    height: 1.4em;
+    border-radius: 50%;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 0.4em;
+  }
+  nav .nav-sep { color: var(--text-subtle); font-size: 0.75rem; }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 2rem 6rem;
+  }
+
+  .chapter {
+    margin-bottom: 3.5rem;
+    scroll-margin-top: 4rem;
+  }
+  .chapter-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .chapter-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .chapter-number.blue { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .chapter-number.green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .chapter-number.purple { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+  .chapter-number.yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .chapter-number.orange { background: rgba(240,136,62,0.12); color: var(--orange); border: 1px solid rgba(240,136,62,0.3); }
+  .chapter h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .narrative {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.75;
+    margin-bottom: 1.5rem;
+  }
+  .narrative strong { color: var(--text); font-weight: 600; }
+  .narrative code {
+    background: var(--surface-raised);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.88em;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  .callout {
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    border: 1px solid;
+  }
+  .callout.why {
+    background: var(--accent-soft);
+    border-color: rgba(88,166,255,0.25);
+    color: var(--text);
+  }
+  .callout.why .callout-label { color: var(--accent); }
+  .callout.security {
+    background: var(--red-bg);
+    border-color: rgba(248,81,73,0.25);
+  }
+  .callout.security .callout-label { color: var(--red); }
+  .callout.note {
+    background: var(--yellow-bg);
+    border-color: rgba(210,153,34,0.25);
+  }
+  .callout.note .callout-label { color: var(--yellow); }
+  .callout.future {
+    background: var(--purple-bg);
+    border-color: rgba(188,140,255,0.25);
+  }
+  .callout.future .callout-label { color: var(--purple); }
+  .callout-label {
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.3rem;
+    display: block;
+  }
+
+  .diff-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .diff-header {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    gap: 0.5rem;
+  }
+  .diff-header .file-icon {
+    width: 16px; height: 16px;
+    fill: var(--text-subtle);
+    flex-shrink: 0;
+  }
+  .diff-header .filename {
+    color: var(--text);
+    font-weight: 600;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+  }
+  .diff-header .badge {
+    margin-left: auto;
+    font-size: 0.72rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .badge-new { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .badge-modified { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+
+  .diff-body {
+    overflow-x: auto;
+  }
+  .diff-body pre {
+    margin: 0;
+    padding: 0.4rem 0;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.3;
+    display: flex;
+    flex-direction: column;
+  }
+  .diff-line {
+    display: flex;
+    padding: 0 1rem;
+    min-height: 1.3em;
+  }
+  .diff-line.add { background: var(--diff-add-bg); }
+  .diff-line.del { background: var(--diff-del-bg); }
+  .diff-line.context { background: var(--diff-context-bg); }
+  .diff-line .marker {
+    width: 1.2em;
+    flex-shrink: 0;
+    color: var(--text-subtle);
+    user-select: none;
+    text-align: center;
+  }
+  .diff-line.add .marker { color: var(--diff-add-marker); }
+  .diff-line.del .marker { color: var(--diff-del-marker); }
+  .diff-line .ln {
+    width: 3.5em;
+    flex-shrink: 0;
+    color: var(--line-num);
+    text-align: right;
+    padding-right: 1em;
+    user-select: none;
+  }
+  .diff-line .code {
+    flex: 1;
+    white-space: pre;
+  }
+  .diff-line .code .kw { color: #ff7b72; }
+  .diff-line .code .str { color: #a5d6ff; }
+  .diff-line .code .ann { color: #d2a8ff; }
+  .diff-line .code .type { color: #79c0ff; }
+  .diff-line .code .comment { color: var(--text-subtle); font-style: italic; }
+  .diff-line .code .prop { color: #7ee787; }
+  .diff-line .code .val { color: #a5d6ff; }
+  .diff-line .code .num { color: #79c0ff; }
+  .diff-line .code .param { color: #ffa657; }
+
+  .annotation {
+    background: var(--surface-raised);
+    border-left: 3px solid var(--accent);
+    padding: 0.7rem 1rem;
+    margin: 0 1rem 0.3rem 1rem;
+    border-radius: 0 6px 6px 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+  .annotation strong { color: var(--text); }
+  .annotation code {
+    background: rgba(88,166,255,0.1);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: var(--accent);
+  }
+  .annotation.security-note { border-left-color: var(--red); }
+  .annotation.future-note { border-left-color: var(--purple); }
+
+  .diagram { margin-bottom: 1.5rem; }
+  .diagram svg { width: 100%; height: auto; display: block; }
+  .diagram-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    overflow-x: auto;
+  }
+
+  .slice-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (max-width: 768px) { .slice-columns { grid-template-columns: 1fr; } }
+  .slice-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem;
+  }
+  .slice-col.this-pr { border-color: var(--green-border); }
+  .slice-col.future-col { border-color: var(--border); opacity: 0.7; }
+  .slice-col .slice-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .slice-col.this-pr .slice-title { color: var(--green); }
+  .slice-col.future-col .slice-title { color: var(--text-subtle); }
+  .slice-item {
+    position: relative;
+    padding: 0.3rem 0 0.3rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .slice-item .dot {
+    position: absolute;
+    left: 0;
+    top: 0.65rem;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .slice-col.this-pr .dot { background: var(--green); }
+  .slice-col.future-col .dot { background: var(--text-subtle); }
+  .slice-item strong { color: var(--text); font-weight: 500; }
+
+  .roadmap-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+  }
+  .roadmap-table th {
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  .roadmap-table td {
+    padding: 0.45rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+  .roadmap-table tr:last-child td { border-bottom: none; }
+  .roadmap-table .jira-link {
+    font-family: 'SF Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .roadmap-table .jira-link:hover { text-decoration: underline; }
+  .roadmap-table .slice-name { color: var(--text); font-weight: 500; }
+  .roadmap-table .current-row td {
+    background: var(--green-bg);
+    border-bottom-color: var(--green-border);
+  }
+  .roadmap-table .current-row .slice-name { color: var(--green); font-weight: 600; }
+  .roadmap-table .current-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--green-bg);
+    color: var(--green);
+    border: 1px solid var(--green-border);
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
+
+  .file-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+  }
+  .file-table th {
+    text-align: left;
+    padding: 0.6rem 1rem;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  .file-table td {
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .file-table td:first-child {
+    font-family: 'SF Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--accent);
+  }
+  .file-table tr:last-child td { border-bottom: none; }
+  .file-table .addition { color: var(--green); }
+  .file-table .deletion { color: var(--red); }
+
+  .standard-pattern {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .standard-pattern summary {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: var(--surface-raised);
+    border-bottom: 1px solid transparent;
+    list-style: none;
+    transition: background 0.15s;
+  }
+  .standard-pattern summary::-webkit-details-marker { display: none; }
+  .standard-pattern summary::before {
+    content: '\25B6';
+    font-size: 0.65rem;
+    color: var(--text-subtle);
+    transition: transform 0.15s;
+    flex-shrink: 0;
+  }
+  .standard-pattern[open] summary::before { transform: rotate(90deg); }
+  .standard-pattern[open] summary { border-bottom-color: var(--border); }
+  .standard-pattern summary:hover { background: rgba(88,166,255,0.06); }
+  .standard-pattern .sp-icon {
+    width: 16px; height: 16px;
+    fill: var(--text-subtle);
+    flex-shrink: 0;
+  }
+  .standard-pattern .sp-title {
+    color: var(--text);
+    font-weight: 600;
+    flex: 1;
+  }
+  .standard-pattern .sp-files {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.78rem;
+    color: var(--text-subtle);
+  }
+  .standard-pattern .sp-ref {
+    font-size: 0.78rem;
+    color: var(--text-subtle);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .badge-standard {
+    background: rgba(139,148,158,0.15);
+    color: var(--text-muted);
+    border: 1px solid rgba(139,148,158,0.3);
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .standard-pattern .sp-body {
+    padding: 0.8rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .standard-pattern .sp-body code {
+    background: var(--surface-raised);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  .file-table .novelty { text-align: center; }
+  .novelty-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+  }
+  .novelty-badge.novel { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .novelty-badge.standard { background: rgba(139,148,158,0.12); color: var(--text-subtle); border: 1px solid rgba(139,148,158,0.25); }
+  .novelty-badge.pattern { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+
+  footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-subtle);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+    margin-top: 3rem;
+  }
+
+  @media (max-width: 768px) {
+    .hero { padding: 2rem 1rem; }
+    .hero h1 { font-size: 1.6rem; }
+    main { padding: 1.5rem 1rem 4rem; }
+    nav ol { gap: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <span class="hero-badge">PR #129 &middot; AIML-761</span>
+  <h1>Improve Shared MCP Error Guidance</h1>
+  <p class="subtitle">
+    Making error messages actionable for AI agents &mdash; the shared foundation that Slice 7 and every downstream tool depends on.
+  </p>
+  <div class="hero-meta">
+    <span class="hero-meta-item"><strong>Branch:</strong> AIML-761-s7-error-handling-core</span>
+    <span class="hero-meta-item"><strong>Base:</strong> AIML-758-code-review-fixes (PR #126)</span>
+    <span class="hero-meta-item"><strong>Files:</strong> 8 changed</span>
+    <span class="hero-meta-item"><strong>Lines:</strong> +545 / &minus;53</span>
+  </div>
+</div>
+
+<!-- ===== NAV ===== -->
+<nav>
+  <ol>
+    <li><a href="#context"><span class="nav-number">1</span>Context</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#approach"><span class="nav-number">2</span>Approach</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#error-messages"><span class="nav-number">3</span>Error Messages</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#delegation-fix"><span class="nav-number">4</span>Delegation Fix</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#403-bug"><span class="nav-number">5</span>The 403 Bug</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#tests"><span class="nav-number">6</span>Tests</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#tooling"><span class="nav-number">7</span>Tooling</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#whats-next"><span class="nav-number">8</span>What&rsquo;s Next</a></li>
+  </ol>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 1: Context -->
+<!-- ============================================================ -->
+<section class="chapter" id="context">
+  <div class="chapter-header">
+    <span class="chapter-number blue">1</span>
+    <h2>Context: Why Error Messages Matter for AI Agents</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>MCP tools are consumed by AI agents, not humans &mdash; and AI agents can only recover from errors they understand.</strong>
+    Imagine Claude calling <code>search_vulnerabilities</code> and getting back <em>"Contrast API error. Try again later."</em>
+    That message tells the agent nothing. Try again how? Is the query too broad? Are credentials expired? Should the agent narrow filters or re-authenticate?
+    Now imagine getting <em>"The service returned an error. Narrow filters or reduce page size, then retry."</em> &mdash;
+    that's an instruction the agent can act on autonomously.
+  </p>
+
+  <p class="narrative">
+    <strong>This PR is part of Slice 7 (Error and Logging Hardening) in the AIML-110 initiative to build a hosted remote MCP server.</strong>
+    The PRD defines two stop-ship gates that depend on these shared error messages:
+    <strong>S7-ERROR-LOGGING</strong> requires layer-specific error handling per ADR-007, and
+    <strong>G2-ERRORS</strong> mandates that every error response be LLM-readable with no stack traces, class names, or internal paths.
+    The exact wording for specific status codes is specified in the PRD &mdash; for example, a JWT mid-execution expiry must map to
+    <em>"Your authentication token has expired. Please re-authenticate and retry."</em>
+  </p>
+
+  <div class="callout why">
+    <span class="callout-label">Why this matters</span>
+    <strong>This is the shared foundation.</strong> <code>BaseTool.mapHttpErrorCode</code> lives in <code>:contrast-mcp-core</code>,
+    which is consumed by both the local stdio server and the hosted remote server. Fixing the messages here automatically improves
+    every tool in both deployment modes &mdash; all 13 local tools and all 12+ remote tools being added in Slices 8 and 9.
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-container">
+      <svg viewBox="0 0 900 340" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <!-- Title -->
+        <text x="450" y="30" text-anchor="middle" fill="#8b949e" font-size="13" font-weight="600">WHERE THIS CHANGE LIVES IN THE AIML-110 ARCHITECTURE</text>
+
+        <!-- contrast-mcp-core box -->
+        <rect x="250" y="55" width="400" height="120" rx="10" fill="#161b22" stroke="#3fb950" stroke-width="2"/>
+        <text x="450" y="80" text-anchor="middle" fill="#3fb950" font-size="14" font-weight="700">:contrast-mcp-core (This PR)</text>
+
+        <!-- BaseTool inside core -->
+        <rect x="280" y="95" width="340" height="30" rx="6" fill="rgba(63,185,80,0.15)" stroke="rgba(63,185,80,0.4)" stroke-width="1"/>
+        <text x="450" y="115" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="600">BaseTool.mapHttpErrorCode()</text>
+
+        <!-- PaginatedTool and SingleTool -->
+        <rect x="280" y="135" width="160" height="25" rx="5" fill="rgba(88,166,255,0.1)" stroke="rgba(88,166,255,0.3)" stroke-width="1"/>
+        <text x="360" y="152" text-anchor="middle" fill="#58a6ff" font-size="11">PaginatedTool</text>
+        <rect x="460" y="135" width="160" height="25" rx="5" fill="rgba(88,166,255,0.1)" stroke="rgba(88,166,255,0.3)" stroke-width="1"/>
+        <text x="540" y="152" text-anchor="middle" fill="#58a6ff" font-size="11">SingleTool</text>
+
+        <!-- Local stdio app -->
+        <rect x="60" y="230" width="280" height="55" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+        <text x="200" y="255" text-anchor="middle" fill="#8b949e" font-size="12" font-weight="600">:contrast-mcp-stdio-app</text>
+        <text x="200" y="272" text-anchor="middle" fill="#6e7681" font-size="10">13 local tools</text>
+
+        <!-- Remote hosted app -->
+        <rect x="560" y="230" width="280" height="55" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+        <text x="700" y="255" text-anchor="middle" fill="#8b949e" font-size="12" font-weight="600">aiml-hosted-mcp-server</text>
+        <text x="700" y="272" text-anchor="middle" fill="#6e7681" font-size="10">12+ remote tools (Slices 8&ndash;9)</text>
+
+        <!-- Arrows from core to consumers -->
+        <line x1="350" y1="175" x2="200" y2="230" stroke="#30363d" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <line x1="550" y1="175" x2="700" y2="230" stroke="#30363d" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="250" y="205" text-anchor="middle" fill="#6e7681" font-size="10">depends on</text>
+        <text x="650" y="205" text-anchor="middle" fill="#6e7681" font-size="10">depends on</text>
+
+        <!-- AI Agent at bottom -->
+        <rect x="320" y="310" width="260" height="28" rx="6" fill="rgba(188,140,255,0.12)" stroke="rgba(188,140,255,0.3)" stroke-width="1"/>
+        <text x="450" y="329" text-anchor="middle" fill="#bc8cff" font-size="11" font-weight="600">AI Agent (Claude, etc.)</text>
+        <line x1="200" y1="285" x2="380" y2="310" stroke="rgba(188,140,255,0.3)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="700" y1="285" x2="520" y2="310" stroke="rgba(188,140,255,0.3)" stroke-width="1" stroke-dasharray="3,3"/>
+      </svg>
+    </div>
+  </div>
+
+  <table class="roadmap-table">
+    <thead><tr><th>Ticket</th><th>Slice</th><th>Scope</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-755">AIML-755</a></td>
+        <td><span class="slice-name">Slice 1</span></td>
+        <td>Add authenticated user info tool as end-to-end proof</td>
+      </tr>
+      <tr class="current-row">
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-761">AIML-761</a></td>
+        <td><span class="slice-name">Slice 7</span><span class="current-badge">This PR</span></td>
+        <td>Harden error handling, logging, and sensitive data redaction (shared core portion)</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-762">AIML-762</a></td>
+        <td><span class="slice-name">Slice 8</span></td>
+        <td>Expand shared tools &mdash; applications, attacks, routes, SAST</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-763">AIML-763</a></td>
+        <td><span class="slice-name">Slice 9</span></td>
+        <td>Expand dataplatform tools &mdash; CVE, SBOM, compliance workflows</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="narrative">
+    <strong>Slice 7 spans both repos, but this PR covers only the shared <code>:contrast-mcp-core</code> portion.</strong>
+    The bulk of Slice 7 &mdash; the global exception handler, structured logging keys, JWT masking, and security event logging &mdash;
+    lives in the <code>aiml-services</code> repo (beads mcp-o6gh and mcp-yx8j, both already closed).
+    This PR delivers the one piece that belongs in the public repo: improving <code>BaseTool.mapHttpErrorCode</code> so that
+    both servers return the same actionable messages.
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 2: Approach -->
+<!-- ============================================================ -->
+<section class="chapter" id="approach">
+  <div class="chapter-header">
+    <span class="chapter-number green">2</span>
+    <h2>Approach: Before and After</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>The change is deliberately narrow: rewrite five error messages and eliminate duplicated strings.</strong>
+    The PRD prescribes exact wording for each HTTP status code. Rather than inventing messages, we're implementing the specification.
+    Along the way, we found and fixed a bug: 403 responses were being caught as <code>UnauthorizedException</code> instead of
+    <code>HttpResponseException</code>, which meant they got the 401 message instead of "Access denied."
+  </p>
+
+  <div class="diagram">
+    <div class="diagram-container">
+      <svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <!-- Title -->
+        <text x="450" y="25" text-anchor="middle" fill="#8b949e" font-size="13" font-weight="600">ERROR MESSAGE BEFORE / AFTER</text>
+
+        <!-- Before column header -->
+        <text x="225" y="55" text-anchor="middle" fill="#f85149" font-size="12" font-weight="700">BEFORE (vague)</text>
+        <!-- After column header -->
+        <text x="675" y="55" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="700">AFTER (actionable)</text>
+
+        <!-- Arrow in middle -->
+        <line x1="445" y1="70" x2="445" y2="280" stroke="#30363d" stroke-width="1"/>
+        <text x="450" y="68" text-anchor="middle" fill="#6e7681" font-size="22">&rarr;</text>
+
+        <!-- 401 row -->
+        <rect x="20" y="75" width="410" height="38" rx="5" fill="rgba(248,81,73,0.08)" stroke="rgba(248,81,73,0.2)" stroke-width="1"/>
+        <text x="35" y="92" fill="#f0883e" font-size="11" font-weight="700">401</text>
+        <text x="70" y="92" fill="#ffa198" font-size="10.5" font-style="italic">"Authentication failed or resource not found.</text>
+        <text x="70" y="104" fill="#ffa198" font-size="10.5" font-style="italic">Verify credentials and that the resource ID is correct."</text>
+
+        <rect x="470" y="75" width="410" height="38" rx="5" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.2)" stroke-width="1"/>
+        <text x="485" y="92" fill="#f0883e" font-size="11" font-weight="700">401</text>
+        <text x="520" y="98" fill="#aff5b4" font-size="10.5" font-style="italic">"Your authentication token has expired.</text>
+        <text x="520" y="110" fill="#aff5b4" font-size="10.5" font-style="italic">Please re-authenticate and retry."</text>
+
+        <!-- 403 row -->
+        <rect x="20" y="125" width="410" height="30" rx="5" fill="rgba(248,81,73,0.08)" stroke="rgba(248,81,73,0.2)" stroke-width="1"/>
+        <text x="35" y="144" fill="#f0883e" font-size="11" font-weight="700">403</text>
+        <text x="70" y="144" fill="#ffa198" font-size="10.5" font-style="italic">(same as 401 &mdash; caught as UnauthorizedException!)</text>
+
+        <rect x="470" y="125" width="410" height="30" rx="5" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.2)" stroke-width="1"/>
+        <text x="485" y="144" fill="#f0883e" font-size="11" font-weight="700">403</text>
+        <text x="520" y="144" fill="#aff5b4" font-size="10.5" font-style="italic">"Access denied. User lacks permission for this resource."</text>
+
+        <!-- 429 row -->
+        <rect x="20" y="167" width="410" height="30" rx="5" fill="rgba(248,81,73,0.08)" stroke="rgba(248,81,73,0.2)" stroke-width="1"/>
+        <text x="35" y="186" fill="#f0883e" font-size="11" font-weight="700">429</text>
+        <text x="70" y="186" fill="#ffa198" font-size="10.5" font-style="italic">"Rate limit exceeded. Retry later."</text>
+
+        <rect x="470" y="167" width="410" height="30" rx="5" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.2)" stroke-width="1"/>
+        <text x="485" y="186" fill="#f0883e" font-size="11" font-weight="700">429</text>
+        <text x="520" y="186" fill="#aff5b4" font-size="10.5" font-style="italic">"Rate limit exceeded. Retry after a brief pause."</text>
+
+        <!-- 5xx row -->
+        <rect x="20" y="209" width="410" height="30" rx="5" fill="rgba(248,81,73,0.08)" stroke="rgba(248,81,73,0.2)" stroke-width="1"/>
+        <text x="35" y="228" fill="#f0883e" font-size="11" font-weight="700">5xx</text>
+        <text x="70" y="228" fill="#ffa198" font-size="10.5" font-style="italic">"Contrast API error. Try again later."</text>
+
+        <rect x="470" y="209" width="410" height="30" rx="5" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.2)" stroke-width="1"/>
+        <text x="485" y="228" fill="#f0883e" font-size="11" font-weight="700">5xx</text>
+        <text x="520" y="225" fill="#aff5b4" font-size="10.5" font-style="italic">"The service returned an error. Narrow filters or</text>
+        <text x="520" y="237" fill="#aff5b4" font-size="10.5" font-style="italic">reduce page size, then retry."</text>
+
+        <!-- Default row -->
+        <rect x="20" y="251" width="410" height="30" rx="5" fill="rgba(139,148,158,0.08)" stroke="rgba(139,148,158,0.2)" stroke-width="1"/>
+        <text x="35" y="270" fill="#f0883e" font-size="11" font-weight="700">other</text>
+        <text x="70" y="270" fill="#8b949e" font-size="10.5" font-style="italic">(unchanged) "API error (HTTP NNN)"</text>
+
+        <rect x="470" y="251" width="410" height="30" rx="5" fill="rgba(139,148,158,0.08)" stroke="rgba(139,148,158,0.2)" stroke-width="1"/>
+        <text x="485" y="270" fill="#f0883e" font-size="11" font-weight="700">other</text>
+        <text x="520" y="270" fill="#8b949e" font-size="10.5" font-style="italic">(unchanged) "API error (HTTP NNN)"</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 3: Error Messages (BaseTool) -->
+<!-- ============================================================ -->
+<section class="chapter" id="error-messages">
+  <div class="chapter-header">
+    <span class="chapter-number green">3</span>
+    <h2>The Core Change: <code>BaseTool.mapHttpErrorCode</code></h2>
+  </div>
+
+  <p class="narrative">
+    <strong>This is the single method that every MCP tool in both servers calls when an HTTP error comes back from the Contrast API.</strong>
+    The switch expression maps status codes to the messages that AI agents see. Every message must give the agent a concrete next step.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-core/.../tool/base/BaseTool.java</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">62</span><span class="code">  <span class="kw">protected</span> <span class="type">String</span> <span class="param">mapHttpErrorCode</span>(<span class="kw">int</span> <span class="param">code</span>) {</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">63</span><span class="code">    <span class="kw">return</span> <span class="kw">switch</span> (code) {</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">      <span class="kw">case</span> <span class="num">401</span> -&gt;</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">          <span class="str">"Authentication failed or resource not found. Verify credentials and that the resource ID"</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">              + <span class="str">" is correct."</span>;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">64</span><span class="code">      <span class="kw">case</span> <span class="num">401</span> -&gt; <span class="str">"Your authentication token has expired. Please re-authenticate and retry."</span>;</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">65</span><span class="code">      <span class="kw">case</span> <span class="num">403</span> -&gt; <span class="str">"Access denied. User lacks permission for this resource."</span>;</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">66</span><span class="code">      <span class="kw">case</span> <span class="num">404</span> -&gt; <span class="str">"Resource not found."</span>;</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">      <span class="kw">case</span> <span class="num">429</span> -&gt; <span class="str">"Rate limit exceeded. Retry later."</span>;</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">      <span class="kw">case</span> <span class="num">500</span>, <span class="num">502</span>, <span class="num">503</span> -&gt; <span class="str">"Contrast API error. Try again later."</span>;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">67</span><span class="code">      <span class="kw">case</span> <span class="num">429</span> -&gt; <span class="str">"Rate limit exceeded. Retry after a brief pause."</span>;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">68</span><span class="code">      <span class="kw">case</span> <span class="num">500</span>, <span class="num">502</span>, <span class="num">503</span> -&gt;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">69</span><span class="code">          <span class="str">"The service returned an error. Narrow filters or reduce page size, then retry."</span>;</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">70</span><span class="code">      <span class="kw">default</span> -&gt; <span class="str">"API error (HTTP "</span> + code + <span class="str">")"</span>;</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">71</span><span class="code">    };</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Three messages changed, each with a specific rationale.</strong>
+      <strong>401:</strong> The old message conflated two unrelated problems &mdash; bad credentials and wrong resource IDs. The PRD (G2-ERRORS gate) requires this exact wording for JWT mid-execution expiry so the agent knows to re-authenticate, not retry the same request.
+      <strong>429:</strong> "Retry later" is vague; "retry after a brief pause" tells the agent the wait is short, not hours.
+      <strong>5xx:</strong> "Contrast API error" leaks the vendor name and gives no recovery path. The new message gives the agent two concrete things to try: narrow the query or reduce page size &mdash; both common causes of server-side timeouts on large result sets.
+    </div>
+  </div>
+
+  <div class="callout note">
+    <span class="callout-label">Note</span>
+    <strong>The 403 and 404 messages were already correct</strong> and remain unchanged. The <code>default</code> fallback also stays &mdash;
+    it includes the HTTP code for debugging, which is appropriate for unexpected status codes.
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 4: Delegation Fix -->
+<!-- ============================================================ -->
+<section class="chapter" id="delegation-fix">
+  <div class="chapter-header">
+    <span class="chapter-number yellow">4</span>
+    <h2>Eliminating Duplicated Error Strings</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>Before this PR, both <code>PaginatedTool</code> and <code>SingleTool</code> hardcoded the 401 error message in their <code>UnauthorizedException</code> catch blocks.</strong>
+    That meant three copies of the same string: one in <code>BaseTool.mapHttpErrorCode</code> and one in each subclass.
+    If you updated the message in <code>BaseTool</code> but forgot the subclasses, the agent would see different messages for the same error
+    depending on whether the SDK threw <code>UnauthorizedException</code> directly or it came through <code>HttpResponseException</code> routing.
+    The fix is simple: delegate to <code>mapHttpErrorCode(401)</code>.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-core/.../tool/base/PaginatedTool.java</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">113</span><span class="code">    } <span class="kw">catch</span> (<span class="type">UnauthorizedException</span> e) {</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">   </span><span class="code">      <span class="kw">return</span> handleException(</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">   </span><span class="code">          e,</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">   </span><span class="code">          pagination,</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">   </span><span class="code">          requestId,</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">   </span><span class="code">          <span class="str">"Authentication failed or resource not found. Verify credentials and that the resource ID"</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">   </span><span class="code">              + <span class="str">" is correct."</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">114</span><span class="code">      <span class="kw">return</span> handleException(e, pagination, requestId, mapHttpErrorCode(<span class="num">401</span>));</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Six lines collapse to one.</strong> The message is now always sourced from <code>BaseTool</code>, guaranteeing consistency.
+    </div>
+  </div>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">contrast-mcp-core/.../tool/base/SingleTool.java</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">98</span><span class="code">    } <span class="kw">catch</span> (<span class="type">UnauthorizedException</span> e) {</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">      <span class="kw">return</span> handleException(</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">          e,</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">          requestId,</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">          <span class="str">"Authentication failed or resource not found. Verify credentials and that the resource ID"</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">              + <span class="str">" is correct."</span>,</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">          collector);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">99</span><span class="code">      <span class="kw">return</span> handleException(e, requestId, mapHttpErrorCode(<span class="num">401</span>), collector);</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Identical pattern &mdash; same fix, same rationale.</strong> <code>SingleTool</code> mirrors <code>PaginatedTool</code>'s catch structure with different method signatures.
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 5: The 403 Bug -->
+<!-- ============================================================ -->
+<section class="chapter" id="403-bug">
+  <div class="chapter-header">
+    <span class="chapter-number orange">5</span>
+    <h2>The 403 Bug: Wrong Exception Type</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>The existing 403 test cases were throwing <code>UnauthorizedException</code> for a 403 status &mdash; which masked a real routing bug in production.</strong>
+    Here's the problem: the Contrast SDK's <code>UnauthorizedException</code> extends <code>HttpResponseException</code>.
+    When the SDK returns a 403, it throws <code>HttpResponseException</code> with status code 403, <em>not</em> <code>UnauthorizedException</code>.
+    <code>UnauthorizedException</code> is only thrown for 401 responses. But the old tests constructed an <code>UnauthorizedException</code>
+    with a 403 status code &mdash; an impossible combination in production &mdash; which meant the catch block matched and the test passed
+    with the wrong message.
+  </p>
+
+  <div class="callout security">
+    <span class="callout-label">Security consideration</span>
+    <strong>A 403 (forbidden) and a 401 (unauthorized) require fundamentally different agent responses.</strong>
+    A 401 means "your token expired, re-authenticate." A 403 means "you don't have permission for this resource" &mdash;
+    re-authenticating won't help. The old code returned the 401 message for both, which would cause an AI agent to
+    re-authenticate in a loop when the real problem is insufficient permissions. Getting this distinction right is
+    particularly important for the hosted server, where ADR-010 delegates authorization to the CAG layer.
+  </p>
+  </div>
+
+  <p class="narrative">
+    <strong>The fix in both test files is identical: change <code>UnauthorizedException</code> to <code>HttpResponseException</code> in the 403 test.</strong>
+    This makes the test throw what production actually throws, which routes through <code>handleHttpResponseException</code> instead of the
+    <code>UnauthorizedException</code> catch block, ultimately calling <code>mapHttpErrorCode(403)</code> and returning the correct "Access denied" message.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">PaginatedToolTest.java &mdash; executePipeline_should_handle_http_response_exception_403</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">101</span><span class="code">  <span class="kw">void</span> executePipeline_should_handle_http_response_exception_403() {</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">102</span><span class="code">    tool.setDoExecuteHandler(</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">103</span><span class="code">        (pagination, params, collector) -&gt; {</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">   </span><span class="code">          <span class="kw">throw new</span> <span class="type">UnauthorizedException</span>(<span class="str">"Forbidden"</span>, <span class="str">"GET"</span>, <span class="str">"/api/test"</span>, <span class="num">403</span>, <span class="str">"Forbidden"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">104</span><span class="code">          <span class="kw">throw new</span> <span class="type">HttpResponseException</span>(<span class="str">"Forbidden"</span>, <span class="str">"GET"</span>, <span class="str">"/api/test"</span>, <span class="num">403</span>, <span class="str">"Forbidden"</span>);</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">105</span><span class="code">        });</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">   </span><span class="code">    ...</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">   </span><span class="code">        .containsExactly(</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">   </span><span class="code">            <span class="str">"Authentication failed or resource not found..."</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">111</span><span class="code">        .containsExactly(<span class="str">"Access denied. User lacks permission for this resource."</span>);</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>One-word change in the constructor, completely different behavior.</strong>
+      <code>HttpResponseException("Forbidden", "GET", "/api/test", 403, "Forbidden")</code> now matches
+      what the Contrast SDK actually throws for a 403 response. The exception falls through the
+      <code>UnauthorizedException</code> catch (since it's no longer that type) and is caught by
+      <code>HttpResponseException</code>, which calls <code>mapHttpErrorCode(403)</code> &rarr; "Access denied."
+    </div>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-container">
+      <svg viewBox="0 0 900 220" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <!-- Title -->
+        <text x="450" y="22" text-anchor="middle" fill="#8b949e" font-size="13" font-weight="600">EXCEPTION ROUTING: HOW A 403 FLOWS THROUGH THE CATCH CHAIN</text>
+
+        <!-- SDK throws -->
+        <rect x="30" y="45" width="200" height="40" rx="6" fill="rgba(240,136,62,0.12)" stroke="rgba(240,136,62,0.3)" stroke-width="1.5"/>
+        <text x="130" y="60" text-anchor="middle" fill="#f0883e" font-size="11" font-weight="600">SDK throws 403</text>
+        <text x="130" y="75" text-anchor="middle" fill="#8b949e" font-size="10">HttpResponseException</text>
+
+        <!-- Arrow -->
+        <line x1="230" y1="65" x2="280" y2="65" stroke="#30363d" stroke-width="1.5"/>
+        <polygon points="277,60 287,65 277,70" fill="#30363d"/>
+
+        <!-- Catch chain -->
+        <rect x="290" y="40" width="220" height="30" rx="5" fill="rgba(248,81,73,0.08)" stroke="rgba(248,81,73,0.2)" stroke-width="1"/>
+        <text x="400" y="60" text-anchor="middle" fill="#f85149" font-size="10">catch (UnauthorizedException)</text>
+        <text x="530" y="60" fill="#6e7681" font-size="10">SKIP &mdash; not this type</text>
+
+        <rect x="290" y="82" width="220" height="30" rx="5" fill="rgba(248,81,73,0.08)" stroke="rgba(248,81,73,0.2)" stroke-width="1"/>
+        <text x="400" y="102" text-anchor="middle" fill="#f85149" font-size="10">catch (ResourceNotFoundException)</text>
+        <text x="530" y="102" fill="#6e7681" font-size="10">SKIP &mdash; not this type</text>
+
+        <rect x="290" y="124" width="220" height="30" rx="5" fill="rgba(63,185,80,0.12)" stroke="rgba(63,185,80,0.3)" stroke-width="1.5"/>
+        <text x="400" y="144" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="600">catch (HttpResponseException)</text>
+        <text x="530" y="144" fill="#3fb950" font-size="10" font-weight="600">MATCH!</text>
+
+        <!-- Arrow to mapHttpErrorCode -->
+        <line x1="510" y1="139" x2="580" y2="139" stroke="#3fb950" stroke-width="1.5"/>
+        <polygon points="577,134 587,139 577,144" fill="#3fb950"/>
+
+        <!-- mapHttpErrorCode -->
+        <rect x="590" y="124" width="180" height="30" rx="5" fill="rgba(63,185,80,0.12)" stroke="rgba(63,185,80,0.3)" stroke-width="1"/>
+        <text x="680" y="144" text-anchor="middle" fill="#3fb950" font-size="10">mapHttpErrorCode(403)</text>
+
+        <!-- Result -->
+        <line x1="770" y1="139" x2="830" y2="170" stroke="#3fb950" stroke-width="1.5"/>
+        <rect x="620" y="168" width="260" height="30" rx="5" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.3)" stroke-width="1"/>
+        <text x="750" y="187" text-anchor="middle" fill="#aff5b4" font-size="10" font-style="italic">"Access denied. User lacks permission..."</text>
+
+        <!-- Vertical flow line -->
+        <line x1="400" y1="70" x2="400" y2="82" stroke="#30363d" stroke-width="1" stroke-dasharray="3,2"/>
+        <line x1="400" y1="112" x2="400" y2="124" stroke="#30363d" stroke-width="1" stroke-dasharray="3,2"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 6: Tests -->
+<!-- ============================================================ -->
+<section class="chapter" id="tests">
+  <div class="chapter-header">
+    <span class="chapter-number purple">6</span>
+    <h2>Tests: Proving Every Message</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>Three test files changed, all following the same pattern: update expected messages and fix incorrect exception types.</strong>
+    The test suite already had comprehensive coverage for every HTTP status code path. This PR updates the assertions to match the
+    new messages and fixes the 403 tests to throw the correct exception type. No new test methods were needed because the existing
+    structure already verified every code path &mdash; the problem was the expected values, not the coverage.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">BaseToolTest.java &mdash; Parameterized error code mapping</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">27</span><span class="code">  <span class="ann">@ParameterizedTest</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">28</span><span class="code">  <span class="ann">@CsvSource</span>({</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">    <span class="str">"401, Authentication failed or resource not found..."</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">29</span><span class="code">    <span class="str">"401, Your authentication token has expired. Please re-authenticate and retry."</span>,</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">30</span><span class="code">    <span class="str">"403, Access denied. User lacks permission for this resource."</span>,</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">31</span><span class="code">    <span class="str">"404, Resource not found."</span>,</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">    <span class="str">"429, Rate limit exceeded. Retry later."</span>,</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">    <span class="str">"500, Contrast API error. Try again later."</span>,</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">    <span class="str">"502, Contrast API error. Try again later."</span>,</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">  </span><span class="code">    <span class="str">"503, Contrast API error. Try again later."</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">32</span><span class="code">    <span class="str">"429, Rate limit exceeded. Retry after a brief pause."</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">33</span><span class="code">    <span class="str">"500, 'The service returned an error. Narrow filters or reduce page size, then retry.'"</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">34</span><span class="code">    <span class="str">"502, 'The service returned an error. Narrow filters or reduce page size, then retry.'"</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">35</span><span class="code">    <span class="str">"503, 'The service returned an error. Narrow filters or reduce page size, then retry.'"</span>,</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">36</span><span class="code">    <span class="str">"418, API error (HTTP 418)"</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">37</span><span class="code">  })</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>This parameterized test is the definitive specification of the error-to-message contract.</strong>
+      It covers all explicitly mapped codes (401, 403, 404, 429, 500, 502, 503) plus the default fallback (418 as a stand-in for any unmapped code).
+      The single quotes around 5xx messages are JUnit CSV escaping for strings containing commas.
+    </div>
+  </div>
+
+  <p class="narrative">
+    <strong>Both <code>PaginatedToolTest</code> and <code>SingleToolTest</code> extract a shared <code>REAUTHENTICATE_MESSAGE</code> constant</strong>
+    to DRY up the assertion string across multiple test methods. This is a minor readability improvement &mdash; the constant makes
+    it immediately clear which tests verify 401 behavior versus other status codes.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">PaginatedToolTest.java / SingleToolTest.java &mdash; shared constant</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">28</span><span class="code"><span class="kw">class</span> <span class="type">PaginatedToolTest</span> {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">29</span><span class="code">  <span class="kw">private static final</span> <span class="type">String</span> REAUTHENTICATE_MESSAGE =</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">30</span><span class="code">      <span class="str">"Your authentication token has expired. Please re-authenticate and retry."</span>;</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Used in 401 and warning-preservation tests.</strong> Centralizing the expected string means a future message change only requires updating one line in each test class.
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 7: Tooling -->
+<!-- ============================================================ -->
+<section class="chapter" id="tooling">
+  <div class="chapter-header">
+    <span class="chapter-number yellow">7</span>
+    <h2>Tooling: Ralph Agent Supervisor</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>This branch also carries two new scripts &mdash; <code>ralph</code> and <code>ralph-tail</code> &mdash; that are unrelated to the error handling change.</strong>
+    They're operational tooling for the AIML-110 implementation workflow: <code>ralph</code> is a Bash supervisor that wires
+    <code>br</code> (beads CLI) and Codex into an automated implementation loop, and <code>ralph-tail</code> streams agent messages
+    from the latest run directory. These are committed on the branch because they were developed in parallel and share the same base.
+  </p>
+
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">Agent Automation Scripts</span>
+      <span class="badge-standard">Operational Tooling</span>
+      <span class="sp-files">scripts/ralph (452 lines), scripts/ralph-tail (60 lines)</span>
+    </summary>
+    <div class="sp-body">
+      <strong><code>ralph</code></strong> takes a parent bead ID and max iterations, then loops: resumes incomplete work, selects a ready bead via <code>br ready</code>, validates eligibility (type, status, repo label, content), dispatches a Codex worker, and saves all artifacts under <code>history/ralph-runs/</code>.
+      <strong><code>ralph-tail</code></strong> is a companion that streams agent messages from the latest run with auto-switching when a newer run appears.
+      Both are standalone Bash scripts with no test coverage (they're developer tooling, not production code).
+      Design doc: <code>plans/AIML-110/ralph-design.md</code>.
+    </div>
+  </details>
+</section>
+
+<!-- ============================================================ -->
+<!-- CHAPTER 8: What's Next -->
+<!-- ============================================================ -->
+<section class="chapter" id="whats-next">
+  <div class="chapter-header">
+    <span class="chapter-number purple">8</span>
+    <h2>What&rsquo;s Next</h2>
+  </div>
+
+  <div class="slice-columns">
+    <div class="slice-col this-pr">
+      <div class="slice-title">This PR (shared core)</div>
+      <div class="slice-item"><span class="dot"></span><strong>LLM-readable error messages</strong> &mdash; 401, 429, 5xx rewritten with actionable guidance</div>
+      <div class="slice-item"><span class="dot"></span><strong>DRY delegation</strong> &mdash; eliminated duplicated strings in PaginatedTool / SingleTool</div>
+      <div class="slice-item"><span class="dot"></span><strong>403 bug fix</strong> &mdash; correct exception type in tests, verifying correct routing</div>
+    </div>
+    <div class="slice-col future-col">
+      <div class="slice-title">Remaining Slice 7 (aiml-services, already done)</div>
+      <div class="slice-item"><span class="dot"></span><code>McpGlobalExceptionHandler</code> &mdash; layered exception handling per ADR-007</div>
+      <div class="slice-item"><span class="dot"></span><code>McpLoggingKeys</code> &mdash; structured security logging keys</div>
+      <div class="slice-item"><span class="dot"></span>JWT/credential masking in Logback</div>
+      <div class="slice-item"><span class="dot"></span>Security event logging (auth, tool, CAG events)</div>
+    </div>
+  </div>
+
+  <div class="callout future">
+    <span class="callout-label">Future work</span>
+    <strong>Slices 8 and 9 are next: expanding shared and dataplatform tools.</strong>
+    Both are blocked on Slice 7 completion (this PR is the last piece). Once merged, those slices will register
+    12+ remote tools that all inherit these improved error messages through <code>BaseTool</code>.
+    The error messages established here will be validated against the G2-ERRORS and S7-ERROR-LOGGING gates during
+    the Slice 12 release hardening pass.
+  </div>
+
+  <p class="narrative">
+    <strong>Suggested review order:</strong> Start at <code>BaseTool.mapHttpErrorCode</code> (the 10-line switch expression &mdash; that's the whole PR in a nutshell),
+    then check that <code>PaginatedTool</code> and <code>SingleTool</code> delegate correctly, then skim the tests to confirm the 403 fix.
+    The ralph scripts are independent tooling and can be reviewed separately.
+  </p>
+
+  <table class="file-table">
+    <thead><tr><th>File</th><th>Purpose</th><th>Lines</th><th>Novelty</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>BaseTool.java</td>
+        <td>Rewrote error messages for 401, 429, 5xx</td>
+        <td><span class="addition">+5</span> / <span class="deletion">&minus;6</span></td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>PaginatedTool.java</td>
+        <td>Delegate 401 message to <code>mapHttpErrorCode</code></td>
+        <td><span class="addition">+1</span> / <span class="deletion">&minus;6</span></td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>SingleTool.java</td>
+        <td>Delegate 401 message to <code>mapHttpErrorCode</code></td>
+        <td><span class="addition">+1</span> / <span class="deletion">&minus;6</span></td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>BaseToolTest.java</td>
+        <td>Updated parameterized expected messages</td>
+        <td><span class="addition">+5</span> / <span class="deletion">&minus;6</span></td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>PaginatedToolTest.java</td>
+        <td>Fixed 403 exception type, updated messages</td>
+        <td><span class="addition">+10</span> / <span class="deletion">&minus;11</span></td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>SingleToolTest.java</td>
+        <td>Fixed 403 exception type, updated messages</td>
+        <td><span class="addition">+11</span> / <span class="deletion">&minus;20</span></td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>scripts/ralph</td>
+        <td>Bash supervisor for AIML-110 implementation loop</td>
+        <td><span class="addition">+452</span></td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+      <tr>
+        <td>scripts/ralph-tail</td>
+        <td>Stream agent messages from latest ralph run</td>
+        <td><span class="addition">+60</span></td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+</main>
+
+<footer>
+  PR #129 &middot; AIML-761 &middot; Contrast-Security-OSS/mcp-contrast
+</footer>
+
+</body>
+</html>
