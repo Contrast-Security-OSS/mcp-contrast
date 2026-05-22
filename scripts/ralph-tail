@@ -1,30 +1,59 @@
 #!/usr/bin/env bash
 # ralph-tail — Stream agent messages from the most recent ralph run.
+# Automatically switches to a newer run directory when one appears.
 set -euo pipefail
 
 RESULT_DIR="${1:-/Users/chrisedwards/projects/contrast/mcp-contrast/history/ralph-runs}"
+POLL_INTERVAL=2
 
-latest=$(ls -dt "$RESULT_DIR"/*/ 2>/dev/null | head -1)
-if [[ -z "$latest" ]]; then
-  echo "No ralph runs found in $RESULT_DIR" >&2
-  exit 1
-fi
+get_latest() {
+  ls -dt "$RESULT_DIR"/*/ 2>/dev/null | head -1
+}
 
-jsonl="$latest/codex.jsonl"
-if [[ ! -f "$jsonl" ]]; then
-  echo "No codex.jsonl in $latest" >&2
-  exit 1
-fi
+tail_jsonl() {
+  local jsonl="$1"
+  tail -n +1 -f "$jsonl" \
+    | jq --unbuffered -r '
+        select(.type == "item.completed" and .item.type == "agent_message")
+        | .item.text
+      ' \
+    | while IFS= read -r line; do
+        printf '%s\n\n' "$line"
+      done
+}
 
-bead=$(basename "$latest" | sed 's/.*_//')
-echo "=== ralph-tail: $bead ($(basename "$latest")) ==="
-echo ""
+current=""
 
-tail -n +1 -f "$jsonl" \
-  | jq --unbuffered -r '
-      select(.type == "item.completed" and .item.type == "agent_message")
-      | .item.text
-    ' \
-  | while IFS= read -r line; do
-      printf '%s\n\n' "$line"
-    done
+while true; do
+  latest=$(get_latest)
+
+  if [[ -z "$latest" ]]; then
+    echo "Waiting for ralph runs in $RESULT_DIR ..." >&2
+    sleep "$POLL_INTERVAL"
+    continue
+  fi
+
+  jsonl="$latest/codex.jsonl"
+
+  if [[ ! -f "$jsonl" ]]; then
+    sleep "$POLL_INTERVAL"
+    continue
+  fi
+
+  if [[ "$jsonl" != "$current" ]]; then
+    # Kill previous tail if running
+    if [[ -n "${TAIL_PID:-}" ]] && kill -0 "$TAIL_PID" 2>/dev/null; then
+      kill "$TAIL_PID" 2>/dev/null
+      wait "$TAIL_PID" 2>/dev/null || true
+    fi
+
+    current="$jsonl"
+    bead=$(basename "$latest" | sed 's/.*_//')
+    printf '\n=== ralph-tail: %s (%s) ===\n\n' "$bead" "$(basename "$latest")"
+
+    tail_jsonl "$jsonl" &
+    TAIL_PID=$!
+  fi
+
+  sleep "$POLL_INTERVAL"
+done
