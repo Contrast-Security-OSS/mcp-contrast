@@ -26,14 +26,13 @@ class BaseToolTest {
 
   @ParameterizedTest
   @CsvSource({
-    "401, Authentication failed or resource not found. Verify credentials and that the resource ID"
-        + " is correct.",
+    "401, Your authentication token has expired. Please re-authenticate and retry.",
     "403, Access denied. User lacks permission for this resource.",
     "404, Resource not found.",
-    "429, Rate limit exceeded. Retry later.",
-    "500, Contrast API error. Try again later.",
-    "502, Contrast API error. Try again later.",
-    "503, Contrast API error. Try again later.",
+    "429, Rate limit exceeded. Retry after a brief pause.",
+    "500, 'The service returned an error. Narrow filters or reduce page size, then retry.'",
+    "502, 'The service returned an error. Narrow filters or reduce page size, then retry.'",
+    "503, 'The service returned an error. Narrow filters or reduce page size, then retry.'",
     "418, API error (HTTP 418)"
   })
   void mapHttpErrorCode_should_return_user_friendly_message(int code, String expectedMessage) {

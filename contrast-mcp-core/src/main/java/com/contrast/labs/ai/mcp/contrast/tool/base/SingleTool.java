@@ -96,12 +96,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
       logNotFound(requestId, duration);
       return SingleToolResponse.notFound("Resource not found", collector.snapshot());
     } catch (UnauthorizedException e) {
-      return handleException(
-          e,
-          requestId,
-          "Authentication failed or resource not found. Verify credentials and that the resource ID"
-              + " is correct.",
-          collector);
+      return handleException(e, requestId, mapHttpErrorCode(401), collector);
     } catch (HttpResponseException e) {
       return handleHttpResponseException(e, requestId, collector);
     } catch (IllegalArgumentException e) {

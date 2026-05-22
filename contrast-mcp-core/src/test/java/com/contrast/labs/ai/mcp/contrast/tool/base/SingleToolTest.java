@@ -26,6 +26,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class SingleToolTest {
+  private static final String REAUTHENTICATE_MESSAGE =
+      "Your authentication token has expired. Please re-authenticate and retry.";
 
   private TestGetTool tool;
 
@@ -105,26 +107,21 @@ class SingleToolTest {
     var result = tool.executePipeline(() -> TestParams.valid());
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors())
-        .containsExactly(
-            "Authentication failed or resource not found. Verify credentials and that the resource"
-                + " ID is correct.");
+    assertThat(result.errors()).containsExactly(REAUTHENTICATE_MESSAGE);
   }
 
   @Test
   void executePipeline_should_handle_http_response_exception_403() {
     tool.setDoExecuteHandler(
         (params, warnings) -> {
-          throw new UnauthorizedException("Forbidden", "GET", "/api/test", 403, "Forbidden");
+          throw new HttpResponseException("Forbidden", "GET", "/api/test", 403, "Forbidden");
         });
 
     var result = tool.executePipeline(() -> TestParams.valid());
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors())
-        .containsExactly(
-            "Authentication failed or resource not found. Verify credentials and that the resource"
-                + " ID is correct.");
+        .containsExactly("Access denied. User lacks permission for this resource.");
   }
 
   @Test
@@ -138,7 +135,7 @@ class SingleToolTest {
     var result = tool.executePipeline(() -> TestParams.valid());
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly("Rate limit exceeded. Retry later.");
+    assertThat(result.errors()).containsExactly("Rate limit exceeded. Retry after a brief pause.");
   }
 
   @Test
@@ -152,7 +149,9 @@ class SingleToolTest {
     var result = tool.executePipeline(() -> TestParams.valid());
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly("Contrast API error. Try again later.");
+    assertThat(result.errors())
+        .containsExactly(
+            "The service returned an error. Narrow filters or reduce page size, then retry.");
   }
 
   @Test
@@ -249,16 +248,10 @@ class SingleToolTest {
     var result = tool.executePipeline(() -> TestParams.withWarning("Initial warning"));
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors())
-        .containsExactly(
-            "Authentication failed or resource not found. Verify credentials and that the resource"
-                + " ID is correct.");
+    assertThat(result.errors()).containsExactly(REAUTHENTICATE_MESSAGE);
     assertThat(result.warnings())
         .containsExactlyInAnyOrder(
-            "Initial warning",
-            "Warning added before exception",
-            "Authentication failed or resource not found. Verify credentials and that the resource"
-                + " ID is correct.");
+            "Initial warning", "Warning added before exception", REAUTHENTICATE_MESSAGE);
   }
 
   @Test
@@ -273,7 +266,7 @@ class SingleToolTest {
     var result = tool.executePipeline(() -> TestParams.withWarning("Initial warning"));
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly("Rate limit exceeded. Retry later.");
+    assertThat(result.errors()).containsExactly("Rate limit exceeded. Retry after a brief pause.");
     assertThat(result.warnings())
         .containsExactlyInAnyOrder("Initial warning", "Warning added before exception");
   }
