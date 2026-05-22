@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# ralph-tail — Stream agent messages from the most recent ralph run.
+set -euo pipefail
+
+RESULT_DIR="${1:-/Users/chrisedwards/projects/contrast/mcp-contrast/history/ralph-runs}"
+
+latest=$(ls -dt "$RESULT_DIR"/*/ 2>/dev/null | head -1)
+if [[ -z "$latest" ]]; then
+  echo "No ralph runs found in $RESULT_DIR" >&2
+  exit 1
+fi
+
+jsonl="$latest/codex.jsonl"
+if [[ ! -f "$jsonl" ]]; then
+  echo "No codex.jsonl in $latest" >&2
+  exit 1
+fi
+
+bead=$(basename "$latest" | sed 's/.*_//')
+echo "=== ralph-tail: $bead ($(basename "$latest")) ==="
+echo ""
+
+tail -n +1 -f "$jsonl" \
+  | jq --unbuffered -r '
+      select(.type == "item.completed" and .item.type == "agent_message")
+      | .item.text
+    ' \
+  | while IFS= read -r line; do
+      printf '%s\n\n' "$line"
+    done
