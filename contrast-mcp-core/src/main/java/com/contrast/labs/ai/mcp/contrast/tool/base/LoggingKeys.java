@@ -29,6 +29,7 @@ import lombok.NoArgsConstructor;
 public final class LoggingKeys {
 
   public static final String APP_ID = "appId";
+  public static final String CURSOR = "cursor";
   public static final String DURATION_MS = "durationMs";
   public static final String ERROR_COUNT = "errorCount";
   public static final String EXCEPTION_TYPE = "exceptionType";
