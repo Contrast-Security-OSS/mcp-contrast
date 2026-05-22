@@ -41,6 +41,8 @@ required_classes=(
   "com/contrast/labs/ai/mcp/contrast/tool/library/params/ListApplicationLibrariesParams.class"
   "com/contrast/labs/ai/mcp/contrast/tool/library/params/ListApplicationsByCveParams.class"
   "com/contrast/labs/ai/mcp/contrast/tool/attack/GetProtectRulesTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/attack/SearchAttacksTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/attack/params/AttackFilterParams.class"
   "com/contrast/labs/ai/mcp/contrast/tool/attack/params/GetProtectRulesParams.class"
   "com/contrast/labs/ai/mcp/contrast/hints/HintGenerator.class"
 )

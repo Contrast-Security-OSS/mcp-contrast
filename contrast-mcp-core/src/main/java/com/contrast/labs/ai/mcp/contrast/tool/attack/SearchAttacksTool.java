@@ -15,14 +15,16 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.attack;
 
+import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.result.AttackSummary;
 import com.contrast.labs.ai.mcp.contrast.tool.attack.params.AttackFilterParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
-import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkPaginatedTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import lombok.RequiredArgsConstructor;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
@@ -33,7 +35,9 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @RequiredArgsConstructor
-public class SearchAttacksTool extends LocalSdkPaginatedTool<AttackFilterParams, AttackSummary> {
+public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackSummary> {
+
+  private final ContrastApiClient contrastApiClient;
 
   @Tool(
       name = "search_attacks",
@@ -124,7 +128,8 @@ public class SearchAttacksTool extends LocalSdkPaginatedTool<AttackFilterParams,
                       + " available rule IDs for an application. This filters by exact rule match,"
                       + " unlike keyword which does substring search.",
               required = false)
-          String rules) {
+          String rules,
+      ToolContext toolContext) {
 
     return executePipeline(
         page,
@@ -138,7 +143,33 @@ public class SearchAttacksTool extends LocalSdkPaginatedTool<AttackFilterParams,
                 includeBotBlockers,
                 includeIpBlacklist,
                 sort,
-                rules));
+                rules),
+        toolContext);
+  }
+
+  public PaginatedToolResponse<AttackSummary> searchAttacks(
+      Integer page,
+      Integer pageSize,
+      String quickFilter,
+      String statusFilter,
+      String keyword,
+      Boolean includeSuppressed,
+      Boolean includeBotBlockers,
+      Boolean includeIpBlacklist,
+      String sort,
+      String rules) {
+    return searchAttacks(
+        page,
+        pageSize,
+        quickFilter,
+        statusFilter,
+        keyword,
+        includeSuppressed,
+        includeBotBlockers,
+        includeIpBlacklist,
+        sort,
+        rules,
+        null);
   }
 
   @Override
@@ -146,12 +177,10 @@ public class SearchAttacksTool extends LocalSdkPaginatedTool<AttackFilterParams,
       PaginationParams pagination, AttackFilterParams params, WarningCollector collector)
       throws Exception {
 
-    var extendedSDK = getSDKExtension();
-
     var filterBody = params.toAttacksFilterBody();
     var attacksResponse =
-        extendedSDK.getAttacks(
-            getOrgId(), filterBody, pagination.limit(), pagination.offset(), params.getSort());
+        contrastApiClient.searchAttacks(
+            filterBody, pagination.limit(), pagination.offset(), params.getSort());
 
     if (attacksResponse == null || attacksResponse.getAttacks() == null) {
       collector.warn("API returned no attack data. Verify permissions and filters.");
