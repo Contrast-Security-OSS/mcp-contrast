@@ -15,15 +15,15 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.application;
 
+import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.result.ApplicationData;
 import com.contrast.labs.ai.mcp.contrast.result.Metadata;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetadataFilter;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.tool.application.params.ApplicationFilterParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.FilterHelper;
-import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkPaginatedTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
@@ -43,7 +44,13 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 public class SearchApplicationsTool
-    extends LocalSdkPaginatedTool<ApplicationFilterParams, ApplicationData> {
+    extends PaginatedTool<ApplicationFilterParams, ApplicationData> {
+
+  private final ContrastApiClient contrastApiClient;
+
+  public SearchApplicationsTool(ContrastApiClient contrastApiClient) {
+    this.contrastApiClient = contrastApiClient;
+  }
 
   @Tool(
       name = "search_applications",
@@ -80,10 +87,16 @@ public class SearchApplicationsTool
                   "JSON object for metadata filters. Format: {\"field\":\"value\"} or"
                       + " {\"field\":[\"v1\",\"v2\"]}",
               required = false)
-          String metadataFilters) {
+          String metadataFilters,
+      ToolContext toolContext) {
 
     return executePipeline(
-        page, pageSize, () -> ApplicationFilterParams.of(name, tag, metadataFilters));
+        page, pageSize, () -> ApplicationFilterParams.of(name, tag, metadataFilters), toolContext);
+  }
+
+  public PaginatedToolResponse<ApplicationData> searchApplications(
+      Integer page, Integer pageSize, String name, String tag, String metadataFilters) {
+    return searchApplications(page, pageSize, name, tag, metadataFilters, null);
   }
 
   @Override
@@ -91,14 +104,10 @@ public class SearchApplicationsTool
       PaginationParams pagination, ApplicationFilterParams params, WarningCollector collector)
       throws Exception {
 
-    var orgId = getOrgId();
-    var sdkExtension = getSDKExtension();
-
     // Resolve metadata field names to IDs if metadata filters provided
     List<AppMetadataFilter> resolvedMetadataFilters = null;
     if (params.getMetadataFilters() != null && !params.getMetadataFilters().isEmpty()) {
-      resolvedMetadataFilters =
-          resolveAppMetadataFilters(sdkExtension, orgId, params.getMetadataFilters());
+      resolvedMetadataFilters = resolveAppMetadataFilters(params.getMetadataFilters());
     }
 
     // Convert single tag to array for API
@@ -106,8 +115,7 @@ public class SearchApplicationsTool
 
     // Call server-side filter endpoint
     var response =
-        sdkExtension.getApplicationsFiltered(
-            orgId,
+        contrastApiClient.searchApplications(
             params.getName(),
             filterTags,
             resolvedMetadataFilters,
@@ -127,17 +135,14 @@ public class SearchApplicationsTool
   /**
    * Resolves user-provided metadata field names to numeric field IDs.
    *
-   * @param sdkExtension SDK extension instance
-   * @param orgId Organization ID
    * @param filters List of unresolved metadata filters with field names
    * @return List of resolved metadata filters with numeric field IDs
    * @throws Exception if any field name cannot be resolved
    */
-  private List<AppMetadataFilter> resolveAppMetadataFilters(
-      SDKExtension sdkExtension, String orgId, List<UnresolvedMetadataFilter> filters)
+  private List<AppMetadataFilter> resolveAppMetadataFilters(List<UnresolvedMetadataFilter> filters)
       throws Exception {
 
-    var fieldNameToId = buildAppMetadataFieldMapping(sdkExtension, orgId);
+    var fieldNameToId = buildAppMetadataFieldMapping();
 
     var notFoundFields =
         filters.stream()
@@ -166,14 +171,11 @@ public class SearchApplicationsTool
   /**
    * Builds a case-insensitive mapping from field names to their numeric IDs.
    *
-   * @param sdkExtension SDK extension instance
-   * @param orgId Organization ID
    * @return Map of lowercase field names to field IDs
    */
-  private Map<String, Long> buildAppMetadataFieldMapping(SDKExtension sdkExtension, String orgId)
-      throws Exception {
+  private Map<String, Long> buildAppMetadataFieldMapping() throws Exception {
 
-    var fields = sdkExtension.getApplicationMetadataFields(orgId);
+    var fields = contrastApiClient.getApplicationMetadataFields();
     var mapping = new HashMap<String, Long>();
     for (var field : fields) {
       if (field.getDisplayLabel() != null) {

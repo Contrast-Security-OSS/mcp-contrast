@@ -151,8 +151,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
     log.atWarn()
         .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
         .addKeyValue(LoggingKeys.EXCEPTION_TYPE, e.getClass().getSimpleName())
-        .setMessage("Request failed: {}")
-        .addArgument(e.getMessage())
+        .setMessage("Request failed")
         .log();
     return PaginatedToolResponse.error(pagination.page(), pagination.pageSize(), userMessage);
   }
@@ -168,8 +167,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
     log.atWarn()
         .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
         .addKeyValue(LoggingKeys.HTTP_STATUS, e.getCode())
-        .setMessage("API error: {}")
-        .addArgument(e.getMessage())
+        .setMessage("API error")
         .log();
 
     return new PaginatedToolResponse<>(

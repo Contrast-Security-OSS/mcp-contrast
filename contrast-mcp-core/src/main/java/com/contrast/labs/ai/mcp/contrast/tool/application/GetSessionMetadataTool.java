@@ -15,11 +15,13 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.application;
 
+import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.tool.application.params.GetSessionMetadataParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrastsecurity.models.MetadataFilterResponse;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
@@ -30,7 +32,13 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class GetSessionMetadataTool
-    extends LocalSdkSingleTool<GetSessionMetadataParams, MetadataFilterResponse> {
+    extends SingleTool<GetSessionMetadataParams, MetadataFilterResponse> {
+
+  private final ContrastApiClient contrastApiClient;
+
+  public GetSessionMetadataTool(ContrastApiClient contrastApiClient) {
+    this.contrastApiClient = contrastApiClient;
+  }
 
   @Tool(
       name = "get_session_metadata",
@@ -49,22 +57,22 @@ public class GetSessionMetadataTool
           - search_app_vulnerabilities: Search vulnerabilities with session filtering
           """)
   public SingleToolResponse<MetadataFilterResponse> getSessionMetadata(
-      @ToolParam(description = "Application ID (use search_applications to find)") String appId) {
-    return executePipeline(() -> GetSessionMetadataParams.of(appId));
+      @ToolParam(description = "Application ID (use search_applications to find)") String appId,
+      ToolContext toolContext) {
+    return executePipeline(() -> GetSessionMetadataParams.of(appId), toolContext);
+  }
+
+  public SingleToolResponse<MetadataFilterResponse> getSessionMetadata(String appId) {
+    return getSessionMetadata(appId, null);
   }
 
   @Override
   protected MetadataFilterResponse doExecute(
       GetSessionMetadataParams params, WarningCollector collector) throws Exception {
-    var sdk = getContrastSDK();
-    var orgId = getOrgId();
-
-    var response = sdk.getSessionMetadataForApplication(orgId, params.appId(), null);
+    var response = contrastApiClient.getSessionMetadata(params.appId());
 
     if (response == null) {
-      collector.warn(
-          "No session metadata found for this application. "
-              + "This may indicate the application has no recorded sessions.");
+      collector.warn("No session metadata found for this application.");
       return null;
     }
 

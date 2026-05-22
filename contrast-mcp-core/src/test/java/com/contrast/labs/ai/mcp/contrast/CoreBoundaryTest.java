@@ -44,6 +44,11 @@ class CoreBoundaryTest {
           sourcePath("com/contrast/labs/ai/mcp/contrast/hints/HintGenerator.java"));
   private static final List<Path> EXPECTED_CORE_PRODUCTION_TOOLS =
       List.of(
+          sourcePath(
+              "com/contrast/labs/ai/mcp/contrast/tool/application/"
+                  + "GetSessionMetadataTool.java"),
+          sourcePath(
+              "com/contrast/labs/ai/mcp/contrast/tool/application/SearchApplicationsTool.java"),
           sourcePath("com/contrast/labs/ai/mcp/contrast/tool/attack/GetProtectRulesTool.java"),
           sourcePath(
               "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/"

@@ -24,29 +24,31 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.contrast.labs.ai.mcp.contrast.client.SdkApiClient;
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
+import com.contrast.labs.ai.mcp.contrast.config.SDKExtensionFactory;
 import com.contrastsecurity.models.MetadataFilterResponse;
 import com.contrastsecurity.sdk.ContrastSDK;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 class GetSessionMetadataToolTest {
 
   private GetSessionMetadataTool tool;
   private ContrastSDKFactory sdkFactory;
+  private SDKExtensionFactory sdkExtensionFactory;
   private ContrastSDK sdk;
 
   @BeforeEach
   void setUp() {
     sdk = mock();
     sdkFactory = mock();
+    sdkExtensionFactory = mock();
 
     when(sdkFactory.getSDK()).thenReturn(sdk);
     when(sdkFactory.getOrgId()).thenReturn("test-org-id");
 
-    tool = new GetSessionMetadataTool();
-    ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
+    tool = new GetSessionMetadataTool(new SdkApiClient(sdkFactory, sdkExtensionFactory));
   }
 
   @Test

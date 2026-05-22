@@ -27,6 +27,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.contrast.labs.ai.mcp.contrast.client.SdkApiClient;
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
 import com.contrast.labs.ai.mcp.contrast.config.SDKExtensionFactory;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
@@ -34,7 +35,6 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetada
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Metadata;
-import com.contrastsecurity.sdk.ContrastSDK;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +43,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -54,19 +53,15 @@ class SearchApplicationsToolTest {
   @Mock private ContrastSDKFactory sdkFactory;
   @Mock private SDKExtensionFactory sdkExtensionFactory;
   @Mock private SDKExtension sdkExtension;
-  @Mock private ContrastSDK sdk;
 
   private static final String TEST_ORG_ID = "test-org-id";
 
   @BeforeEach
   void setUp() {
-    when(sdkFactory.getSDK()).thenReturn(sdk);
     when(sdkFactory.getOrgId()).thenReturn(TEST_ORG_ID);
     when(sdkExtensionFactory.getSDKExtension()).thenReturn(sdkExtension);
 
-    tool = new SearchApplicationsTool();
-    ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
-    ReflectionTestUtils.setField(tool, "sdkExtensionFactory", sdkExtensionFactory);
+    tool = new SearchApplicationsTool(new SdkApiClient(sdkFactory, sdkExtensionFactory));
   }
 
   @Test
