@@ -13,8 +13,9 @@ get_latest() {
 tail_jsonl() {
   local jsonl="$1"
   tail -n +1 -f "$jsonl" \
-    | jq --unbuffered -r '
-        select(.type == "item.completed" and .item.type == "agent_message")
+    | jq --unbuffered -Rr '
+        fromjson?
+        | select(.type == "item.completed" and .item.type == "agent_message")
         | .item.text
       ' \
     | while IFS= read -r line; do
