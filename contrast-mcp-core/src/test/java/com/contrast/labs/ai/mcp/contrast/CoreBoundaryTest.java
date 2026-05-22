@@ -51,8 +51,16 @@ class CoreBoundaryTest {
               "com/contrast/labs/ai/mcp/contrast/tool/application/SearchApplicationsTool.java"),
           sourcePath("com/contrast/labs/ai/mcp/contrast/tool/attack/GetProtectRulesTool.java"),
           sourcePath(
+              "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/GetVulnerabilityTool.java"),
+          sourcePath(
               "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/"
-                  + "ListVulnerabilityTypesTool.java"));
+                  + "ListVulnerabilityTypesTool.java"),
+          sourcePath(
+              "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/"
+                  + "SearchAppVulnerabilitiesTool.java"),
+          sourcePath(
+              "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/"
+                  + "SearchVulnerabilitiesTool.java"));
   private static final List<String> LOCAL_ONLY_TYPES =
       List.of(
           "McpContrastApplication.java",
