@@ -15,7 +15,7 @@ jar_path="${ROOT_DIR}/contrast-mcp-core/build/libs/contrast-mcp-core-${version}.
 log "gate=S3B-CORE-BOUNDARY-SMOKE step=publishToMavenLocal version=${version}"
 ./gradlew --no-daemon :contrast-mcp-core:publishToMavenLocal :contrast-mcp-core:verifyCorePublicationMetadata
 
-log "gate=S3B-CORE-BOUNDARY-SMOKE step=jarBoundary jar=${jar_path}"
+log "gate=S3B-CORE-BOUNDARY-SMOKE step=jarBoundary jar=<repo-root>/${jar_path#${ROOT_DIR}/}"
 if [[ ! -f "${jar_path}" ]]; then
   log "assertion=jar_exists status=failed"
   exit 1
@@ -25,6 +25,8 @@ required_classes=(
   "com/contrast/labs/ai/mcp/contrast/tool/validation/ToolValidationContext.class"
   "com/contrast/labs/ai/mcp/contrast/tool/base/ToolParams.class"
   "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/ListVulnerabilityTypesTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/attack/GetProtectRulesTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/attack/params/GetProtectRulesParams.class"
   "com/contrast/labs/ai/mcp/contrast/hints/HintGenerator.class"
 )
 

@@ -15,27 +15,31 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.attack;
 
+import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.tool.attack.params.GetProtectRulesParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import java.util.List;
 import java.util.Optional;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
 
 /**
- * MCP tool for retrieving Protect rules for an application. Demonstrates the tool-per-class pattern
- * with SingleTool for non-paginated single-item retrieval.
+ * MCP tool for retrieving Protect rules for an application. The legacy {@code get_protect_rules}
+ * tool name is retained for AIML-110 local/remote parity.
  */
 @Service
-@RequiredArgsConstructor
-@Slf4j
-public class GetProtectRulesTool extends LocalSdkSingleTool<GetProtectRulesParams, ProtectData> {
+public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, ProtectData> {
+
+  private final ContrastApiClient contrastApiClient;
+
+  public GetProtectRulesTool(ContrastApiClient contrastApiClient) {
+    this.contrastApiClient = contrastApiClient;
+  }
 
   @Tool(
       name = "get_protect_rules",
@@ -61,30 +65,21 @@ public class GetProtectRulesTool extends LocalSdkSingleTool<GetProtectRulesParam
           - search_attacks: Search for attacks across the organization
           """)
   public SingleToolResponse<ProtectData> getProtectRules(
-      @ToolParam(description = "Application ID (use search_applications to find)") String appId) {
-    return executePipeline(() -> GetProtectRulesParams.of(appId));
+      @ToolParam(description = "Application ID (use search_applications to find)") String appId,
+      ToolContext toolContext) {
+    return executePipeline(() -> GetProtectRulesParams.of(appId), toolContext);
   }
 
   @Override
   protected ProtectData doExecute(GetProtectRulesParams params, WarningCollector collector)
       throws Exception {
-    var extendedSDK = getSDKExtension();
-
-    log.debug("Retrieving protection configuration for application ID: {}", params.appId());
-
-    var protectData = extendedSDK.getProtectConfig(getOrgId(), params.appId());
+    var protectData = contrastApiClient.getProtectRules(params.appId());
 
     if (protectData == null) {
-      log.debug("No protection data returned for application ID: {}", params.appId());
-      return null; // SingleTool converts this to notFound response
+      return null;
     }
 
     var ruleCount = Optional.ofNullable(protectData.getRules()).map(List::size).orElse(0);
-    log.debug(
-        "Successfully retrieved {} protection rules for application ID: {}",
-        ruleCount,
-        params.appId());
-
     if (ruleCount == 0) {
       collector.warn("Application has Protect enabled but no rules are configured.");
     }

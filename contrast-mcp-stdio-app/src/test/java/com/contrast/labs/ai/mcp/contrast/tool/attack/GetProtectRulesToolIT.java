@@ -132,7 +132,7 @@ class GetProtectRulesToolIT extends AbstractIntegrationTest<GetProtectRulesToolI
 
   @Test
   void getProtectRules_should_return_rules_for_valid_appId() {
-    var response = getProtectRulesTool.getProtectRules(testData.appId);
+    var response = getProtectRulesTool.getProtectRules(testData.appId, null);
 
     assertThat(response).as("response must not be null").isNotNull();
     assertThat(response.errors()).as("valid appId must not produce errors").isEmpty();
@@ -163,7 +163,7 @@ class GetProtectRulesToolIT extends AbstractIntegrationTest<GetProtectRulesToolI
 
   @Test
   void getProtectRules_should_return_error_for_null_appId() {
-    var response = getProtectRulesTool.getProtectRules(null);
+    var response = getProtectRulesTool.getProtectRules(null, null);
 
     assertThat(response).as("response must not be null").isNotNull();
     assertThat(response.isSuccess()).as("null appId must fail validation").isFalse();
@@ -179,7 +179,7 @@ class GetProtectRulesToolIT extends AbstractIntegrationTest<GetProtectRulesToolI
 
   @Test
   void getProtectRules_should_return_error_for_empty_appId() {
-    var response = getProtectRulesTool.getProtectRules("");
+    var response = getProtectRulesTool.getProtectRules("", null);
 
     assertThat(response).as("response must not be null").isNotNull();
     assertThat(response.isSuccess()).as("empty appId must fail validation").isFalse();
@@ -196,7 +196,7 @@ class GetProtectRulesToolIT extends AbstractIntegrationTest<GetProtectRulesToolI
   @Test
   void getProtectRules_should_return_error_for_whitespace_appId() {
     // GetProtectRulesParams uses StringUtils.hasText() which treats whitespace-only as blank.
-    var response = getProtectRulesTool.getProtectRules("   ");
+    var response = getProtectRulesTool.getProtectRules("   ", null);
 
     assertThat(response).as("response must not be null").isNotNull();
     assertThat(response.isSuccess()).as("whitespace-only appId must fail validation").isFalse();
@@ -214,7 +214,7 @@ class GetProtectRulesToolIT extends AbstractIntegrationTest<GetProtectRulesToolI
   void getProtectRules_should_not_return_populated_data_for_invalid_appId() {
     // Single deterministic expectation: whether the API errors or returns an empty/not-found
     // payload, the tool must never surface populated Protect data for a bogus app ID.
-    var response = getProtectRulesTool.getProtectRules("invalid-app-id-12345");
+    var response = getProtectRulesTool.getProtectRules("invalid-app-id-12345", null);
 
     assertThat(response).as("response must not be null").isNotNull();
     assertThat(response.data()).as("invalid appId must not return populated Protect data").isNull();
@@ -223,7 +223,7 @@ class GetProtectRulesToolIT extends AbstractIntegrationTest<GetProtectRulesToolI
 
   @Test
   void getProtectRules_should_populate_protect_rule_details() {
-    var response = getProtectRulesTool.getProtectRules(testData.appId);
+    var response = getProtectRulesTool.getProtectRules(testData.appId, null);
     assertThat(response.isSuccess()).as("response must be successful").isTrue();
 
     var protectRules = rulesOfType(response.data().getRules(), TYPE_PROTECT_RULE);
@@ -262,7 +262,7 @@ class GetProtectRulesToolIT extends AbstractIntegrationTest<GetProtectRulesToolI
 
   @Test
   void getProtectRules_should_return_only_known_protect_modes() {
-    var response = getProtectRulesTool.getProtectRules(testData.appId);
+    var response = getProtectRulesTool.getProtectRules(testData.appId, null);
     var protectRules = rulesOfType(response.data().getRules(), TYPE_PROTECT_RULE);
     assertThat(protectRules)
         .as("requires seeded standard Protect Rules on app %s", testData.appName)
@@ -289,7 +289,7 @@ class GetProtectRulesToolIT extends AbstractIntegrationTest<GetProtectRulesToolI
 
   @Test
   void getProtectRules_should_populate_virtual_patch_enablement_flags() {
-    var response = getProtectRulesTool.getProtectRules(testData.appId);
+    var response = getProtectRulesTool.getProtectRules(testData.appId, null);
     var virtualPatches = rulesOfType(response.data().getRules(), TYPE_VIRTUAL_PATCH);
 
     assertThat(virtualPatches)
@@ -313,7 +313,7 @@ class GetProtectRulesToolIT extends AbstractIntegrationTest<GetProtectRulesToolI
 
   @Test
   void getProtectRules_should_populate_cves_consistently() {
-    var response = getProtectRulesTool.getProtectRules(testData.appId);
+    var response = getProtectRulesTool.getProtectRules(testData.appId, null);
     var rules = response.data().getRules();
     assertThat(rules).as("response must contain rules to verify").isNotEmpty();
 

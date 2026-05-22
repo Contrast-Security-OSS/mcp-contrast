@@ -44,6 +44,7 @@ class CoreBoundaryTest {
           sourcePath("com/contrast/labs/ai/mcp/contrast/hints/HintGenerator.java"));
   private static final List<Path> EXPECTED_CORE_PRODUCTION_TOOLS =
       List.of(
+          sourcePath("com/contrast/labs/ai/mcp/contrast/tool/attack/GetProtectRulesTool.java"),
           sourcePath(
               "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/"
                   + "ListVulnerabilityTypesTool.java"));
@@ -104,16 +105,17 @@ class CoreBoundaryTest {
   }
 
   @Test
-  void core_should_include_exactly_one_s4b_production_tool() throws IOException {
+  void core_should_include_migrated_shared_production_tools() throws IOException {
     var productionToolSources =
         javaSources()
             .filter(
                 path -> sourceText(path).contains("org.springframework.ai.tool.annotation.Tool"))
             .map(CORE_MAIN::relativize)
+            .sorted()
             .toList();
 
     assertThat(productionToolSources)
-        .as("S4B moves exactly one shared production tool into core")
+        .as("core contains only the shared production tools migrated so far")
         .containsExactlyElementsOf(EXPECTED_CORE_PRODUCTION_TOOLS);
   }
 

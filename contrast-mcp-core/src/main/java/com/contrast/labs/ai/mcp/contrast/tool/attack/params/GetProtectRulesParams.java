@@ -20,34 +20,16 @@ import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
-/**
- * Validation parameters for GetProtectRulesTool. Validates required appId.
- *
- * <p>Usage:
- *
- * <pre>{@code
- * var params = GetProtectRulesParams.of("app-123");
- * if (!params.isValid()) {
- *   // Handle errors
- * }
- * }</pre>
- */
+/** Validation parameters for GetProtectRulesTool. Validates required appId. */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class GetProtectRulesParams extends BaseToolParams {
 
   private String appId;
 
-  /**
-   * Parse and validate protect rules get parameters.
-   *
-   * @param appId Application ID (required)
-   * @return GetProtectRulesParams with validation state
-   */
   public static GetProtectRulesParams of(String appId) {
     var params = new GetProtectRulesParams();
     var ctx = new ToolValidationContext();
 
-    // Validate required field
     ctx.require(appId, "appId");
     params.appId = appId;
 

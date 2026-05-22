@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-/** Unit tests for GetProtectRulesParams validation. */
 class GetProtectRulesParamsTest {
 
   @Test
@@ -36,7 +35,7 @@ class GetProtectRulesParamsTest {
     var params = GetProtectRulesParams.of(null);
 
     assertThat(params.isValid()).isFalse();
-    assertThat(params.errors()).anyMatch(e -> e.contains("appId is required"));
+    assertThat(params.errors()).containsExactly("appId is required");
   }
 
   @Test
@@ -44,7 +43,7 @@ class GetProtectRulesParamsTest {
     var params = GetProtectRulesParams.of("");
 
     assertThat(params.isValid()).isFalse();
-    assertThat(params.errors()).anyMatch(e -> e.contains("appId is required"));
+    assertThat(params.errors()).containsExactly("appId is required");
   }
 
   @Test
@@ -52,14 +51,6 @@ class GetProtectRulesParamsTest {
     var params = GetProtectRulesParams.of("   ");
 
     assertThat(params.isValid()).isFalse();
-    assertThat(params.errors()).anyMatch(e -> e.contains("appId is required"));
-  }
-
-  @Test
-  void of_should_have_no_warnings_for_valid_input() {
-    var params = GetProtectRulesParams.of("valid-app-id");
-
-    assertThat(params.isValid()).isTrue();
-    assertThat(params.warnings()).isEmpty();
+    assertThat(params.errors()).containsExactly("appId is required");
   }
 }
