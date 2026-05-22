@@ -1,0 +1,452 @@
+#!/usr/bin/env bash
+# ralph — Bash supervisor for AIML-110 implementation work.
+#
+# Wires together br (beads CLI) and Codex into a loop:
+#   1. Resume any bead ralph previously claimed but didn't finish.
+#      If none, query br ready for unblocked child beads under a parent.
+#   2. Pick the first ready bead by priority/creation order.
+#   3. Validate the bead is implementable (type, status, repo label, content).
+#   4. Preflight: clean worktrees, non-protected branch.
+#   5. Assemble a one-bead-scoped prompt with bead context.
+#   6. Claim the bead (if not already claimed) and dispatch Codex.
+#   7. Save all artifacts (prompt, output, metadata) under history/ralph-runs/.
+#   8. Repeat until max iterations, no ready work, or a stop condition.
+#
+# Ralph does not create branches, parse .beads/ directly, or prove semantic
+# completion. The human checks out the right branch; Codex does the work;
+# br is the source of truth.
+#
+# Design doc: plans/AIML-110/ralph-design.md
+
+set -euo pipefail
+
+# --- Paths ---
+# Control repo: where br runs and .beads/ lives (never committed).
+# AIML repo: second implementation target for cross-repo AIML-110 work.
+# Results: gitignored — may contain prompts, paths, and implementation details.
+CONTROL_REPO="/Users/chrisedwards/projects/contrast/mcp-contrast"
+AIML_REPO="/Users/chrisedwards/projects/contrast/aiml-services"
+RESULT_DIR="$CONTROL_REPO/history/ralph-runs"
+BEADS_DIR="$CONTROL_REPO/.beads"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  scripts/ralph <parent-bead-id> <max-iterations> [--repo repo:mcp-contrast|repo:aiml-services]
+
+Runs a small AIML-110 implementation loop:
+  - resumes any incomplete bead from a previous run before selecting new work
+  - uses br ready as executable truth for new bead selection
+  - claims one ready bead
+  - invokes one Codex worker in the selected repo
+  - saves prompt/output under history/ralph-runs/
+
+Ralph requires clean relevant worktrees and refuses protected branches.
+EOF
+}
+
+die() {
+  printf 'ralph: %s\n' "$*" >&2
+  exit 1
+}
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+json_string() {
+  jq -r "$1"
+}
+
+# Map a repo:* bead label to a local filesystem path.
+repo_path_for_label() {
+  case "$1" in
+    repo:mcp-contrast) printf '%s\n' "$CONTROL_REPO" ;;
+    repo:aiml-services) printf '%s\n' "$AIML_REPO" ;;
+    *) return 1 ;;
+  esac
+}
+
+current_branch() {
+  git -C "$1" rev-parse --abbrev-ref HEAD
+}
+
+is_protected_branch() {
+  case "$1" in
+    main | master | develop) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# Refuse to run if tracked/untracked changes exist — avoids mixing Ralph's
+# Codex commits with the human's or another agent's partial work.
+ensure_clean_repo() {
+  local repo="$1"
+  local name="$2"
+  local status
+
+  status="$(git -C "$repo" status --porcelain)"
+  if [[ -n "$status" ]]; then
+    printf 'ralph: %s worktree is not clean:\n%s\n' "$name" "$status" >&2
+    exit 1
+  fi
+}
+
+# Ralph does not create branches (v1). The operator checks out the slice
+# branch beforehand; Ralph just enforces "not main/master/develop".
+ensure_unprotected_branch() {
+  local repo="$1"
+  local name="$2"
+  local branch
+
+  branch="$(current_branch "$repo")"
+  if is_protected_branch "$branch"; then
+    die "$name is on protected/default branch '$branch'; check out the correct slice branch first"
+  fi
+}
+
+# br must run from the control repo with BEADS_DIR set so it finds the
+# local bead database.
+run_br() {
+  (cd "$CONTROL_REPO" && BEADS_DIR="$BEADS_DIR" br "$@")
+}
+
+# br ready is the executable source of truth — a bead is only runnable if
+# br says all its dependencies are satisfied. --parent scopes to children
+# (and descendants) of the given bead. Optional repo label filter restricts
+# to one repo when AIML-110 work spans both.
+ready_json_for_parent() {
+  local parent="$1"
+  local repo_filter="$2"
+
+  if [[ -n "$repo_filter" ]]; then
+    run_br ready --json --parent "$parent" -r --label "$repo_filter"
+  else
+    run_br ready --json --parent "$parent" -r
+  fi
+}
+
+# Check for a bead ralph previously claimed but didn't finish. Resume it
+# before selecting new work. br list doesn't support --parent, so we query
+# all of ralph's in_progress beads and take the first one (v1 is single-
+# threaded, so there should be at most one).
+find_incomplete_bead() {
+  local repo_filter="$1"
+  local incomplete_json
+  local count
+
+  if [[ -n "$repo_filter" ]]; then
+    incomplete_json="$(run_br list --status in_progress --assignee ralph --label "$repo_filter" --json)"
+  else
+    incomplete_json="$(run_br list --status in_progress --assignee ralph --json)"
+  fi
+
+  count="$(jq '.issues | length' <<<"$incomplete_json")"
+  if [[ "$count" -gt 0 ]]; then
+    jq -r '.issues[0].id' <<<"$incomplete_json"
+  fi
+}
+
+# Pick the first ready bead sorted by priority, then creation time, then id.
+select_bead_id() {
+  jq -r 'sort_by(.priority, .created_at, .id) | .[0].id'
+}
+
+# Eligibility gate: only task/bug/feature beads that are open or in_progress
+# (resumed), have exactly one repo:* label, and contain a description +
+# acceptance criteria. Rejects epics, deferred beads, ambiguous multi-repo
+# beads, and empty shells.
+validate_bead_and_repo_label() {
+  local bead_json="$1"
+  local bead_id="$2"
+  local issue_type
+  local status
+  local repo_count
+  local repo_label
+  local description_len
+  local acceptance_len
+
+  issue_type="$(json_string '.[0].issue_type // ""' <<<"$bead_json")"
+  status="$(json_string '.[0].status // ""' <<<"$bead_json")"
+  repo_count="$(jq '[.[0].labels[]? | select(startswith("repo:"))] | length' <<<"$bead_json")"
+  repo_label="$(json_string '[.[0].labels[]? | select(startswith("repo:"))][0] // ""' <<<"$bead_json")"
+  description_len="$(jq '([.[0].description // ""] | .[0] | length)' <<<"$bead_json")"
+  acceptance_len="$(jq '([.[0].acceptance_criteria // ""] | .[0] | length)' <<<"$bead_json")"
+
+  [[ "$status" == "open" || "$status" == "in_progress" ]] || die "$bead_id has unexpected status: $status"
+
+  case "$issue_type" in
+    task | bug | feature) ;;
+    *) die "$bead_id is not an implementable task/bug/feature; issue_type=$issue_type" ;;
+  esac
+
+  [[ "$repo_count" == "1" ]] || die "$bead_id must have exactly one repo:* label; found $repo_count"
+  repo_path_for_label "$repo_label" >/dev/null || die "$bead_id has unsupported repo label: $repo_label"
+  [[ "$description_len" -gt 0 ]] || die "$bead_id has no description"
+  [[ "$acceptance_len" -gt 0 ]] || die "$bead_id has no acceptance criteria"
+
+  printf '%s\n' "$repo_label"
+}
+
+# Build the Codex worker prompt. Includes the bead JSON so the worker has
+# full context. The worker can use br to inspect parent/related beads itself.
+# Scoped to exactly one bead — instructed not to wander.
+write_prompt() {
+  local prompt_file="$1"
+  local parent="$2"
+  local bead_id="$3"
+  local repo_label="$4"
+  local implementation_repo="$5"
+  local bead_json_file="$6"
+
+  cat >"$prompt_file" <<EOF
+You are Codex, but this repository's coding rules live in CLAUDE.md.
+
+Before inspecting or editing implementation code:
+- If the implementation repo is aiml-services, also read services/aiml-hosted-mcp-server/CLAUDE.md.
+- Follow those CLAUDE.md files as binding repository rules.
+
+You are implementing exactly one bead: $bead_id.
+Do not select different work.
+Do not start another bead after this one.
+
+Control repo: $CONTROL_REPO
+Implementation repo: $implementation_repo
+Implementation repo label: $repo_label
+Parent bead: $parent
+BEADS_DIR: $BEADS_DIR
+
+Use br against the control-plane bead DB. The BEADS_DIR environment variable is already set for this worker.
+
+Read the PRD, the selected bead, relevant parent/sibling beads, and related beads for context before changing code.
+Use "br show <id> --json" to inspect parent or dependency beads as needed.
+Implement the bead.
+Run the bead's verification command(s) and tests.
+Commit implementation changes in the implementation repository with a clear description of what was done and why.
+Use br to update or close the bead when done with a description of the what was done..
+
+If blocked, or unable to complete the work on the bead, add a precise br comment/note and leave the bead open.
+If you discover follow-up work, create linked beads with discovered-from:$bead_id.
+Do not commit .beads/. It is intentionally gitignored.
+Do not mutate AGENTS.md, CLAUDE.md, MCP_STANDARDS.md, or repository instructions unless the selected bead explicitly requires it.
+
+Selected bead JSON:
+\`\`\`json
+$(cat "$bead_json_file")
+\`\`\`
+EOF
+}
+
+# --- Main entry point ---
+#
+# Flow:
+#   1. Parse args: parent bead id, max iterations, optional --repo filter.
+#   2. Verify prerequisites: required CLIs, control repo, beads DB.
+#   3. Loop up to max_iterations times. Each iteration does one bead:
+#      a. Find work — resume an incomplete bead, or pick from br ready.
+#      b. Validate — check type, status, repo label, description, acceptance.
+#      c. Preflight — clean worktrees, non-protected branch.
+#      d. Prepare — create a timestamped run dir, save bead JSON, write
+#         the Codex prompt, record metadata.
+#      e. Claim — mark the bead in_progress assigned to ralph (skip if
+#         already claimed from a previous run).
+#      f. Execute — run Codex in the implementation repo.
+#      g. Assess — check if Codex closed the bead. If still in_progress,
+#         stop for human inspection. If closed, continue to next iteration.
+#   4. Stop when: no ready work, max iterations reached, Codex fails,
+#      or a bead needs human attention.
+main() {
+  local parent=""
+  local max_iterations=""
+  local repo_filter=""
+  local iteration
+
+  # --- Arg parsing ---
+  if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    usage
+    exit 0
+  fi
+
+  [[ $# -ge 2 ]] || {
+    usage >&2
+    exit 2
+  }
+
+  parent="$1"           # parent bead — scopes br ready to its descendants
+  max_iterations="$2"   # cap on how many beads to process in one run
+  shift 2
+
+  # Optional flags
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --repo)
+        [[ $# -ge 2 ]] || die "--repo requires a value"
+        repo_filter="$2"
+        case "$repo_filter" in
+          repo:mcp-contrast | repo:aiml-services) ;;
+          *) die "unsupported repo filter: $repo_filter" ;;
+        esac
+        shift 2
+        ;;
+      *)
+        die "unknown argument: $1"
+        ;;
+    esac
+  done
+
+  [[ "$max_iterations" =~ ^[0-9]+$ ]] || die "max-iterations must be a positive integer"
+  [[ "$max_iterations" -gt 0 ]] || die "max-iterations must be greater than zero"
+
+  # --- Prerequisites ---
+  require_command br
+  require_command codex
+  require_command git
+  require_command jq
+
+  [[ -d "$CONTROL_REPO/.git" ]] || die "control repo not found: $CONTROL_REPO"
+  [[ -d "$BEADS_DIR" ]] || die "beads dir not found: $BEADS_DIR"
+
+  export BEADS_DIR
+  mkdir -p "$RESULT_DIR"
+  cd "$CONTROL_REPO"
+
+  # --- Iteration loop: one bead per pass ---
+  for ((iteration = 1; iteration <= max_iterations; iteration++)); do
+    local ready_json
+    local ready_count
+    local bead_id
+    local bead_json
+    local repo_label
+    local implementation_repo
+    local timestamp
+    local run_dir
+    local prompt_file
+    local result_file
+    local metadata_file
+    local bead_json_file
+    local branch
+    local codex_status
+    local final_status
+
+    # (a) Find work. First check if ralph left a bead in_progress from a
+    #     previous run (e.g. crash or timeout). If so, resume it. Otherwise
+    #     ask br for the next unblocked child bead under the parent.
+    bead_id="$(find_incomplete_bead "$repo_filter")"
+
+    if [[ -n "$bead_id" ]]; then
+      printf 'ralph: resuming incomplete bead %s\n' "$bead_id"
+    else
+      ready_json="$(ready_json_for_parent "$parent" "$repo_filter")"
+      ready_count="$(jq 'length' <<<"$ready_json")"
+      if [[ "$ready_count" == "0" ]]; then
+        printf 'ralph: no ready work for parent %s\n' "$parent"
+        exit 0
+      fi
+
+      bead_id="$(select_bead_id <<<"$ready_json")"
+      [[ -n "$bead_id" && "$bead_id" != "null" ]] || die "failed to select a ready bead"
+    fi
+
+    # (b) Validate the bead is something Codex can implement: right type,
+    #     right status, has exactly one repo label, and has enough content.
+    bead_json="$(run_br show "$bead_id" --json)"
+    repo_label="$(validate_bead_and_repo_label "$bead_json" "$bead_id")"
+    implementation_repo="$(repo_path_for_label "$repo_label")"
+
+    [[ -d "$implementation_repo/.git" ]] || die "implementation repo not found: $implementation_repo"
+
+    # (c) Preflight: both repos must be clean (no uncommitted changes) and
+    #     the implementation repo must not be on a protected branch.
+    ensure_clean_repo "$CONTROL_REPO" "control repo"
+    if [[ "$implementation_repo" != "$CONTROL_REPO" ]]; then
+      ensure_clean_repo "$implementation_repo" "$repo_label"
+    fi
+    ensure_unprotected_branch "$implementation_repo" "$repo_label"
+    branch="$(current_branch "$implementation_repo")"
+
+    # (d) Prepare: create a timestamped run directory and save artifacts.
+    #     Each run gets its own dir so we can audit what ralph did later.
+    #     - bead.json:    full bead data from br show
+    #     - metadata.json: run parameters (parent, repo, branch, iteration)
+    #     - prompt.md:    the prompt sent to Codex
+    #     - codex.jsonl:  Codex's stdout/stderr output
+    timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
+    run_dir="$RESULT_DIR/${timestamp}_${bead_id}"
+    mkdir -p "$run_dir"
+
+    prompt_file="$run_dir/prompt.md"
+    result_file="$run_dir/codex.jsonl"
+    metadata_file="$run_dir/metadata.json"
+    bead_json_file="$run_dir/bead.json"
+
+    printf '%s\n' "$bead_json" >"$bead_json_file"
+
+    jq -n \
+      --arg parent "$parent" \
+      --arg bead_id "$bead_id" \
+      --arg repo_label "$repo_label" \
+      --arg implementation_repo "$implementation_repo" \
+      --arg branch "$branch" \
+      --arg run_dir "$run_dir" \
+      --arg iteration "$iteration" \
+      '{parent:$parent, bead_id:$bead_id, repo_label:$repo_label, implementation_repo:$implementation_repo, branch:$branch, run_dir:$run_dir, iteration:($iteration|tonumber)}' \
+      >"$metadata_file"
+
+    write_prompt "$prompt_file" "$parent" "$bead_id" "$repo_label" "$implementation_repo" "$bead_json_file"
+
+    # (e) Claim: mark the bead as in_progress and assign to ralph so no
+    #     other agent picks it up. Skip if resuming (already in_progress).
+    printf 'ralph: iteration %s/%s selected %s (%s on %s)\n' "$iteration" "$max_iterations" "$bead_id" "$repo_label" "$branch"
+    local current_status
+    current_status="$(json_string '.[0].status // ""' <<<"$bead_json")"
+    if [[ "$current_status" != "in_progress" ]]; then
+      run_br update "$bead_id" --status in_progress --assignee ralph --json >/dev/null
+    fi
+
+    # (f) Execute: run Codex in the implementation repo with full auto-
+    #     approval. Prompt is piped via stdin; output captured to JSONL.
+    #     For cross-repo beads, --add-dir gives Codex read access to the
+    #     control repo (where CLAUDE.md and .beads/ live).
+    set +e
+    if [[ "$implementation_repo" == "$CONTROL_REPO" ]]; then
+      BEADS_DIR="$BEADS_DIR" codex -a never exec \
+        -p yolo \
+        -C "$CONTROL_REPO" \
+        --json \
+        - <"$prompt_file" >"$result_file" 2>&1
+    else
+      BEADS_DIR="$BEADS_DIR" codex -a never exec \
+        -p yolo \
+        -C "$implementation_repo" \
+        --add-dir "$CONTROL_REPO" \
+        --json \
+        - <"$prompt_file" >"$result_file" 2>&1
+    fi
+    codex_status=$?
+    set -e
+
+    # (g) Assess: check what happened.
+    #     - Codex crashed (non-zero exit) → stop, print diagnostics.
+    #     - Bead closed → success, continue to next iteration.
+    #     - Bead still in_progress → Codex couldn't finish it (blocked,
+    #       ambiguous, or partially done). Stop for human inspection.
+    if [[ "$codex_status" -ne 0 ]]; then
+      printf 'ralph: Codex failed for %s with exit %s\n' "$bead_id" "$codex_status" >&2
+      printf 'ralph: result file: %s\n' "$result_file" >&2
+      exit "$codex_status"
+    fi
+
+    final_status="$(run_br show "$bead_id" --json | jq -r '.[0].status')"
+    printf 'ralph: Codex completed for %s; bead status is %s\n' "$bead_id" "$final_status"
+    printf 'ralph: result file: %s\n' "$result_file"
+
+    if [[ "$final_status" == "in_progress" ]]; then
+      printf 'ralph: %s remains in_progress; stopping for inspection\n' "$bead_id"
+      exit 0
+    fi
+  done
+
+  printf 'ralph: reached max iterations (%s)\n' "$max_iterations"
+}
+
+main "$@"
