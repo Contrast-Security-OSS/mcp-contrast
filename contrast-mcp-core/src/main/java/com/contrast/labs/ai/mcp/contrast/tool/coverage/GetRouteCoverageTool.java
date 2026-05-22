@@ -15,9 +15,10 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 
+import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.result.RouteCoverageResponseLight;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
-import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.coverage.params.RouteCoverageParams;
@@ -25,6 +26,7 @@ import com.contrastsecurity.models.RouteCoverageMetadataLabelValues;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
@@ -37,8 +39,9 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @Slf4j
 public class GetRouteCoverageTool
-    extends LocalSdkSingleTool<RouteCoverageParams, RouteCoverageResponseLight> {
+    extends SingleTool<RouteCoverageParams, RouteCoverageResponseLight> {
 
+  private final ContrastApiClient contrastApiClient;
   private final RouteMapper routeMapper;
 
   @Tool(
@@ -91,18 +94,27 @@ public class GetRouteCoverageTool
                   "If true, only return routes from the latest session. Mutually exclusive with"
                       + " session metadata filter.",
               required = false)
-          Boolean useLatestSession) {
+          Boolean useLatestSession,
+      ToolContext toolContext) {
     return executePipeline(
         () ->
             RouteCoverageParams.of(
-                appId, sessionMetadataName, sessionMetadataValue, useLatestSession));
+                appId, sessionMetadataName, sessionMetadataValue, useLatestSession),
+        toolContext);
+  }
+
+  public SingleToolResponse<RouteCoverageResponseLight> getRouteCoverage(
+      String appId,
+      String sessionMetadataName,
+      String sessionMetadataValue,
+      Boolean useLatestSession) {
+    return getRouteCoverage(
+        appId, sessionMetadataName, sessionMetadataValue, useLatestSession, null);
   }
 
   @Override
   protected RouteCoverageResponseLight doExecute(
       RouteCoverageParams params, WarningCollector collector) throws Exception {
-    var orgId = getOrgId();
-    var sdkExtension = getSDKExtension();
 
     // Build request based on parameters
     RouteCoverageBySessionIDAndMetadataRequestExtended request = null;
@@ -110,7 +122,7 @@ public class GetRouteCoverageTool
     if (params.isUseLatestSession()) {
       // Filter by latest session
       log.debug("Fetching latest session metadata for application ID: {}", params.appId());
-      var latest = sdkExtension.getLatestSessionMetadata(orgId, params.appId());
+      var latest = contrastApiClient.getLatestSessionMetadata(params.appId());
 
       if (latest == null) {
         log.warn("No session metadata found for application ID: {}", params.appId());
@@ -126,7 +138,7 @@ public class GetRouteCoverageTool
 
       request = new RouteCoverageBySessionIDAndMetadataRequestExtended();
       request.setSessionId(latest.getAgentSession().getAgentSessionId());
-      log.debug("Using latest session ID: {}", latest.getAgentSession().getAgentSessionId());
+      log.debug("Using latest session metadata for route coverage");
 
     } else if (params.hasSessionMetadataFilter()) {
       // Filter by session metadata
@@ -143,9 +155,9 @@ public class GetRouteCoverageTool
       log.debug("No filters applied - retrieving all route coverage");
     }
 
-    // Call SDK to get route coverage
+    // Call API client to get route coverage
     log.debug("Fetching route coverage data for application ID: {}", params.appId());
-    var response = sdkExtension.getRouteCoverage(orgId, params.appId(), request);
+    var response = contrastApiClient.getRouteCoverage(params.appId(), request);
 
     // Defensive null checks - API may return null on errors or permission issues
     if (response == null) {

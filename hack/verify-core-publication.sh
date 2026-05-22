@@ -44,6 +44,9 @@ required_classes=(
   "com/contrast/labs/ai/mcp/contrast/tool/attack/SearchAttacksTool.class"
   "com/contrast/labs/ai/mcp/contrast/tool/attack/params/AttackFilterParams.class"
   "com/contrast/labs/ai/mcp/contrast/tool/attack/params/GetProtectRulesParams.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/coverage/GetRouteCoverageTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/coverage/RouteMapper.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/coverage/params/RouteCoverageParams.class"
   "com/contrast/labs/ai/mcp/contrast/hints/HintGenerator.class"
 )
 
