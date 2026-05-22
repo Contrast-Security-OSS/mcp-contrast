@@ -47,6 +47,8 @@ required_classes=(
   "com/contrast/labs/ai/mcp/contrast/tool/coverage/GetRouteCoverageTool.class"
   "com/contrast/labs/ai/mcp/contrast/tool/coverage/RouteMapper.class"
   "com/contrast/labs/ai/mcp/contrast/tool/coverage/params/RouteCoverageParams.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/sast/GetSastProjectTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/sast/params/GetSastProjectParams.class"
   "com/contrast/labs/ai/mcp/contrast/hints/HintGenerator.class"
 )
 
@@ -68,6 +70,7 @@ forbidden_classes=(
   "com/contrast/labs/ai/mcp/contrast/sdkextension/SDKHelper.class"
   "com/contrast/labs/ai/mcp/contrast/sdkextension/SDKExtension.class"
   "com/contrast/labs/ai/mcp/contrast/tool/sast/GetSastResultsTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/sast/params/GetSastResultsParams.class"
 )
 
 for forbidden_class in "${forbidden_classes[@]}"; do

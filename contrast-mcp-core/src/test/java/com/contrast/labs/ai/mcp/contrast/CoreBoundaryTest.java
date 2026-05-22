@@ -57,6 +57,7 @@ class CoreBoundaryTest {
                   + "ListApplicationLibrariesTool.java"),
           sourcePath(
               "com/contrast/labs/ai/mcp/contrast/tool/library/" + "ListApplicationsByCveTool.java"),
+          sourcePath("com/contrast/labs/ai/mcp/contrast/tool/sast/GetSastProjectTool.java"),
           sourcePath(
               "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/GetVulnerabilityTool.java"),
           sourcePath(
@@ -77,7 +78,8 @@ class CoreBoundaryTest {
           "SdkApiClient.java",
           "SDKHelper.java",
           "SDKExtension.java",
-          "GetSastResultsTool.java");
+          "GetSastResultsTool.java",
+          "GetSastResultsParams.java");
   private static final List<LocalOnlyPattern> LOCAL_ONLY_TEXT =
       List.of(
           new LocalOnlyPattern(

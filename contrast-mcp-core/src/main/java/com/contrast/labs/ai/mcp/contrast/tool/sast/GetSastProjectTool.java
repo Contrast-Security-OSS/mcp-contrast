@@ -15,12 +15,15 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.sast;
 
+import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.result.ScanProject;
-import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.sast.params.GetSastProjectParams;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
@@ -30,8 +33,11 @@ import org.springframework.stereotype.Service;
  * including language, scan counts, and vulnerability severity totals.
  */
 @Service
+@RequiredArgsConstructor
 @Slf4j
-public class GetSastProjectTool extends LocalSdkSingleTool<GetSastProjectParams, ScanProject> {
+public class GetSastProjectTool extends SingleTool<GetSastProjectParams, ScanProject> {
+
+  private final ContrastApiClient contrastApiClient;
 
   @Tool(
       name = "get_scan_project",
@@ -53,38 +59,35 @@ public class GetSastProjectTool extends LocalSdkSingleTool<GetSastProjectParams,
 
           Note: Project name matching is case-insensitive. The returned project's name field
           reflects the canonical casing as stored in Contrast.
-
-          Related tools:
-          - get_scan_results: Get SARIF results for a project's latest scan
           """)
   public SingleToolResponse<ScanProject> getScanProject(
-      @ToolParam(description = "Scan project name (matched case-insensitively)")
-          String projectName) {
-    return executePipeline(() -> GetSastProjectParams.of(projectName));
+      @ToolParam(description = "Scan project name (matched case-insensitively)") String projectName,
+      ToolContext toolContext) {
+    return executePipeline(() -> GetSastProjectParams.of(projectName), toolContext);
+  }
+
+  public SingleToolResponse<ScanProject> getScanProject(String projectName) {
+    return getScanProject(projectName, null);
   }
 
   @Override
   protected ScanProject doExecute(GetSastProjectParams params, WarningCollector collector)
       throws Exception {
-    var sdk = getContrastSDK();
-    var orgId = getOrgId();
-
     log.debug("Retrieving scan project details for project: {}", params.projectName());
 
-    var projectOptional = sdk.scan(orgId).projects().findByName(params.projectName());
+    var project = contrastApiClient.getScanProject(params.projectName());
 
-    if (projectOptional.isEmpty()) {
+    if (project == null) {
       log.debug("Project not found: {}", params.projectName());
       return null; // SingleTool converts this to notFound response
     }
 
-    var project = projectOptional.get();
     log.debug(
         "Successfully found project: {} (id: {}, language: {})",
         project.name(),
         project.id(),
         project.language());
 
-    return ScanProject.from(project);
+    return project;
   }
 }
