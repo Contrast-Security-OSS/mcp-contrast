@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PR #130 Walkthrough: Migrate All Shared Tools to Core</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-raised: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-subtle: #6e7681;
+    --accent: #58a6ff;
+    --accent-soft: rgba(88,166,255,0.15);
+    --green: #3fb950;
+    --green-bg: rgba(63,185,80,0.15);
+    --green-border: rgba(63,185,80,0.4);
+    --red: #f85149;
+    --red-bg: rgba(248,81,73,0.10);
+    --yellow: #d29922;
+    --yellow-bg: rgba(210,153,34,0.15);
+    --purple: #bc8cff;
+    --purple-bg: rgba(188,140,255,0.12);
+    --orange: #f0883e;
+    --line-num: #484f58;
+    --diff-add-bg: rgba(63,185,80,0.10);
+    --diff-add-text: #aff5b4;
+    --diff-add-marker: #3fb950;
+    --diff-del-bg: rgba(248,81,73,0.10);
+    --diff-del-text: #ffa198;
+    --diff-del-marker: #f85149;
+    --diff-context-bg: transparent;
+    --code-bg: #0d1117;
+    --nav-bg: rgba(13,17,23,0.95);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 40%, #1a1e2e 70%, #161b22 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 3rem 2rem 2.5rem;
+    text-align: center;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.3rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(88,166,255,0.3);
+    margin-bottom: 1rem;
+    letter-spacing: 0.03em;
+  }
+  .hero h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.6rem;
+    background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero .subtitle {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .hero-meta {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .hero-meta-item {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .hero-meta-item strong { color: var(--text); }
+
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--nav-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.6rem 2rem;
+    overflow-x: auto;
+  }
+  nav ol {
+    display: flex;
+    gap: 0.3rem;
+    list-style: none;
+    max-width: 1100px;
+    margin: 0 auto;
+    font-size: 0.82rem;
+    align-items: center;
+  }
+  nav li a {
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.35rem 0.7rem;
+    border-radius: 6px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  nav li a:hover { color: var(--accent); background: var(--accent-soft); }
+  nav .nav-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4em;
+    height: 1.4em;
+    border-radius: 50%;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 0.4em;
+  }
+  nav .nav-sep { color: var(--text-subtle); font-size: 0.75rem; }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 2rem 6rem;
+  }
+
+  .chapter {
+    margin-bottom: 3.5rem;
+    scroll-margin-top: 4rem;
+  }
+  .chapter-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .chapter-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .chapter-number.blue { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .chapter-number.green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .chapter-number.purple { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+  .chapter-number.yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .chapter-number.orange { background: rgba(240,136,62,0.12); color: var(--orange); border: 1px solid rgba(240,136,62,0.3); }
+
+  .narrative {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.75;
+    margin-bottom: 1.5rem;
+  }
+  .narrative strong { color: var(--text); font-weight: 600; }
+  .narrative code {
+    background: var(--surface-raised);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.88em;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  .callout {
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    border: 1px solid;
+  }
+  .callout.why {
+    background: var(--accent-soft);
+    border-color: rgba(88,166,255,0.25);
+    color: var(--text);
+  }
+  .callout.why .callout-label { color: var(--accent); }
+  .callout.security {
+    background: var(--red-bg);
+    border-color: rgba(248,81,73,0.25);
+  }
+  .callout.security .callout-label { color: var(--red); }
+  .callout.note {
+    background: var(--yellow-bg);
+    border-color: rgba(210,153,34,0.25);
+  }
+  .callout.note .callout-label { color: var(--yellow); }
+  .callout.future {
+    background: var(--purple-bg);
+    border-color: rgba(188,140,255,0.25);
+  }
+  .callout.future .callout-label { color: var(--purple); }
+  .callout-label {
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.3rem;
+    display: block;
+  }
+
+  .diff-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .diff-header {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    gap: 0.5rem;
+  }
+  .diff-header .file-icon {
+    width: 16px; height: 16px;
+    fill: var(--text-subtle);
+    flex-shrink: 0;
+  }
+  .diff-header .filename {
+    color: var(--text);
+    font-weight: 600;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+  }
+  .diff-header .badge {
+    margin-left: auto;
+    font-size: 0.72rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .badge-new { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .badge-modified { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .badge-deleted { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,81,73,0.3); }
+  .badge-renamed { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+
+  .diff-body {
+    overflow-x: auto;
+  }
+  .diff-body pre {
+    margin: 0;
+    padding: 0.4rem 0;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.3;
+    display: flex;
+    flex-direction: column;
+  }
+  .diff-line {
+    display: flex;
+    padding: 0 1rem;
+    min-height: 1.3em;
+  }
+  .diff-line.add { background: var(--diff-add-bg); }
+  .diff-line.del { background: var(--diff-del-bg); }
+  .diff-line.context { background: var(--diff-context-bg); }
+  .diff-line .marker {
+    width: 1.2em;
+    flex-shrink: 0;
+    color: var(--text-subtle);
+    user-select: none;
+    text-align: center;
+  }
+  .diff-line.add .marker { color: var(--diff-add-marker); }
+  .diff-line.del .marker { color: var(--diff-del-marker); }
+  .diff-line .ln {
+    width: 3.5em;
+    flex-shrink: 0;
+    color: var(--line-num);
+    text-align: right;
+    padding-right: 1em;
+    user-select: none;
+  }
+  .diff-line .code {
+    flex: 1;
+    white-space: pre;
+  }
+  .diff-line .code .kw { color: #ff7b72; }
+  .diff-line .code .str { color: #a5d6ff; }
+  .diff-line .code .ann { color: #d2a8ff; }
+  .diff-line .code .type { color: #79c0ff; }
+  .diff-line .code .comment { color: var(--text-subtle); font-style: italic; }
+  .diff-line .code .prop { color: #7ee787; }
+  .diff-line .code .val { color: #a5d6ff; }
+  .diff-line .code .num { color: #79c0ff; }
+  .diff-line .code .param { color: #ffa657; }
+
+  .annotation {
+    background: var(--surface-raised);
+    border-left: 3px solid var(--accent);
+    padding: 0.7rem 1rem;
+    margin: 0 1rem 0.3rem 1rem;
+    border-radius: 0 6px 6px 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+  .annotation strong { color: var(--text); }
+  .annotation code {
+    background: rgba(88,166,255,0.1);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: var(--accent);
+  }
+  .annotation.security-note { border-left-color: var(--red); }
+  .annotation.future-note { border-left-color: var(--purple); }
+
+  .diagram {
+    margin-bottom: 1.5rem;
+  }
+  .diagram svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .diagram-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    overflow-x: auto;
+  }
+  .diagram-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 0.8rem;
+  }
+
+  .slice-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (max-width: 768px) { .slice-columns { grid-template-columns: 1fr; } }
+  .slice-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem;
+  }
+  .slice-col.this-pr { border-color: var(--green-border); }
+  .slice-col.future-col { border-color: var(--border); opacity: 0.7; }
+  .slice-col .slice-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .slice-col.this-pr .slice-title { color: var(--green); }
+  .slice-col.future-col .slice-title { color: var(--text-subtle); }
+  .slice-item {
+    position: relative;
+    padding: 0.3rem 0 0.3rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .slice-item .dot {
+    position: absolute;
+    left: 0;
+    top: 0.65rem;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .slice-col.this-pr .dot { background: var(--green); }
+  .slice-col.future-col .dot { background: var(--text-subtle); }
+  .slice-item strong { color: var(--text); font-weight: 500; }
+
+  .roadmap-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+  }
+  .roadmap-table th {
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  .roadmap-table td {
+    padding: 0.45rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+  .roadmap-table tr:last-child td { border-bottom: none; }
+  .roadmap-table .jira-link {
+    font-family: 'SF Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .roadmap-table .jira-link:hover { text-decoration: underline; }
+  .roadmap-table .slice-name { color: var(--text); font-weight: 500; }
+  .roadmap-table .current-row td {
+    background: var(--green-bg);
+    border-bottom-color: var(--green-border);
+  }
+  .roadmap-table .current-row .slice-name { color: var(--green); font-weight: 600; }
+  .roadmap-table .current-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--green-bg);
+    color: var(--green);
+    border: 1px solid var(--green-border);
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
+  .done-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: rgba(139,148,158,0.12);
+    color: var(--text-subtle);
+    border: 1px solid rgba(139,148,158,0.25);
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
+
+  .file-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+  }
+  .file-table th {
+    text-align: left;
+    padding: 0.6rem 1rem;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  .file-table td {
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .file-table td:first-child {
+    font-family: 'SF Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--accent);
+  }
+  .file-table tr:last-child td { border-bottom: none; }
+  .file-table .addition { color: var(--green); }
+  .file-table .deletion { color: var(--red); }
+
+  .standard-pattern {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .standard-pattern summary {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: var(--surface-raised);
+    border-bottom: 1px solid transparent;
+    list-style: none;
+    transition: background 0.15s;
+  }
+  .standard-pattern summary::-webkit-details-marker { display: none; }
+  .standard-pattern summary::before {
+    content: '\25B6';
+    font-size: 0.65rem;
+    color: var(--text-subtle);
+    transition: transform 0.15s;
+    flex-shrink: 0;
+  }
+  .standard-pattern[open] summary::before { transform: rotate(90deg); }
+  .standard-pattern[open] summary { border-bottom-color: var(--border); }
+  .standard-pattern summary:hover { background: rgba(88,166,255,0.06); }
+  .standard-pattern .sp-icon {
+    width: 16px; height: 16px;
+    fill: var(--text-subtle);
+    flex-shrink: 0;
+  }
+  .standard-pattern .sp-title {
+    color: var(--text);
+    font-weight: 600;
+    flex: 1;
+  }
+  .standard-pattern .sp-files {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.78rem;
+    color: var(--text-subtle);
+  }
+  .standard-pattern .sp-ref {
+    font-size: 0.78rem;
+    color: var(--text-subtle);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .badge-standard {
+    background: rgba(139,148,158,0.15);
+    color: var(--text-muted);
+    border: 1px solid rgba(139,148,158,0.3);
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .standard-pattern .sp-body {
+    padding: 0.8rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .standard-pattern .sp-body code {
+    background: var(--surface-raised);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  .file-table .novelty { text-align: center; }
+  .novelty-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+  }
+  .novelty-badge.novel { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .novelty-badge.standard { background: rgba(139,148,158,0.12); color: var(--text-subtle); border: 1px solid rgba(139,148,158,0.25); }
+  .novelty-badge.pattern { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+
+  footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-subtle);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+    margin-top: 3rem;
+  }
+
+  @media (max-width: 768px) {
+    .hero { padding: 2rem 1rem; }
+    .hero h1 { font-size: 1.6rem; }
+    main { padding: 1.5rem 1rem 4rem; }
+    nav ol { gap: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <span class="hero-badge">PR #130 &middot; AIML-762</span>
+  <h1>Migrate All Shared Tools to Core</h1>
+  <p class="subtitle">
+    Slice 8 completes the bulk migration of 12 security tools from the local-only module into the shared core, making them available to both the local stdio server and the upcoming hosted remote server.
+  </p>
+  <div class="hero-meta">
+    <span class="hero-meta-item"><strong>Branch:</strong> AIML-762-s8-expand-shared-tools</span>
+    <span class="hero-meta-item"><strong>Base:</strong> AIML-761-s7-error-handling-core (stacked)</span>
+    <span class="hero-meta-item"><strong>Files:</strong> 83 changed</span>
+    <span class="hero-meta-item"><strong>Lines:</strong> +4,394 / &minus;1,346</span>
+  </div>
+</div>
+
+<!-- ===== NAV ===== -->
+<nav>
+  <ol>
+    <li><a href="#context"><span class="nav-number">1</span>Context</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#pattern"><span class="nav-number">2</span>Migration Pattern</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#protect"><span class="nav-number">3</span>Protect Rules</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#applications"><span class="nav-number">4</span>Applications</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#vulnerabilities"><span class="nav-number">5</span>Vulnerabilities</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#remaining"><span class="nav-number">6</span>Libraries &amp; More</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#bugfix"><span class="nav-number">7</span>401 Fix</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#guards"><span class="nav-number">8</span>Boundary Guards</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#testing"><span class="nav-number">9</span>Testing</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#next"><span class="nav-number">10</span>What's Next</a></li>
+  </ol>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main>
+
+<!-- ==================== CHAPTER 1: CONTEXT ==================== -->
+<section class="chapter" id="context">
+  <div class="chapter-header">
+    <span class="chapter-number blue">1</span>
+    <h2>Context: The Road to Tool Sharing</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>Contrast Security's MCP server lets AI agents query vulnerability data, but until now every tool was locked inside the local stdio application &mdash; useless to the hosted remote server being built in parallel.</strong> The hosted server needs these exact same tools, but authenticates differently: bearer tokens via an API gateway instead of local API keys. Slice 8 is the PR that liberates these tools from their local prison and places them in a shared <code>contrast-mcp-core</code> module that both servers can consume.
+  </p>
+
+  <p class="narrative">
+    <strong>Think of it like moving tools from a toolbox bolted to one workbench into a shared pegboard that any workbench can reach.</strong> The tools themselves don't change what they do &mdash; <code>search_vulnerabilities</code> still searches vulnerabilities, <code>get_route_coverage</code> still retrieves route coverage. What changes is <em>how they talk to the Contrast API</em>. Instead of reaching directly into the SDK (which requires local API keys), they now call through a <code>ContrastApiClient</code> interface that can be backed by either the local SDK or a remote bearer-token HTTP client.
+  </p>
+
+  <div class="callout why">
+    <span class="callout-label">Why this matters</span>
+    <strong>This is the biggest single PR in the AIML-110 initiative.</strong> It migrates 12 of the 14 tools that will be shared between local and hosted servers. After this, hosted server users gain access to the full TeamServer security tool set &mdash; vulnerability search, application discovery, attack analysis, library SCA, route coverage, and SAST metadata &mdash; once the hosted side wires up its <code>BearerTokenApiClient</code> implementation.
+  </div>
+
+  <p class="narrative">
+    <strong>This PR sits in the middle of a 12-slice implementation plan.</strong> Earlier slices built the foundation; later slices will expand to dataplatform tools, staging validation, and release hardening. Here's where we are:
+  </p>
+
+  <table class="roadmap-table">
+    <thead><tr><th>Ticket</th><th>Slice</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-754">AIML-754</a></td>
+        <td><span class="slice-name">Slice 0</span><span class="done-badge">Done</span></td>
+        <td>Set up remote MCP service with health check and CI pipeline</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-755">AIML-755</a></td>
+        <td><span class="slice-name">Slice 1</span><span class="done-badge">Done</span></td>
+        <td>Add authenticated user info tool as end-to-end proof</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-756">AIML-756</a></td>
+        <td><span class="slice-name">Slice 2</span><span class="done-badge">Done</span></td>
+        <td>Enforce auth safety net &mdash; block unauthenticated tool access</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-757">AIML-757</a></td>
+        <td><span class="slice-name">Slice 3</span><span class="done-badge">Done</span></td>
+        <td>Upgrade public MCP server to Java 21 and modular Gradle build (PRs #115&ndash;#122)</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-758">AIML-758</a></td>
+        <td><span class="slice-name">Slice 4</span><span class="done-badge">Done</span></td>
+        <td>Extract shared API client and move first tool (<code>list_vulnerability_types</code>) to core (PRs #123&ndash;#125)</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-759">AIML-759</a></td>
+        <td><span class="slice-name">Slice 5</span><span class="done-badge">Done</span></td>
+        <td>Port first shared tool to remote server &mdash; proves hosted consumption end-to-end</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-761">AIML-761</a></td>
+        <td><span class="slice-name">Slice 7</span><span class="done-badge">Done</span></td>
+        <td>Harden error handling, logging, and sensitive data redaction (PR #129)</td>
+      </tr>
+      <tr class="current-row">
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-762">AIML-762</a></td>
+        <td><span class="slice-name">Slice 8</span><span class="current-badge">This PR</span></td>
+        <td>Migrate all 12 remaining shared tools family-by-family to core</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-763">AIML-763</a></td>
+        <td><span class="slice-name">Slice 9</span></td>
+        <td>Expand dataplatform tools &mdash; CVE, SBOM, and compliance workflows</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-764">AIML-764</a></td>
+        <td><span class="slice-name">Slice 10</span></td>
+        <td>Validate OAuth and API gateway integration in staging</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-766">AIML-766</a></td>
+        <td><span class="slice-name">Slice 12</span></td>
+        <td>Achieve full tool parity and release hardening</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout note">
+    <span class="callout-label">Stacked PR</span>
+    <strong>This PR is stacked on PR #129</strong> (Slice 7: error handling improvements). It must be merged after #129. The commits in this walkthrough begin at boundary commit <code>b195fc9</code> and include 9 commits: 7 family-by-family tool migrations, 1 developer helper script, and 1 bug fix for a 401 error message regression introduced in PR #129.
+  </div>
+</section>
+
+<!-- ==================== CHAPTER 2: THE MIGRATION PATTERN ==================== -->
+<section class="chapter" id="pattern">
+  <div class="chapter-header">
+    <span class="chapter-number blue">2</span>
+    <h2>The Migration Pattern</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>Every tool migration follows the same four-step formula.</strong> Once you understand this pattern from the first migration (Protect Rules in Chapter 3), the remaining 11 tool migrations become predictable. Here's what changes when a tool moves from <code>contrast-mcp-stdio-app</code> to <code>contrast-mcp-core</code>:
+  </p>
+
+  <div class="diagram">
+    <div class="diagram-title">Before and After: How a Tool's Dependencies Change</div>
+    <div class="diagram-container">
+      <svg viewBox="0 0 900 420" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <!-- BEFORE side -->
+        <text x="225" y="30" fill="#f85149" font-size="14" font-weight="700" text-anchor="middle">BEFORE (in contrast-mcp-stdio-app)</text>
+        <rect x="80" y="50" width="290" height="60" rx="8" fill="#1c2128" stroke="#f85149" stroke-width="1.5" stroke-dasharray="4"/>
+        <text x="225" y="77" fill="#e6edf3" font-size="13" font-weight="600" text-anchor="middle">GetProtectRulesTool</text>
+        <text x="225" y="97" fill="#8b949e" font-size="11" text-anchor="middle">extends LocalSdkSingleTool</text>
+
+        <line x1="225" y1="110" x2="225" y2="150" stroke="#6e7681" stroke-width="1.5"/>
+        <polygon points="220,148 225,158 230,148" fill="#6e7681"/>
+
+        <rect x="100" y="160" width="250" height="50" rx="8" fill="#1c2128" stroke="#f85149" stroke-width="1" stroke-dasharray="4"/>
+        <text x="225" y="183" fill="#ffa198" font-size="12" font-weight="500" text-anchor="middle">LocalSdkSingleTool (bridge)</text>
+        <text x="225" y="200" fill="#8b949e" font-size="10" text-anchor="middle">@Autowired ContrastSDKFactory, SDKExtensionFactory</text>
+
+        <line x1="150" y1="210" x2="120" y2="260" stroke="#6e7681" stroke-width="1"/>
+        <line x1="300" y1="210" x2="330" y2="260" stroke="#6e7681" stroke-width="1"/>
+
+        <rect x="30" y="260" width="180" height="45" rx="8" fill="#1c2128" stroke="#f85149" stroke-width="1" stroke-dasharray="4"/>
+        <text x="120" y="287" fill="#ffa198" font-size="11" text-anchor="middle">ContrastSDK (direct)</text>
+
+        <rect x="240" y="260" width="180" height="45" rx="8" fill="#1c2128" stroke="#f85149" stroke-width="1" stroke-dasharray="4"/>
+        <text x="330" y="287" fill="#ffa198" font-size="11" text-anchor="middle">SDKExtension (direct)</text>
+
+        <text x="225" y="340" fill="#f85149" font-size="11" text-anchor="middle" font-style="italic">Locked to local API keys &mdash; can't work with bearer tokens</text>
+
+        <!-- Arrow between sides -->
+        <line x1="430" y1="200" x2="470" y2="200" stroke="#3fb950" stroke-width="2"/>
+        <polygon points="468,195 478,200 468,205" fill="#3fb950"/>
+
+        <!-- AFTER side -->
+        <text x="675" y="30" fill="#3fb950" font-size="14" font-weight="700" text-anchor="middle">AFTER (in contrast-mcp-core)</text>
+        <rect x="530" y="50" width="290" height="60" rx="8" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="675" y="77" fill="#e6edf3" font-size="13" font-weight="600" text-anchor="middle">GetProtectRulesTool</text>
+        <text x="675" y="97" fill="#8b949e" font-size="11" text-anchor="middle">extends SingleTool (shared base)</text>
+
+        <line x1="675" y1="110" x2="675" y2="150" stroke="#6e7681" stroke-width="1.5"/>
+        <polygon points="670,148 675,158 680,148" fill="#6e7681"/>
+
+        <rect x="555" y="160" width="240" height="50" rx="8" fill="#1c2128" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="675" y="183" fill="#58a6ff" font-size="12" font-weight="600" text-anchor="middle">ContrastApiClient (interface)</text>
+        <text x="675" y="200" fill="#8b949e" font-size="10" text-anchor="middle">No auth params &mdash; resolved internally</text>
+
+        <line x1="610" y1="210" x2="580" y2="260" stroke="#6e7681" stroke-width="1"/>
+        <line x1="740" y1="210" x2="770" y2="260" stroke="#6e7681" stroke-width="1"/>
+
+        <rect x="480" y="260" width="200" height="55" rx="8" fill="#1c2128" stroke="#3fb950" stroke-width="1"/>
+        <text x="580" y="283" fill="#aff5b4" font-size="11" font-weight="500" text-anchor="middle">SdkApiClient</text>
+        <text x="580" y="300" fill="#8b949e" font-size="10" text-anchor="middle">Local: wraps SDK, reads ORG_ID</text>
+
+        <rect x="700" y="260" width="200" height="55" rx="8" fill="#1c2128" stroke="#d2a8ff" stroke-width="1"/>
+        <text x="800" y="283" fill="#d2a8ff" font-size="11" font-weight="500" text-anchor="middle">BearerTokenApiClient</text>
+        <text x="800" y="300" fill="#8b949e" font-size="10" text-anchor="middle">Hosted: HTTP to CAG w/ JWT</text>
+
+        <text x="675" y="350" fill="#3fb950" font-size="11" text-anchor="middle" font-style="italic">Works with any backend &mdash; local API keys or remote bearer tokens</text>
+
+        <!-- ToolContext label -->
+        <rect x="555" y="380" width="240" height="30" rx="6" fill="rgba(210,153,34,0.15)" stroke="rgba(210,153,34,0.3)" stroke-width="1"/>
+        <text x="675" y="400" fill="#d29922" font-size="11" font-weight="600" text-anchor="middle">+ ToolContext forwarding for hosted auth</text>
+      </svg>
+    </div>
+  </div>
+
+  <p class="narrative">
+    <strong>The four steps of every migration:</strong>
+  </p>
+
+  <p class="narrative">
+    <strong>1. Rename:</strong> Move the tool class and its params class from <code>contrast-mcp-stdio-app/src/main/java/.../tool/{family}/</code> to <code>contrast-mcp-core/src/main/java/.../tool/{family}/</code>. The package stays the same &mdash; only the Gradle module changes.
+  </p>
+  <p class="narrative">
+    <strong>2. Rebase:</strong> Change the base class from <code>LocalSdkSingleTool</code> or <code>LocalSdkPaginatedTool</code> (which inject SDK factories) to the shared <code>SingleTool</code> or <code>PaginatedTool</code> (which have no SDK dependency).
+  </p>
+  <p class="narrative">
+    <strong>3. Inject:</strong> Replace direct SDK calls like <code>getContrastSDK().getProtectConfig(getOrgId(), appId)</code> with <code>contrastApiClient.getProtectRules(appId)</code>. Notice how <code>orgId</code> disappears from the call &mdash; the <code>ContrastApiClient</code> implementation resolves it internally (from an env var locally, or from the JWT token remotely).
+  </p>
+  <p class="narrative">
+    <strong>4. Forward:</strong> Add <code>ToolContext toolContext</code> as the last parameter of the <code>@Tool</code> method and pass it to <code>executePipeline(..., toolContext)</code>. This enables the base class to invoke the <code>AuthenticationStrategy</code> on the hosted path, binding the caller's bearer token before any API call is made.
+  </p>
+
+  <div class="callout note">
+    <span class="callout-label">Concrete example</span>
+    <strong>Before:</strong> <code>extendedSDK.getProtectConfig(getOrgId(), params.appId())</code> &mdash; the tool knows it's talking to the SDK, knows the org ID, and is locked to local API key auth.<br>
+    <strong>After:</strong> <code>contrastApiClient.getProtectRules(params.appId())</code> &mdash; the tool just says "get me protect rules for this app" and the injected implementation handles the rest. On the hosted server, that implementation would send an HTTP request to the Contrast API Gateway with the user's bearer token.
+  </div>
+
+  <p class="narrative">
+    <strong>The mass file movement is the most visually dramatic part of this PR.</strong> 38 Java files were renamed (moved between modules). Of these, 17 were pure renames with 100% content similarity &mdash; the file literally didn't change, just its home. The other 21 had content modifications (the rebase/inject/forward steps above). Here's the full picture:
+  </p>
+
+  <div class="diagram">
+    <div class="diagram-title">File Movement: 38 files from stdio-app to core</div>
+    <div class="diagram-container">
+      <svg viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <!-- Source module -->
+        <rect x="30" y="20" width="340" height="460" rx="10" fill="#1c2128" stroke="#f85149" stroke-width="1.5" stroke-dasharray="6"/>
+        <text x="200" y="48" fill="#f85149" font-size="13" font-weight="700" text-anchor="middle">contrast-mcp-stdio-app</text>
+        <text x="200" y="65" fill="#8b949e" font-size="10" text-anchor="middle">(local-only module)</text>
+
+        <!-- Tool groups in source -->
+        <rect x="50" y="80" width="300" height="30" rx="5" fill="rgba(248,81,73,0.08)" stroke="rgba(248,81,73,0.2)" stroke-width="1"/>
+        <text x="65" y="100" fill="#ffa198" font-size="11">tool/application/ &bull; 2 tools + 2 params</text>
+
+        <rect x="50" y="118" width="300" height="30" rx="5" fill="rgba(248,81,73,0.08)" stroke="rgba(248,81,73,0.2)" stroke-width="1"/>
+        <text x="65" y="138" fill="#ffa198" font-size="11">tool/attack/ &bull; 2 tools + 2 params</text>
+
+        <rect x="50" y="156" width="300" height="30" rx="5" fill="rgba(248,81,73,0.08)" stroke="rgba(248,81,73,0.2)" stroke-width="1"/>
+        <text x="65" y="176" fill="#ffa198" font-size="11">tool/vulnerability/ &bull; 3 tools + 4 mappers + 3 params</text>
+
+        <rect x="50" y="194" width="300" height="30" rx="5" fill="rgba(248,81,73,0.08)" stroke="rgba(248,81,73,0.2)" stroke-width="1"/>
+        <text x="65" y="214" fill="#ffa198" font-size="11">tool/library/ &bull; 2 tools + 2 params</text>
+
+        <rect x="50" y="232" width="300" height="30" rx="5" fill="rgba(248,81,73,0.08)" stroke="rgba(248,81,73,0.2)" stroke-width="1"/>
+        <text x="65" y="252" fill="#ffa198" font-size="11">tool/coverage/ &bull; 1 tool + 1 mapper + 1 params</text>
+
+        <rect x="50" y="270" width="300" height="30" rx="5" fill="rgba(248,81,73,0.08)" stroke="rgba(248,81,73,0.2)" stroke-width="1"/>
+        <text x="65" y="290" fill="#ffa198" font-size="11">tool/sast/ &bull; 1 tool + 1 params</text>
+
+        <rect x="50" y="308" width="300" height="30" rx="5" fill="rgba(248,81,73,0.08)" stroke="rgba(248,81,73,0.2)" stroke-width="1"/>
+        <text x="65" y="328" fill="#ffa198" font-size="11">test/ &bull; 12 params tests + 4 mapper tests</text>
+
+        <!-- Stays behind -->
+        <rect x="50" y="370" width="300" height="30" rx="5" fill="rgba(139,148,158,0.08)" stroke="rgba(139,148,158,0.3)" stroke-width="1"/>
+        <text x="65" y="390" fill="#8b949e" font-size="11">STAYS: tool/sast/GetSastResultsTool (local-only)</text>
+
+        <rect x="50" y="408" width="300" height="30" rx="5" fill="rgba(139,148,158,0.08)" stroke="rgba(139,148,158,0.3)" stroke-width="1"/>
+        <text x="65" y="428" fill="#8b949e" font-size="11">STAYS: config/, sdkextension/, SdkApiClient</text>
+
+        <rect x="50" y="446" width="300" height="30" rx="5" fill="rgba(139,148,158,0.08)" stroke="rgba(139,148,158,0.3)" stroke-width="1"/>
+        <text x="65" y="466" fill="#8b949e" font-size="11">STAYS: LocalSdkSingleTool, LocalSdkPaginatedTool</text>
+
+        <!-- Arrows -->
+        <line x1="370" y1="95" x2="530" y2="95" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrowG)"/>
+        <line x1="370" y1="133" x2="530" y2="133" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrowG)"/>
+        <line x1="370" y1="171" x2="530" y2="171" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrowG)"/>
+        <line x1="370" y1="209" x2="530" y2="209" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrowG)"/>
+        <line x1="370" y1="247" x2="530" y2="247" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrowG)"/>
+        <line x1="370" y1="285" x2="530" y2="285" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrowG)"/>
+        <line x1="370" y1="323" x2="530" y2="323" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arrowG)"/>
+
+        <defs>
+          <marker id="arrowG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#3fb950"/>
+          </marker>
+        </defs>
+
+        <!-- Middle label -->
+        <text x="450" y="360" fill="#3fb950" font-size="11" font-weight="700" text-anchor="middle" transform="rotate(-90, 450, 360)">38 files moved</text>
+
+        <!-- Destination module -->
+        <rect x="530" y="20" width="340" height="370" rx="10" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="700" y="48" fill="#3fb950" font-size="13" font-weight="700" text-anchor="middle">contrast-mcp-core</text>
+        <text x="700" y="65" fill="#8b949e" font-size="10" text-anchor="middle">(shared module &mdash; published artifact)</text>
+
+        <rect x="550" y="80" width="300" height="30" rx="5" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.2)" stroke-width="1"/>
+        <text x="565" y="100" fill="#aff5b4" font-size="11">tool/application/ &bull; 2 tools + 2 params</text>
+
+        <rect x="550" y="118" width="300" height="30" rx="5" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.2)" stroke-width="1"/>
+        <text x="565" y="138" fill="#aff5b4" font-size="11">tool/attack/ &bull; 2 tools + 2 params</text>
+
+        <rect x="550" y="156" width="300" height="30" rx="5" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.2)" stroke-width="1"/>
+        <text x="565" y="176" fill="#aff5b4" font-size="11">tool/vulnerability/ &bull; 3 tools + 4 mappers + 3 params</text>
+
+        <rect x="550" y="194" width="300" height="30" rx="5" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.2)" stroke-width="1"/>
+        <text x="565" y="214" fill="#aff5b4" font-size="11">tool/library/ &bull; 2 tools + 2 params</text>
+
+        <rect x="550" y="232" width="300" height="30" rx="5" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.2)" stroke-width="1"/>
+        <text x="565" y="252" fill="#aff5b4" font-size="11">tool/coverage/ &bull; 1 tool + 1 mapper + 1 params</text>
+
+        <rect x="550" y="270" width="300" height="30" rx="5" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.2)" stroke-width="1"/>
+        <text x="565" y="290" fill="#aff5b4" font-size="11">tool/sast/ &bull; 1 tool (get_scan_project) + 1 params</text>
+
+        <rect x="550" y="308" width="300" height="30" rx="5" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.2)" stroke-width="1"/>
+        <text x="565" y="328" fill="#aff5b4" font-size="11">test/ &bull; 12 params tests + 4 mapper tests</text>
+
+        <rect x="550" y="350" width="300" height="30" rx="5" fill="rgba(88,166,255,0.1)" stroke="rgba(88,166,255,0.3)" stroke-width="1"/>
+        <text x="565" y="370" fill="#58a6ff" font-size="11">+ 11 NEW core tool unit tests</text>
+
+        <!-- Stats -->
+        <text x="700" y="430" fill="#8b949e" font-size="11" text-anchor="middle">17 pure renames (100% similarity) &bull; 21 renames with modifications</text>
+        <text x="700" y="450" fill="#8b949e" font-size="11" text-anchor="middle">11 new core tool tests &bull; 4 stdio-app tests deleted (replaced by core tests)</text>
+        <text x="700" y="470" fill="#8b949e" font-size="11" text-anchor="middle">4 new local parity tests in stdio-app</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== CHAPTER 3: PROTECT RULES ==================== -->
+<section class="chapter" id="protect">
+  <div class="chapter-header">
+    <span class="chapter-number green">3</span>
+    <h2>First Migration: Protect Rules</h2>
+  </div>
+
+  <p class="narrative">
+    <strong><code>GetProtectRulesTool</code> was the first tool migrated because it's the simplest &mdash; a single API call, no pagination, no enrichment.</strong> It retrieves Contrast Protect's runtime protection rules for an application. The migration exemplifies every step of the pattern in a small, reviewable package. Every subsequent migration in this PR follows the same formula, so understanding this one means understanding all 12.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">tool/attack/GetProtectRulesTool.java</span>
+      <span class="badge badge-renamed">RENAMED + MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code"><span class="comment">// Step 1: REBASE &mdash; change the base class</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"></span><span class="code"><span class="kw">import</span> com.contrast...tool.base.<span class="type">LocalSdkSingleTool</span>;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code"><span class="kw">import</span> com.contrast...tool.base.<span class="type">SingleTool</span>;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code"><span class="kw">import</span> com.contrast...client.<span class="type">ContrastApiClient</span>;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code"><span class="kw">import</span> org.springframework.ai.chat.model.<span class="type">ToolContext</span>;</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code"></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"></span><span class="code"><span class="kw">public class</span> <span class="type">GetProtectRulesTool</span> <span class="kw">extends</span> <span class="type">LocalSdkSingleTool</span>&lt;...&gt; {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code"><span class="kw">public class</span> <span class="type">GetProtectRulesTool</span> <span class="kw">extends</span> <span class="type">SingleTool</span>&lt;...&gt; {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">  <span class="kw">private final</span> <span class="type">ContrastApiClient</span> <span class="param">contrastApiClient</span>;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">  <span class="kw">public</span> <span class="type">GetProtectRulesTool</span>(<span class="type">ContrastApiClient</span> <span class="param">contrastApiClient</span>) {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">    <span class="kw">this</span>.contrastApiClient = contrastApiClient;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">  }</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Step 2 (INJECT): The tool now takes <code>ContrastApiClient</code> via constructor injection instead of inheriting SDK factories.</strong> <code>LocalSdkSingleTool</code> gave access to <code>getContrastSDK()</code> and <code>getOrgId()</code> &mdash; both local-only. The shared <code>SingleTool</code> base class has no such methods; the tool must go through the interface.
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code"><span class="comment">// Step 3: FORWARD &mdash; add ToolContext to the @Tool method</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code">  <span class="kw">public</span> <span class="type">SingleToolResponse</span>&lt;<span class="type">ProtectData</span>&gt; getProtectRules(</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code">      <span class="ann">@ToolParam</span>(...) <span class="type">String</span> <span class="param">appId</span>,</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">      <span class="type">ToolContext</span> <span class="param">toolContext</span>) {</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"></span><span class="code">    <span class="kw">return</span> executePipeline(() -&gt; GetProtectRulesParams.of(appId));</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">    <span class="kw">return</span> executePipeline(() -&gt; GetProtectRulesParams.of(appId), <span class="param">toolContext</span>);</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code">  }</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong><code>ToolContext</code> is Spring AI's mechanism for passing transport-level context into tool methods.</strong> On the hosted server, this carries the authenticated principal. The base class's <code>executePipeline</code> calls <code>authenticate(toolContext)</code> before <code>doExecute()</code>, which binds the bearer token to a thread-local so that <code>BearerTokenApiClient</code> can pick it up. On the local stdio server, <code>toolContext</code> is null and authentication is a no-op &mdash; the <code>SdkApiClient</code> reads credentials from environment variables instead.
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code"><span class="comment">// Step 4: INJECT into doExecute &mdash; use ContrastApiClient instead of SDK</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code">  <span class="kw">protected</span> <span class="type">ProtectData</span> doExecute(<span class="type">GetProtectRulesParams</span> params, <span class="type">WarningCollector</span> collector)</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code">      <span class="kw">throws</span> <span class="type">Exception</span> {</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"></span><span class="code">    <span class="kw">var</span> extendedSDK = getSDKExtension();</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"></span><span class="code">    <span class="kw">var</span> protectData = extendedSDK.getProtectConfig(<span class="param">getOrgId()</span>, params.appId());</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">    <span class="kw">var</span> protectData = contrastApiClient.getProtectRules(params.appId());</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>This is the heart of the migration: <code>getOrgId()</code> disappears.</strong> The old code explicitly passed the organization ID to every SDK call. The new code doesn't need to &mdash; the <code>ContrastApiClient</code> implementation resolves it internally. For local users, <code>SdkApiClient</code> reads <code>CONTRAST_ORG_ID</code> from the environment. For hosted users, <code>BearerTokenApiClient</code> extracts it from the authenticated JWT. The tool itself is agnostic.
+    </div>
+  </div>
+</section>
+
+<!-- ==================== CHAPTER 4: APPLICATION TOOLS ==================== -->
+<section class="chapter" id="applications">
+  <div class="chapter-header">
+    <span class="chapter-number green">4</span>
+    <h2>Application Tools</h2>
+  </div>
+
+  <p class="narrative">
+    <strong><code>SearchApplicationsTool</code> is the most interesting application tool because it resolves metadata field names to IDs before calling the API.</strong> Contrast applications can have custom metadata fields (like "Environment" or "Business Unit"). Users search by human-readable names, but the API needs numeric IDs. This tool performs a lookup call first, then feeds the resolved IDs into the search. The migration replaces two SDK calls with two <code>ContrastApiClient</code> calls while preserving this resolution logic.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">tool/application/SearchApplicationsTool.java</span>
+      <span class="badge badge-renamed">RENAMED + MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code"><span class="comment">// doExecute: metadata resolution + search</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"></span><span class="code">    <span class="kw">var</span> orgId = getOrgId();</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"></span><span class="code">    <span class="kw">var</span> sdkExtension = getSDKExtension();</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code"></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code">    <span class="type">List</span>&lt;<span class="type">AppMetadataFilter</span>&gt; resolvedMetadataFilters = <span class="kw">null</span>;</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code">    <span class="kw">if</span> (params.getMetadataFilters() != <span class="kw">null</span> &amp;&amp; !params.getMetadataFilters().isEmpty()) {</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"></span><span class="code">      resolvedMetadataFilters = resolveAppMetadataFilters(<span class="param">sdkExtension</span>, <span class="param">orgId</span>, ...);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span name="code">      resolvedMetadataFilters = resolveAppMetadataFilters(...);</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code">    }</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code"></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code">    <span class="kw">var</span> response =</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"></span><span class="code">        sdkExtension.getApplicationsFiltered(<span class="param">orgId</span>, name, tags, filters, ...);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">        contrastApiClient.searchApplications(name, tags, filters, ...);</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>The metadata field lookup also lost its <code>orgId</code> and <code>sdkExtension</code> parameters.</strong> Inside <code>buildAppMetadataFieldMapping()</code>, the call changed from <code>sdkExtension.getApplicationMetadataFields(orgId)</code> to <code>contrastApiClient.getApplicationMetadataFields()</code>. The business logic &mdash; building a case-insensitive name-to-ID mapping and rejecting unknown field names with an error listing valid options &mdash; is unchanged.
+    </div>
+  </div>
+
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">GetSessionMetadataTool &mdash; Standard Migration Pattern</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-ref">Follows: GetProtectRulesTool migration</span>
+    </summary>
+    <div class="sp-body">
+      Same four-step pattern as <code>GetProtectRulesTool</code>: rebase from <code>LocalSdkSingleTool</code> to <code>SingleTool</code>, inject <code>ContrastApiClient</code>, add <code>ToolContext</code> forwarding, replace <code>sdk.getSessionMetadataForApplication(orgId, appId, null)</code> with <code>contrastApiClient.getSessionMetadata(appId)</code>. The null-check warning was also simplified from a two-sentence message to a single sentence.
+    </div>
+  </details>
+</section>
+
+<!-- ==================== CHAPTER 5: VULNERABILITY TOOLS ==================== -->
+<section class="chapter" id="vulnerabilities">
+  <div class="chapter-header">
+    <span class="chapter-number purple">5</span>
+    <h2>Vulnerability Tools: The Complex Family</h2>
+  </div>
+
+  <p class="narrative">
+    <strong><code>GetVulnerabilityTool</code> is the most complex tool in the entire MCP server.</strong> It doesn't just fetch one thing &mdash; it orchestrates multiple API calls to assemble a rich vulnerability report. After fetching the core vulnerability trace (with expanded application, environment, and session data), it makes up to five additional calls for recommendations, HTTP request data, event summaries, library data, and library vulnerability observations. Each secondary call uses graceful degradation via <code>WarningCollector</code> &mdash; if one enrichment call fails, the tool still returns the core data with a warning instead of failing entirely.
+  </p>
+
+  <div class="diagram">
+    <div class="diagram-title">GetVulnerabilityTool: Orchestrated API Calls</div>
+    <div class="diagram-container">
+      <svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <!-- Tool -->
+        <rect x="330" y="10" width="240" height="45" rx="8" fill="#1c2128" stroke="#bc8cff" stroke-width="1.5"/>
+        <text x="450" y="38" fill="#d2a8ff" font-size="13" font-weight="600" text-anchor="middle">GetVulnerabilityTool</text>
+
+        <!-- Core call -->
+        <line x1="450" y1="55" x2="450" y2="85" stroke="#58a6ff" stroke-width="2"/>
+        <rect x="325" y="85" width="250" height="40" rx="6" fill="#1c2128" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="450" y="105" fill="#58a6ff" font-size="11" font-weight="600" text-anchor="middle">1. getVulnerability(appId, vulnId)</text>
+        <text x="450" y="120" fill="#8b949e" font-size="9" text-anchor="middle">Required &mdash; fails tool if missing</text>
+
+        <!-- Fan out -->
+        <line x1="450" y1="125" x2="450" y2="155" stroke="#6e7681" stroke-width="1.5"/>
+
+        <!-- Enrichment calls -->
+        <line x1="450" y1="155" x2="90" y2="195" stroke="#6e7681" stroke-width="1"/>
+        <line x1="450" y1="155" x2="270" y2="195" stroke="#6e7681" stroke-width="1"/>
+        <line x1="450" y1="155" x2="450" y2="195" stroke="#6e7681" stroke-width="1"/>
+        <line x1="450" y1="155" x2="630" y2="195" stroke="#6e7681" stroke-width="1"/>
+        <line x1="450" y1="155" x2="810" y2="195" stroke="#6e7681" stroke-width="1"/>
+
+        <rect x="10" y="195" width="160" height="50" rx="6" fill="#1c2128" stroke="#d29922" stroke-width="1"/>
+        <text x="90" y="215" fill="#d29922" font-size="10" font-weight="500" text-anchor="middle">2. getRecommendation</text>
+        <text x="90" y="233" fill="#8b949e" font-size="9" text-anchor="middle">tryFetch (optional)</text>
+
+        <rect x="190" y="195" width="160" height="50" rx="6" fill="#1c2128" stroke="#d29922" stroke-width="1"/>
+        <text x="270" y="215" fill="#d29922" font-size="10" font-weight="500" text-anchor="middle">3. getHttpRequest</text>
+        <text x="270" y="233" fill="#8b949e" font-size="9" text-anchor="middle">tryFetch + redact</text>
+
+        <rect x="370" y="195" width="160" height="50" rx="6" fill="#1c2128" stroke="#d29922" stroke-width="1"/>
+        <text x="450" y="215" fill="#d29922" font-size="10" font-weight="500" text-anchor="middle">4. getEventSummary</text>
+        <text x="450" y="233" fill="#8b949e" font-size="9" text-anchor="middle">tryRun (optional)</text>
+
+        <rect x="550" y="195" width="160" height="50" rx="6" fill="#1c2128" stroke="#d29922" stroke-width="1"/>
+        <text x="630" y="215" fill="#d29922" font-size="10" font-weight="500" text-anchor="middle">5. getAllLibraries</text>
+        <text x="630" y="233" fill="#8b949e" font-size="9" text-anchor="middle">for stack matching</text>
+
+        <rect x="730" y="195" width="160" height="50" rx="6" fill="#1c2128" stroke="#d29922" stroke-width="1"/>
+        <text x="810" y="215" fill="#d29922" font-size="10" font-weight="500" text-anchor="middle">6. getLibObservations</text>
+        <text x="810" y="233" fill="#8b949e" font-size="9" text-anchor="middle">per matched library</text>
+
+        <!-- Legend -->
+        <text x="450" y="280" fill="#8b949e" font-size="11" text-anchor="middle">Calls 2&ndash;6 use <tspan fill="#d29922">graceful degradation</tspan> &mdash; failures produce warnings, not errors</text>
+      </svg>
+    </div>
+  </div>
+
+  <p class="narrative">
+    <strong>The migration preserved this entire enrichment chain but routed every call through <code>ContrastApiClient</code>.</strong> Where the old code called <code>sdk.getRecommendation(orgId, vulnId)</code>, <code>sdk.getHttpRequest(orgId, vulnId)</code>, and <code>sdkExtension.getEventSummary(orgId, vulnId)</code>, the new code calls <code>contrastApiClient.getRecommendation(vulnId)</code>, <code>contrastApiClient.getHttpRequest(vulnId)</code>, and <code>contrastApiClient.getEventSummary(vulnId)</code>.
+  </p>
+
+  <div class="callout security">
+    <span class="callout-label">Security consideration</span>
+    <strong>The library enrichment chain is the highest-fanout path in the tool set.</strong> <code>getAllLibraries(appId)</code> can return hundreds of libraries, and for each library that matches a stack frame, <code>getLibraryObservations()</code> makes another API call. On the hosted path, every one of these calls goes through the API Gateway with the user's bearer token &mdash; no caching is permitted per the <code>NoRemoteStaticCache</code> invariant. The PRD mandates observe-first telemetry (not preemptive truncation) for these high-fan-out paths.
+  </div>
+
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">SearchVulnerabilitiesTool + SearchAppVulnerabilitiesTool &mdash; Standard Migration</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-ref">Follows: GetProtectRulesTool (PaginatedTool variant)</span>
+    </summary>
+    <div class="sp-body">
+      Both are paginated search tools that follow the exact same migration pattern as the protect rules tool, but extending <code>PaginatedTool</code> instead of <code>SingleTool</code>. The only difference is <code>SearchAppVulnerabilitiesTool</code> takes an additional <code>appId</code> parameter to scope searches to a single application. SDK calls like <code>sdk.getTracesInOrg(orgId, traceFilterBody)</code> became <code>contrastApiClient.searchVulnerabilities(traceFilterBody)</code>.
+    </div>
+  </details>
+</section>
+
+<!-- ==================== CHAPTER 6: REMAINING FAMILIES ==================== -->
+<section class="chapter" id="remaining">
+  <div class="chapter-header">
+    <span class="chapter-number green">6</span>
+    <h2>Libraries, Attacks, Coverage, and SAST</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>The remaining four tool families follow the established migration pattern with minor family-specific variations.</strong> Each family was migrated in its own commit for incremental verification. The variations are noted below, but the structural changes are identical to the protect rules exemplar.
+  </p>
+
+  <div class="callout note">
+    <span class="callout-label">Notable variation: Library tools</span>
+    <strong><code>ListApplicationsByCveTool</code> has a secondary enrichment loop similar to <code>GetVulnerabilityTool</code>.</strong> After fetching applications affected by a CVE, it calls <code>contrastApiClient.getAllLibraries(appId)</code> for each application to match vulnerable libraries. The old code used <code>SDKHelper.getAllLibraries()</code> which could hit a local Guava cache. The new code goes through <code>ContrastApiClient</code> &mdash; on the hosted path this means uncached calls through the API Gateway, per the <code>NoRemoteStaticCache</code> invariant.
+  </div>
+
+  <div class="callout note">
+    <span class="callout-label">Notable variation: Library params</span>
+    <strong><code>ListApplicationLibrariesParams</code> and <code>ListApplicationsByCveParams</code> had direct SDK type references removed.</strong> The params classes previously imported SDK-specific types for validation; these were replaced with string-based validation that works without SDK on the classpath.
+  </div>
+
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">SearchAttacksTool &mdash; Standard PaginatedTool Migration</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-ref">Follows: GetProtectRulesTool (PaginatedTool variant)</span>
+    </summary>
+    <div class="sp-body">
+      Paginated attack search with 10 filter parameters. Changed from <code>extendedSDK.getAttacks(getOrgId(), filterBody, limit, offset, sort)</code> to <code>contrastApiClient.searchAttacks(filterBody, limit, offset, sort)</code>. The complex filter body construction in <code>AttackFilterParams.toAttacksFilterBody()</code> is unchanged. The no-ToolContext overload was added as a convenience for backwards compatibility in tests.
+    </div>
+  </details>
+
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">GetRouteCoverageTool &mdash; Standard SingleTool Migration</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-ref">Follows: GetProtectRulesTool</span>
+    </summary>
+    <div class="sp-body">
+      Route coverage has conditional logic: if <code>useLatestSession</code> is true, it first calls <code>contrastApiClient.getLatestSessionMetadata(appId)</code> to find the session, then calls <code>contrastApiClient.getRouteCoverage(appId, filter)</code>. Both SDK calls were replaced by <code>ContrastApiClient</code> calls. The <code>RouteMapper</code> that transforms the response was moved with 100% content similarity.
+    </div>
+  </details>
+
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">GetSastProjectTool &mdash; Standard SingleTool Migration</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-ref">Follows: GetProtectRulesTool</span>
+    </summary>
+    <div class="sp-body">
+      The simplest tool in the SAST family: a single <code>contrastApiClient.getScanProject(projectName)</code> call. Note that <code>GetSastResultsTool</code> (raw SARIF retrieval) was deliberately <strong>not</strong> migrated &mdash; it stays in <code>contrast-mcp-stdio-app</code> as a local-only tool because SARIF responses can be unbounded and risk OOM on the hosted server. This exclusion is enforced by <code>CoreBoundaryTest</code> and <code>ContrastApiClientContractTest</code>.
+    </div>
+  </details>
+
+  <div class="callout future">
+    <span class="callout-label">Future work</span>
+    <strong><code>get_scan_results</code> is intentionally excluded from the shared core.</strong> If hosted SARIF access is ever needed, it would require a separate decision with truncation/streaming safeguards to prevent unbounded responses from causing OOM. For now, only <code>get_scan_project</code> (metadata) is shared.
+  </div>
+</section>
+
+<!-- ==================== CHAPTER 7: 401 BUG FIX ==================== -->
+<section class="chapter" id="bugfix">
+  <div class="chapter-header">
+    <span class="chapter-number orange">7</span>
+    <h2>The 401 Bug Fix</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>PR #129 (Slice 7) inadvertently changed the 401 error message to "Your authentication token has expired" &mdash; which is wrong for two reasons.</strong> First, the local stdio server uses API keys, not tokens. API keys don't expire, so telling users their "token expired" sends them down the wrong troubleshooting path. Second, the Contrast API intentionally returns 401 for unknown resource IDs as a security measure (to avoid leaking whether a resource exists). So a 401 doesn't always mean "auth failed" &mdash; it can also mean "that vulnerability/application/attack ID doesn't exist."
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">tool/base/BaseTool.java &mdash; mapHttpErrorCode()</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">62</span><span class="code">  <span class="kw">protected</span> <span class="type">String</span> mapHttpErrorCode(<span class="kw">int</span> <span class="param">code</span>) {</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">63</span><span class="code">    <span class="kw">return switch</span> (code) {</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln">64</span><span class="code">      <span class="kw">case</span> <span class="num">401</span> -&gt; <span class="str">"Your authentication token has expired. Please re-authenticate and retry."</span>;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">64</span><span class="code">      <span class="kw">case</span> <span class="num">401</span> -&gt;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">65</span><span class="code">          <span class="str">"Authentication failed or resource not found. Verify credentials and that the"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">66</span><span class="code">              + <span class="str">" resource ID is correct."</span>;</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">67</span><span class="code">      <span class="kw">case</span> <span class="num">403</span> -&gt; <span class="str">"Access denied. User lacks permission for this resource."</span>;</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">68</span><span class="code">      <span class="kw">case</span> <span class="num">404</span> -&gt; <span class="str">"Resource not found."</span>;</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>The restored message deliberately covers both failure modes: bad credentials <em>and</em> unknown resource IDs.</strong> This is the message that was in place before PR #129 changed it. Three integration tests were failing because they send bogus IDs to verify the error path, and the API returns 401 (not 404) for those IDs. The tests expect the dual-purpose message.
+    </div>
+  </div>
+
+  <p class="narrative">
+    <strong>The same commit also tightened log messages in <code>PaginatedTool</code> and <code>SingleTool</code>.</strong> Error log lines previously included <code>e.getMessage()</code> in the log message, which could leak downstream error details. These were changed to fixed strings (<code>"Request failed"</code> and <code>"API error"</code>) with the exception type and HTTP status preserved as structured key-value pairs via SLF4J fluent logging.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">tool/base/SingleTool.java &amp; PaginatedTool.java</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code">    log.atWarn()</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code">        .addKeyValue(<span class="type">LoggingKeys</span>.REQUEST_ID, requestId)</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code">        .addKeyValue(<span class="type">LoggingKeys</span>.EXCEPTION_TYPE, e.getClass().getSimpleName())</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"></span><span class="code">        .setMessage(<span class="str">"Request failed: {}"</span>)</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"></span><span class="code">        .addArgument(e.getMessage())</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">        .setMessage(<span class="str">"Request failed"</span>)</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code">        .log();</span></span>
+    </pre></div>
+    <div class="annotation security-note">
+      <strong>Removing <code>e.getMessage()</code> from log messages prevents downstream error details from leaking into logs.</strong> The exception type (<code>IOException</code>, <code>UnauthorizedException</code>) is preserved as a structured key-value for diagnostics, but the potentially sensitive message content (which might include URLs, org IDs, or error codes from the Contrast API) is no longer logged. This aligns with the Slice 7 credential redaction policy.
+    </div>
+  </div>
+</section>
+
+<!-- ==================== CHAPTER 8: BOUNDARY GUARDS ==================== -->
+<section class="chapter" id="guards">
+  <div class="chapter-header">
+    <span class="chapter-number yellow">8</span>
+    <h2>Boundary Guards</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>Two test classes act as automated architectural sentinels, ensuring the migration doesn't drift from its design constraints.</strong> These tests don't verify tool behavior &mdash; they verify that the right code lives in the right module and that forbidden patterns stay out.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">CoreBoundaryTest.java</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code"><span class="comment">// Was: one tool (list_vulnerability_types from Slice 4)</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code"><span class="kw">private static final</span> <span class="type">List</span>&lt;<span class="type">Path</span>&gt; EXPECTED_CORE_PRODUCTION_TOOLS = <span class="type">List</span>.of(</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">    sourcePath(<span class="str">"tool/application/GetSessionMetadataTool.java"</span>),</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">    sourcePath(<span class="str">"tool/application/SearchApplicationsTool.java"</span>),</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">    sourcePath(<span class="str">"tool/attack/GetProtectRulesTool.java"</span>),</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">    sourcePath(<span class="str">"tool/attack/SearchAttacksTool.java"</span>),</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">    sourcePath(<span class="str">"tool/coverage/GetRouteCoverageTool.java"</span>),</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">    sourcePath(<span class="str">"tool/library/ListApplicationLibrariesTool.java"</span>),</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">    sourcePath(<span class="str">"tool/library/ListApplicationsByCveTool.java"</span>),</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">    sourcePath(<span class="str">"tool/sast/GetSastProjectTool.java"</span>),</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">    sourcePath(<span class="str">"tool/vulnerability/GetVulnerabilityTool.java"</span>),</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code">    sourcePath(<span class="str">"tool/vulnerability/ListVulnerabilityTypesTool.java"</span>),</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">    sourcePath(<span class="str">"tool/vulnerability/SearchAppVulnerabilitiesTool.java"</span>),</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">    sourcePath(<span class="str">"tool/vulnerability/SearchVulnerabilitiesTool.java"</span>));</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>This list is an allowlist of exactly which tools are permitted in core.</strong> The test scans every <code>.java</code> file in <code>contrast-mcp-core/src/main/</code>, finds any that contain <code>@Tool</code> annotations, and asserts the set matches exactly. If someone adds a tool to core that shouldn't be there (like <code>GetSastResultsTool</code>), or forgets to add one during a future migration, this test catches it. The test name was updated from <code>core_should_include_exactly_one_s4b_production_tool</code> to <code>core_should_include_migrated_shared_production_tools</code>.
+    </div>
+  </div>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">ContrastApiClientContractTest.java</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code"><span class="kw">private static final</span> <span class="type">List</span>&lt;<span class="type">String</span>&gt; FORBIDDEN_RAW_SARIF_TOKENS =</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">    <span class="type">List</span>.of(<span class="str">"getScanResults"</span>, <span class="str">"get_scan_results"</span>, <span class="str">"SarifResult"</span>, <span class="str">"sarif"</span>);</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"></span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code"><span class="ann">@Test</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code"><span class="kw">void</span> contrastApiClient_should_expose_scan_project_but_no_raw_sarif_path() {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">  assertThat(<span class="type">ContrastApiClient</span>.<span class="kw">class</span>.getDeclaredMethods())</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">      .extracting(method -&gt; method.getName())</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">      .contains(<span class="str">"getScanProject"</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">      .doesNotContain(<span class="str">"getScanResults"</span>);</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">  assertThat(FORBIDDEN_RAW_SARIF_TOKENS)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">      .as(<span class="str">"raw SARIF retrieval must stay local-only"</span>)</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">      .allSatisfy(token -&gt; assertThat(source).doesNotContain(token));</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln"></span><span class="code">}</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>This test guards the <code>ContrastApiClient</code> interface itself.</strong> It uses both reflection (checking method names) and source text scanning (checking for string tokens like "sarif") to ensure that raw SARIF retrieval never appears on the shared boundary. Combined with <code>CoreBoundaryTest</code>'s exclusion of <code>GetSastResultsTool.java</code>, this creates defense-in-depth: even if someone accidentally adds a SARIF method to the interface, the test catches it before it can reach the hosted server.
+    </div>
+  </div>
+</section>
+
+<!-- ==================== CHAPTER 9: TESTING ==================== -->
+<section class="chapter" id="testing">
+  <div class="chapter-header">
+    <span class="chapter-number green">9</span>
+    <h2>Testing Strategy</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>The migration uses a three-tier testing approach that creates a ratchet: once a tool is migrated, tests at every level prevent regression.</strong>
+  </p>
+
+  <div class="diagram">
+    <div class="diagram-title">Three-Tier Testing Architecture</div>
+    <div class="diagram-container">
+      <svg viewBox="0 0 900 280" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <!-- Tier 1 -->
+        <rect x="30" y="30" width="260" height="220" rx="10" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="160" y="55" fill="#3fb950" font-size="13" font-weight="700" text-anchor="middle">Tier 1: Core Unit Tests</text>
+        <text x="160" y="75" fill="#8b949e" font-size="10" text-anchor="middle">in contrast-mcp-core</text>
+        <text x="50" y="100" fill="#aff5b4" font-size="11">11 new test classes</text>
+        <text x="50" y="120" fill="#8b949e" font-size="10">Mock ContrastApiClient</text>
+        <text x="50" y="140" fill="#8b949e" font-size="10">Verify: routing, validation,</text>
+        <text x="50" y="155" fill="#8b949e" font-size="10">ToolContext forwarding, tool name,</text>
+        <text x="50" y="170" fill="#8b949e" font-size="10">warnings, error sanitization,</text>
+        <text x="50" y="185" fill="#8b949e" font-size="10">no-data handling</text>
+        <text x="50" y="210" fill="#d29922" font-size="10" font-weight="600">No SDK, no network, no Spring</text>
+        <text x="50" y="235" fill="#8b949e" font-size="10">Example: GetProtectRulesToolTest</text>
+
+        <!-- Tier 2 -->
+        <rect x="320" y="30" width="260" height="220" rx="10" fill="#1c2128" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="450" y="55" fill="#58a6ff" font-size="13" font-weight="700" text-anchor="middle">Tier 2: Local Parity Tests</text>
+        <text x="450" y="75" fill="#8b949e" font-size="10" text-anchor="middle">in contrast-mcp-stdio-app</text>
+        <text x="340" y="100" fill="#a5d6ff" font-size="11">4 new parity test classes</text>
+        <text x="340" y="120" fill="#8b949e" font-size="10">Mock SDK, real SdkApiClient</text>
+        <text x="340" y="140" fill="#8b949e" font-size="10">Verify: local SDK path still</text>
+        <text x="340" y="155" fill="#8b949e" font-size="10">produces correct results, org ID</text>
+        <text x="340" y="170" fill="#8b949e" font-size="10">doesn't leak into responses,</text>
+        <text x="340" y="185" fill="#8b949e" font-size="10">SdkApiClient wiring correct</text>
+        <text x="340" y="210" fill="#d29922" font-size="10" font-weight="600">Tests full local chain, no network</text>
+        <text x="340" y="235" fill="#8b949e" font-size="10">Example: GetProtectRulesLocalParityTest</text>
+
+        <!-- Tier 3 -->
+        <rect x="610" y="30" width="260" height="220" rx="10" fill="#1c2128" stroke="#bc8cff" stroke-width="1.5"/>
+        <text x="740" y="55" fill="#bc8cff" font-size="13" font-weight="700" text-anchor="middle">Tier 3: Integration Tests</text>
+        <text x="740" y="75" fill="#8b949e" font-size="10" text-anchor="middle">in contrast-mcp-stdio-app</text>
+        <text x="630" y="100" fill="#d2a8ff" font-size="11">Existing *IT.java classes</text>
+        <text x="630" y="120" fill="#8b949e" font-size="10">Real API calls to TeamServer</text>
+        <text x="630" y="140" fill="#8b949e" font-size="10">Verify: tools work end-to-end</text>
+        <text x="630" y="155" fill="#8b949e" font-size="10">with real data, filters produce</text>
+        <text x="630" y="170" fill="#8b949e" font-size="10">correct results, error messages</text>
+        <text x="630" y="185" fill="#8b949e" font-size="10">match (including 401 fix)</text>
+        <text x="630" y="210" fill="#d29922" font-size="10" font-weight="600">Requires credentials in .env</text>
+        <text x="630" y="235" fill="#8b949e" font-size="10">945 tests, 0 failures</text>
+      </svg>
+    </div>
+  </div>
+
+  <p class="narrative">
+    <strong>Tier 1 core tests verify the tool's logic in isolation from any backend.</strong> They mock <code>ContrastApiClient</code> and assert that the tool routes calls correctly, validates inputs, forwards <code>ToolContext</code>, preserves its <code>@Tool</code> name, generates warnings for empty data, and sanitizes exceptions into request-ID-tagged error messages. These tests live in <code>contrast-mcp-core</code> alongside the tool, so they ship in the published artifact.
+  </p>
+
+  <p class="narrative">
+    <strong>Tier 2 local parity tests verify that <code>SdkApiClient</code> correctly bridges the tool to the local SDK.</strong> They mock the Contrast SDK and SDKExtension, wire up a real <code>SdkApiClient</code> and real tool, then assert the full chain produces correct results. Critically, they also assert that the local organization ID does <em>not</em> leak into the tool's response JSON &mdash; ensuring the response is transport-agnostic.
+  </p>
+
+  <p class="narrative">
+    <strong>Tier 3 integration tests already existed for most tools and were updated to reflect the corrected 401 message.</strong> They run against a real Contrast TeamServer with seeded data and verify that filters, pagination, sort, and error paths all work end-to-end.
+  </p>
+
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">Verification Scripts (7 new shell scripts)</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-files">hack/verify-s8-*.sh</span>
+      <span class="sp-ref">Follows: hack/verify-s4a-client-boundary.sh</span>
+    </summary>
+    <div class="sp-body">
+      Seven per-family verification scripts follow the same structure as the Slice 4 boundary scripts. Each script runs <code>make check-test</code> with filters for the relevant test classes, checks exit codes, and emits structured assertions. They serve as quick sanity checks during development and as CI-reproducible evidence that each family passes independently.
+    </div>
+  </details>
+
+  <details class="standard-pattern">
+    <summary>
+      <svg class="sp-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill="currentColor" opacity=".3"/></svg>
+      <span class="sp-title">Deleted stdio-app tests (4 files, replaced by core tests)</span>
+      <span class="badge-standard">Standard Pattern</span>
+      <span class="sp-files">contrast-mcp-stdio-app/.../*ToolTest.java</span>
+      <span class="sp-ref">Replaced by: contrast-mcp-core/.../*ToolTest.java</span>
+    </summary>
+    <div class="sp-body">
+      Four test files were deleted from <code>contrast-mcp-stdio-app</code>: <code>GetProtectRulesToolTest</code>, <code>SearchAttacksToolTest</code>, <code>GetRouteCoverageToolTest</code>, and <code>GetSastProjectToolTest</code>. These were not simply moved &mdash; they were <strong>replaced</strong> by new core test classes with updated assertions (testing against <code>ContrastApiClient</code> mocks instead of SDK mocks). The core tests provide equal or greater coverage. Local parity tests in stdio-app cover the remaining local-specific concerns.
+    </div>
+  </details>
+</section>
+
+<!-- ==================== CHAPTER 10: WHAT'S NEXT ==================== -->
+<section class="chapter" id="next">
+  <div class="chapter-header">
+    <span class="chapter-number purple">10</span>
+    <h2>What's Next</h2>
+  </div>
+
+  <div class="slice-columns">
+    <div class="slice-col this-pr">
+      <div class="slice-title">This PR delivers</div>
+      <div class="slice-item"><span class="dot"></span><strong>12 tools migrated</strong> to shared core across 7 families</div>
+      <div class="slice-item"><span class="dot"></span><strong>11 core unit tests</strong> covering ContrastApiClient routing and validation</div>
+      <div class="slice-item"><span class="dot"></span><strong>4 local parity tests</strong> proving SdkApiClient still works correctly</div>
+      <div class="slice-item"><span class="dot"></span><strong>Boundary guards</strong> updated to enforce the expanded tool set</div>
+      <div class="slice-item"><span class="dot"></span><strong>401 bug fix</strong> restoring correct auth/resource-not-found message</div>
+      <div class="slice-item"><span class="dot"></span><strong>Log sanitization</strong> removing exception messages from log output</div>
+    </div>
+    <div class="slice-col future-col">
+      <div class="slice-title">What comes next</div>
+      <div class="slice-item"><span class="dot"></span><strong>Hosted BearerTokenApiClient</strong> implementations for each tool family (aiml-services repo)</div>
+      <div class="slice-item"><span class="dot"></span><strong>Slice 9</strong>: Dataplatform tools &mdash; CVE, SBOM, compliance workflows</div>
+      <div class="slice-item"><span class="dot"></span><strong>Slice 10</strong>: OAuth and API gateway validation in staging</div>
+      <div class="slice-item"><span class="dot"></span><strong>Slice 12</strong>: Full parity gates, Artifactory publishing, release runbooks</div>
+      <div class="slice-item"><span class="dot"></span><strong>get_scan_results</strong> stays local-only unless a separate OOM-safe design is approved</div>
+    </div>
+  </div>
+
+  <p class="narrative">
+    <strong>Suggested review order:</strong> Start with Chapter 2 (the migration pattern) and Chapter 3 (protect rules exemplar). Once the pattern clicks, skim the collapsed standard patterns in Chapters 4&ndash;6 and focus on the novel areas: <code>GetVulnerabilityTool</code>'s enrichment chain (Chapter 5), the 401 fix (Chapter 7), and the boundary guards (Chapter 8).
+  </p>
+
+  <table class="file-table">
+    <thead><tr><th>File</th><th>Purpose</th><th>Lines</th><th>Novelty</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>tool/attack/GetProtectRulesTool.java</td>
+        <td>Protect rules tool &mdash; first migration exemplar</td>
+        <td class="addition">+39 &minus;35</td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>tool/vulnerability/GetVulnerabilityTool.java</td>
+        <td>Most complex tool &mdash; multi-call enrichment chain</td>
+        <td class="addition">+65</td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>tool/base/BaseTool.java</td>
+        <td>401 error message fix</td>
+        <td class="addition">+4 &minus;1</td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>tool/base/SingleTool.java</td>
+        <td>Log sanitization &mdash; remove e.getMessage()</td>
+        <td class="addition">+6 &minus;6</td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>tool/base/PaginatedTool.java</td>
+        <td>Log sanitization &mdash; remove e.getMessage()</td>
+        <td class="addition">+6 &minus;6</td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>CoreBoundaryTest.java</td>
+        <td>Expanded tool allowlist from 1 to 12</td>
+        <td class="addition">+32</td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>ContrastApiClientContractTest.java</td>
+        <td>SARIF exclusion gate on shared interface</td>
+        <td class="addition">+15</td>
+        <td class="novelty"><span class="novelty-badge novel">Novel</span></td>
+      </tr>
+      <tr>
+        <td>tool/application/SearchApplicationsTool.java</td>
+        <td>Metadata filter resolution migration</td>
+        <td class="addition">+46 &minus;42</td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>tool/application/GetSessionMetadataTool.java</td>
+        <td>Session metadata tool migration</td>
+        <td class="addition">+30 &minus;26</td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>tool/attack/SearchAttacksTool.java</td>
+        <td>Attack search with 10 filter params</td>
+        <td class="addition">+45 &minus;41</td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>tool/library/ListApplicationsByCveTool.java</td>
+        <td>CVE impact search with library enrichment</td>
+        <td class="addition">+59 &minus;54</td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>tool/library/ListApplicationLibrariesTool.java</td>
+        <td>Paginated library listing</td>
+        <td class="addition">+35 &minus;31</td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>tool/coverage/GetRouteCoverageTool.java</td>
+        <td>Route coverage with optional session lookup</td>
+        <td class="addition">+32 &minus;28</td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>tool/sast/GetSastProjectTool.java</td>
+        <td>SAST metadata (NOT raw SARIF)</td>
+        <td class="addition">+33 &minus;29</td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>tool/vulnerability/Search*Tool.java (×2)</td>
+        <td>Vulnerability search migrations</td>
+        <td class="addition">+109 &minus;68</td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>11 new *ToolTest.java in core</td>
+        <td>Core unit tests for migrated tools</td>
+        <td class="addition">+2,589</td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>4 new *LocalParityTest.java</td>
+        <td>SdkApiClient parity tests in stdio-app</td>
+        <td class="addition">+396</td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>17 pure-rename files (params, mappers)</td>
+        <td>Moved to core with zero content changes</td>
+        <td>0</td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+      <tr>
+        <td>7 hack/verify-s8-*.sh scripts</td>
+        <td>Per-family verification scripts</td>
+        <td class="addition">+968</td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+      <tr>
+        <td>4 deleted stdio-app *ToolTest.java</td>
+        <td>Replaced by core tests</td>
+        <td class="deletion">&minus;978</td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+      <tr>
+        <td>scripts/ralph-next-bead</td>
+        <td>Developer helper script (not production)</td>
+        <td class="addition">+204</td>
+        <td class="novelty"><span class="novelty-badge standard">Standard</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+</main>
+
+<footer>
+  PR #130 &middot; AIML-762 &middot; mcp-contrast
+</footer>
+
+</body>
+</html>
