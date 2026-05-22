@@ -26,8 +26,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class SingleToolTest {
-  private static final String REAUTHENTICATE_MESSAGE =
-      "Your authentication token has expired. Please re-authenticate and retry.";
+  private static final String AUTH_OR_NOT_FOUND_MESSAGE =
+      "Authentication failed or resource not found. Verify credentials and that the resource ID"
+          + " is correct.";
 
   private TestGetTool tool;
 
@@ -107,7 +108,7 @@ class SingleToolTest {
     var result = tool.executePipeline(() -> TestParams.valid());
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly(REAUTHENTICATE_MESSAGE);
+    assertThat(result.errors()).containsExactly(AUTH_OR_NOT_FOUND_MESSAGE);
   }
 
   @Test
@@ -248,10 +249,10 @@ class SingleToolTest {
     var result = tool.executePipeline(() -> TestParams.withWarning("Initial warning"));
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly(REAUTHENTICATE_MESSAGE);
+    assertThat(result.errors()).containsExactly(AUTH_OR_NOT_FOUND_MESSAGE);
     assertThat(result.warnings())
         .containsExactlyInAnyOrder(
-            "Initial warning", "Warning added before exception", REAUTHENTICATE_MESSAGE);
+            "Initial warning", "Warning added before exception", AUTH_OR_NOT_FOUND_MESSAGE);
   }
 
   @Test

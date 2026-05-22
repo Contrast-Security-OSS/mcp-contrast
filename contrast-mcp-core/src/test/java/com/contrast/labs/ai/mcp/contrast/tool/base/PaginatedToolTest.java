@@ -26,8 +26,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class PaginatedToolTest {
-  private static final String REAUTHENTICATE_MESSAGE =
-      "Your authentication token has expired. Please re-authenticate and retry.";
+  private static final String AUTH_OR_NOT_FOUND_MESSAGE =
+      "Authentication failed or resource not found. Verify credentials and that the resource ID"
+          + " is correct.";
 
   private TestSearchTool tool;
 
@@ -81,7 +82,7 @@ class PaginatedToolTest {
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly(REAUTHENTICATE_MESSAGE);
+    assertThat(result.errors()).containsExactly(AUTH_OR_NOT_FOUND_MESSAGE);
   }
 
   @Test

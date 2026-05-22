@@ -139,7 +139,8 @@ class GetSastProjectToolTest {
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors())
         .containsExactly(
-            "Your authentication token has expired. Please re-authenticate and retry.");
+            "Authentication failed or resource not found. Verify credentials and that the resource"
+                + " ID is correct.");
     assertThat(result.toString()).doesNotContain(SECRET_BODY, "/ng/org/scan");
   }
 

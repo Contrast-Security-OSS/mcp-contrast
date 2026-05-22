@@ -61,7 +61,9 @@ public abstract class BaseTool {
    */
   protected String mapHttpErrorCode(int code) {
     return switch (code) {
-      case 401 -> "Your authentication token has expired. Please re-authenticate and retry.";
+      case 401 ->
+          "Authentication failed or resource not found. Verify credentials and that the resource ID"
+              + " is correct.";
       case 403 -> "Access denied. User lacks permission for this resource.";
       case 404 -> "Resource not found.";
       case 429 -> "Rate limit exceeded. Retry after a brief pause.";
