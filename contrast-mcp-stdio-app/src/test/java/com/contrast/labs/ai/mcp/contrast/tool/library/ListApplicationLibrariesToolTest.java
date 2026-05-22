@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.AnonymousLibraryExtendedBuilder;
+import com.contrast.labs.ai.mcp.contrast.client.SdkApiClient;
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
 import com.contrast.labs.ai.mcp.contrast.config.SDKExtensionFactory;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
@@ -41,7 +42,6 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -63,9 +63,7 @@ class ListApplicationLibrariesToolTest {
     when(sdkFactory.getOrgId()).thenReturn(TEST_ORG_ID);
     when(sdkExtensionFactory.getSDKExtension()).thenReturn(sdkExtension);
 
-    tool = new ListApplicationLibrariesTool();
-    ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
-    ReflectionTestUtils.setField(tool, "sdkExtensionFactory", sdkExtensionFactory);
+    tool = new ListApplicationLibrariesTool(new SdkApiClient(sdkFactory, sdkExtensionFactory));
 
     // Mock SDKHelper static methods
     mockedSDKHelper = mockStatic(SDKHelper.class);

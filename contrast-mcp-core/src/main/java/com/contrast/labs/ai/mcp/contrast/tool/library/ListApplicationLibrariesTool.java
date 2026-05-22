@@ -15,17 +15,19 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.library;
 
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
-import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkPaginatedTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.library.params.ListApplicationLibrariesParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
@@ -33,14 +35,14 @@ import org.springframework.stereotype.Service;
 /**
  * MCP tool for listing libraries used by an application. Returns all third-party libraries with
  * class usage statistics to help identify actively used vs potentially unused dependencies.
- *
- * <p>Note: This tool will be DEPRECATED once search_libraries is implemented. The search_libraries
- * tool will provide more flexible filtering capabilities.
  */
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class ListApplicationLibrariesTool
-    extends LocalSdkPaginatedTool<ListApplicationLibrariesParams, LibraryExtended> {
+    extends PaginatedTool<ListApplicationLibrariesParams, LibraryExtended> {
+
+  private final ContrastApiClient contrastApiClient;
 
   @Override
   protected int getMaxPageSize() {
@@ -82,8 +84,15 @@ public class ListApplicationLibrariesTool
       @ToolParam(description = "Page number (1-based), default: 1", required = false) Integer page,
       @ToolParam(description = "Items per page (max 50), default: 50", required = false)
           Integer pageSize,
-      @ToolParam(description = "Application ID (use search_applications to find)") String appId) {
-    return executePipeline(page, pageSize, () -> ListApplicationLibrariesParams.of(appId));
+      @ToolParam(description = "Application ID (use search_applications to find)") String appId,
+      ToolContext toolContext) {
+    return executePipeline(
+        page, pageSize, () -> ListApplicationLibrariesParams.of(appId), toolContext);
+  }
+
+  public PaginatedToolResponse<LibraryExtended> listApplicationLibraries(
+      Integer page, Integer pageSize, String appId) {
+    return listApplicationLibraries(page, pageSize, appId, null);
   }
 
   @Override
@@ -92,23 +101,17 @@ public class ListApplicationLibrariesTool
       ListApplicationLibrariesParams params,
       WarningCollector collector)
       throws Exception {
-    var orgId = getOrgId();
-    var extendedSDK = getSDKExtension();
 
     log.debug("Retrieving libraries for application: {}", params.appId());
 
-    // Server-side pagination - pageSize already capped by getMaxPageSize()
     var response =
-        SDKHelper.getLibraryPage(
-            params.appId(), orgId, extendedSDK, pagination.pageSize(), pagination.offset());
-
+        contrastApiClient.getLibraryPage(
+            params.appId(), pagination.pageSize(), pagination.offset());
     var libraries = response.getLibraries();
     Long totalCount = response.getCount();
     int total = totalCount != null ? totalCount.intValue() : 0;
 
     if (libraries == null || libraries.isEmpty()) {
-      // Only add warning if this is page 1 (no libraries exist at all)
-      // For subsequent pages beyond results, empty is expected behavior
       if (pagination.offset() == 0 && total == 0) {
         collector.warn(
             "No libraries found for this application. "

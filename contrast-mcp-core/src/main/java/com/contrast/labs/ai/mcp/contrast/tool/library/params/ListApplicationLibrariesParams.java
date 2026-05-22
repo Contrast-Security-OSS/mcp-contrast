@@ -18,36 +18,17 @@ package com.contrast.labs.ai.mcp.contrast.tool.library.params;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 
-/**
- * Validation parameters for ListApplicationLibrariesTool. Validates required appId.
- *
- * <p>Usage:
- *
- * <pre>{@code
- * var params = ListApplicationLibrariesParams.of("app-123");
- * if (!params.isValid()) {
- *   // Handle errors
- * }
- * }</pre>
- */
+/** Validation parameters for ListApplicationLibrariesTool. */
 public class ListApplicationLibrariesParams extends BaseToolParams {
 
   private String appId;
 
-  /** Private constructor - use static factory method {@link #of}. */
   private ListApplicationLibrariesParams() {}
 
-  /**
-   * Parse and validate application libraries parameters.
-   *
-   * @param appId Application ID (required)
-   * @return ListApplicationLibrariesParams with validation state
-   */
   public static ListApplicationLibrariesParams of(String appId) {
     var params = new ListApplicationLibrariesParams();
     var ctx = new ToolValidationContext();
 
-    // Validate required field
     ctx.require(appId, "appId");
     params.appId = appId;
 

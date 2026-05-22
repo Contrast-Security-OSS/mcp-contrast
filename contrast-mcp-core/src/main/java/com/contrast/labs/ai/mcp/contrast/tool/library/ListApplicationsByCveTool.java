@@ -15,19 +15,23 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.library;
 
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
+import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.App;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
-import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.library.params.ListApplicationsByCveParams;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Service;
@@ -35,14 +39,13 @@ import org.springframework.stereotype.Service;
 /**
  * MCP tool for finding applications affected by a specific CVE. Returns applications and their
  * vulnerable libraries, enriched with class usage data to help identify exploitability.
- *
- * <p>Note: This tool will be ENHANCED to search_applications_by_cve with additional filtering
- * capabilities (environment filter, onlyUsedClasses flag).
  */
 @Service
+@RequiredArgsConstructor
 @Slf4j
-public class ListApplicationsByCveTool
-    extends LocalSdkSingleTool<ListApplicationsByCveParams, CveData> {
+public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveParams, CveData> {
+
+  private final ContrastApiClient contrastApiClient;
 
   @Tool(
       name = "list_applications_by_cve",
@@ -68,25 +71,26 @@ public class ListApplicationsByCveTool
           - search_applications: Find applications by name, tag, or metadata
           """)
   public SingleToolResponse<CveData> listApplicationsByCve(
-      @ToolParam(description = "CVE identifier (e.g., CVE-2021-44228)") String cveId) {
-    return executePipeline(() -> ListApplicationsByCveParams.of(cveId));
+      @ToolParam(description = "CVE identifier (e.g., CVE-2021-44228)") String cveId,
+      ToolContext toolContext) {
+    return executePipeline(() -> ListApplicationsByCveParams.of(cveId), toolContext);
+  }
+
+  public SingleToolResponse<CveData> listApplicationsByCve(String cveId) {
+    return listApplicationsByCve(cveId, null);
   }
 
   @Override
   protected CveData doExecute(ListApplicationsByCveParams params, WarningCollector collector)
       throws Exception {
-    var orgId = getOrgId();
-    var extendedSDK = getSDKExtension();
 
     log.debug("Retrieving applications vulnerable to CVE: {}", params.cveId());
 
-    var cveData = extendedSDK.getAppsForCVE(orgId, params.cveId());
-
+    var cveData = contrastApiClient.getApplicationsByCve(params.cveId());
     if (cveData == null) {
       return null; // SingleTool converts this to notFound response
     }
 
-    // Handle null lists gracefully
     var vulnerableLibs =
         cveData.getLibraries() != null ? cveData.getLibraries() : Collections.<Library>emptyList();
     var apps = cveData.getApps() != null ? cveData.getApps() : Collections.<App>emptyList();
@@ -104,8 +108,14 @@ public class ListApplicationsByCveTool
         apps.size(),
         params.cveId());
 
-    // Enrich each app with class usage data from the vulnerable library
-    enrichAppsWithClassUsage(apps, vulnerableLibs, orgId, extendedSDK, collector);
+    var started = Instant.now();
+    enrichAppsWithClassUsage(apps, vulnerableLibs, collector);
+    log.debug(
+        "Built CVE application library enrichment: appCount={}, vulnerableLibraryCount={},"
+            + " durationMs={}",
+        apps.size(),
+        vulnerableLibs.size(),
+        Duration.between(started, Instant.now()).toMillis());
 
     log.info(
         "Successfully retrieved CVE data for {}: {} vulnerable applications",
@@ -115,26 +125,17 @@ public class ListApplicationsByCveTool
     return cveData;
   }
 
-  /**
-   * Enriches application data with class usage information from vulnerable libraries. This helps
-   * determine exploitability - if classUsage is 0, the vulnerable code is likely not being
-   * executed.
-   */
   private void enrichAppsWithClassUsage(
-      List<App> apps,
-      List<Library> vulnerableLibs,
-      String orgId,
-      SDKExtension extendedSDK,
-      WarningCollector collector) {
+      List<App> apps, List<Library> vulnerableLibs, WarningCollector collector) {
 
     for (App app : apps) {
       collector.tryRun(
           "Class usage data for application '" + app.getName() + "'",
           () -> {
-            var appLibraries = SDKHelper.getLibsForID(app.getAppId(), orgId, extendedSDK);
+            var appLibraries = contrastApiClient.getAllLibraries(app.getAppId());
             for (LibraryExtended appLib : appLibraries) {
               for (Library vulnLib : vulnerableLibs) {
-                if (appLib.getHash().equals(vulnLib.getHash())) {
+                if (Objects.equals(appLib.getHash(), vulnLib.getHash())) {
                   if (appLib.getClassesUsed() > 0) {
                     app.setClassCount(appLib.getClassCount());
                     app.setClassUsage(appLib.getClassesUsed());

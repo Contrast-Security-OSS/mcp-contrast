@@ -17,12 +17,12 @@ package com.contrast.labs.ai.mcp.contrast.tool.library;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.AnonymousLibraryExtendedBuilder;
+import com.contrast.labs.ai.mcp.contrast.client.SdkApiClient;
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
 import com.contrast.labs.ai.mcp.contrast.config.SDKExtensionFactory;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
@@ -44,7 +44,6 @@ import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -67,9 +66,7 @@ class ListApplicationsByCveToolTest {
     when(sdkFactory.getOrgId()).thenReturn(TEST_ORG_ID);
     when(sdkExtensionFactory.getSDKExtension()).thenReturn(sdkExtension);
 
-    tool = new ListApplicationsByCveTool();
-    ReflectionTestUtils.setField(tool, "sdkFactory", sdkFactory);
-    ReflectionTestUtils.setField(tool, "sdkExtensionFactory", sdkExtensionFactory);
+    tool = new ListApplicationsByCveTool(new SdkApiClient(sdkFactory, sdkExtensionFactory));
 
     // Mock SDKHelper static methods
     mockedSDKHelper = mockStatic(SDKHelper.class);
@@ -165,9 +162,9 @@ class ListApplicationsByCveToolTest {
   @Test
   void listApplicationsByCve_should_handle_null_libraries_list_gracefully() throws IOException {
     var cveData = new CveData();
-    App app = mock();
-    when(app.getAppId()).thenReturn(TEST_APP_ID);
-    when(app.getName()).thenReturn("Test App");
+    var app = new App();
+    app.setAppId(TEST_APP_ID);
+    app.setName("Test App");
 
     var apps = new ArrayList<App>();
     apps.add(app);
@@ -256,19 +253,18 @@ class ListApplicationsByCveToolTest {
   private CveData createMockCveDataWithApps() {
     var cveData = new CveData();
 
-    App app = mock();
-    when(app.getAppId()).thenReturn(TEST_APP_ID);
-    when(app.getName()).thenReturn("Test Application");
-    when(app.getClassCount()).thenReturn(0);
+    var app = new App();
+    app.setAppId(TEST_APP_ID);
+    app.setName("Test Application");
 
     var apps = new ArrayList<App>();
     apps.add(app);
     cveData.setApps(apps);
 
-    Library lib = mock();
-    when(lib.getHash()).thenReturn("matching-hash-789");
-    when(lib.getFile_name()).thenReturn("vulnerable-lib.jar");
-    when(lib.getVersion()).thenReturn("1.0.0");
+    var lib = new Library();
+    lib.setHash("matching-hash-789");
+    lib.setFile_name("vulnerable-lib.jar");
+    lib.setVersion("1.0.0");
 
     var libs = new ArrayList<Library>();
     libs.add(lib);

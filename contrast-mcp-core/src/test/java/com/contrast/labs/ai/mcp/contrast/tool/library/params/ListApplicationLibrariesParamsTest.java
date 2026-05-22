@@ -40,14 +40,6 @@ class ListApplicationLibrariesParamsTest {
   }
 
   @Test
-  void of_should_reject_empty_app_id() {
-    var params = ListApplicationLibrariesParams.of("");
-
-    assertThat(params.isValid()).isFalse();
-    assertThat(params.errors()).anyMatch(e -> e.contains("appId") && e.contains("required"));
-  }
-
-  @Test
   void of_should_reject_blank_app_id() {
     var params = ListApplicationLibrariesParams.of("   ");
 

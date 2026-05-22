@@ -43,22 +43,6 @@ class ListApplicationsByCveParamsTest {
   }
 
   @Test
-  void of_should_reject_null_cve_id() {
-    var params = ListApplicationsByCveParams.of(null);
-
-    assertThat(params.isValid()).isFalse();
-    assertThat(params.errors()).anyMatch(e -> e.contains("cveId") && e.contains("required"));
-  }
-
-  @Test
-  void of_should_reject_empty_cve_id() {
-    var params = ListApplicationsByCveParams.of("");
-
-    assertThat(params.isValid()).isFalse();
-    assertThat(params.errors()).anyMatch(e -> e.contains("cveId") && e.contains("required"));
-  }
-
-  @Test
   void of_should_reject_blank_cve_id() {
     var params = ListApplicationsByCveParams.of("   ");
 

@@ -20,42 +20,20 @@ import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 import java.util.regex.Pattern;
 import org.springframework.util.StringUtils;
 
-/**
- * Validation parameters for ListApplicationsByCveTool. Validates required cveId and format.
- *
- * <p>Usage:
- *
- * <pre>{@code
- * var params = ListApplicationsByCveParams.of("CVE-2021-44228");
- * if (!params.isValid()) {
- *   // Handle errors
- * }
- * }</pre>
- */
+/** Validation parameters for ListApplicationsByCveTool. */
 public class ListApplicationsByCveParams extends BaseToolParams {
 
-  /** CVE ID format pattern: CVE-YYYY-NNNNN (4+ digit sequence number) */
   private static final Pattern CVE_PATTERN = Pattern.compile("^CVE-\\d{4}-\\d{4,}$");
 
   private String cveId;
 
-  /** Private constructor - use static factory method {@link #of}. */
   private ListApplicationsByCveParams() {}
 
-  /**
-   * Parse and validate CVE lookup parameters.
-   *
-   * @param cveId CVE identifier (required, e.g., CVE-2021-44228)
-   * @return ListApplicationsByCveParams with validation state
-   */
   public static ListApplicationsByCveParams of(String cveId) {
     var params = new ListApplicationsByCveParams();
     var ctx = new ToolValidationContext();
 
-    // Validate required field
     ctx.require(cveId, "cveId");
-
-    // Validate CVE format if provided
     if (StringUtils.hasText(cveId) && !CVE_PATTERN.matcher(cveId).matches()) {
       ctx.errorIf(
           true,
@@ -64,7 +42,6 @@ public class ListApplicationsByCveParams extends BaseToolParams {
     }
 
     params.cveId = cveId;
-
     params.setValidationResult(ctx);
     return params;
   }
