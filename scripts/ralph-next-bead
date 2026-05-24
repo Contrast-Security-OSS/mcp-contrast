@@ -95,35 +95,65 @@ run_claude() {
   rm -f "$tmpfile"
 }
 
+# Exported by repo_has_commits for diagnostic logging.
+_RHC_BASE=""
+_RHC_COUNT=""
+_RHC_METHOD=""
+
 repo_has_commits() {
   local repo_dir="$1"
-  local current_branch
-  current_branch=$(git -C "$repo_dir" branch --show-current)
+  local current_branch default_branch
+  _RHC_BASE="" ; _RHC_COUNT="" ; _RHC_METHOD=""
 
-  local default_branch
-  default_branch=$(git -C "$repo_dir" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##' || echo "main")
+  current_branch=$(cd "$repo_dir" && git branch --show-current)
+  default_branch=$(cd "$repo_dir" && git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##' || echo "main")
 
   if [[ "$current_branch" == "$default_branch" ]]; then
+    _RHC_METHOD="on-default-branch"
     return 1
   fi
 
-  local facts base_branch
-  facts=$(cd "$repo_dir" && bash "$PR_TOOLS_SCRIPTS/stacked-pr-facts.sh" detect-base-candidates 2>/dev/null) || return 1
-
-  base_branch=$(echo "$facts" | jq -r '
-    if .configuredParent != null and .configuredParent.branch != null then
-      .configuredParent.branch
-    else
-      .defaultBranch
-    end
-  ' 2>/dev/null)
+  # Try stacked-pr-facts for the precise base branch, but fall back gracefully.
+  local facts base_branch="" facts_err
+  if facts_err=$(cd "$repo_dir" && bash "$PR_TOOLS_SCRIPTS/stacked-pr-facts.sh" detect-base-candidates 2>&1); then
+    base_branch=$(echo "$facts_err" | jq -r '
+      if .configuredParent != null and .configuredParent.branch != null then
+        .configuredParent.branch
+      else
+        .defaultBranch
+      end
+    ' 2>/dev/null) || true
+    _RHC_METHOD="stacked-pr-facts"
+  else
+    log "  detect-base-candidates failed (exit $?), falling back to default branch"
+    _RHC_METHOD="fallback-default"
+  fi
 
   if [[ -z "$base_branch" ]]; then
     base_branch="$default_branch"
+    _RHC_METHOD="fallback-default"
   fi
 
+  _RHC_BASE="$base_branch"
+
+  # Try origin/<base>..HEAD first. If origin/<base> doesn't exist (branch not
+  # pushed yet), fall back to the default branch. If that also fails, fall back
+  # to checking whether the branch simply has any unique commits at all.
   local count
-  count=$(git -C "$repo_dir" rev-list --count "origin/$base_branch..HEAD" 2>/dev/null || echo "0")
+  if count=$(cd "$repo_dir" && git rev-list --count "origin/$base_branch..HEAD" 2>/dev/null); then
+    : # success — count is set
+  elif count=$(cd "$repo_dir" && git rev-list --count "origin/$default_branch..HEAD" 2>/dev/null); then
+    _RHC_BASE="$default_branch (fallback — origin/$base_branch not found)"
+    _RHC_METHOD="fallback-origin-missing"
+  elif count=$(cd "$repo_dir" && git log --oneline HEAD --not --remotes 2>/dev/null | wc -l | tr -d ' '); then
+    _RHC_BASE="(all remotes)"
+    _RHC_METHOD="fallback-no-remotes"
+  else
+    count="0"
+    _RHC_METHOD="all-methods-failed"
+  fi
+
+  _RHC_COUNT="$count"
   [[ "$count" -gt 0 ]]
 }
 
@@ -148,6 +178,7 @@ process_repo() {
 
   if [[ -n "$COMPLETED_BEAD_ID" ]]; then
     if repo_has_commits "$repo_dir"; then
+      log "$repo_name: $_RHC_COUNT commits ahead of $_RHC_BASE (method: $_RHC_METHOD)"
       log "$repo_name: Creating PR for $COMPLETED_BEAD_ID"
       echo ""
       echo "=== $repo_name: Creating PR for $COMPLETED_BEAD_ID ==="
@@ -170,7 +201,7 @@ process_repo() {
       )
       log "$repo_name: Walkthrough complete"
     else
-      log "$repo_name: No commits ahead of base — skipping PR and walkthrough"
+      log "$repo_name: No commits ahead of $_RHC_BASE (count=$_RHC_COUNT, method=$_RHC_METHOD) — skipping PR and walkthrough"
     fi
   fi
 
