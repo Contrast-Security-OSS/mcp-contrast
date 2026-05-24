@@ -196,7 +196,7 @@ process_repo() {
       (
         cd "$repo_dir"
         run_claude \
-          "/pr-tools:create-html-pr-walkthrough Read $COMPLETED_BEAD_ID and its child beads and prior/next beads along with the Jira ticket, then read the PRD, and any relevant docs in the decisions folder for context. Ensure you frame this in the context of the work that came before and comes after. Is this part of a slice? Which part? How does it relate. Use diagrams to show large file renames to simplify understanding them. Make the walkthrough easy to understand by using explanations of concepts and using concrete examples. beads are in $BEADS_PATH" \
+          "/pr-tools:create-html-pr-walkthrough Read $COMPLETED_BEAD_ID and its child beads and prior/next beads along with the Jira ticket, then read the PRD, and any relevant docs in the decisions folder for context. Ensure you frame this in the context of the work that came before and comes after. Is this part of a slice? Which part? How does it relate. Use diagrams to show large file renames to simplify understanding them. Make the walkthrough easy to understand by using explanations of concepts and using concrete examples. beads are in $BEADS_PATH. IMPORTANT: Do not ask the user for input or clarification — this is running non-interactively. Use the bead, PRD, and codebase context to make all decisions autonomously and produce the walkthrough in a single pass." \
           "$LOG_DIR/${repo_name}-walkthrough.log"
       )
       log "$repo_name: Walkthrough complete"
