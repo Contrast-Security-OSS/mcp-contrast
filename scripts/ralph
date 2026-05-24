@@ -37,6 +37,7 @@ Usage:
 Runs a small AIML-110 implementation loop:
   - resumes any incomplete bead from a previous run before selecting new work
   - uses br ready as executable truth for new bead selection
+  - skips beads labeled ready-for-human or needs-human-review
   - claims one ready bead
   - invokes one Codex worker in the selected repo
   - saves prompt/output under history/ralph-runs/
@@ -126,14 +127,30 @@ ready_json_for_parent() {
   fi
 }
 
+filter_agent_ready_json() {
+  jq '
+    map(
+      select(
+        ((.labels // []) | any(. == "ready-for-human" or . == "needs-human-review"))
+        | not
+      )
+    )
+  '
+}
+
+has_human_only_label() {
+  jq -e '
+    (.[0].labels // []) | any(. == "ready-for-human" or . == "needs-human-review")
+  ' >/dev/null <<<"$1"
+}
+
 # Check for a bead ralph previously claimed but didn't finish. Resume it
 # before selecting new work. br list doesn't support --parent, so we query
-# all of ralph's in_progress beads and take the first one (v1 is single-
-# threaded, so there should be at most one).
+# all of ralph's in_progress agent-runnable beads and take the first one
+# (v1 is single-threaded, so there should be at most one).
 find_incomplete_bead() {
   local repo_filter="$1"
   local incomplete_json
-  local count
 
   if [[ -n "$repo_filter" ]]; then
     incomplete_json="$(run_br list --status in_progress --assignee ralph --label "$repo_filter" --json)"
@@ -141,10 +158,16 @@ find_incomplete_bead() {
     incomplete_json="$(run_br list --status in_progress --assignee ralph --json)"
   fi
 
-  count="$(jq '.issues | length' <<<"$incomplete_json")"
-  if [[ "$count" -gt 0 ]]; then
-    jq -r '.issues[0].id' <<<"$incomplete_json"
-  fi
+  jq -r '
+    .issues
+    | map(
+        select(
+          ((.labels // []) | any(. == "ready-for-human" or . == "needs-human-review"))
+          | not
+        )
+      )
+    | .[0].id // empty
+  ' <<<"$incomplete_json"
 }
 
 # Pick the first ready bead sorted by priority, then creation time, then id.
@@ -174,6 +197,9 @@ validate_bead_and_repo_label() {
   acceptance_len="$(jq '([.[0].acceptance_criteria // ""] | .[0] | length)' <<<"$bead_json")"
 
   [[ "$status" == "open" || "$status" == "in_progress" ]] || die "$bead_id has unexpected status: $status"
+  if has_human_only_label "$bead_json"; then
+    die "$bead_id is labeled ready-for-human or needs-human-review; Ralph must not run human-only work"
+  fi
 
   case "$issue_type" in
     task | bug | feature) ;;
@@ -337,9 +363,10 @@ main() {
       printf 'ralph: resuming incomplete bead %s\n' "$bead_id"
     else
       ready_json="$(ready_json_for_parent "$parent" "$repo_filter")"
+      ready_json="$(filter_agent_ready_json <<<"$ready_json")"
       ready_count="$(jq 'length' <<<"$ready_json")"
       if [[ "$ready_count" == "0" ]]; then
-        printf 'ralph: no ready work for parent %s\n' "$parent"
+        printf 'ralph: no agent-ready work for parent %s\n' "$parent"
         exit 0
       fi
 
