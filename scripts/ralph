@@ -22,17 +22,25 @@ set -euo pipefail
 
 # --- Paths ---
 # Control repo: where br runs and .beads/ lives (never committed).
-# AIML repo: second implementation target for cross-repo AIML-110 work.
+# Implementation repos: cross-repo AIML-110 work selected by repo:* labels.
 # Results: gitignored — may contain prompts, paths, and implementation details.
 CONTROL_REPO="/Users/chrisedwards/projects/contrast/mcp-contrast"
 AIML_REPO="/Users/chrisedwards/projects/contrast/aiml-services"
+AIML_DEPLOYMENT_REPO="/Users/chrisedwards/projects/contrast/aiml-deployment"
+CONTRAST_API_GATEWAY_REPO="/Users/chrisedwards/projects/contrast/contrast-api-gateway"
 RESULT_DIR="$CONTROL_REPO/history/ralph-runs"
 BEADS_DIR="$CONTROL_REPO/.beads"
+SUPPORTED_REPO_LABELS=(
+  "repo:mcp-contrast"
+  "repo:aiml-services"
+  "repo:aiml-deployment"
+  "repo:contrast-api-gateway"
+)
 
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/ralph <parent-bead-id> <max-iterations> [--repo repo:mcp-contrast|repo:aiml-services]
+  scripts/ralph <parent-bead-id> <max-iterations> [--repo <repo-label>]
 
 Runs a small AIML-110 implementation loop:
   - resumes any incomplete bead from a previous run before selecting new work
@@ -43,6 +51,12 @@ Runs a small AIML-110 implementation loop:
   - saves prompt/output under history/ralph-runs/
 
 Ralph requires clean relevant worktrees and refuses protected branches.
+
+Supported repo labels:
+  repo:mcp-contrast
+  repo:aiml-services
+  repo:aiml-deployment
+  repo:contrast-api-gateway
 EOF
 }
 
@@ -64,8 +78,21 @@ repo_path_for_label() {
   case "$1" in
     repo:mcp-contrast) printf '%s\n' "$CONTROL_REPO" ;;
     repo:aiml-services) printf '%s\n' "$AIML_REPO" ;;
+    repo:aiml-deployment) printf '%s\n' "$AIML_DEPLOYMENT_REPO" ;;
+    repo:contrast-api-gateway) printf '%s\n' "$CONTRAST_API_GATEWAY_REPO" ;;
     *) return 1 ;;
   esac
+}
+
+is_supported_repo_label() {
+  local label="$1"
+  local supported
+
+  for supported in "${SUPPORTED_REPO_LABELS[@]}"; do
+    [[ "$label" == "$supported" ]] && return 0
+  done
+
+  return 1
 }
 
 current_branch() {
@@ -124,7 +151,7 @@ human_only_label_filter='
 # br ready is the executable source of truth — a bead is only runnable if
 # br says all its dependencies are satisfied. --parent scopes to children
 # (and descendants) of the given bead. Optional repo label filter restricts
-# to one repo when AIML-110 work spans both.
+# to one repo when AIML-110 work spans multiple repositories.
 ready_json_for_parent() {
   local parent="$1"
   local repo_filter="$2"
@@ -238,8 +265,9 @@ write_prompt() {
 You are Codex, but this repository's coding rules live in CLAUDE.md.
 
 Before inspecting or editing implementation code:
+- Read the implementation repo's CLAUDE.md or AGENTS.md if present.
 - If the implementation repo is aiml-services, also read services/aiml-hosted-mcp-server/CLAUDE.md.
-- Follow those CLAUDE.md files as binding repository rules.
+- Follow those repository instruction files as binding rules.
 
 You are implementing exactly one bead: $bead_id.
 Do not select different work.
@@ -317,10 +345,7 @@ main() {
       --repo)
         [[ $# -ge 2 ]] || die "--repo requires a value"
         repo_filter="$2"
-        case "$repo_filter" in
-          repo:mcp-contrast | repo:aiml-services) ;;
-          *) die "unsupported repo filter: $repo_filter" ;;
-        esac
+        is_supported_repo_label "$repo_filter" || die "unsupported repo filter: $repo_filter"
         shift 2
         ;;
       *)
@@ -391,8 +416,9 @@ main() {
 
     [[ -d "$implementation_repo/.git" ]] || die "implementation repo not found: $implementation_repo"
 
-    # (c) Preflight: both repos must be clean (no uncommitted changes) and
-    #     the implementation repo must not be on a protected branch.
+    # (c) Preflight: the control and implementation repos must be clean
+    #     (no uncommitted changes), and the implementation repo must not be
+    #     on a protected branch.
     ensure_clean_repo "$CONTROL_REPO" "control repo"
     if [[ "$implementation_repo" != "$CONTROL_REPO" ]]; then
       ensure_clean_repo "$implementation_repo" "$repo_label"

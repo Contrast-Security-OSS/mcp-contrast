@@ -2,13 +2,21 @@
 # ralph-next-bead — Transition between beads: PR the completed one, set up the next.
 #
 # Orchestrates claude -p calls to create PRs, walkthroughs, and stacked branches
-# across mcp-contrast and aiml-services repos.
+# across the repos used by AIML-110 / hosted MCP beads.
 
 set -euo pipefail
 
 CONTROL_REPO="/Users/chrisedwards/projects/contrast/mcp-contrast"
 AIML_REPO="/Users/chrisedwards/projects/contrast/aiml-services"
+AIML_DEPLOYMENT_REPO="/Users/chrisedwards/projects/contrast/aiml-deployment"
+CONTRAST_API_GATEWAY_REPO="/Users/chrisedwards/projects/contrast/contrast-api-gateway"
 BEADS_PATH="$CONTROL_REPO"
+REPOS=(
+  "$CONTROL_REPO|mcp-contrast"
+  "$AIML_REPO|aiml-services"
+  "$AIML_DEPLOYMENT_REPO|aiml-deployment"
+  "$CONTRAST_API_GATEWAY_REPO|contrast-api-gateway"
+)
 
 PR_TOOLS_SCRIPTS=$(ls -d "$HOME/.claude/plugins/cache/Contrast-Security-Inc/pr-tools"/*/scripts 2>/dev/null | sort -V | tail -1)
 if [[ -z "$PR_TOOLS_SCRIPTS" ]]; then
@@ -224,8 +232,9 @@ log "Completed bead: ${COMPLETED_BEAD_ID:-none}"
 log "Next bead: ${NEXT_BEAD_ID:-none}"
 log "Logs: $LOG_DIR"
 
-process_repo "$CONTROL_REPO" "mcp-contrast"
-process_repo "$AIML_REPO" "aiml-services"
+for repo_entry in "${REPOS[@]}"; do
+  process_repo "${repo_entry%%|*}" "${repo_entry##*|}"
+done
 
 log "============================================"
 log "  ralph-next-bead complete"
