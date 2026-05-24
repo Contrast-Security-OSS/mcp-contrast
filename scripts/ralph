@@ -37,7 +37,7 @@ Usage:
 Runs a small AIML-110 implementation loop:
   - resumes any incomplete bead from a previous run before selecting new work
   - uses br ready as executable truth for new bead selection
-  - skips beads labeled ready-for-human or needs-human-review
+  - skips beads labeled ready-for-human, needs-human-review, human-security-review, or external-approval
   - claims one ready bead
   - invokes one Codex worker in the selected repo
   - saves prompt/output under history/ralph-runs/
@@ -112,6 +112,15 @@ run_br() {
   (cd "$CONTROL_REPO" && BEADS_DIR="$BEADS_DIR" br "$@")
 }
 
+human_only_label_filter='
+  any(
+    . == "ready-for-human"
+    or . == "needs-human-review"
+    or . == "human-security-review"
+    or . == "external-approval"
+  )
+'
+
 # br ready is the executable source of truth — a bead is only runnable if
 # br says all its dependencies are satisfied. --parent scopes to children
 # (and descendants) of the given bead. Optional repo label filter restricts
@@ -131,7 +140,7 @@ filter_agent_ready_json() {
   jq '
     map(
       select(
-        ((.labels // []) | any(. == "ready-for-human" or . == "needs-human-review"))
+        ((.labels // []) | '"$human_only_label_filter"')
         | not
       )
     )
@@ -140,7 +149,7 @@ filter_agent_ready_json() {
 
 has_human_only_label() {
   jq -e '
-    (.[0].labels // []) | any(. == "ready-for-human" or . == "needs-human-review")
+    (.[0].labels // []) | '"$human_only_label_filter"'
   ' >/dev/null <<<"$1"
 }
 
@@ -162,7 +171,7 @@ find_incomplete_bead() {
     .issues
     | map(
         select(
-          ((.labels // []) | any(. == "ready-for-human" or . == "needs-human-review"))
+          ((.labels // []) | '"$human_only_label_filter"')
           | not
         )
       )
@@ -198,7 +207,7 @@ validate_bead_and_repo_label() {
 
   [[ "$status" == "open" || "$status" == "in_progress" ]] || die "$bead_id has unexpected status: $status"
   if has_human_only_label "$bead_json"; then
-    die "$bead_id is labeled ready-for-human or needs-human-review; Ralph must not run human-only work"
+    die "$bead_id is labeled for human-only work; Ralph must not run it"
   fi
 
   case "$issue_type" in
