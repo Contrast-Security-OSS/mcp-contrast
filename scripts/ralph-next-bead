@@ -185,7 +185,7 @@ process_repo() {
       (
         cd "$repo_dir"
         run_claude \
-          "/pr-tools:create-pr Read the prd, the bead $COMPLETED_BEAD_ID, and any child beads along with any relevant decision docs to understand the context of these changes on this branch. beads are in $BEADS_PATH" \
+          "/pr-tools:create-pr Read the prd, the bead $COMPLETED_BEAD_ID, and any child beads along with any relevant decision docs to understand the context of these changes on this branch. beads are in $BEADS_PATH. IMPORTANT: Do not ask the user for input or clarification — this is running non-interactively. Auto-detect the base branch from stacked-pr-facts and make all decisions autonomously." \
           "$LOG_DIR/${repo_name}-create-pr.log"
       )
       log "$repo_name: PR creation complete"
@@ -212,7 +212,7 @@ process_repo() {
     (
       cd "$repo_dir"
       run_claude \
-        "/pr-tools:create-stacked-branch for bead $NEXT_BEAD_ID. It should be created for that epic bead including its children. Ensure it is named prefixed with the jira ticket id like other branches. It should be stacked on top of the current branch. beads are in $BEADS_PATH" \
+        "/pr-tools:create-stacked-branch for bead $NEXT_BEAD_ID. It should be created for that epic bead including its children. Ensure it is named prefixed with the jira ticket id like other branches. It should be stacked on top of the current branch. beads are in $BEADS_PATH. IMPORTANT: Do not ask the user for input or clarification — this is running non-interactively. Make all decisions autonomously." \
         "$LOG_DIR/${repo_name}-create-branch.log"
     )
     log "$repo_name: Stacked branch creation complete"
