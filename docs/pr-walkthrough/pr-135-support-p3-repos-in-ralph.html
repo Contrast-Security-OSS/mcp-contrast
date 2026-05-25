@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PR #135 Walkthrough: Support Phase 3 repos in Ralph automation</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface-raised: #1c2128;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --text-subtle: #6e7681;
+    --accent: #58a6ff;
+    --accent-soft: rgba(88,166,255,0.15);
+    --green: #3fb950;
+    --green-bg: rgba(63,185,80,0.15);
+    --green-border: rgba(63,185,80,0.4);
+    --red: #f85149;
+    --red-bg: rgba(248,81,73,0.10);
+    --yellow: #d29922;
+    --yellow-bg: rgba(210,153,34,0.15);
+    --purple: #bc8cff;
+    --purple-bg: rgba(188,140,255,0.12);
+    --orange: #f0883e;
+    --line-num: #484f58;
+    --diff-add-bg: rgba(63,185,80,0.10);
+    --diff-add-text: #aff5b4;
+    --diff-add-marker: #3fb950;
+    --diff-del-bg: rgba(248,81,73,0.10);
+    --diff-del-text: #ffa198;
+    --diff-del-marker: #f85149;
+    --diff-context-bg: transparent;
+    --code-bg: #0d1117;
+    --nav-bg: rgba(13,17,23,0.95);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* --- Hero --- */
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 40%, #1a1e2e 70%, #161b22 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 3rem 2rem 2.5rem;
+    text-align: center;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.3rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid rgba(88,166,255,0.3);
+    margin-bottom: 1rem;
+    letter-spacing: 0.03em;
+  }
+  .hero h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.6rem;
+    background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero .subtitle {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .hero-meta {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .hero-meta-item {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+  .hero-meta-item strong { color: var(--text); }
+
+  /* --- Navigation --- */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--nav-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0.6rem 2rem;
+    overflow-x: auto;
+  }
+  nav ol {
+    display: flex;
+    gap: 0.3rem;
+    list-style: none;
+    max-width: 1100px;
+    margin: 0 auto;
+    font-size: 0.82rem;
+    align-items: center;
+  }
+  nav li a {
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 0.35rem 0.7rem;
+    border-radius: 6px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  nav li a:hover { color: var(--accent); background: var(--accent-soft); }
+  nav .nav-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.4em;
+    height: 1.4em;
+    border-radius: 50%;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-right: 0.4em;
+  }
+  nav .nav-sep { color: var(--text-subtle); font-size: 0.75rem; }
+
+  /* --- Main --- */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem 2rem 6rem;
+  }
+
+  /* --- Sections --- */
+  .chapter {
+    margin-bottom: 3.5rem;
+    scroll-margin-top: 4rem;
+  }
+  .chapter-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .chapter-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 50%;
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .chapter-number.blue { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .chapter-number.green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .chapter-number.purple { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+  .chapter-number.yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .chapter-number.orange { background: rgba(240,136,62,0.12); color: var(--orange); border: 1px solid rgba(240,136,62,0.3); }
+
+  .chapter h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  /* --- Prose --- */
+  .narrative {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.75;
+    margin-bottom: 1.5rem;
+  }
+  .narrative strong { color: var(--text); font-weight: 600; }
+  .narrative code {
+    background: var(--surface-raised);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-size: 0.88em;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  /* --- Callout boxes --- */
+  .callout {
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    border: 1px solid;
+  }
+  .callout.why {
+    background: var(--accent-soft);
+    border-color: rgba(88,166,255,0.25);
+    color: var(--text);
+  }
+  .callout.why .callout-label { color: var(--accent); }
+  .callout.security {
+    background: var(--red-bg);
+    border-color: rgba(248,81,73,0.25);
+  }
+  .callout.security .callout-label { color: var(--red); }
+  .callout.note {
+    background: var(--yellow-bg);
+    border-color: rgba(210,153,34,0.25);
+  }
+  .callout.note .callout-label { color: var(--yellow); }
+  .callout.future {
+    background: var(--purple-bg);
+    border-color: rgba(188,140,255,0.25);
+  }
+  .callout.future .callout-label { color: var(--purple); }
+  .callout-label {
+    font-weight: 700;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.3rem;
+    display: block;
+  }
+
+  /* --- Code / Diff blocks --- */
+  .diff-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .diff-header {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    gap: 0.5rem;
+  }
+  .diff-header .file-icon {
+    width: 16px; height: 16px;
+    fill: var(--text-subtle);
+    flex-shrink: 0;
+  }
+  .diff-header .filename {
+    color: var(--text);
+    font-weight: 600;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+  }
+  .diff-header .badge {
+    margin-left: auto;
+    font-size: 0.72rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .badge-new { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+  .badge-modified { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+  .badge-deleted { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,81,73,0.3); }
+
+  .diff-body {
+    overflow-x: auto;
+  }
+  .diff-body pre {
+    margin: 0;
+    padding: 0.4rem 0;
+    font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.3;
+    display: flex;
+    flex-direction: column;
+  }
+  .diff-line {
+    display: flex;
+    padding: 0 1rem;
+    min-height: 1.3em;
+  }
+  .diff-line.add {
+    background: var(--diff-add-bg);
+  }
+  .diff-line.del {
+    background: var(--diff-del-bg);
+  }
+  .diff-line.context {
+    background: var(--diff-context-bg);
+  }
+  .diff-line .marker {
+    width: 1.2em;
+    flex-shrink: 0;
+    color: var(--text-subtle);
+    user-select: none;
+    text-align: center;
+  }
+  .diff-line.add .marker { color: var(--diff-add-marker); }
+  .diff-line.del .marker { color: var(--diff-del-marker); }
+  .diff-line .ln {
+    width: 3.5em;
+    flex-shrink: 0;
+    color: var(--line-num);
+    text-align: right;
+    padding-right: 1em;
+    user-select: none;
+  }
+  .diff-line .code {
+    flex: 1;
+    white-space: pre;
+  }
+  /* Syntax highlighting classes */
+  .diff-line .code .kw { color: #ff7b72; }
+  .diff-line .code .str { color: #a5d6ff; }
+  .diff-line .code .ann { color: #d2a8ff; }
+  .diff-line .code .type { color: #79c0ff; }
+  .diff-line .code .comment { color: var(--text-subtle); font-style: italic; }
+  .diff-line .code .prop { color: #7ee787; }
+  .diff-line .code .val { color: #a5d6ff; }
+  .diff-line .code .num { color: #79c0ff; }
+  .diff-line .code .param { color: #ffa657; }
+
+  /* Annotation inline (between diff lines or after a block) */
+  .annotation {
+    background: var(--surface-raised);
+    border-left: 3px solid var(--accent);
+    padding: 0.7rem 1rem;
+    margin: 0 1rem 0.3rem 1rem;
+    border-radius: 0 6px 6px 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+  .annotation strong { color: var(--text); }
+  .annotation code {
+    background: rgba(88,166,255,0.1);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: var(--accent);
+  }
+  .annotation.security-note { border-left-color: var(--red); }
+  .annotation.future-note { border-left-color: var(--purple); }
+
+  /* --- Architecture diagrams (inline SVG) --- */
+  .diagram {
+    margin-bottom: 1.5rem;
+  }
+  .diagram svg {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .diagram-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    overflow-x: auto;
+  }
+
+  /* --- Slice / scope columns --- */
+  .slice-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+    margin-bottom: 1.5rem;
+  }
+  @media (max-width: 768px) { .slice-columns { grid-template-columns: 1fr; } }
+  .slice-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.2rem 1.4rem;
+  }
+  .slice-col.this-pr { border-color: var(--green-border); }
+  .slice-col.future-col { border-color: var(--border); opacity: 0.7; }
+  .slice-col .slice-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .slice-col.this-pr .slice-title { color: var(--green); }
+  .slice-col.future-col .slice-title { color: var(--text-subtle); }
+  .slice-item {
+    position: relative;
+    padding: 0.3rem 0 0.3rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+  .slice-item .dot {
+    position: absolute;
+    left: 0;
+    top: 0.65rem;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .slice-col.this-pr .dot { background: var(--green); }
+  .slice-col.future-col .dot { background: var(--text-subtle); }
+  .slice-item strong { color: var(--text); font-weight: 500; }
+
+  /* --- Roadmap table --- */
+  .roadmap-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+  }
+  .roadmap-table th {
+    text-align: left;
+    padding: 0.55rem 0.8rem;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  .roadmap-table td {
+    padding: 0.45rem 0.8rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+  .roadmap-table tr:last-child td { border-bottom: none; }
+  .roadmap-table .jira-link {
+    font-family: 'SF Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .roadmap-table .jira-link:hover { text-decoration: underline; }
+  .roadmap-table .slice-name { color: var(--text); font-weight: 500; }
+  .roadmap-table .current-row td {
+    background: var(--green-bg);
+    border-bottom-color: var(--green-border);
+  }
+  .roadmap-table .current-row .slice-name { color: var(--green); font-weight: 600; }
+  .roadmap-table .current-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--green-bg);
+    color: var(--green);
+    border: 1px solid var(--green-border);
+    padding: 0.1rem 0.4rem;
+    border-radius: 999px;
+    margin-left: 0.4rem;
+    vertical-align: middle;
+  }
+
+  /* --- File summary table --- */
+  .file-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+  }
+  .file-table th {
+    text-align: left;
+    padding: 0.6rem 1rem;
+    background: var(--surface-raised);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+  .file-table td {
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+  }
+  .file-table td:first-child {
+    font-family: 'SF Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--accent);
+  }
+  .file-table tr:last-child td { border-bottom: none; }
+  .file-table .addition { color: var(--green); }
+  .file-table .deletion { color: var(--red); }
+
+  /* --- Standard Pattern (collapsible boilerplate) --- */
+  .standard-pattern {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .standard-pattern summary {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: var(--surface-raised);
+    border-bottom: 1px solid transparent;
+    list-style: none;
+    transition: background 0.15s;
+  }
+  .standard-pattern summary::-webkit-details-marker { display: none; }
+  .standard-pattern summary::before {
+    content: '\25B6';
+    font-size: 0.65rem;
+    color: var(--text-subtle);
+    transition: transform 0.15s;
+    flex-shrink: 0;
+  }
+  .standard-pattern[open] summary::before { transform: rotate(90deg); }
+  .standard-pattern[open] summary { border-bottom-color: var(--border); }
+  .standard-pattern summary:hover { background: rgba(88,166,255,0.06); }
+  .standard-pattern .sp-icon {
+    width: 16px; height: 16px;
+    fill: var(--text-subtle);
+    flex-shrink: 0;
+  }
+  .standard-pattern .sp-title {
+    color: var(--text);
+    font-weight: 600;
+    flex: 1;
+  }
+  .standard-pattern .sp-files {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.78rem;
+    color: var(--text-subtle);
+  }
+  .standard-pattern .sp-ref {
+    font-size: 0.78rem;
+    color: var(--text-subtle);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .badge-standard {
+    background: rgba(139,148,158,0.15);
+    color: var(--text-muted);
+    border: 1px solid rgba(139,148,158,0.3);
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .standard-pattern .sp-body {
+    padding: 0.8rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+  .standard-pattern .sp-body code {
+    background: var(--surface-raised);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.88em;
+    color: var(--accent);
+    border: 1px solid var(--border);
+  }
+
+  /* --- Novelty badges for file summary table --- */
+  .file-table .novelty { text-align: center; }
+  .novelty-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+  }
+  .novelty-badge.novel { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+  .novelty-badge.standard { background: rgba(139,148,158,0.12); color: var(--text-subtle); border: 1px solid rgba(139,148,158,0.25); }
+  .novelty-badge.pattern { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+
+  /* --- Footer --- */
+  footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-subtle);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+    margin-top: 3rem;
+  }
+
+  /* --- Responsive --- */
+  @media (max-width: 768px) {
+    .hero { padding: 2rem 1rem; }
+    .hero h1 { font-size: 1.6rem; }
+    main { padding: 1.5rem 1rem 4rem; }
+    nav ol { gap: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== HERO ===== -->
+<div class="hero">
+  <span class="hero-badge">PR #135 &middot; AIML-767</span>
+  <h1>Support Phase 3 Repos in Ralph</h1>
+  <p class="subtitle">
+    Extend the Ralph AI agent supervisor to operate across all four repositories needed for Phase 3 cross-repo EKS deployment work.
+  </p>
+  <div class="hero-meta">
+    <span class="hero-meta-item"><strong>Branch:</strong> AIML-767-p3-deploy-eks-dbs-pilot</span>
+    <span class="hero-meta-item"><strong>Base:</strong> AIML-766-s12-full-tool-parity-release-hardening</span>
+    <span class="hero-meta-item"><strong>Files:</strong> 2 changed</span>
+    <span class="hero-meta-item"><strong>Lines:</strong> +48 / -13</span>
+  </div>
+</div>
+
+<!-- ===== NAV ===== -->
+<nav>
+  <ol>
+    <li><a href="#context"><span class="nav-number">1</span>Context</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#approach"><span class="nav-number">2</span>Approach</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#scope"><span class="nav-number">3</span>Scope</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#ralph-script"><span class="nav-number">4</span>Ralph Script</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#ralph-next-bead"><span class="nav-number">5</span>ralph-next-bead</a></li>
+    <li class="nav-sep">&rsaquo;</li>
+    <li><a href="#summary"><span class="nav-number">6</span>Summary</a></li>
+  </ol>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main>
+
+<!-- ============================================ -->
+<!-- Chapter 1: Context                           -->
+<!-- ============================================ -->
+<section class="chapter" id="context">
+  <div class="chapter-header">
+    <span class="chapter-number blue">1</span>
+    <h2>Why This PR Exists</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>Ralph is the AI agent supervisor that picks up implementation beads and dispatches Codex workers, but it only knew about two repositories.</strong> Phase 3 of the hosted MCP server project (AIML-767) introduces deployment and gateway work that spans <em>four</em> repos: <code>mcp-contrast</code>, <code>aiml-services</code>, <code>aiml-deployment</code>, and <code>contrast-api-gateway</code>. Without this change, Ralph cannot autonomously select or execute beads labeled <code>repo:aiml-deployment</code> or <code>repo:contrast-api-gateway</code>, which means the Phase 3 child beads for Helm deployment, CAG routing, and network policy hardening would all require manual human intervention to start.
+  </p>
+
+  <p class="narrative">
+    <strong>To understand why four repos matter, consider what Phase 3 is building.</strong> The goal is to deploy a production-ready hosted MCP server on AWS EKS behind the Contrast API Gateway (CAG). That involves:
+  </p>
+  <p class="narrative" style="padding-left: 1rem;">
+    &bull; <code>aiml-services</code> builds the container image with Jib (bead <code>mcp-18eh</code>, now closed).<br>
+    &bull; <code>aiml-deployment</code> holds the Helm values, network policies, and HPA config (beads <code>mcp-xn8i.1</code>, <code>mcp-r07w</code>, <code>mcp-y5to.1</code>).<br>
+    &bull; <code>contrast-api-gateway</code> adds the CAG route for <code>POST /mcp</code> (bead <code>mcp-xn8i.2</code>).<br>
+    &bull; <code>mcp-contrast</code> is the control repo where beads live and Ralph runs.
+  </p>
+
+  <div class="diagram">
+    <div class="diagram-container">
+      <svg viewBox="0 0 900 340" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+        <!-- Title -->
+        <text x="450" y="30" text-anchor="middle" fill="#e6edf3" font-size="15" font-weight="600">Phase 3 Cross-Repo Architecture</text>
+
+        <!-- Ralph (top center) -->
+        <rect x="340" y="55" width="220" height="50" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="2"/>
+        <text x="450" y="85" text-anchor="middle" fill="#58a6ff" font-size="13" font-weight="600">Ralph (Supervisor)</text>
+
+        <!-- Arrow down from Ralph -->
+        <line x1="450" y1="105" x2="450" y2="135" stroke="#30363d" stroke-width="1.5"/>
+        <text x="458" y="125" fill="#8b949e" font-size="10">dispatches to</text>
+
+        <!-- Four repos -->
+        <!-- mcp-contrast -->
+        <rect x="30" y="145" width="190" height="75" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="125" y="170" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="600">mcp-contrast</text>
+        <text x="125" y="187" text-anchor="middle" fill="#8b949e" font-size="10">Control repo + beads</text>
+        <text x="125" y="202" text-anchor="middle" fill="#8b949e" font-size="10">Shared core library</text>
+
+        <!-- aiml-services -->
+        <rect x="245" y="145" width="190" height="75" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="340" y="170" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="600">aiml-services</text>
+        <text x="340" y="187" text-anchor="middle" fill="#8b949e" font-size="10">Hosted MCP server</text>
+        <text x="340" y="202" text-anchor="middle" fill="#8b949e" font-size="10">Jib container image</text>
+
+        <!-- aiml-deployment (NEW) -->
+        <rect x="460" y="145" width="190" height="75" rx="8" fill="#161b22" stroke="#f0883e" stroke-width="2" stroke-dasharray="6,3"/>
+        <text x="555" y="170" text-anchor="middle" fill="#f0883e" font-size="12" font-weight="600">aiml-deployment</text>
+        <text x="555" y="187" text-anchor="middle" fill="#8b949e" font-size="10">Helm values + network</text>
+        <text x="555" y="202" text-anchor="middle" fill="#8b949e" font-size="10">policies + HPA config</text>
+        <text x="650" y="155" fill="#f0883e" font-size="9" font-weight="700">NEW</text>
+
+        <!-- contrast-api-gateway (NEW) -->
+        <rect x="675" y="145" width="195" height="75" rx="8" fill="#161b22" stroke="#f0883e" stroke-width="2" stroke-dasharray="6,3"/>
+        <text x="772" y="170" text-anchor="middle" fill="#f0883e" font-size="12" font-weight="600">contrast-api-gateway</text>
+        <text x="772" y="187" text-anchor="middle" fill="#8b949e" font-size="10">CAG route for</text>
+        <text x="772" y="202" text-anchor="middle" fill="#8b949e" font-size="10">POST /mcp</text>
+        <text x="870" y="155" fill="#f0883e" font-size="9" font-weight="700">NEW</text>
+
+        <!-- Connection lines from Ralph to repos -->
+        <line x1="400" y1="105" x2="125" y2="145" stroke="#3fb950" stroke-width="1" opacity="0.6"/>
+        <line x1="430" y1="105" x2="340" y2="145" stroke="#3fb950" stroke-width="1" opacity="0.6"/>
+        <line x1="470" y1="105" x2="555" y2="145" stroke="#f0883e" stroke-width="1.5" opacity="0.8"/>
+        <line x1="500" y1="105" x2="772" y2="145" stroke="#f0883e" stroke-width="1.5" opacity="0.8"/>
+
+        <!-- Legend -->
+        <rect x="30" y="260" width="16" height="3" fill="#3fb950" rx="1"/>
+        <text x="52" y="265" fill="#8b949e" font-size="10">Previously supported</text>
+
+        <rect x="200" y="260" width="16" height="3" fill="#f0883e" rx="1" stroke-dasharray="4,2"/>
+        <text x="222" y="265" fill="#8b949e" font-size="10">Added in this PR</text>
+
+        <!-- Bead examples below repos -->
+        <text x="555" y="240" text-anchor="middle" fill="#6e7681" font-size="9">mcp-xn8i.1, mcp-r07w, mcp-y5to.1</text>
+        <text x="772" y="240" text-anchor="middle" fill="#6e7681" font-size="9">mcp-xn8i.2</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="callout why">
+    <span class="callout-label">Why this matters</span>
+    <strong>Without this PR, every Phase 3 bead in <code>aiml-deployment</code> or <code>contrast-api-gateway</code> would fail Ralph's validation gate.</strong> Ralph checks that each bead has exactly one <code>repo:*</code> label and that the label maps to a known repository path. A bead labeled <code>repo:aiml-deployment</code> would hit the <code>die "unsupported repo label"</code> error and stop the entire automation loop. This PR adds two repo path mappings and replaces hardcoded validation with a data-driven approach.
+  </div>
+
+  <p class="narrative">
+    <strong>This PR is part of a stacked branch chain.</strong> It sits on top of PR #134 (<a href="https://contrast.atlassian.net/browse/AIML-766" style="color: var(--accent); text-decoration: none;">AIML-766</a>: Slice 12, full tool parity and release hardening), which itself is stacked on AIML-765 (Slice 11, isolation and load tests). The AIML-767 epic (bead <code>mcp-4s5y</code>) is the third major phase of the hosted MCP server rollout. Phase 1 and 2 proved the architecture and achieved tool parity. Phase 3 deploys it for real.
+  </p>
+</section>
+
+<!-- ============================================ -->
+<!-- Chapter 2: Approach                          -->
+<!-- ============================================ -->
+<section class="chapter" id="approach">
+  <div class="chapter-header">
+    <span class="chapter-number green">2</span>
+    <h2>Design Approach</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>The design principle is: make the repo list data-driven instead of hardcoded.</strong> Before this PR, both scripts used inline <code>case</code> statements and explicit <code>process_repo</code> calls for each repo. Adding a third or fourth repo meant editing multiple places and hoping you got them all. The fix introduces two data structures:
+  </p>
+  <p class="narrative" style="padding-left: 1rem;">
+    &bull; A <code>SUPPORTED_REPO_LABELS</code> array in <code>ralph</code> with a helper function <code>is_supported_repo_label()</code> for validation.<br>
+    &bull; A <code>REPOS</code> array in <code>ralph-next-bead</code> that pairs each repo path with its name, iterated with a single loop.
+  </p>
+  <p class="narrative">
+    <strong>This means adding a fifth repo in the future would be a one-line change in each script</strong>, rather than hunting through case branches and function calls. The existing <code>repo_path_for_label()</code> function retains its <code>case</code> statement because it maps labels to paths (a lookup, not a validation), but it gains two new entries.
+  </p>
+
+  <div class="callout note">
+    <span class="callout-label">Note</span>
+    <strong>The prompt template also gets a small improvement.</strong> Previously, the Codex worker prompt only mentioned reading <code>CLAUDE.md</code> from <code>aiml-services</code>. Now it instructs Codex to read <code>CLAUDE.md</code> or <code>AGENTS.md</code> from whichever implementation repo the bead targets. This matters because <code>aiml-deployment</code> and <code>contrast-api-gateway</code> may use <code>AGENTS.md</code> instead of <code>CLAUDE.md</code> for their coding rules.
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- Chapter 3: Scope                             -->
+<!-- ============================================ -->
+<section class="chapter" id="scope">
+  <div class="chapter-header">
+    <span class="chapter-number purple">3</span>
+    <h2>Scope</h2>
+  </div>
+
+  <div class="slice-columns">
+    <div class="slice-col this-pr">
+      <div class="slice-title">This PR</div>
+      <div class="slice-item"><span class="dot"></span><strong>Two new repo constants</strong> for aiml-deployment and contrast-api-gateway paths</div>
+      <div class="slice-item"><span class="dot"></span><strong>Data-driven repo validation</strong> via SUPPORTED_REPO_LABELS array + is_supported_repo_label()</div>
+      <div class="slice-item"><span class="dot"></span><strong>Extended repo_path_for_label()</strong> with two new case entries</div>
+      <div class="slice-item"><span class="dot"></span><strong>Loop-based repo processing</strong> in ralph-next-bead replaces hardcoded process_repo calls</div>
+      <div class="slice-item"><span class="dot"></span><strong>Updated prompt template</strong> reads CLAUDE.md/AGENTS.md from any implementation repo</div>
+      <div class="slice-item"><span class="dot"></span><strong>Updated usage text</strong> lists all four supported repo labels</div>
+    </div>
+    <div class="slice-col future-col">
+      <div class="slice-title">Phase 3 Child Beads (Future PRs)</div>
+      <div class="slice-item"><span class="dot"></span>mcp-xn8i.1: Helm values + network policy in aiml-deployment</div>
+      <div class="slice-item"><span class="dot"></span>mcp-xn8i.2: CAG route for POST /mcp in contrast-api-gateway</div>
+      <div class="slice-item"><span class="dot"></span>mcp-xn8i.3: Service-side deployment diagnostics in aiml-services</div>
+      <div class="slice-item"><span class="dot"></span>mcp-r07w: Deployment hardening verification</div>
+      <div class="slice-item"><span class="dot"></span>mcp-y5to.*: Autoscaling, monitoring, Datadog dashboards</div>
+      <div class="slice-item"><span class="dot"></span>mcp-p4sk: Staging integration, rollback drill, DBS pilot</div>
+    </div>
+  </div>
+
+  <p class="narrative">
+    <strong>This is the enabling commit that unlocks Ralph for Phase 3.</strong> It does not change any Java code, deployment config, or test coverage. It is strictly a tooling/automation change in two Bash scripts that control how the AI agent supervisor selects and dispatches work.
+  </p>
+
+  <table class="roadmap-table">
+    <thead><tr><th>Ticket</th><th>Phase</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-766">AIML-766</a></td>
+        <td><span class="slice-name">Phase 2 (Slice 12)</span></td>
+        <td>Full tool parity, release hardening, privacy/security evidence (closed)</td>
+      </tr>
+      <tr class="current-row">
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-767">AIML-767</a></td>
+        <td><span class="slice-name">Phase 3</span><span class="current-badge">This PR</span></td>
+        <td>Deploy to EKS behind CAG, DBS pilot validation</td>
+      </tr>
+      <tr>
+        <td><a class="jira-link" href="https://contrast.atlassian.net/browse/AIML-768">AIML-768</a></td>
+        <td><span class="slice-name">Phase 4</span></td>
+        <td>Operational iteration, Spring AI 2 migration readiness</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================ -->
+<!-- Chapter 4: Ralph Script                      -->
+<!-- ============================================ -->
+<section class="chapter" id="ralph-script">
+  <div class="chapter-header">
+    <span class="chapter-number yellow">4</span>
+    <h2>scripts/ralph</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>The ralph script is the main supervisor loop: it finds an unblocked bead, validates it, and dispatches a Codex worker.</strong> This chapter walks through the four areas of change, all in service of the same goal: teach Ralph about two new repos.
+  </p>
+
+  <!-- Part A: New repo constants and SUPPORTED_REPO_LABELS -->
+  <p class="narrative">
+    <strong>First, the path constants and the new validation array.</strong> Two new constants map to local filesystem paths. The <code>SUPPORTED_REPO_LABELS</code> array centralizes the list of valid <code>repo:*</code> labels, replacing what was previously embedded in a <code>case</code> statement inside <code>main()</code>.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">scripts/ralph</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">23</span><span class="code"><span class="comment"># --- Paths ---</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">24</span><span class="code"><span class="comment"># Control repo: where br runs and .beads/ lives (never committed).</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code"><span class="comment"># AIML repo: second implementation target for cross-repo AIML-110 work.</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">25</span><span class="code"><span class="comment"># Implementation repos: cross-repo AIML-110 work selected by repo:* labels.</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">26</span><span class="code"><span class="comment"># Results: gitignored -- may contain prompts, paths, and implementation details.</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">27</span><span class="code"><span class="prop">CONTROL_REPO</span>=<span class="str">"/Users/chrisedwards/projects/contrast/mcp-contrast"</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">28</span><span class="code"><span class="prop">AIML_REPO</span>=<span class="str">"/Users/chrisedwards/projects/contrast/aiml-services"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">29</span><span class="code"><span class="prop">AIML_DEPLOYMENT_REPO</span>=<span class="str">"/Users/chrisedwards/projects/contrast/aiml-deployment"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">30</span><span class="code"><span class="prop">CONTRAST_API_GATEWAY_REPO</span>=<span class="str">"/Users/chrisedwards/projects/contrast/contrast-api-gateway"</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">31</span><span class="code"><span class="prop">RESULT_DIR</span>=<span class="str">"$CONTROL_REPO/history/ralph-runs"</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">32</span><span class="code"><span class="prop">BEADS_DIR</span>=<span class="str">"$CONTROL_REPO/.beads"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">33</span><span class="code"><span class="prop">SUPPORTED_REPO_LABELS</span>=(</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">34</span><span class="code">  <span class="str">"repo:mcp-contrast"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">35</span><span class="code">  <span class="str">"repo:aiml-services"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">36</span><span class="code">  <span class="str">"repo:aiml-deployment"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">37</span><span class="code">  <span class="str">"repo:contrast-api-gateway"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">38</span><span class="code">)</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>The array is the single source of truth for supported repos.</strong> Both the <code>--repo</code> flag validation and the usage text reference this list, so adding a future repo means adding one string to one array.
+    </div>
+  </div>
+
+  <!-- Part B: New helper function -->
+  <p class="narrative">
+    <strong>Next, a helper function that loops over the array to validate a label.</strong> This replaces the inline <code>case</code> statement that previously lived in <code>main()</code>'s argument parser.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">scripts/ralph</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">76</span><span class="code"><span class="comment"># Map a repo:* bead label to a local filesystem path.</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">77</span><span class="code"><span class="kw">repo_path_for_label</span>() {</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">78</span><span class="code">  <span class="kw">case</span> <span class="str">"$1"</span> <span class="kw">in</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">79</span><span class="code">    repo:mcp-contrast) printf <span class="str">'%s\n'</span> <span class="str">"$CONTROL_REPO"</span> ;;</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">80</span><span class="code">    repo:aiml-services) printf <span class="str">'%s\n'</span> <span class="str">"$AIML_REPO"</span> ;;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">81</span><span class="code">    repo:aiml-deployment) printf <span class="str">'%s\n'</span> <span class="str">"$AIML_DEPLOYMENT_REPO"</span> ;;</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">82</span><span class="code">    repo:contrast-api-gateway) printf <span class="str">'%s\n'</span> <span class="str">"$CONTRAST_API_GATEWAY_REPO"</span> ;;</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">83</span><span class="code">    *) <span class="kw">return</span> <span class="num">1</span> ;;</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">84</span><span class="code">  <span class="kw">esac</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">85</span><span class="code">}</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">87</span><span class="code"><span class="kw">is_supported_repo_label</span>() {</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">88</span><span class="code">  <span class="kw">local</span> <span class="param">label</span>=<span class="str">"$1"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">89</span><span class="code">  <span class="kw">local</span> <span class="param">supported</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">90</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">91</span><span class="code">  <span class="kw">for</span> supported <span class="kw">in</span> <span class="str">"${SUPPORTED_REPO_LABELS[@]}"</span>; <span class="kw">do</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">92</span><span class="code">    [[ <span class="str">"$label"</span> == <span class="str">"$supported"</span> ]] &amp;&amp; <span class="kw">return</span> <span class="num">0</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">93</span><span class="code">  <span class="kw">done</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">94</span><span class="code"></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">95</span><span class="code">  <span class="kw">return</span> <span class="num">1</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">96</span><span class="code">}</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Two functions, two responsibilities.</strong> <code>repo_path_for_label()</code> does the lookup (label to path), while <code>is_supported_repo_label()</code> does the validation (is this label in our known set?). The validation function iterates <code>SUPPORTED_REPO_LABELS</code>, so it automatically picks up any future additions to the array.
+    </div>
+  </div>
+
+  <!-- Part C: Argument parsing refactor -->
+  <p class="narrative">
+    <strong>The <code>--repo</code> flag validation in <code>main()</code> is now a one-liner.</strong> Compare the before and after: a four-line case statement becomes a single function call.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">scripts/ralph</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">345</span><span class="code">      --repo)</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">346</span><span class="code">        [[ $# -ge <span class="num">2</span> ]] || die <span class="str">"--repo requires a value"</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">347</span><span class="code">        repo_filter=<span class="str">"$2"</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">        <span class="kw">case</span> <span class="str">"$repo_filter"</span> <span class="kw">in</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">          repo:mcp-contrast | repo:aiml-services) ;;</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">          *) die <span class="str">"unsupported repo filter: $repo_filter"</span> ;;</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">        <span class="kw">esac</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">348</span><span class="code">        is_supported_repo_label <span class="str">"$repo_filter"</span> || die <span class="str">"unsupported repo filter: $repo_filter"</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">349</span><span class="code">        shift <span class="num">2</span></span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Same error message, same behavior, less duplication.</strong> The <code>die</code> call and the error message are preserved. The only difference is that the validation now delegates to the array-backed helper, which means future repos do not require a change here.
+    </div>
+  </div>
+
+  <!-- Part D: Prompt template update -->
+  <p class="narrative">
+    <strong>Finally, the Codex worker prompt is updated to be repo-agnostic.</strong> Instead of only mentioning <code>aiml-services</code> CLAUDE.md, it now tells the worker to read the implementation repo's instruction file regardless of which repo the bead targets.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">scripts/ralph</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">265</span><span class="code">You are Codex, but this repository's coding rules live in CLAUDE.md.</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">266</span><span class="code"></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">267</span><span class="code">Before inspecting or editing implementation code:</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">268</span><span class="code">- Read the implementation repo's CLAUDE.md or AGENTS.md if present.</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">269</span><span class="code">- If the implementation repo is aiml-services, also read services/aiml-hosted-mcp-server/CLAUDE.md.</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">- Follow those CLAUDE.md files as binding repository rules.</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">270</span><span class="code">- Follow those repository instruction files as binding rules.</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>This prevents a Codex worker from ignoring coding rules in unfamiliar repos.</strong> The <code>aiml-deployment</code> and <code>contrast-api-gateway</code> repos may define their standards in <code>AGENTS.md</code> rather than <code>CLAUDE.md</code>. The new first bullet catches both. The existing <code>aiml-services</code>-specific bullet is preserved since that repo has a nested service-level CLAUDE.md.
+    </div>
+  </div>
+
+  <!-- Part E: Minor comment and usage updates -->
+  <p class="narrative">
+    <strong>The remaining changes are cosmetic.</strong> Comment text changes from "both repos" to "multiple repositories," and the usage text now lists all four supported repo labels. These are straightforward readability improvements.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">scripts/ralph</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">40</span><span class="code">usage() {</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">41</span><span class="code">  cat &lt;&lt;'EOF'</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">42</span><span class="code">Usage:</span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">  scripts/ralph &lt;parent-bead-id&gt; &lt;max-iterations&gt; [--repo repo:mcp-contrast|repo:aiml-services]</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">43</span><span class="code">  scripts/ralph &lt;parent-bead-id&gt; &lt;max-iterations&gt; [--repo &lt;repo-label&gt;]</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln"> </span><span class="code">...</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">53</span><span class="code">Ralph requires clean relevant worktrees and refuses protected branches.</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">55</span><span class="code">Supported repo labels:</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">56</span><span class="code">  repo:mcp-contrast</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">57</span><span class="code">  repo:aiml-services</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">58</span><span class="code">  repo:aiml-deployment</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">59</span><span class="code">  repo:contrast-api-gateway</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>The usage text moved from an inline pipe-separated list to a separate, readable block.</strong> This scales better as the repo list grows and is easier to scan at a glance when running <code>scripts/ralph --help</code>.
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- Chapter 5: ralph-next-bead                   -->
+<!-- ============================================ -->
+<section class="chapter" id="ralph-next-bead">
+  <div class="chapter-header">
+    <span class="chapter-number orange">5</span>
+    <h2>scripts/ralph-next-bead</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>The <code>ralph-next-bead</code> script handles the transition between completed beads: creating PRs, generating walkthroughs, and setting up stacked branches.</strong> It processes every repo that has commits on the current branch. Before this PR, it hardcoded two <code>process_repo</code> calls. Now it iterates over a <code>REPOS</code> array, following the same data-driven pattern.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">scripts/ralph-next-bead</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">2</span><span class="code"><span class="comment"># ralph-next-bead -- Transition between beads: PR the completed one, set up the next.</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">3</span><span class="code"><span class="comment">#</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">4</span><span class="code"><span class="comment"># Orchestrates claude -p calls to create PRs, walkthroughs, and stacked branches</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code"><span class="comment"># across mcp-contrast and aiml-services repos.</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">5</span><span class="code"><span class="comment"># across the repos used by AIML-110 / hosted MCP beads.</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">7</span><span class="code"><span class="kw">set</span> -euo pipefail</span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">9</span><span class="code"><span class="prop">CONTROL_REPO</span>=<span class="str">"/Users/chrisedwards/projects/contrast/mcp-contrast"</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">10</span><span class="code"><span class="prop">AIML_REPO</span>=<span class="str">"/Users/chrisedwards/projects/contrast/aiml-services"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">11</span><span class="code"><span class="prop">AIML_DEPLOYMENT_REPO</span>=<span class="str">"/Users/chrisedwards/projects/contrast/aiml-deployment"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">12</span><span class="code"><span class="prop">CONTRAST_API_GATEWAY_REPO</span>=<span class="str">"/Users/chrisedwards/projects/contrast/contrast-api-gateway"</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">13</span><span class="code"><span class="prop">BEADS_PATH</span>=<span class="str">"$CONTROL_REPO"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">14</span><span class="code"><span class="prop">REPOS</span>=(</span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">15</span><span class="code">  <span class="str">"$CONTROL_REPO|mcp-contrast"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">16</span><span class="code">  <span class="str">"$AIML_REPO|aiml-services"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">17</span><span class="code">  <span class="str">"$AIML_DEPLOYMENT_REPO|aiml-deployment"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">18</span><span class="code">  <span class="str">"$CONTRAST_API_GATEWAY_REPO|contrast-api-gateway"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">19</span><span class="code">)</span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Each entry in <code>REPOS</code> is a pipe-delimited pair: filesystem path and display name.</strong> The pipe delimiter is safe here because paths never contain <code>|</code>. The <code>${repo_entry%%|*}</code> and <code>${repo_entry##*|}</code> parameter expansions split each entry without spawning a subshell.
+    </div>
+  </div>
+
+  <p class="narrative">
+    <strong>The loop replacement is the most visible structural change.</strong> Two explicit calls become a three-line loop that processes every entry in the array.
+  </p>
+
+  <div class="diff-block">
+    <div class="diff-header">
+      <svg class="file-icon" viewBox="0 0 16 16"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Z" fill-rule="evenodd"/></svg>
+      <span class="filename">scripts/ralph-next-bead</span>
+      <span class="badge badge-modified">MODIFIED</span>
+    </div>
+    <div class="diff-body"><pre>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">233</span><span class="code">log <span class="str">"Logs: $LOG_DIR"</span></span></span>
+<span class="diff-line context"><span class="marker"> </span><span class="ln">234</span><span class="code"></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">process_repo <span class="str">"$CONTROL_REPO"</span> <span class="str">"mcp-contrast"</span></span></span>
+<span class="diff-line del"><span class="marker">-</span><span class="ln"> </span><span class="code">process_repo <span class="str">"$AIML_REPO"</span> <span class="str">"aiml-services"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">235</span><span class="code"><span class="kw">for</span> repo_entry <span class="kw">in</span> <span class="str">"${REPOS[@]}"</span>; <span class="kw">do</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">236</span><span class="code">  process_repo <span class="str">"${repo_entry%%|*}"</span> <span class="str">"${repo_entry##*|}"</span></span></span>
+<span class="diff-line add"><span class="marker">+</span><span class="ln">237</span><span class="code"><span class="kw">done</span></span></span>
+    </pre></div>
+    <div class="annotation">
+      <strong>Repos that do not exist on disk are safely skipped.</strong> The <code>process_repo</code> function already has a guard: <code>if [[ ! -d "$repo_dir" ]]; then log "SKIP: ..."; return 0; fi</code>. So if a developer does not have <code>aiml-deployment</code> checked out locally, the script logs a skip and continues. No new error handling is needed.
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- Chapter 6: Summary                           -->
+<!-- ============================================ -->
+<section class="chapter" id="summary">
+  <div class="chapter-header">
+    <span class="chapter-number green">6</span>
+    <h2>Summary and Review Guide</h2>
+  </div>
+
+  <p class="narrative">
+    <strong>This is a small, self-contained automation change that prepares Ralph for Phase 3's four-repo scope.</strong> No Java code, no deployment config, no test changes. The only risk is a typo in a repo path, which would surface immediately when Ralph tries to dispatch a bead to a nonexistent directory.
+  </p>
+
+  <div class="callout note">
+    <span class="callout-label">Review focus areas</span>
+    <strong>Check the following:</strong><br>
+    1. Are the two new repo paths correct? (<code>/Users/chrisedwards/projects/contrast/aiml-deployment</code> and <code>/Users/chrisedwards/projects/contrast/contrast-api-gateway</code>)<br>
+    2. Does the <code>SUPPORTED_REPO_LABELS</code> array match the bead labels used in Phase 3? (The epic lists <code>repo:aiml-deployment</code> and <code>repo:contrast-api-gateway</code>, which match.)<br>
+    3. Is the prompt template improvement reasonable? (Reading AGENTS.md in addition to CLAUDE.md.)
+  </div>
+
+  <table class="file-table">
+    <thead><tr><th>File</th><th>Purpose</th><th>Lines</th><th>Novelty</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>scripts/ralph</td>
+        <td>Add 2 repo constants, SUPPORTED_REPO_LABELS array, is_supported_repo_label() helper, extend repo_path_for_label(), update prompt template and usage text</td>
+        <td><span class="addition">+38</span> / <span class="deletion">-10</span></td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+      <tr>
+        <td>scripts/ralph-next-bead</td>
+        <td>Add 2 repo constants, REPOS array, replace hardcoded process_repo calls with loop</td>
+        <td><span class="addition">+12</span> / <span class="deletion">-3</span></td>
+        <td class="novelty"><span class="novelty-badge pattern">Pattern</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout future">
+    <span class="callout-label">What comes next</span>
+    <strong>With Ralph now aware of all four repos, the Phase 3 child beads can begin executing.</strong> The immediate next steps are the beads under <code>mcp-xn8i</code> (Helm deployment, CAG route, network policy) and <code>mcp-y5to</code> (autoscaling, monitoring). Those beads will produce changes in <code>aiml-deployment</code> and <code>contrast-api-gateway</code> that Ralph will now be able to discover, validate, and dispatch to Codex workers. The final gate is <code>mcp-p4sk</code>: a human-operated staging integration, rollback drill, and DBS pilot validation.
+  </div>
+</section>
+
+</main>
+
+<footer>
+  PR #135 &middot; AIML-767 &middot; mcp-contrast
+</footer>
+
+</body>
+</html>
