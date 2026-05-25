@@ -28,6 +28,7 @@ CONTROL_REPO="/Users/chrisedwards/projects/contrast/mcp-contrast"
 AIML_REPO="/Users/chrisedwards/projects/contrast/aiml-services"
 AIML_DEPLOYMENT_REPO="/Users/chrisedwards/projects/contrast/aiml-deployment"
 CONTRAST_API_GATEWAY_REPO="/Users/chrisedwards/projects/contrast/contrast-api-gateway"
+TEAMSERVER_REPO="/Users/chrisedwards/projects/contrast/teamserver"
 RESULT_DIR="$CONTROL_REPO/history/ralph-runs"
 BEADS_DIR="$CONTROL_REPO/.beads"
 SUPPORTED_REPO_LABELS=(
@@ -35,6 +36,7 @@ SUPPORTED_REPO_LABELS=(
   "repo:aiml-services"
   "repo:aiml-deployment"
   "repo:contrast-api-gateway"
+  "repo:teamserver"
 )
 
 usage() {
@@ -57,6 +59,7 @@ Supported repo labels:
   repo:aiml-services
   repo:aiml-deployment
   repo:contrast-api-gateway
+  repo:teamserver
 EOF
 }
 
@@ -80,6 +83,7 @@ repo_path_for_label() {
     repo:aiml-services) printf '%s\n' "$AIML_REPO" ;;
     repo:aiml-deployment) printf '%s\n' "$AIML_DEPLOYMENT_REPO" ;;
     repo:contrast-api-gateway) printf '%s\n' "$CONTRAST_API_GATEWAY_REPO" ;;
+    repo:teamserver) printf '%s\n' "$TEAMSERVER_REPO" ;;
     *) return 1 ;;
   esac
 }
