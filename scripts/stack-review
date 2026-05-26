@@ -1,0 +1,728 @@
+#!/usr/bin/env bash
+# stack-review — collect GOAT review findings across an open PR stack, then
+# filter them against the final stack state with Codex.
+
+set -euo pipefail
+
+REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+RESULT_ROOT="$REPO_ROOT/history/stack-review"
+STREAM_TEXT='select(.type == "assistant").message.content[]? | select(.type == "text").text // empty | . + "\n"'
+
+usage() {
+  cat <<'EOF'
+Usage:
+  scripts/stack-review run [options]
+  scripts/stack-review discover [options]
+  scripts/stack-review collect --run <run-dir> [--force]
+  scripts/stack-review check-current --run <run-dir> [options]
+  scripts/stack-review summarize --run <run-dir>
+
+Options:
+  --target <branch-or-pr>       Stack target. Defaults to the current branch's PR.
+  --final-branch <branch>       Final code state. Defaults to the last open PR head branch.
+  --context-file <path>         Extra context injected into GOAT and Codex prompts.
+  --prs-file <path>             Fallback explicit PR list, one PR URL or number per line.
+  --out <dir>                   Output run directory. Defaults under history/stack-review/.
+  --run <dir>                   Existing run directory for subcommands.
+  --force                       Rerun steps whose outputs already exist.
+  --no-restore                  For run/check-current, leave repo on the final branch.
+  -h, --help                    Show this help.
+
+Examples:
+  scripts/stack-review run --context-file history/review-context.txt
+  scripts/stack-review run --target 135 --final-branch AIML-767-final
+  scripts/stack-review collect --run history/stack-review/2026-05-26T20-10-00
+EOF
+}
+
+die() {
+  printf 'stack-review: %s\n' "$*" >&2
+  exit 1
+}
+
+log() {
+  printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*" >&2
+}
+
+require_command() {
+  command -v "$1" >/dev/null 2>&1 || die "required command not found: $1"
+}
+
+abs_path() {
+  local path="$1"
+  local dir
+  local base
+
+  if [[ "$path" = /* ]]; then
+    printf '%s\n' "$path"
+    return 0
+  fi
+
+  dir="$(dirname -- "$path")"
+  base="$(basename -- "$path")"
+  printf '%s/%s\n' "$(cd "$dir" && pwd)" "$base"
+}
+
+timestamp() {
+  date +%Y-%m-%dT%H-%M-%S
+}
+
+find_pr_tools_scripts() {
+  local scripts_dir
+  scripts_dir="$(find "$HOME/.claude/plugins/cache/Contrast-Security-Inc/pr-tools" -mindepth 2 -maxdepth 2 -type d -name scripts 2>/dev/null | sort -V | tail -1 || true)"
+  [[ -n "$scripts_dir" ]] || die "pr-tools plugin not found. Install via /plugin install pr-tools@Contrast-Security-Inc"
+  [[ -x "$scripts_dir/stacked-pr-facts.sh" || -f "$scripts_dir/stacked-pr-facts.sh" ]] || die "stacked-pr-facts.sh not found in $scripts_dir"
+  printf '%s\n' "$scripts_dir"
+}
+
+ensure_clean_repo() {
+  local status
+  status="$(git -C "$REPO_ROOT" status --porcelain)"
+  [[ -z "$status" ]] || die "repo is not clean; commit/stash/clean changes before running:
+$status"
+}
+
+preflight() {
+  require_command git
+  require_command gh
+  require_command jq
+  require_command claude
+  require_command codex
+  find_pr_tools_scripts >/dev/null
+  gh auth status >/dev/null 2>&1 || die "gh is not authenticated; run gh auth login"
+  if ! command -v gemini >/dev/null 2>&1; then
+    printf 'stack-review: warning: gemini not found; GOAT review should degrade if that leg is unavailable\n' >&2
+  fi
+}
+
+make_run_dir() {
+  local out="$1"
+
+  if [[ -z "$out" ]]; then
+    out="$RESULT_ROOT/$(timestamp)"
+  fi
+
+  mkdir -p "$out"
+  abs_path "$out"
+}
+
+snapshot_context() {
+  local context_file="$1"
+  local run_dir="$2"
+
+  if [[ -n "$context_file" ]]; then
+    [[ -f "$context_file" ]] || die "context file not found: $context_file"
+    cp "$context_file" "$run_dir/context.txt"
+  else
+    : >"$run_dir/context.txt"
+  fi
+}
+
+write_run_config() {
+  local run_dir="$1"
+  local target="$2"
+  local final_branch="$3"
+  local prs_file="$4"
+
+  jq -n \
+    --arg target "$target" \
+    --arg final_branch "$final_branch" \
+    --arg prs_file "$prs_file" \
+    --arg created_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    '{
+      target: (if $target == "" then null else $target end),
+      final_branch: $final_branch,
+      prs_file: (if $prs_file == "" then null else $prs_file end),
+      created_at: $created_at
+    }' \
+    >"$run_dir/run-config.json"
+}
+
+discover_from_stack() {
+  local target="$1"
+  local run_dir="$2"
+  local pr_tools_scripts
+
+  pr_tools_scripts="$(find_pr_tools_scripts)"
+  log "Discovering PR stack with pr-tools"
+  if [[ -n "$target" ]]; then
+    bash "$pr_tools_scripts/stacked-pr-facts.sh" build-stack "$target" >"$run_dir/stack.json"
+  else
+    bash "$pr_tools_scripts/stacked-pr-facts.sh" build-stack >"$run_dir/stack.json"
+  fi
+
+  jq -c '
+    .nodes[]
+    | select(.number != null)
+    | select(.url != null)
+    | select(.state == "OPEN")
+    | {
+        number,
+        url,
+        title,
+        state,
+        isDraft,
+        headRefName,
+        baseRefName
+      }
+  ' "$run_dir/stack.json" >"$run_dir/review-order.jsonl"
+}
+
+discover_from_prs_file() {
+  local prs_file="$1"
+  local run_dir="$2"
+  local item
+
+  [[ -f "$prs_file" ]] || die "PR list file not found: $prs_file"
+  log "Discovering PRs from $prs_file"
+  jq -n '{source:"prs-file", nodes:[]}' >"$run_dir/stack.json"
+  : >"$run_dir/review-order.jsonl"
+
+  while IFS= read -r item || [[ -n "$item" ]]; do
+    item="${item%%#*}"
+    item="$(printf '%s' "$item" | xargs)"
+    [[ -n "$item" ]] || continue
+
+    gh pr view "$item" \
+      --json number,url,title,state,isDraft,headRefName,baseRefName \
+      --jq 'select(.state == "OPEN") | {number,url,title,state,isDraft,headRefName,baseRefName}' \
+      >>"$run_dir/review-order.jsonl"
+  done <"$prs_file"
+}
+
+infer_final_branch() {
+  local run_dir="$1"
+
+  jq -r 'select(.headRefName != null) | .headRefName' "$run_dir/review-order.jsonl" | tail -1
+}
+
+discover() {
+  local target="$1"
+  local final_branch="$2"
+  local context_file="$3"
+  local prs_file="$4"
+  local out="$5"
+  local run_dir
+  local count
+
+  run_dir="$(make_run_dir "$out")"
+  snapshot_context "$context_file" "$run_dir"
+
+  if [[ -n "$prs_file" ]]; then
+    discover_from_prs_file "$prs_file" "$run_dir"
+  else
+    discover_from_stack "$target" "$run_dir"
+  fi
+
+  count="$(jq -s 'length' "$run_dir/review-order.jsonl")"
+  [[ "$count" -gt 0 ]] || die "no OPEN PRs found to review"
+
+  if [[ -z "$final_branch" ]]; then
+    final_branch="$(infer_final_branch "$run_dir")"
+  fi
+  [[ -n "$final_branch" && "$final_branch" != "null" ]] || die "could not infer final branch"
+
+  write_run_config "$run_dir" "$target" "$final_branch" "$prs_file"
+  log "Discovered $count PR(s)"
+  log "Final branch: $final_branch"
+  log "Run directory: $run_dir"
+  printf '%s\n' "$run_dir"
+}
+
+goat_prompt() {
+  local pr_url="$1"
+  local context_file="$2"
+
+  printf '/goat-review-pr %s\n\n' "$pr_url"
+
+  if [[ -s "$context_file" ]]; then
+    printf '%s\n\n' "$(cat "$context_file")"
+  fi
+
+  cat <<'EOF'
+This is running non-interactively.
+Do not post inline PR comments.
+Do not ask whether to post comments.
+Do not edit files.
+Do not update beads.
+
+After the GOAT REVIEW report, emit a machine-readable issue list.
+
+Use these exact markers:
+
+BEGIN_STACK_REVIEW_ISSUES_JSONL
+<jsonl>
+END_STACK_REVIEW_ISSUES_JSONL
+
+Include findings with Verdict FIX or CONSIDER.
+Exclude findings with Verdict SKIP.
+Emit one valid JSON object per line.
+If there are no included findings, emit no lines between the markers.
+Do not wrap the JSONL in Markdown fences.
+
+Each object must include:
+- severity: CRITICAL, HIGH, MEDIUM, or LOW
+- goat_finding_id
+- goat_verdict: FIX or CONSIDER
+- title
+- file
+- line
+- area
+- description
+- evidence
+- suggested_fix
+- flagged_by
+
+Descriptions must be detailed enough to understand and fix later without rereading the full review.
+EOF
+}
+
+run_claude_goat() {
+  local prompt_file="$1"
+  local raw_file="$2"
+  local text_file="$3"
+  local status
+
+  set +e
+  claude \
+    --permission-mode bypassPermissions \
+    --verbose \
+    --print \
+    --output-format stream-json \
+    -p "$(cat "$prompt_file")" \
+  | { grep --line-buffered '^{' || true; } \
+  | tee "$raw_file" \
+  | jq --unbuffered -rj "$STREAM_TEXT" \
+  | tee "$text_file"
+  status=${PIPESTATUS[0]}
+  set -e
+
+  return "$status"
+}
+
+extract_goat_issues() {
+  local text_file="$1"
+  local raw_issues="$2"
+  local issues_file="$3"
+  local pr_number="$4"
+  local pr_url="$5"
+  local pr_title="$6"
+  local head_branch="$7"
+  local base_branch="$8"
+  local begin_count
+  local end_count
+
+  begin_count="$(grep -c '^BEGIN_STACK_REVIEW_ISSUES_JSONL$' "$text_file" || true)"
+  end_count="$(grep -c '^END_STACK_REVIEW_ISSUES_JSONL$' "$text_file" || true)"
+  [[ "$begin_count" -gt 0 && "$end_count" -gt 0 ]] || die "missing JSONL markers in $text_file"
+
+  awk '
+    /^BEGIN_STACK_REVIEW_ISSUES_JSONL$/ { in_block=1; next }
+    /^END_STACK_REVIEW_ISSUES_JSONL$/ { in_block=0; exit }
+    in_block { print }
+  ' "$text_file" >"$raw_issues"
+
+  if [[ -s "$raw_issues" ]]; then
+    jq -s -e '
+      all(.[]; type == "object"
+        and has("severity")
+        and has("goat_finding_id")
+        and has("goat_verdict")
+        and has("title")
+        and has("file")
+        and has("line")
+        and has("area")
+        and has("description")
+        and has("evidence")
+        and has("suggested_fix")
+        and has("flagged_by"))
+    ' "$raw_issues" >/dev/null || die "invalid GOAT issue schema in $raw_issues"
+
+    jq -c \
+      --argjson pr "$pr_number" \
+      --arg pr_url "$pr_url" \
+      --arg pr_title "$pr_title" \
+      --arg head_branch "$head_branch" \
+      --arg base_branch "$base_branch" \
+      '. + {
+        id: ("pr" + ($pr | tostring) + "-" + (.goat_finding_id | tostring)),
+        pr: $pr,
+        pr_url: $pr_url,
+        pr_title: $pr_title,
+        head_branch: $head_branch,
+        base_branch: $base_branch
+      }' "$raw_issues" >"$issues_file"
+  else
+    : >"$issues_file"
+  fi
+}
+
+collect() {
+  local run_dir="$1"
+  local force="$2"
+  local row
+
+  [[ -d "$run_dir" ]] || die "run directory not found: $run_dir"
+  [[ -f "$run_dir/review-order.jsonl" ]] || die "missing review-order.jsonl in $run_dir"
+  [[ -f "$run_dir/context.txt" ]] || : >"$run_dir/context.txt"
+
+  while IFS= read -r row || [[ -n "$row" ]]; do
+    [[ -n "$row" ]] || continue
+
+    local pr_number pr_url pr_title head_branch base_branch
+    local prefix prompt_file raw_file text_file raw_issues issues_file
+
+    pr_number="$(jq -r '.number' <<<"$row")"
+    pr_url="$(jq -r '.url' <<<"$row")"
+    pr_title="$(jq -r '.title // ""' <<<"$row")"
+    head_branch="$(jq -r '.headRefName // ""' <<<"$row")"
+    base_branch="$(jq -r '.baseRefName // ""' <<<"$row")"
+    prefix="$run_dir/pr-$pr_number"
+    prompt_file="$prefix.prompt.txt"
+    raw_file="$prefix.claude.raw.jsonl"
+    text_file="$prefix.goat.txt"
+    raw_issues="$prefix.issues.raw.jsonl"
+    issues_file="$prefix.issues.jsonl"
+
+    if [[ -f "$issues_file" && "$force" != "true" ]]; then
+      log "Skipping PR #$pr_number; issues file already exists"
+      continue
+    fi
+
+    log "Checking out PR #$pr_number"
+    gh pr checkout "$pr_number"
+
+    goat_prompt "$pr_url" "$run_dir/context.txt" >"$prompt_file"
+
+    log "Running GOAT review for PR #$pr_number"
+    run_claude_goat "$prompt_file" "$raw_file" "$text_file" || die "Claude GOAT review failed for PR #$pr_number"
+    extract_goat_issues "$text_file" "$raw_issues" "$issues_file" "$pr_number" "$pr_url" "$pr_title" "$head_branch" "$base_branch"
+    log "Collected $(jq -s 'length' "$issues_file") issue(s) for PR #$pr_number"
+  done <"$run_dir/review-order.jsonl"
+
+  while IFS= read -r row || [[ -n "$row" ]]; do
+    [[ -n "$row" ]] || continue
+    local pr_number
+    pr_number="$(jq -r '.number' <<<"$row")"
+    [[ -f "$run_dir/pr-$pr_number.issues.jsonl" ]] || die "missing collected issues for PR #$pr_number"
+  done <"$run_dir/review-order.jsonl"
+}
+
+codex_prompt() {
+  local issues_file="$1"
+  local current_file="$2"
+  local uncertain_file="$3"
+  local context_file="$4"
+
+  cat <<EOF
+You are checking whether prior GOAT PR review findings still apply to the current final code.
+
+Input file:
+$issues_file
+
+Write:
+$current_file
+$uncertain_file
+
+EOF
+
+  if [[ -s "$context_file" ]]; then
+    cat "$context_file"
+    printf '\n\n'
+  fi
+
+  cat <<'EOF'
+Rules:
+- Put still-applicable issues in current.
+- Put unclear or maybe-still-applicable issues in uncertain.
+- Omit fixed, obsolete, removed, or no-longer-applicable issues.
+- Preserve the original issue fields.
+- Add current_file, current_line, and current_area if the location changed or can be identified.
+- Write valid JSONL.
+- Do not modify source files.
+EOF
+}
+
+validate_jsonl() {
+  local file="$1"
+  if [[ -s "$file" ]]; then
+    jq -c . "$file" >/dev/null || die "invalid JSONL: $file"
+  fi
+}
+
+run_codex_applicability() {
+  local prompt_file="$1"
+  local raw_file="$2"
+  local status
+
+  set +e
+  codex -a never exec \
+    -p yolo \
+    -C "$REPO_ROOT" \
+    --json \
+    - <"$prompt_file" >"$raw_file" 2>&1
+  status=$?
+  set -e
+
+  return "$status"
+}
+
+check_current() {
+  local run_dir="$1"
+  local final_branch_override="$2"
+  local force="$3"
+  local final_branch
+  local final_sha
+  local row
+
+  [[ -d "$run_dir" ]] || die "run directory not found: $run_dir"
+  [[ -f "$run_dir/review-order.jsonl" ]] || die "missing review-order.jsonl in $run_dir"
+  [[ -f "$run_dir/context.txt" ]] || : >"$run_dir/context.txt"
+
+  if [[ -n "$final_branch_override" ]]; then
+    final_branch="$final_branch_override"
+  else
+    final_branch="$(jq -r '.final_branch // ""' "$run_dir/run-config.json" 2>/dev/null || true)"
+    if [[ -z "$final_branch" || "$final_branch" == "null" ]]; then
+      final_branch="$(infer_final_branch "$run_dir")"
+    fi
+  fi
+  [[ -n "$final_branch" && "$final_branch" != "null" ]] || die "could not determine final branch"
+
+  log "Checking out final branch $final_branch"
+  git -C "$REPO_ROOT" checkout "$final_branch"
+  final_sha="$(git -C "$REPO_ROOT" rev-parse HEAD)"
+
+  jq -n \
+    --arg final_branch "$final_branch" \
+    --arg final_sha "$final_sha" \
+    --arg checked_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    '{final_branch:$final_branch, final_sha:$final_sha, checked_at:$checked_at}' \
+    >"$run_dir/final-state.json"
+
+  while IFS= read -r row || [[ -n "$row" ]]; do
+    [[ -n "$row" ]] || continue
+
+    local pr_number prefix issues_file current_file uncertain_file prompt_file raw_file
+    pr_number="$(jq -r '.number' <<<"$row")"
+    prefix="$run_dir/pr-$pr_number"
+    issues_file="$prefix.issues.jsonl"
+    current_file="$prefix.current.jsonl"
+    uncertain_file="$prefix.uncertain.jsonl"
+    prompt_file="$prefix.codex.prompt.txt"
+    raw_file="$prefix.codex.raw.jsonl"
+
+    [[ -f "$issues_file" ]] || die "missing issues file for PR #$pr_number: $issues_file"
+
+    if [[ -f "$current_file" && -f "$uncertain_file" && "$force" != "true" ]]; then
+      log "Skipping PR #$pr_number applicability; outputs already exist"
+      continue
+    fi
+
+    if [[ ! -s "$issues_file" ]]; then
+      : >"$current_file"
+      : >"$uncertain_file"
+      log "PR #$pr_number has no issues; wrote empty applicability outputs"
+      continue
+    fi
+
+    codex_prompt "$issues_file" "$current_file" "$uncertain_file" "$run_dir/context.txt" >"$prompt_file"
+    log "Running Codex applicability check for PR #$pr_number"
+    run_codex_applicability "$prompt_file" "$raw_file" || die "Codex applicability check failed for PR #$pr_number"
+
+    [[ -f "$current_file" ]] || die "Codex did not write $current_file"
+    [[ -f "$uncertain_file" ]] || die "Codex did not write $uncertain_file"
+    validate_jsonl "$current_file"
+    validate_jsonl "$uncertain_file"
+  done <"$run_dir/review-order.jsonl"
+}
+
+combine_outputs() {
+  local run_dir="$1"
+  local row
+
+  : >"$run_dir/current-all.jsonl"
+  : >"$run_dir/uncertain-all.jsonl"
+
+  while IFS= read -r row || [[ -n "$row" ]]; do
+    [[ -n "$row" ]] || continue
+    local pr_number
+    pr_number="$(jq -r '.number' <<<"$row")"
+    [[ -f "$run_dir/pr-$pr_number.current.jsonl" ]] || die "missing current output for PR #$pr_number"
+    [[ -f "$run_dir/pr-$pr_number.uncertain.jsonl" ]] || die "missing uncertain output for PR #$pr_number"
+    cat "$run_dir/pr-$pr_number.current.jsonl" >>"$run_dir/current-all.jsonl"
+    cat "$run_dir/pr-$pr_number.uncertain.jsonl" >>"$run_dir/uncertain-all.jsonl"
+  done <"$run_dir/review-order.jsonl"
+
+  validate_jsonl "$run_dir/current-all.jsonl"
+  validate_jsonl "$run_dir/uncertain-all.jsonl"
+}
+
+append_issue_section() {
+  local title="$1"
+  local file="$2"
+  local summary_file="$3"
+  local count
+
+  count="$(jq -s 'length' "$file")"
+  {
+    printf '\n## %s\n\n' "$title"
+    if [[ "$count" -eq 0 ]]; then
+      printf '(none)\n'
+    else
+      for severity in CRITICAL HIGH MEDIUM LOW; do
+        local severity_count
+        severity_count="$(jq -s --arg severity "$severity" '[.[] | select(.severity == $severity)] | length' "$file")"
+        [[ "$severity_count" -gt 0 ]] || continue
+        printf '\n### %s\n\n' "$severity"
+        jq -r --arg severity "$severity" '
+          select(.severity == $severity)
+          | "- `\(.id // "unknown")` `\((.current_file // .file // "unknown")):\((.current_line // .line // "unknown"))` \(.title // "Untitled")\n  PR: #\(.pr // "unknown") | Verdict: \(.goat_verdict // "unknown")\n  Fix: \(.suggested_fix // "")\n"
+        ' "$file"
+      done
+    fi
+  } >>"$summary_file"
+}
+
+summarize() {
+  local run_dir="$1"
+  local summary_file="$run_dir/summary.md"
+  local final_branch=""
+  local final_sha=""
+  local current_count
+  local uncertain_count
+
+  [[ -d "$run_dir" ]] || die "run directory not found: $run_dir"
+  [[ -f "$run_dir/current-all.jsonl" ]] || combine_outputs "$run_dir"
+  [[ -f "$run_dir/uncertain-all.jsonl" ]] || combine_outputs "$run_dir"
+
+  if [[ -f "$run_dir/final-state.json" ]]; then
+    final_branch="$(jq -r '.final_branch // ""' "$run_dir/final-state.json")"
+    final_sha="$(jq -r '.final_sha // ""' "$run_dir/final-state.json")"
+  fi
+
+  current_count="$(jq -s 'length' "$run_dir/current-all.jsonl")"
+  uncertain_count="$(jq -s 'length' "$run_dir/uncertain-all.jsonl")"
+
+  {
+    printf '# Stack Review Summary\n\n'
+    printf "Run directory: \`%s\`\n\n" "$run_dir"
+    if [[ -n "$final_branch" ]]; then
+      printf "Final branch: \`%s\`\n\n" "$final_branch"
+    fi
+    if [[ -n "$final_sha" ]]; then
+      printf "Final SHA: \`%s\`\n\n" "$final_sha"
+    fi
+    printf 'Current issues: %s\n\n' "$current_count"
+    printf 'Uncertain issues: %s\n' "$uncertain_count"
+  } >"$summary_file"
+
+  append_issue_section "Current Issues" "$run_dir/current-all.jsonl" "$summary_file"
+  append_issue_section "Uncertain" "$run_dir/uncertain-all.jsonl" "$summary_file"
+  log "Wrote $summary_file"
+}
+
+restore_branch() {
+  local original_branch="$1"
+  local should_restore="$2"
+
+  [[ "$should_restore" == "true" ]] || return 0
+  [[ -n "$original_branch" ]] || return 0
+  log "Restoring original branch $original_branch"
+  git -C "$REPO_ROOT" checkout "$original_branch"
+}
+
+parse_options() {
+  TARGET=""
+  FINAL_BRANCH=""
+  CONTEXT_FILE=""
+  PRS_FILE=""
+  OUT_DIR=""
+  RUN_DIR=""
+  FORCE="false"
+  RESTORE="true"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --target) TARGET="$2"; shift 2 ;;
+      --final-branch) FINAL_BRANCH="$2"; shift 2 ;;
+      --context-file) CONTEXT_FILE="$2"; shift 2 ;;
+      --prs-file) PRS_FILE="$2"; shift 2 ;;
+      --out) OUT_DIR="$2"; shift 2 ;;
+      --run) RUN_DIR="$2"; shift 2 ;;
+      --force) FORCE="true"; shift ;;
+      --no-restore) RESTORE="false"; shift ;;
+      -h|--help) usage; exit 0 ;;
+      *) die "unknown argument: $1" ;;
+    esac
+  done
+
+  if [[ -n "$RUN_DIR" ]]; then
+    RUN_DIR="$(abs_path "$RUN_DIR")"
+  fi
+  if [[ -n "$CONTEXT_FILE" ]]; then
+    CONTEXT_FILE="$(abs_path "$CONTEXT_FILE")"
+  fi
+  if [[ -n "$PRS_FILE" ]]; then
+    PRS_FILE="$(abs_path "$PRS_FILE")"
+  fi
+}
+
+main() {
+  local command="${1:-}"
+  [[ -n "$command" ]] || { usage; exit 1; }
+  shift || true
+
+  case "$command" in
+    run)
+      parse_options "$@"
+      preflight
+      ensure_clean_repo
+      local original_branch run_dir
+      original_branch="$(git -C "$REPO_ROOT" branch --show-current)"
+      run_dir="$(discover "$TARGET" "$FINAL_BRANCH" "$CONTEXT_FILE" "$PRS_FILE" "$OUT_DIR" | tail -1)"
+      collect "$run_dir" "$FORCE"
+      check_current "$run_dir" "$FINAL_BRANCH" "$FORCE"
+      combine_outputs "$run_dir"
+      summarize "$run_dir"
+      restore_branch "$original_branch" "$RESTORE"
+      log "Complete: $run_dir"
+      ;;
+    discover)
+      parse_options "$@"
+      preflight
+      discover "$TARGET" "$FINAL_BRANCH" "$CONTEXT_FILE" "$PRS_FILE" "$OUT_DIR"
+      ;;
+    collect)
+      parse_options "$@"
+      preflight
+      [[ -n "$RUN_DIR" ]] || die "collect requires --run"
+      collect "$RUN_DIR" "$FORCE"
+      ;;
+    check-current)
+      parse_options "$@"
+      preflight
+      [[ -n "$RUN_DIR" ]] || die "check-current requires --run"
+      local original_branch
+      original_branch="$(git -C "$REPO_ROOT" branch --show-current)"
+      check_current "$RUN_DIR" "$FINAL_BRANCH" "$FORCE"
+      combine_outputs "$RUN_DIR"
+      restore_branch "$original_branch" "$RESTORE"
+      ;;
+    summarize)
+      parse_options "$@"
+      require_command jq
+      [[ -n "$RUN_DIR" ]] || die "summarize requires --run"
+      combine_outputs "$RUN_DIR"
+      summarize "$RUN_DIR"
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      die "unknown command: $command"
+      ;;
+  esac
+}
+
+main "$@"
