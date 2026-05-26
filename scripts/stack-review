@@ -4,7 +4,10 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+INVOCATION_DIR="$(pwd)"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_REPO_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(git -C "$INVOCATION_DIR" rev-parse --show-toplevel 2>/dev/null || printf '%s\n' "$SCRIPT_REPO_ROOT")"
 RESULT_ROOT="$REPO_ROOT/history/stack-review"
 STREAM_TEXT='select(.type == "assistant").message.content[]? | select(.type == "text").text // empty | . + "\n"'
 
@@ -22,6 +25,7 @@ Options:
   --final-branch <branch>       Final code state. Defaults to the last open PR head branch.
   --context-file <path>         Extra context injected into GOAT and Codex prompts.
   --prs-file <path>             Fallback explicit PR list, one PR URL or number per line.
+  --repo <path>                 Target repo. Defaults to the Git repo you run from.
   --out <dir>                   Output run directory. Defaults under history/stack-review/.
   --run <dir>                   Existing run directory for subcommands.
   --force                       Rerun steps whose outputs already exist.
@@ -31,6 +35,7 @@ Options:
 Examples:
   scripts/stack-review run --context-file history/review-context.txt
   scripts/stack-review run --target 135 --final-branch AIML-767-final
+  /path/to/mcp-contrast/scripts/stack-review run --repo /path/to/other-repo
   scripts/stack-review collect --run history/stack-review/2026-05-26T20-10-00
 EOF
 }
@@ -95,6 +100,19 @@ preflight() {
   fi
 }
 
+configure_repo_root() {
+  local repo_path="$1"
+
+  if [[ -n "$repo_path" ]]; then
+    [[ -d "$repo_path" ]] || die "repo path not found: $repo_path"
+    REPO_ROOT="$(git -C "$repo_path" rev-parse --show-toplevel 2>/dev/null)" || die "not a git repo: $repo_path"
+  else
+    REPO_ROOT="$(git -C "$INVOCATION_DIR" rev-parse --show-toplevel 2>/dev/null)" || die "not in a git repo; run from a repo or pass --repo"
+  fi
+
+  RESULT_ROOT="$REPO_ROOT/history/stack-review"
+}
+
 make_run_dir() {
   local out="$1"
 
@@ -146,9 +164,9 @@ discover_from_stack() {
   pr_tools_scripts="$(find_pr_tools_scripts)"
   log "Discovering PR stack with pr-tools"
   if [[ -n "$target" ]]; then
-    bash "$pr_tools_scripts/stacked-pr-facts.sh" build-stack "$target" >"$run_dir/stack.json"
+    (cd "$REPO_ROOT" && bash "$pr_tools_scripts/stacked-pr-facts.sh" build-stack "$target") >"$run_dir/stack.json"
   else
-    bash "$pr_tools_scripts/stacked-pr-facts.sh" build-stack >"$run_dir/stack.json"
+    (cd "$REPO_ROOT" && bash "$pr_tools_scripts/stacked-pr-facts.sh" build-stack) >"$run_dir/stack.json"
   fi
 
   jq -c '
@@ -183,9 +201,9 @@ discover_from_prs_file() {
     item="$(printf '%s' "$item" | xargs)"
     [[ -n "$item" ]] || continue
 
-    gh pr view "$item" \
+    (cd "$REPO_ROOT" && gh pr view "$item" \
       --json number,url,title,state,isDraft,headRefName,baseRefName \
-      --jq 'select(.state == "OPEN") | {number,url,title,state,isDraft,headRefName,baseRefName}' \
+      --jq 'select(.state == "OPEN") | {number,url,title,state,isDraft,headRefName,baseRefName}') \
       >>"$run_dir/review-order.jsonl"
   done <"$prs_file"
 }
@@ -284,12 +302,12 @@ run_claude_goat() {
   local status
 
   set +e
-  claude \
-    --permission-mode bypassPermissions \
-    --verbose \
-    --print \
-    --output-format stream-json \
-    -p "$(cat "$prompt_file")" \
+  (cd "$REPO_ROOT" && claude \
+      --permission-mode bypassPermissions \
+      --verbose \
+      --print \
+      --output-format stream-json \
+      -p "$(cat "$prompt_file")") \
   | { grep --line-buffered '^{' || true; } \
   | tee "$raw_file" \
   | jq --unbuffered -rj "$STREAM_TEXT" \
@@ -390,7 +408,7 @@ collect() {
     fi
 
     log "Checking out PR #$pr_number"
-    gh pr checkout "$pr_number"
+    (cd "$REPO_ROOT" && gh pr checkout "$pr_number")
 
     goat_prompt "$pr_url" "$run_dir/context.txt" >"$prompt_file"
 
@@ -637,6 +655,7 @@ parse_options() {
   FINAL_BRANCH=""
   CONTEXT_FILE=""
   PRS_FILE=""
+  REPO_PATH=""
   OUT_DIR=""
   RUN_DIR=""
   FORCE="false"
@@ -648,6 +667,7 @@ parse_options() {
       --final-branch) FINAL_BRANCH="$2"; shift 2 ;;
       --context-file) CONTEXT_FILE="$2"; shift 2 ;;
       --prs-file) PRS_FILE="$2"; shift 2 ;;
+      --repo) REPO_PATH="$2"; shift 2 ;;
       --out) OUT_DIR="$2"; shift 2 ;;
       --run) RUN_DIR="$2"; shift 2 ;;
       --force) FORCE="true"; shift ;;
@@ -666,6 +686,9 @@ parse_options() {
   if [[ -n "$PRS_FILE" ]]; then
     PRS_FILE="$(abs_path "$PRS_FILE")"
   fi
+  if [[ -n "$REPO_PATH" ]]; then
+    REPO_PATH="$(abs_path "$REPO_PATH")"
+  fi
 }
 
 main() {
@@ -676,6 +699,7 @@ main() {
   case "$command" in
     run)
       parse_options "$@"
+      configure_repo_root "$REPO_PATH"
       preflight
       ensure_clean_repo
       local original_branch run_dir
@@ -690,17 +714,20 @@ main() {
       ;;
     discover)
       parse_options "$@"
+      configure_repo_root "$REPO_PATH"
       preflight
       discover "$TARGET" "$FINAL_BRANCH" "$CONTEXT_FILE" "$PRS_FILE" "$OUT_DIR"
       ;;
     collect)
       parse_options "$@"
+      configure_repo_root "$REPO_PATH"
       preflight
       [[ -n "$RUN_DIR" ]] || die "collect requires --run"
       collect "$RUN_DIR" "$FORCE"
       ;;
     check-current)
       parse_options "$@"
+      configure_repo_root "$REPO_PATH"
       preflight
       [[ -n "$RUN_DIR" ]] || die "check-current requires --run"
       local original_branch
