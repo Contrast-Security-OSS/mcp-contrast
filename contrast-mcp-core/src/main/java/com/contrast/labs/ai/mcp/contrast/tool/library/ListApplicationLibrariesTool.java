@@ -113,7 +113,7 @@ public class ListApplicationLibrariesTool
 
     if (libraries == null || libraries.isEmpty()) {
       if (pagination.offset() == 0 && total == 0) {
-        collector.warn(
+        collector.warnForEmptyResults(
             "No libraries found for this application. "
                 + "The application may not have any third-party dependencies, "
                 + "or library data may not have been collected yet.");

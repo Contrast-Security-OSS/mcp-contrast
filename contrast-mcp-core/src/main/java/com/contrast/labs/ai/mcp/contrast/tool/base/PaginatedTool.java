@@ -188,7 +188,10 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
       long duration,
       String requestId) {
 
-    if (result.items().isEmpty() && result.totalItems() != null && result.totalItems() == 0) {
+    if (result.items().isEmpty()
+        && result.totalItems() != null
+        && result.totalItems() == 0
+        && !collector.hasEmptyResultsWarning()) {
       collector.warn("No results found matching the specified criteria.");
     }
 

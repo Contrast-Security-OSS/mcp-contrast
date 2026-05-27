@@ -263,6 +263,22 @@ class PaginatedToolTest {
   }
 
   @Test
+  void executePipeline_should_not_add_generic_empty_warning_when_tool_explains_empty_result() {
+    tool.setDoExecuteHandler(
+        (pagination, params, collector) -> {
+          collector.warnForEmptyResults("No widgets found for this account.");
+          return ExecutionResult.of(List.of(), 0);
+        });
+
+    var result = tool.executePipeline(1, 10, () -> TestParams.valid());
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.items()).isEmpty();
+    assertThat(result.totalItems()).isZero();
+    assertThat(result.warnings()).containsExactly("No widgets found for this account.");
+  }
+
+  @Test
   void executePipeline_should_include_pagination_warnings() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> ExecutionResult.of(List.of("item"), 1));

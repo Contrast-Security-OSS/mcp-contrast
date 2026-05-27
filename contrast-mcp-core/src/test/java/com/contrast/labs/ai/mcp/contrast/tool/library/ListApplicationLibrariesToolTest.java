@@ -121,7 +121,11 @@ class ListApplicationLibrariesToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
     assertThat(result.totalItems()).isEqualTo(0);
-    assertThat(result.warnings()).anyMatch(w -> w.contains("No libraries found"));
+    assertThat(result.warnings())
+        .containsExactly(
+            "No libraries found for this application. "
+                + "The application may not have any third-party dependencies, "
+                + "or library data may not have been collected yet.");
   }
 
   @Test

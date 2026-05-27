@@ -155,7 +155,7 @@ public abstract class CursorPaginatedTool<P extends ToolParams, R> extends BaseT
       long duration,
       String requestId) {
 
-    if (result.items().isEmpty() && !result.hasMore()) {
+    if (result.items().isEmpty() && !result.hasMore() && !collector.hasEmptyResultsWarning()) {
       collector.warn("No results found matching the specified criteria.");
     }
 

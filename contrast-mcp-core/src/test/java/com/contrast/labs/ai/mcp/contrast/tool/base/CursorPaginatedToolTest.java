@@ -209,6 +209,34 @@ class CursorPaginatedToolTest {
     assertThat(result.durationMs()).isGreaterThanOrEqualTo(0);
   }
 
+  @Test
+  void executePipeline_should_add_empty_results_warning() {
+    tool.setDoExecuteHandler(
+        (pagination, params, collector) -> CursorExecutionResult.of(List.of(), null, false));
+
+    var result = tool.executePipeline(null, 25, TestParams::valid);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.items()).isEmpty();
+    assertThat(result.warnings())
+        .containsExactly("No results found matching the specified criteria.");
+  }
+
+  @Test
+  void executePipeline_should_not_add_generic_empty_warning_when_tool_explains_empty_result() {
+    tool.setDoExecuteHandler(
+        (pagination, params, collector) -> {
+          collector.warnForEmptyResults("No cursor widgets found.");
+          return CursorExecutionResult.of(List.of(), null, false);
+        });
+
+    var result = tool.executePipeline(null, 25, TestParams::valid);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.items()).isEmpty();
+    assertThat(result.warnings()).containsExactly("No cursor widgets found.");
+  }
+
   private static class TestCursorTool extends CursorPaginatedTool<TestParams, String> {
     private DoExecuteHandler handler;
 

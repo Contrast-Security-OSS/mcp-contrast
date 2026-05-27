@@ -50,6 +50,7 @@ public final class WarningCollector {
 
   private final Map<String, Object> context;
   private final List<String> warnings = new ArrayList<>();
+  private boolean emptyResultsWarningRecorded;
 
   private WarningCollector(Map<String, Object> context) {
     this.context = context;
@@ -114,6 +115,22 @@ public final class WarningCollector {
     if (!message.isBlank()) {
       warnings.add(message);
     }
+  }
+
+  /**
+   * Appends a warning that explains why an otherwise successful result set is empty. Base
+   * pagination classes use this marker to avoid adding their generic empty-result warning on top of
+   * a more specific tool-level explanation.
+   */
+  public void warnForEmptyResults(String message) {
+    warn(message);
+    if (!message.isBlank()) {
+      emptyResultsWarningRecorded = true;
+    }
+  }
+
+  boolean hasEmptyResultsWarning() {
+    return emptyResultsWarningRecorded;
   }
 
   /**
