@@ -184,13 +184,35 @@ has_human_only_label() {
   ' >/dev/null <<<"$1"
 }
 
+bead_descends_from_parent() {
+  local bead_id="$1"
+  local requested_parent="$2"
+  local current="$bead_id"
+  local bead_json
+  local actual_parent
+
+  while [[ -n "$current" ]]; do
+    [[ "$current" == "$requested_parent" ]] && return 0
+
+    bead_json="$(run_br show "$current" --json)"
+    actual_parent="$(jq -r '.[0].parent // ""' <<<"$bead_json")"
+
+    [[ -z "$actual_parent" || "$actual_parent" == "$current" ]] && return 1
+    current="$actual_parent"
+  done
+
+  return 1
+}
+
 # Check for a bead ralph previously claimed but didn't finish. Resume it
 # before selecting new work. br list doesn't support --parent, so we query
 # all of ralph's in_progress agent-runnable beads and take the first one
-# (v1 is single-threaded, so there should be at most one).
+# that belongs under the requested parent.
 find_incomplete_bead() {
-  local repo_filter="$1"
+  local parent="$1"
+  local repo_filter="$2"
   local incomplete_json
+  local candidate_id
 
   if [[ -n "$repo_filter" ]]; then
     incomplete_json="$(run_br list --status in_progress --assignee ralph --label "$repo_filter" --json)"
@@ -198,16 +220,23 @@ find_incomplete_bead() {
     incomplete_json="$(run_br list --status in_progress --assignee ralph --json)"
   fi
 
-  jq -r '
+  while IFS= read -r candidate_id; do
+    [[ -z "$candidate_id" ]] && continue
+    if bead_descends_from_parent "$candidate_id" "$parent"; then
+      printf '%s\n' "$candidate_id"
+      return 0
+    fi
+  done < <(
+    jq -r '
     .issues
-    | map(
-        select(
-          ((.labels // []) | '"$human_only_label_filter"')
-          | not
-        )
+    | .[]
+    | select(
+        ((.labels // []) | '"$human_only_label_filter"')
+        | not
       )
-    | .[0].id // empty
+    | .id
   ' <<<"$incomplete_json"
+  )
 }
 
 # Pick the first ready bead sorted by priority, then creation time, then id.
@@ -395,7 +424,7 @@ main() {
     # (a) Find work. First check if ralph left a bead in_progress from a
     #     previous run (e.g. crash or timeout). If so, resume it. Otherwise
     #     ask br for the next unblocked child bead under the parent.
-    bead_id="$(find_incomplete_bead "$repo_filter")"
+    bead_id="$(find_incomplete_bead "$parent" "$repo_filter")"
 
     if [[ -n "$bead_id" ]]; then
       printf 'ralph: resuming incomplete bead %s\n' "$bead_id"
