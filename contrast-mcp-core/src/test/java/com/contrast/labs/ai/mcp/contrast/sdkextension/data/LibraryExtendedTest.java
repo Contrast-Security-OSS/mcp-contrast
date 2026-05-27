@@ -82,12 +82,76 @@ class LibraryExtendedTest {
     assertThat(library.getCriticalVulnerabilities()).isEqualTo(5);
   }
 
+  @Test
+  void highVulnerabilities_should_be_settable_and_gettable() {
+    var library = new LibraryExtended();
+    library.setHighVulnerabilities(4);
+
+    assertThat(library.getHighVulnerabilities()).isEqualTo(4);
+  }
+
   // ---- helper ----
 
   private LibraryVulnerabilityExtended vuln(String severityCode) {
     var v = new LibraryVulnerabilityExtended();
     v.setSeverityCode(severityCode);
     return v;
+  }
+
+  // ---- getCriticalVulnerabilities ----
+
+  @Test
+  void getCriticalVulnerabilities_should_return_count_when_critical_vulns_present() {
+    var library = new LibraryExtended();
+    library.setCriticalVulnerabilities(0);
+    library.setVulnerabilities(List.of(vuln("CRITICAL"), vuln("CRITICAL"), vuln("HIGH")));
+
+    assertThat(library.getCriticalVulnerabilities()).isEqualTo(2);
+  }
+
+  @Test
+  void getCriticalVulnerabilities_should_return_api_value_when_vulnerabilities_null() {
+    var library = new LibraryExtended();
+    library.setCriticalVulnerabilities(3);
+
+    assertThat(library.getCriticalVulnerabilities()).isEqualTo(3);
+  }
+
+  @Test
+  void getCriticalVulnerabilities_should_return_api_value_when_vulnerabilities_empty() {
+    var library = new LibraryExtended();
+    library.setCriticalVulnerabilities(3);
+    library.setVulnerabilities(new ArrayList<>());
+
+    assertThat(library.getCriticalVulnerabilities()).isEqualTo(3);
+  }
+
+  // ---- getHighVulnerabilities ----
+
+  @Test
+  void getHighVulnerabilities_should_return_count_when_high_vulns_present() {
+    var library = new LibraryExtended();
+    library.setHighVulnerabilities(0);
+    library.setVulnerabilities(List.of(vuln("HIGH"), vuln("HIGH"), vuln("MEDIUM")));
+
+    assertThat(library.getHighVulnerabilities()).isEqualTo(2);
+  }
+
+  @Test
+  void getHighVulnerabilities_should_return_api_value_when_vulnerabilities_null() {
+    var library = new LibraryExtended();
+    library.setHighVulnerabilities(3);
+
+    assertThat(library.getHighVulnerabilities()).isEqualTo(3);
+  }
+
+  @Test
+  void getHighVulnerabilities_should_return_api_value_when_vulnerabilities_empty() {
+    var library = new LibraryExtended();
+    library.setHighVulnerabilities(3);
+    library.setVulnerabilities(new ArrayList<>());
+
+    assertThat(library.getHighVulnerabilities()).isEqualTo(3);
   }
 
   // ---- getMediumVulnerabilities ----
@@ -171,8 +235,17 @@ class LibraryExtendedTest {
   @Test
   void get_vulnerability_counts_should_return_only_matching_severity_from_mixed_array() {
     var library = new LibraryExtended();
-    library.setVulnerabilities(List.of(vuln("MEDIUM"), vuln("MEDIUM"), vuln("LOW"), vuln("NOTE")));
+    library.setVulnerabilities(
+        List.of(
+            vuln("CRITICAL"),
+            vuln("HIGH"),
+            vuln("MEDIUM"),
+            vuln("MEDIUM"),
+            vuln("LOW"),
+            vuln("NOTE")));
 
+    assertThat(library.getCriticalVulnerabilities()).isEqualTo(1);
+    assertThat(library.getHighVulnerabilities()).isEqualTo(1);
     assertThat(library.getMediumVulnerabilities()).isEqualTo(2);
     assertThat(library.getLowVulnerabilities()).isEqualTo(1);
     assertThat(library.getNoteVulnerabilities()).isEqualTo(1);
@@ -193,8 +266,11 @@ class LibraryExtendedTest {
   @Test
   void get_vulnerability_counts_should_match_lowercase_severity_codes() {
     var library = new LibraryExtended();
-    library.setVulnerabilities(List.of(vuln("medium"), vuln("low"), vuln("note")));
+    library.setVulnerabilities(
+        List.of(vuln("critical"), vuln("high"), vuln("medium"), vuln("low"), vuln("note")));
 
+    assertThat(library.getCriticalVulnerabilities()).isEqualTo(1);
+    assertThat(library.getHighVulnerabilities()).isEqualTo(1);
     assertThat(library.getMediumVulnerabilities()).isEqualTo(1);
     assertThat(library.getLowVulnerabilities()).isEqualTo(1);
     assertThat(library.getNoteVulnerabilities()).isEqualTo(1);
@@ -203,8 +279,11 @@ class LibraryExtendedTest {
   @Test
   void get_vulnerability_counts_should_match_mixed_case_severity_codes() {
     var library = new LibraryExtended();
-    library.setVulnerabilities(List.of(vuln("Medium"), vuln("Low"), vuln("Note")));
+    library.setVulnerabilities(
+        List.of(vuln("Critical"), vuln("High"), vuln("Medium"), vuln("Low"), vuln("Note")));
 
+    assertThat(library.getCriticalVulnerabilities()).isEqualTo(1);
+    assertThat(library.getHighVulnerabilities()).isEqualTo(1);
     assertThat(library.getMediumVulnerabilities()).isEqualTo(1);
     assertThat(library.getLowVulnerabilities()).isEqualTo(1);
     assertThat(library.getNoteVulnerabilities()).isEqualTo(1);
@@ -215,8 +294,10 @@ class LibraryExtendedTest {
   @Test
   void get_vulnerability_counts_should_return_0_when_vuln_has_null_severity_code() {
     var library = new LibraryExtended();
-    library.setVulnerabilities(List.of(vuln(null), vuln("HIGH")));
+    library.setVulnerabilities(List.of(vuln(null)));
 
+    assertThat(library.getCriticalVulnerabilities()).isEqualTo(0);
+    assertThat(library.getHighVulnerabilities()).isEqualTo(0);
     assertThat(library.getMediumVulnerabilities()).isEqualTo(0);
     assertThat(library.getLowVulnerabilities()).isEqualTo(0);
     assertThat(library.getNoteVulnerabilities()).isEqualTo(0);
