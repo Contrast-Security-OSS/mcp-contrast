@@ -70,6 +70,10 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
     return executePipeline(() -> GetProtectRulesParams.of(appId), toolContext);
   }
 
+  public SingleToolResponse<ProtectData> getProtectRules(String appId) {
+    return getProtectRules(appId, null);
+  }
+
   @Override
   protected ProtectData doExecute(GetProtectRulesParams params, WarningCollector collector)
       throws Exception {

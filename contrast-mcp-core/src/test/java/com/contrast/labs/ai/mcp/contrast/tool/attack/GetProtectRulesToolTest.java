@@ -51,7 +51,7 @@ class GetProtectRulesToolTest {
     var protectData = createProtectData();
     when(contrastApiClient.getProtectRules(TEST_APP_ID)).thenReturn(protectData);
 
-    var result = tool.getProtectRules(TEST_APP_ID, null);
+    var result = tool.getProtectRules(TEST_APP_ID);
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.found()).isTrue();
