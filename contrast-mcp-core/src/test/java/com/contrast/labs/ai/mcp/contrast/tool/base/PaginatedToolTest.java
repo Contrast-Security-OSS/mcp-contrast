@@ -99,10 +99,10 @@ class PaginatedToolTest {
   }
 
   @Test
-  void executePipeline_should_handle_http_response_exception_403() {
+  void executePipeline_should_handle_unauthorized_exception_403() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> {
-          throw new HttpResponseException("Forbidden", "GET", "/api/test", 403, "Forbidden");
+          throw new UnauthorizedException("Forbidden", "GET", "/api/test", 403, "Forbidden");
         });
 
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());

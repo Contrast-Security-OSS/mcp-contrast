@@ -148,6 +148,21 @@ class CursorPaginatedToolTest {
   }
 
   @Test
+  void executePipeline_should_handle_unauthorized_exception_403_without_cursor_value() {
+    tool.setDoExecuteHandler(
+        (pagination, params, collector) -> {
+          throw new UnauthorizedException("Forbidden", "GET", "/api/test", 403, "Forbidden");
+        });
+
+    var result = tool.executePipeline(OPAQUE_CURSOR, 25, TestParams::valid);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors())
+        .containsExactly("Access denied. User lacks permission for this resource.");
+    assertThat(result.errors()).noneMatch(error -> error.contains(OPAQUE_CURSOR));
+  }
+
+  @Test
   void executePipeline_should_handle_resource_not_found_without_cursor_value() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> {

@@ -111,7 +111,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
       return buildSuccessResponse(result, pagination, collector, duration, requestId);
 
     } catch (UnauthorizedException e) {
-      return handleException(e, pagination, requestId, mapHttpErrorCode(401));
+      return handleException(e, pagination, requestId, mapHttpErrorCode(e.getCode()));
     } catch (ResourceNotFoundException e) {
       return handleException(e, pagination, requestId, "Resource not found");
     } catch (HttpResponseException e) {
