@@ -124,9 +124,9 @@ repo_has_commits() {
   fi
 
   # Try stacked-pr-facts for the precise base branch, but fall back gracefully.
-  local facts base_branch="" facts_err
-  if facts_err=$(cd "$repo_dir" && bash "$PR_TOOLS_SCRIPTS/stacked-pr-facts.sh" detect-base-candidates 2>&1); then
-    base_branch=$(echo "$facts_err" | jq -r '
+  local base_branch="" facts_output
+  if facts_output=$(cd "$repo_dir" && bash "$PR_TOOLS_SCRIPTS/stacked-pr-facts.sh" detect-base-candidates 2>/dev/null); then
+    base_branch=$(echo "$facts_output" | jq -r '
       if .configuredParent != null and .configuredParent.branch != null then
         .configuredParent.branch
       else
