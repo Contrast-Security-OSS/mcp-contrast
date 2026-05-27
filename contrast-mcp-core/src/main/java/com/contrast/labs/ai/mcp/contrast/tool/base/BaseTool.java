@@ -64,7 +64,9 @@ public abstract class BaseTool {
       case 401 ->
           "Authentication failed or resource not found. Verify credentials and that the resource ID"
               + " is correct.";
-      case 403 -> "Access denied. User lacks permission for this resource.";
+      case 403 ->
+          "Access denied or resource not found. Verify credentials and that the resource ID is"
+              + " correct.";
       case 404 -> "Resource not found.";
       case 429 -> "Rate limit exceeded. Retry after a brief pause.";
       case 500, 502, 503 ->

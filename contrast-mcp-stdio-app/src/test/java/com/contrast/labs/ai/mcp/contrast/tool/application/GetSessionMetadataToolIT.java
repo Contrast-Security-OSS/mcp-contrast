@@ -58,13 +58,16 @@ public class GetSessionMetadataToolIT
   // SingleTool's 5xx mapping — validation errors must never look like this.
   private static final String CONTRAST_API_ERROR = "Contrast API error";
 
-  // SingleTool's 401/403 mapping — see BaseTool#mapHttpErrorCode and
+  // SingleTool's 401 and 403 mappings — see BaseTool#mapHttpErrorCode and
   // SingleTool#executePipeline (UnauthorizedException branch). Surfaces for both invalid
   // credentials and unknown application IDs (TeamServer returns 403 rather than 404 for an
   // appId the caller cannot see).
   private static final String AUTH_OR_NOT_FOUND_ERROR =
       "Authentication failed or resource not found. Verify credentials and that the resource ID"
           + " is correct.";
+  private static final String ACCESS_OR_NOT_FOUND_ERROR =
+      "Access denied or resource not found. Verify credentials and that the resource ID is"
+          + " correct.";
 
   // Tool warning emitted when the SDK returns null (no recorded sessions).
   private static final String NO_METADATA_WARNING_FRAGMENT = "No session metadata found";
@@ -286,8 +289,9 @@ public class GetSessionMetadataToolIT
     assertThat(result.found()).as("unknown appId must not report found").isFalse();
     assertThat(result.data()).as("error response must not carry data").isNull();
     assertThat(result.errors())
-        .as("unknown appId must produce the documented auth-or-not-found error")
-        .containsExactly(AUTH_OR_NOT_FOUND_ERROR);
+        .as("unknown appId must produce a documented auth/access-or-not-found error")
+        .singleElement()
+        .isIn(AUTH_OR_NOT_FOUND_ERROR, ACCESS_OR_NOT_FOUND_ERROR);
     assertThat(result.errors())
         .as("unknown appId must not be surfaced as a generic 5xx Contrast API error")
         .noneMatch(e -> e.contains(CONTRAST_API_ERROR));

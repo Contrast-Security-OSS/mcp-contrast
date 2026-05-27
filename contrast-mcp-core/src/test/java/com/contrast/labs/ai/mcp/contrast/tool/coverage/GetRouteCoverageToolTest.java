@@ -210,7 +210,9 @@ class GetRouteCoverageToolTest {
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors())
-        .containsExactly("Access denied. User lacks permission for this resource.");
+        .containsExactly(
+            "Access denied or resource not found. Verify credentials and that the resource ID is"
+                + " correct.");
     assertThat(result.toString()).doesNotContain(SECRET_BODY, "/ng/org/route");
   }
 
