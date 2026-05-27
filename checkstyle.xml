@@ -11,7 +11,7 @@
       <property name="severity" value="error"/>
     </module>
     <module name="RegexpSinglelineJava">
-      <property name="format" value="^\s+(com|java|org|io|net)\.[a-z]+\.[a-zA-Z.]+\.[A-Z][a-zA-Z]+[\s&lt;(]"/>
+      <property name="format" value="^\s+(com|java|org|io|net)\.[a-z]+(\.[a-zA-Z]+)*\.[A-Z][a-zA-Z]+[\s&lt;(]"/>
       <property name="message" value="Use import instead of fully-qualified class name"/>
       <property name="severity" value="error"/>
       <property name="ignoreComments" value="true"/>
