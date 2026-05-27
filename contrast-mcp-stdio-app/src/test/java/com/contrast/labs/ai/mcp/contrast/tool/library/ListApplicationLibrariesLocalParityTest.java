@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.AnonymousLibraryExtendedBuilder;
@@ -40,12 +39,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
-class ListApplicationLibrariesToolTest {
+class ListApplicationLibrariesLocalParityTest {
 
   private static final String TEST_ORG_ID = "test-org-123";
   private static final String TEST_APP_ID = "test-app-456";
@@ -74,24 +70,6 @@ class ListApplicationLibrariesToolTest {
     if (mockedSDKHelper != null) {
       mockedSDKHelper.close();
     }
-  }
-
-  @Test
-  void listApplicationLibraries_should_return_validation_error_for_missing_app_id() {
-    var result = tool.listApplicationLibraries(null, null, null);
-
-    assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).anyMatch(e -> e.contains("appId") && e.contains("required"));
-    verifyNoInteractions(sdkExtension);
-  }
-
-  @Test
-  void listApplicationLibraries_should_return_validation_error_for_empty_app_id() {
-    var result = tool.listApplicationLibraries(null, null, "");
-
-    assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).anyMatch(e -> e.contains("appId") && e.contains("required"));
-    verifyNoInteractions(sdkExtension);
   }
 
   @Test

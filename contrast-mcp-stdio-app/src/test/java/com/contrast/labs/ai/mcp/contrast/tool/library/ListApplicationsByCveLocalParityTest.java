@@ -18,7 +18,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.library;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.AnonymousLibraryExtendedBuilder;
@@ -42,12 +42,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
-class ListApplicationsByCveToolTest {
+class ListApplicationsByCveLocalParityTest {
 
   private static final String TEST_ORG_ID = "test-org-123";
   private static final String TEST_CVE_ID = "CVE-2021-44228";
@@ -80,24 +77,6 @@ class ListApplicationsByCveToolTest {
   }
 
   @Test
-  void listApplicationsByCve_should_return_validation_error_for_missing_cve_id() {
-    var result = tool.listApplicationsByCve(null);
-
-    assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).anyMatch(e -> e.contains("cveId") && e.contains("required"));
-    verifyNoInteractions(sdkExtension);
-  }
-
-  @Test
-  void listApplicationsByCve_should_return_validation_error_for_invalid_cve_format() {
-    var result = tool.listApplicationsByCve("not-a-cve");
-
-    assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).anyMatch(e -> e.contains("cveId") && e.contains("CVE format"));
-    verifyNoInteractions(sdkExtension);
-  }
-
-  @Test
   void listApplicationsByCve_should_return_cve_data_on_success() throws IOException {
     var mockCveData = createMockCveDataWithApps();
     var mockLibraries = createMockLibrariesWithMatchingHash();
@@ -115,6 +94,9 @@ class ListApplicationsByCveToolTest {
     assertThat(result.data()).isNotNull();
     assertThat(result.data().getApps()).isNotEmpty();
     assertThat(result.errors()).isEmpty();
+    verify(sdkExtension).getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID));
+    mockedSDKHelper.verify(
+        () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension)));
   }
 
   @Test

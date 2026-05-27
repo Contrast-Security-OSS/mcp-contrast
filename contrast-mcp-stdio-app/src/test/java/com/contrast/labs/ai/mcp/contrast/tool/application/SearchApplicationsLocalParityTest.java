@@ -19,12 +19,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.client.SdkApiClient;
@@ -41,12 +39,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
-class SearchApplicationsToolTest {
+class SearchApplicationsLocalParityTest {
 
   private SearchApplicationsTool tool;
 
@@ -65,31 +60,13 @@ class SearchApplicationsToolTest {
   }
 
   @Test
-  void searchApplications_should_return_validation_error_for_invalid_json_metadata() {
-    var result = tool.searchApplications(1, 10, null, null, "{invalid json}");
-
-    assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).anyMatch(e -> e.contains("Invalid JSON"));
-    verifyNoInteractions(sdkExtension);
-  }
-
-  @Test
-  void searchApplications_should_return_validation_error_for_empty_metadata_value() {
-    var result = tool.searchApplications(1, 10, null, null, "{\"freeform\":\"\"}");
-
-    assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).anyMatch(e -> e.contains("freeform") && e.contains("empty"));
-    verifyNoInteractions(sdkExtension);
-  }
-
-  @Test
   void searchApplications_should_return_all_applications_when_no_filters() throws Exception {
     var app1 = createApp("App1", "Active");
     var app2 = createApp("App2", "Inactive");
     var response = createResponse(List.of(app1, app2), 2);
 
     when(sdkExtension.getApplicationsFiltered(
-            anyString(), isNull(), isNull(), isNull(), anyInt(), anyInt()))
+            eq(TEST_ORG_ID), isNull(), isNull(), isNull(), anyInt(), anyInt()))
         .thenReturn(response);
 
     var result = tool.searchApplications(1, 10, null, null, null);
@@ -105,7 +82,7 @@ class SearchApplicationsToolTest {
     var response = createResponse(List.of(app1), 1);
 
     when(sdkExtension.getApplicationsFiltered(
-            anyString(), eq("prod"), isNull(), isNull(), anyInt(), anyInt()))
+            eq(TEST_ORG_ID), eq("prod"), isNull(), isNull(), anyInt(), anyInt()))
         .thenReturn(response);
 
     var result = tool.searchApplications(1, 10, "prod", null, null);
@@ -114,7 +91,8 @@ class SearchApplicationsToolTest {
     assertThat(result.items()).hasSize(1);
 
     verify(sdkExtension)
-        .getApplicationsFiltered(anyString(), eq("prod"), isNull(), isNull(), anyInt(), anyInt());
+        .getApplicationsFiltered(
+            eq(TEST_ORG_ID), eq("prod"), isNull(), isNull(), anyInt(), anyInt());
   }
 
   @Test
@@ -123,7 +101,7 @@ class SearchApplicationsToolTest {
     var response = createResponse(List.of(app1), 1);
 
     when(sdkExtension.getApplicationsFiltered(
-            anyString(), isNull(), any(String[].class), isNull(), anyInt(), anyInt()))
+            eq(TEST_ORG_ID), isNull(), any(String[].class), isNull(), anyInt(), anyInt()))
         .thenReturn(response);
 
     var result = tool.searchApplications(1, 10, null, "Production", null);
@@ -141,9 +119,10 @@ class SearchApplicationsToolTest {
     metadataField.setFieldId(123L);
     metadataField.setDisplayLabel("environment");
 
-    when(sdkExtension.getApplicationMetadataFields(anyString())).thenReturn(List.of(metadataField));
+    when(sdkExtension.getApplicationMetadataFields(eq(TEST_ORG_ID)))
+        .thenReturn(List.of(metadataField));
     when(sdkExtension.getApplicationsFiltered(
-            anyString(), isNull(), isNull(), anyList(), anyInt(), anyInt()))
+            eq(TEST_ORG_ID), isNull(), isNull(), anyList(), anyInt(), anyInt()))
         .thenReturn(response);
 
     var result = tool.searchApplications(1, 10, null, null, "{\"environment\":\"production\"}");
@@ -152,9 +131,10 @@ class SearchApplicationsToolTest {
     assertThat(result.items()).hasSize(1);
     assertThat(result.items().get(0).name()).isEqualTo("App1");
 
-    verify(sdkExtension).getApplicationMetadataFields(anyString());
+    verify(sdkExtension).getApplicationMetadataFields(eq(TEST_ORG_ID));
     verify(sdkExtension)
-        .getApplicationsFiltered(anyString(), isNull(), isNull(), anyList(), anyInt(), anyInt());
+        .getApplicationsFiltered(
+            eq(TEST_ORG_ID), isNull(), isNull(), anyList(), anyInt(), anyInt());
   }
 
   @Test
@@ -163,7 +143,8 @@ class SearchApplicationsToolTest {
     metadataField.setFieldId(123L);
     metadataField.setDisplayLabel("environment");
 
-    when(sdkExtension.getApplicationMetadataFields(anyString())).thenReturn(List.of(metadataField));
+    when(sdkExtension.getApplicationMetadataFields(eq(TEST_ORG_ID)))
+        .thenReturn(List.of(metadataField));
 
     var result = tool.searchApplications(1, 10, null, null, "{\"unknownField\":\"value\"}");
 
@@ -178,9 +159,9 @@ class SearchApplicationsToolTest {
               assertThat(error).doesNotContain("An internal error occurred");
             });
 
-    verify(sdkExtension).getApplicationMetadataFields(anyString());
+    verify(sdkExtension).getApplicationMetadataFields(eq(TEST_ORG_ID));
     verify(sdkExtension, never())
-        .getApplicationsFiltered(anyString(), any(), any(), anyList(), anyInt(), anyInt());
+        .getApplicationsFiltered(eq(TEST_ORG_ID), any(), any(), anyList(), anyInt(), anyInt());
   }
 
   @Test
@@ -188,7 +169,7 @@ class SearchApplicationsToolTest {
     var response = createResponse(List.of(), 0);
 
     when(sdkExtension.getApplicationsFiltered(
-            anyString(), eq("nonexistent"), isNull(), isNull(), anyInt(), anyInt()))
+            eq(TEST_ORG_ID), eq("nonexistent"), isNull(), isNull(), anyInt(), anyInt()))
         .thenReturn(response);
 
     var result = tool.searchApplications(1, 10, "nonexistent", null, null);
@@ -206,7 +187,7 @@ class SearchApplicationsToolTest {
     var response = createResponse(List.of(app1, app2), 5);
 
     when(sdkExtension.getApplicationsFiltered(
-            anyString(), isNull(), isNull(), isNull(), eq(2), eq(2)))
+            eq(TEST_ORG_ID), isNull(), isNull(), isNull(), eq(2), eq(2)))
         .thenReturn(response);
 
     // Request page 2 with page size 2 (offset should be 2)
@@ -218,7 +199,7 @@ class SearchApplicationsToolTest {
     assertThat(result.hasMorePages()).isTrue();
 
     verify(sdkExtension)
-        .getApplicationsFiltered(anyString(), isNull(), isNull(), isNull(), eq(2), eq(2));
+        .getApplicationsFiltered(eq(TEST_ORG_ID), isNull(), isNull(), isNull(), eq(2), eq(2));
   }
 
   @Test
@@ -227,7 +208,7 @@ class SearchApplicationsToolTest {
     var response = createResponse(List.of(app), 1);
 
     when(sdkExtension.getApplicationsFiltered(
-            anyString(), isNull(), isNull(), isNull(), anyInt(), anyInt()))
+            eq(TEST_ORG_ID), isNull(), isNull(), isNull(), anyInt(), anyInt()))
         .thenReturn(response);
 
     var result = tool.searchApplications(1, 10, null, null, null);
@@ -242,7 +223,7 @@ class SearchApplicationsToolTest {
   @Test
   void searchApplications_should_handle_null_response() throws Exception {
     when(sdkExtension.getApplicationsFiltered(
-            anyString(), isNull(), isNull(), isNull(), anyInt(), anyInt()))
+            eq(TEST_ORG_ID), isNull(), isNull(), isNull(), anyInt(), anyInt()))
         .thenReturn(null);
 
     var result = tool.searchApplications(1, 10, null, null, null);

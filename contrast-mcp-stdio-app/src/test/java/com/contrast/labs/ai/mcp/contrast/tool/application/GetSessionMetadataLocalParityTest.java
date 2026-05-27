@@ -21,7 +21,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.client.SdkApiClient;
@@ -32,7 +31,7 @@ import com.contrastsecurity.sdk.ContrastSDK;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class GetSessionMetadataToolTest {
+class GetSessionMetadataLocalParityTest {
 
   private GetSessionMetadataTool tool;
   private ContrastSDKFactory sdkFactory;
@@ -49,24 +48,6 @@ class GetSessionMetadataToolTest {
     when(sdkFactory.getOrgId()).thenReturn("test-org-id");
 
     tool = new GetSessionMetadataTool(new SdkApiClient(sdkFactory, sdkExtensionFactory));
-  }
-
-  @Test
-  void getSessionMetadata_should_return_validation_error_for_missing_app_id() {
-    var result = tool.getSessionMetadata(null);
-
-    assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).anyMatch(e -> e.contains("appId") && e.contains("required"));
-    verifyNoInteractions(sdk);
-  }
-
-  @Test
-  void getSessionMetadata_should_return_validation_error_for_empty_app_id() {
-    var result = tool.getSessionMetadata("");
-
-    assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).anyMatch(e -> e.contains("appId") && e.contains("required"));
-    verifyNoInteractions(sdk);
   }
 
   @Test
