@@ -53,6 +53,11 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
           - Production mode for each rule (block, monitor, or off)
           - Rule-specific configuration settings
 
+          Response shape note:
+          - Protect Rules use development/qa/production mode strings and populate uuid.
+          - Virtual Patches use enabledDev/enabledQa/enabledProd booleans instead; their
+            development/qa/production mode fields and uuid may be null.
+
           Usage examples:
           - Get protect rules: appId="app-123"
 
