@@ -7,7 +7,7 @@ RESULT_DIR="${1:-/Users/chrisedwards/projects/contrast/mcp-contrast/history/ralp
 POLL_INTERVAL=2
 
 get_latest() {
-  ls -dt "$RESULT_DIR"/*/ 2>/dev/null | head -1
+  ls -dt "$RESULT_DIR"/*/ 2>/dev/null | head -1 || true
 }
 
 tail_jsonl() {
