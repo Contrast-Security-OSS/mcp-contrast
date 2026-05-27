@@ -155,9 +155,10 @@ repo_has_commits() {
   elif count=$(cd "$repo_dir" && git rev-list --count "origin/$default_branch..HEAD" 2>/dev/null); then
     _RHC_BASE="$default_branch (fallback — origin/$base_branch not found)"
     _RHC_METHOD="fallback-origin-missing"
-  elif count=$(cd "$repo_dir" && git log --oneline HEAD --not --remotes 2>/dev/null | wc -l | tr -d ' '); then
+  elif [[ -n "$(cd "$repo_dir" && git remote)" ]] \
+      && count=$(cd "$repo_dir" && git log --oneline HEAD --not --remotes 2>/dev/null | wc -l | tr -d ' '); then
     _RHC_BASE="(all remotes)"
-    _RHC_METHOD="fallback-no-remotes"
+    _RHC_METHOD="fallback-all-remotes"
   else
     count="0"
     _RHC_METHOD="all-methods-failed"
