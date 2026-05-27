@@ -179,9 +179,21 @@ filter_agent_ready_json() {
 }
 
 has_human_only_label() {
-  jq -e '
+  local jq_status
+
+  if jq -e '
     (.[0].labels // []) | '"$human_only_label_filter"'
-  ' >/dev/null <<<"$1"
+  ' >/dev/null 2>/dev/null <<<"$1"; then
+    return 0
+  else
+    jq_status=$?
+  fi
+
+  if [[ "$jq_status" -eq 1 ]]; then
+    return 1
+  fi
+
+  die "failed to parse bead JSON while checking human-only labels"
 }
 
 bead_descends_from_parent() {
