@@ -167,17 +167,6 @@ ready_json_for_parent() {
   fi
 }
 
-filter_agent_ready_json() {
-  jq '
-    map(
-      select(
-        ((.labels // []) | '"$human_only_label_filter"')
-        | not
-      )
-    )
-  '
-}
-
 has_human_only_label() {
   local jq_status
 
@@ -194,6 +183,31 @@ has_human_only_label() {
   fi
 
   die "failed to parse bead JSON while checking human-only labels"
+}
+
+# br ready --json intentionally returns a compact issue shape and may omit
+# labels/notes. Hydrate candidates before filtering so label decisions are made
+# from the complete bead record.
+hydrate_agent_ready_json() {
+  local ready_json="$1"
+  local hydrated="[]"
+  local candidate_id
+  local candidate_json
+  local candidate_issue
+
+  while IFS= read -r candidate_id; do
+    [[ -z "$candidate_id" ]] && continue
+
+    candidate_json="$(run_br show "$candidate_id" --json)"
+    if has_human_only_label "$candidate_json"; then
+      continue
+    fi
+
+    candidate_issue="$(jq '.[0]' <<<"$candidate_json")"
+    hydrated="$(jq --argjson issue "$candidate_issue" '. + [$issue]' <<<"$hydrated")"
+  done < <(jq -r '.[].id // empty' <<<"$ready_json")
+
+  printf '%s\n' "$hydrated"
 }
 
 bead_descends_from_parent() {
@@ -257,9 +271,9 @@ select_bead_id() {
 }
 
 # Eligibility gate: only task/bug/feature beads that are open or in_progress
-# (resumed), have exactly one repo:* label, and contain a description +
-# acceptance criteria. Rejects epics, deferred beads, ambiguous multi-repo
-# beads, and empty shells.
+# (resumed), have exactly one repo:* label, and contain a description plus
+# either acceptance criteria, triage notes, or the ready-for-agent label.
+# Rejects epics, deferred beads, ambiguous multi-repo beads, and empty shells.
 validate_bead_and_repo_label() {
   local bead_json="$1"
   local bead_id="$2"
@@ -269,6 +283,8 @@ validate_bead_and_repo_label() {
   local repo_label
   local description_len
   local acceptance_len
+  local notes_len
+  local is_ready_for_agent
 
   issue_type="$(json_string '.[0].issue_type // ""' <<<"$bead_json")"
   status="$(json_string '.[0].status // ""' <<<"$bead_json")"
@@ -276,6 +292,8 @@ validate_bead_and_repo_label() {
   repo_label="$(json_string '[.[0].labels[]? | select(startswith("repo:"))][0] // ""' <<<"$bead_json")"
   description_len="$(jq '([.[0].description // ""] | .[0] | length)' <<<"$bead_json")"
   acceptance_len="$(jq '([.[0].acceptance_criteria // ""] | .[0] | length)' <<<"$bead_json")"
+  notes_len="$(jq '([.[0].notes // ""] | .[0] | length)' <<<"$bead_json")"
+  is_ready_for_agent="$(jq '([.[0].labels[]? | select(. == "ready-for-agent")] | length) > 0' <<<"$bead_json")"
 
   [[ "$status" == "open" || "$status" == "in_progress" ]] || die "$bead_id has unexpected status: $status"
   if has_human_only_label "$bead_json"; then
@@ -290,7 +308,8 @@ validate_bead_and_repo_label() {
   [[ "$repo_count" == "1" ]] || die "$bead_id must have exactly one repo:* label; found $repo_count"
   repo_path_for_label "$repo_label" >/dev/null || die "$bead_id has unsupported repo label: $repo_label"
   [[ "$description_len" -gt 0 ]] || die "$bead_id has no description"
-  [[ "$acceptance_len" -gt 0 ]] || die "$bead_id has no acceptance criteria"
+  [[ "$acceptance_len" -gt 0 || "$notes_len" -gt 0 || "$is_ready_for_agent" == "true" ]] \
+    || die "$bead_id has no acceptance criteria, triage notes, or ready-for-agent label"
 
   printf '%s\n' "$repo_label"
 }
@@ -442,7 +461,7 @@ main() {
       printf 'ralph: resuming incomplete bead %s\n' "$bead_id"
     else
       ready_json="$(ready_json_for_parent "$parent" "$repo_filter")"
-      ready_json="$(filter_agent_ready_json <<<"$ready_json")"
+      ready_json="$(hydrate_agent_ready_json "$ready_json")"
       ready_count="$(jq 'length' <<<"$ready_json")"
       if [[ "$ready_count" == "0" ]]; then
         printf 'ralph: no agent-ready work for parent %s\n' "$parent"
