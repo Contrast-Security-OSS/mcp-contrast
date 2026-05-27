@@ -131,7 +131,6 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
         .addKeyValue(LoggingKeys.EXCEPTION_TYPE, e.getClass().getSimpleName())
         .setMessage("Request failed")
         .log();
-    collector.warn(userMessage);
     return new SingleToolResponse<>(null, List.of(userMessage), collector.snapshot(), false);
   }
 

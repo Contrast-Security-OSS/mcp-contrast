@@ -251,8 +251,7 @@ class SingleToolTest {
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).containsExactly(AUTH_OR_NOT_FOUND_MESSAGE);
     assertThat(result.warnings())
-        .containsExactlyInAnyOrder(
-            "Initial warning", "Warning added before exception", AUTH_OR_NOT_FOUND_MESSAGE);
+        .containsExactlyInAnyOrder("Initial warning", "Warning added before exception");
   }
 
   @Test
