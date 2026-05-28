@@ -1,4 +1,5 @@
 import groovy.json.JsonSlurper
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 import javax.xml.parsers.DocumentBuilderFactory
 import javax.xml.xpath.XPathConstants
 import javax.xml.xpath.XPathFactory
@@ -20,6 +21,17 @@ dependencies {
     testImplementation "org.mockito:mockito-inline:${mockitoInlineVersion}"
 }
 
+def artifactoryRepositoryName = version.toString().endsWith('-SNAPSHOT')
+    ? 'contrastInternalSnapshot'
+    : 'contrastInternalRelease'
+def artifactoryUrlPropertyName = version.toString().endsWith('-SNAPSHOT')
+    ? 'contrastArtifactorySnapshotUrl'
+    : 'contrastArtifactoryReleaseUrl'
+def artifactoryUrlFallback = 'https://artifactory-url-required.invalid'
+def configuredArtifactoryUrl = providers.gradleProperty(artifactoryUrlPropertyName)
+    .map { it.trim() }
+    .getOrElse('')
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
@@ -39,15 +51,25 @@ publishing {
     }
     repositories {
         maven {
-            name = version.toString().endsWith('-SNAPSHOT')
-                ? 'contrastInternalSnapshot'
-                : 'contrastInternalRelease'
-            url = uri(version.toString().endsWith('-SNAPSHOT')
-                ? 'https://pkg.contrastsecurity.com/artifactory/maven-snapshot-local'
-                : 'https://pkg.contrastsecurity.com/artifactory/maven-release-local')
+            name = artifactoryRepositoryName
+            url = uri(configuredArtifactoryUrl ?: artifactoryUrlFallback)
             credentials {
                 username = findProperty('contrastArtifactoryUser') ?: ''
                 password = findProperty('contrastArtifactoryPassword') ?: ''
+            }
+        }
+    }
+}
+
+tasks.withType(PublishToMavenRepository).configureEach {
+    if (repository.name == artifactoryRepositoryName) {
+        doFirst {
+            def propertyValue = providers.gradleProperty(artifactoryUrlPropertyName)
+                .map { it.trim() }
+                .getOrElse('')
+            if (!propertyValue) {
+                throw new GradleException(
+                    "Missing Gradle property ${artifactoryUrlPropertyName} for remote publication.")
             }
         }
     }

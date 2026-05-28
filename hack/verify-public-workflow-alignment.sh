@@ -10,6 +10,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GATE="S3C-PUBLIC-WORKFLOW-ALIGNMENT"
 START_NS="$(date +%s%N)"
 ASSERTIONS=0
+INTERNAL_MAVEN_REPOSITORY_PATTERN='artifactory/''maven|maven-''release-local|maven-''snapshot-local'
 
 log() {
   printf 'gate=%s environmentTarget=local-docs authOutcome=not_applicable httpStatus=not_applicable mcpStatus=not_applicable downstreamStatus=not_applicable %s\n' "${GATE}" "$*"
@@ -105,6 +106,9 @@ assert_contains "checkstyle.xml" 'severity" value="error"' "Checkstyle rules rem
 
 assert_contains "contrast-mcp-core/build.gradle" "id 'maven-publish'" "Core module publishes with maven-publish"
 assert_contains "contrast-mcp-core/build.gradle" 'verifyCorePublicationMetadata' "Core publication metadata is verified"
+assert_contains "contrast-mcp-core/build.gradle" 'contrastArtifactoryReleaseUrl' "Core release publication URL is property-driven"
+assert_contains "contrast-mcp-core/build.gradle" 'contrastArtifactorySnapshotUrl' "Core snapshot publication URL is property-driven"
+assert_not_contains "contrast-mcp-core/build.gradle" "${INTERNAL_MAVEN_REPOSITORY_PATTERN}" "Core publication config does not hardcode internal Maven repository URLs"
 assert_contains "hack/verify-core-publication.sh" 'S3B-CORE-BOUNDARY-SMOKE' "Core boundary diagnostic remains available"
 
 log "status=pass assertions=${ASSERTIONS} durationMs=$(duration_ms) assertionSummary=\"public workflow alignment checks passed\""
