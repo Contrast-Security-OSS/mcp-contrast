@@ -536,13 +536,13 @@ main() {
     set +e
     if [[ "$implementation_repo" == "$CONTROL_REPO" ]]; then
       BEADS_DIR="$BEADS_DIR" codex -a never exec \
-        -p yolo \
+        --dangerously-bypass-approvals-and-sandbox \
         -C "$CONTROL_REPO" \
         --json \
         - <"$prompt_file" >"$result_file" 2>&1
     else
       BEADS_DIR="$BEADS_DIR" codex -a never exec \
-        -p yolo \
+        --dangerously-bypass-approvals-and-sandbox \
         -C "$implementation_repo" \
         --add-dir "$CONTROL_REPO" \
         --json \
