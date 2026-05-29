@@ -34,6 +34,7 @@ import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.support.ToolCallbacks;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -53,8 +54,7 @@ public class McpContrastApplication {
   }
 
   @Bean
-  public ApplicationRunner logVersion(
-      org.springframework.beans.factory.ObjectProvider<BuildProperties> buildPropertiesProvider) {
+  public ApplicationRunner logVersion(ObjectProvider<BuildProperties> buildPropertiesProvider) {
     return args -> {
       BuildProperties buildProperties = buildPropertiesProvider.getIfAvailable();
       log.info("=".repeat(SEPARATOR_WIDTH));

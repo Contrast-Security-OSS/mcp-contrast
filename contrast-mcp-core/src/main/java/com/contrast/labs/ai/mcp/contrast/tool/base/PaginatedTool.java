@@ -111,12 +111,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
       return buildSuccessResponse(result, pagination, collector, duration, requestId);
 
     } catch (UnauthorizedException e) {
-      return handleException(
-          e,
-          pagination,
-          requestId,
-          "Authentication failed or resource not found. Verify credentials and that the resource ID"
-              + " is correct.");
+      return handleException(e, pagination, requestId, mapHttpErrorCode(e.getCode()));
     } catch (ResourceNotFoundException e) {
       return handleException(e, pagination, requestId, "Resource not found");
     } catch (HttpResponseException e) {
@@ -156,8 +151,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
     log.atWarn()
         .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
         .addKeyValue(LoggingKeys.EXCEPTION_TYPE, e.getClass().getSimpleName())
-        .setMessage("Request failed: {}")
-        .addArgument(e.getMessage())
+        .setMessage("Request failed")
         .log();
     return PaginatedToolResponse.error(pagination.page(), pagination.pageSize(), userMessage);
   }
@@ -173,8 +167,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
     log.atWarn()
         .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
         .addKeyValue(LoggingKeys.HTTP_STATUS, e.getCode())
-        .setMessage("API error: {}")
-        .addArgument(e.getMessage())
+        .setMessage("API error")
         .log();
 
     return new PaginatedToolResponse<>(
@@ -195,7 +188,10 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
       long duration,
       String requestId) {
 
-    if (result.items().isEmpty() && result.totalItems() != null && result.totalItems() == 0) {
+    if (result.items().isEmpty()
+        && result.totalItems() != null
+        && result.totalItems() == 0
+        && !collector.hasEmptyResultsWarning()) {
       collector.warn("No results found matching the specified criteria.");
     }
 

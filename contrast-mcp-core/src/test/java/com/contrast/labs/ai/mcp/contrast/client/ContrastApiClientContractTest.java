@@ -39,6 +39,8 @@ class ContrastApiClientContractTest {
           "apiKey",
           "serviceKey",
           "credential");
+  private static final List<String> FORBIDDEN_RAW_SARIF_TOKENS =
+      List.of("getScanResults", "get_scan_results", "SarifResult", "sarif");
 
   @Test
   void contrastApiClient_should_be_pure_interface_without_default_or_static_methods() {
@@ -59,6 +61,19 @@ class ContrastApiClientContractTest {
 
     assertThat(FORBIDDEN_AUTH_PARAMETER_TOKENS)
         .as("ContrastApiClient must resolve auth/org context inside each implementation")
+        .allSatisfy(token -> assertThat(source).doesNotContain(token));
+  }
+
+  @Test
+  void contrastApiClient_should_expose_scan_project_but_no_raw_sarif_path() throws IOException {
+    var source = Files.readString(CLIENT_SOURCE, StandardCharsets.UTF_8);
+
+    assertThat(ContrastApiClient.class.getDeclaredMethods())
+        .extracting(method -> method.getName())
+        .contains("getScanProject")
+        .doesNotContain("getScanResults");
+    assertThat(FORBIDDEN_RAW_SARIF_TOKENS)
+        .as("raw SARIF retrieval must stay local-only and off the shared client boundary")
         .allSatisfy(token -> assertThat(source).doesNotContain(token));
   }
 }

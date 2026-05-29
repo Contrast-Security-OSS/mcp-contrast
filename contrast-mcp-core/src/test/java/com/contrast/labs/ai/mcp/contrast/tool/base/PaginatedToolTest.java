@@ -26,6 +26,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class PaginatedToolTest {
+  private static final String AUTH_OR_NOT_FOUND_MESSAGE =
+      "Authentication failed or resource not found. Verify credentials and that the resource ID"
+          + " is correct.";
 
   private TestSearchTool tool;
 
@@ -79,10 +82,7 @@ class PaginatedToolTest {
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors())
-        .containsExactly(
-            "Authentication failed or resource not found. Verify credentials and that the resource"
-                + " ID is correct.");
+    assertThat(result.errors()).containsExactly(AUTH_OR_NOT_FOUND_MESSAGE);
   }
 
   @Test
@@ -99,7 +99,7 @@ class PaginatedToolTest {
   }
 
   @Test
-  void executePipeline_should_handle_http_response_exception_403() {
+  void executePipeline_should_handle_unauthorized_exception_403() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> {
           throw new UnauthorizedException("Forbidden", "GET", "/api/test", 403, "Forbidden");
@@ -110,8 +110,8 @@ class PaginatedToolTest {
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors())
         .containsExactly(
-            "Authentication failed or resource not found. Verify credentials and that the resource"
-                + " ID is correct.");
+            "Access denied or resource not found. Verify credentials and that the resource ID is"
+                + " correct.");
   }
 
   @Test
@@ -125,7 +125,7 @@ class PaginatedToolTest {
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly("Rate limit exceeded. Retry later.");
+    assertThat(result.errors()).containsExactly("Rate limit exceeded. Retry after a brief pause.");
   }
 
   @Test
@@ -139,7 +139,9 @@ class PaginatedToolTest {
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly("Contrast API error. Try again later.");
+    assertThat(result.errors())
+        .containsExactly(
+            "The service returned an error. Narrow filters or reduce page size, then retry.");
   }
 
   @Test
@@ -263,6 +265,22 @@ class PaginatedToolTest {
   }
 
   @Test
+  void executePipeline_should_not_add_generic_empty_warning_when_tool_explains_empty_result() {
+    tool.setDoExecuteHandler(
+        (pagination, params, collector) -> {
+          collector.warnForEmptyResults("No widgets found for this account.");
+          return ExecutionResult.of(List.of(), 0);
+        });
+
+    var result = tool.executePipeline(1, 10, () -> TestParams.valid());
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.items()).isEmpty();
+    assertThat(result.totalItems()).isZero();
+    assertThat(result.warnings()).containsExactly("No widgets found for this account.");
+  }
+
+  @Test
   void executePipeline_should_include_pagination_warnings() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> ExecutionResult.of(List.of("item"), 1));
@@ -322,7 +340,7 @@ class PaginatedToolTest {
     var result = tool.executePipeline(1, 10, () -> TestParams.withWarning("Initial warning"));
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly("Rate limit exceeded. Retry later.");
+    assertThat(result.errors()).containsExactly("Rate limit exceeded. Retry after a brief pause.");
     assertThat(result.warnings())
         .containsExactlyInAnyOrder("Initial warning", "Warning added before exception");
   }

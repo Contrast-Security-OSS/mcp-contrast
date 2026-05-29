@@ -45,8 +45,30 @@ class CoreBoundaryTest {
   private static final List<Path> EXPECTED_CORE_PRODUCTION_TOOLS =
       List.of(
           sourcePath(
+              "com/contrast/labs/ai/mcp/contrast/tool/application/"
+                  + "GetSessionMetadataTool.java"),
+          sourcePath(
+              "com/contrast/labs/ai/mcp/contrast/tool/application/SearchApplicationsTool.java"),
+          sourcePath("com/contrast/labs/ai/mcp/contrast/tool/attack/GetProtectRulesTool.java"),
+          sourcePath("com/contrast/labs/ai/mcp/contrast/tool/attack/SearchAttacksTool.java"),
+          sourcePath("com/contrast/labs/ai/mcp/contrast/tool/coverage/GetRouteCoverageTool.java"),
+          sourcePath(
+              "com/contrast/labs/ai/mcp/contrast/tool/library/"
+                  + "ListApplicationLibrariesTool.java"),
+          sourcePath(
+              "com/contrast/labs/ai/mcp/contrast/tool/library/" + "ListApplicationsByCveTool.java"),
+          sourcePath("com/contrast/labs/ai/mcp/contrast/tool/sast/GetSastProjectTool.java"),
+          sourcePath(
+              "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/GetVulnerabilityTool.java"),
+          sourcePath(
               "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/"
-                  + "ListVulnerabilityTypesTool.java"));
+                  + "ListVulnerabilityTypesTool.java"),
+          sourcePath(
+              "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/"
+                  + "SearchAppVulnerabilitiesTool.java"),
+          sourcePath(
+              "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/"
+                  + "SearchVulnerabilitiesTool.java"));
   private static final List<String> LOCAL_ONLY_TYPES =
       List.of(
           "McpContrastApplication.java",
@@ -56,7 +78,8 @@ class CoreBoundaryTest {
           "SdkApiClient.java",
           "SDKHelper.java",
           "SDKExtension.java",
-          "GetSastResultsTool.java");
+          "GetSastResultsTool.java",
+          "GetSastResultsParams.java");
   private static final List<LocalOnlyPattern> LOCAL_ONLY_TEXT =
       List.of(
           new LocalOnlyPattern(
@@ -65,15 +88,15 @@ class CoreBoundaryTest {
           new LocalOnlyPattern(
               "Spring AI transport/runtime dependency", "org.springframework.ai.support"),
           new LocalOnlyPattern("Spring application configuration", "@Configuration"),
-          new LocalOnlyPattern("local SDK factory", "ContrastSDKFactory"),
+          new LocalOnlyPattern("local SDK class", "ContrastSDK"),
           new LocalOnlyPattern("local SDK extension factory", "SDKExtensionFactory"),
           new LocalOnlyPattern("local SDK API client", "SdkApiClient"),
           new LocalOnlyPattern("local SDK helper/cache implementation", "SDKHelper"),
           new LocalOnlyPattern("stdio application bootstrap", "McpContrastApplication"),
           new LocalOnlyPattern("local SDK helper/cache implementation", "com.google.common.cache"),
           new LocalOnlyPattern("local-only raw SARIF tool", "get_scan_results"),
-          new LocalOnlyPattern("local-only raw SARIF tool", "sarif"),
-          new LocalOnlyPattern("local-only raw SARIF tool", "SARIF"));
+          new LocalOnlyPattern("local-only raw SARIF tool", "GetSastResultsTool"),
+          new LocalOnlyPattern("local-only raw SARIF tool", "SarifResult"));
 
   @Test
   void core_should_include_current_shared_support_types() throws IOException {
@@ -104,16 +127,17 @@ class CoreBoundaryTest {
   }
 
   @Test
-  void core_should_include_exactly_one_s4b_production_tool() throws IOException {
+  void core_should_include_migrated_shared_production_tools() throws IOException {
     var productionToolSources =
         javaSources()
             .filter(
                 path -> sourceText(path).contains("org.springframework.ai.tool.annotation.Tool"))
             .map(CORE_MAIN::relativize)
+            .sorted()
             .toList();
 
     assertThat(productionToolSources)
-        .as("S4B moves exactly one shared production tool into core")
+        .as("core contains only the shared production tools migrated so far")
         .containsExactlyElementsOf(EXPECTED_CORE_PRODUCTION_TOOLS);
   }
 

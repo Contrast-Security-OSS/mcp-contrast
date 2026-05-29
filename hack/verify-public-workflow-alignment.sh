@@ -10,6 +10,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 GATE="S3C-PUBLIC-WORKFLOW-ALIGNMENT"
 START_NS="$(date +%s%N)"
 ASSERTIONS=0
+INTERNAL_MAVEN_REPOSITORY_PATTERN='artifactory/''maven|maven-''release-local|maven-''snapshot-local'
 
 log() {
   printf 'gate=%s environmentTarget=local-docs authOutcome=not_applicable httpStatus=not_applicable mcpStatus=not_applicable downstreamStatus=not_applicable %s\n' "${GATE}" "$*"
@@ -45,6 +46,21 @@ assert_not_contains() {
   log "status=pass assertion=\"${label}\" file=${file}"
 }
 
+assert_match_count() {
+  local file="$1"
+  local pattern="$2"
+  local expected="$3"
+  local label="$4"
+  local actual
+  ASSERTIONS=$((ASSERTIONS + 1))
+  actual="$(grep -Ec "${pattern}" "${ROOT_DIR}/${file}" || true)"
+  if [[ "${actual}" != "${expected}" ]]; then
+    log "status=fail assertion=\"${label}\" expected=${expected} actual=${actual} file=${file} durationMs=$(duration_ms)"
+    exit 1
+  fi
+  log "status=pass assertion=\"${label}\" count=${actual} file=${file}"
+}
+
 assert_missing() {
   local path="$1"
   local label="$2"
@@ -69,6 +85,21 @@ assert_contains ".github/workflows/build.yml" "java-version: '21'" "CI uses JDK 
 assert_contains ".github/workflows/build.yml" '\./gradlew' "CI invokes Gradle wrapper"
 assert_not_contains ".github/workflows/build.yml" '(^|[[:space:]])(\./mvnw|mvn)([[:space:]]|$)' "CI has no Maven command"
 assert_contains ".github/workflows/build.yml" 'verify-public-workflow-alignment\.sh' "CI runs S3C workflow alignment gate"
+
+assert_contains ".github/workflows/publish-core-artifactory.yml" 'workflow_dispatch:' "Artifactory publish workflow is manual"
+assert_contains ".github/workflows/publish-core-artifactory.yml" 'release_tag:' "Artifactory publish workflow requires release_tag input"
+assert_contains ".github/workflows/publish-core-artifactory.yml" 'contents: read' "Artifactory publish workflow uses read-only contents permission"
+assert_not_contains ".github/workflows/publish-core-artifactory.yml" 'contents: write|pull-requests: write|packages: write|id-token: write' "Artifactory publish workflow has no write permissions"
+assert_contains ".github/workflows/publish-core-artifactory.yml" 'needs: verify-core-artifact' "Artifactory publish waits for credential-free verification"
+assert_contains ".github/workflows/publish-core-artifactory.yml" 'environment: contrast-artifactory-publish' "Artifactory publish uses protected environment"
+assert_match_count ".github/workflows/publish-core-artifactory.yml" '^[[:space:]]*environment: contrast-artifactory-publish$' 1 "Artifactory workflow has exactly one protected environment binding"
+assert_contains ".github/workflows/publish-core-artifactory.yml" 'CONTRAST_ARTIFACTORY_RELEASE_URL: \$\{\{ secrets\.CONTRAST_ARTIFACTORY_RELEASE_URL \}\}' "Artifactory URL comes from environment secret"
+assert_contains ".github/workflows/publish-core-artifactory.yml" 'ORG_GRADLE_PROJECT_contrastArtifactoryReleaseUrl: \$\{\{ secrets\.CONTRAST_ARTIFACTORY_RELEASE_URL \}\}' "Artifactory URL maps to Gradle property"
+assert_contains ".github/workflows/publish-core-artifactory.yml" 'publishMavenJavaPublicationToContrastInternalReleaseRepository' "Artifactory workflow publishes only to release repository task"
+assert_contains ".github/workflows/publish-core-artifactory.yml" 'artifact_exists_check' "Artifactory workflow checks coordinate preexistence"
+assert_contains ".github/workflows/publish-core-artifactory.yml" 'repository_url=<redacted>' "Artifactory evidence redacts repository URL"
+assert_not_contains ".github/workflows/publish-core-artifactory.yml" "${INTERNAL_MAVEN_REPOSITORY_PATTERN}" "Artifactory workflow does not expose internal repository details"
+assert_not_contains ".github/workflows/publish-core-artifactory.yml" 'git push|git tag|git commit|gh release create|docker (push|build)|DOCKERHUB|DIGICERT|setVersion' "Artifactory workflow does not mutate releases or Docker artifacts"
 
 assert_contains ".github/dependabot.yml" 'package-ecosystem: "gradle"' "Dependabot tracks Gradle"
 assert_not_contains ".github/dependabot.yml" 'package-ecosystem: "maven"' "Dependabot has no Maven ecosystem"
@@ -105,6 +136,9 @@ assert_contains "checkstyle.xml" 'severity" value="error"' "Checkstyle rules rem
 
 assert_contains "contrast-mcp-core/build.gradle" "id 'maven-publish'" "Core module publishes with maven-publish"
 assert_contains "contrast-mcp-core/build.gradle" 'verifyCorePublicationMetadata' "Core publication metadata is verified"
+assert_contains "contrast-mcp-core/build.gradle" 'contrastArtifactoryReleaseUrl' "Core release publication URL is property-driven"
+assert_contains "contrast-mcp-core/build.gradle" 'contrastArtifactorySnapshotUrl' "Core snapshot publication URL is property-driven"
+assert_not_contains "contrast-mcp-core/build.gradle" "${INTERNAL_MAVEN_REPOSITORY_PATTERN}" "Core publication config does not hardcode internal Maven repository URLs"
 assert_contains "hack/verify-core-publication.sh" 'S3B-CORE-BOUNDARY-SMOKE' "Core boundary diagnostic remains available"
 
 log "status=pass assertions=${ASSERTIONS} durationMs=$(duration_ms) assertionSummary=\"public workflow alignment checks passed\""

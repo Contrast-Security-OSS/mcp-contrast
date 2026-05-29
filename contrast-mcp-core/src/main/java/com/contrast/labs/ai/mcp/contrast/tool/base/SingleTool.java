@@ -96,12 +96,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
       logNotFound(requestId, duration);
       return SingleToolResponse.notFound("Resource not found", collector.snapshot());
     } catch (UnauthorizedException e) {
-      return handleException(
-          e,
-          requestId,
-          "Authentication failed or resource not found. Verify credentials and that the resource ID"
-              + " is correct.",
-          collector);
+      return handleException(e, requestId, mapHttpErrorCode(e.getCode()), collector);
     } catch (HttpResponseException e) {
       return handleHttpResponseException(e, requestId, collector);
     } catch (IllegalArgumentException e) {
@@ -134,10 +129,8 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
     log.atWarn()
         .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
         .addKeyValue(LoggingKeys.EXCEPTION_TYPE, e.getClass().getSimpleName())
-        .setMessage("Request failed: {}")
-        .addArgument(e.getMessage())
+        .setMessage("Request failed")
         .log();
-    collector.warn(userMessage);
     return new SingleToolResponse<>(null, List.of(userMessage), collector.snapshot(), false);
   }
 
@@ -149,8 +142,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
     log.atWarn()
         .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
         .addKeyValue(LoggingKeys.HTTP_STATUS, e.getCode())
-        .setMessage("API error: {}")
-        .addArgument(e.getMessage())
+        .setMessage("API error")
         .log();
 
     return new SingleToolResponse<>(null, List.of(errorMessage), collector.snapshot(), false);

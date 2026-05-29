@@ -319,9 +319,9 @@ class ListApplicationsByCveToolIT
             });
 
     // Enrichment observability: at least one app must have populated class usage, proving the
-    // SDKHelper.getLibsForID lookup and hash-matching loop executed end-to-end against real
-    // Contrast data. If this fails, the test org is missing apps that actively load any
-    // vulnerable library's classes — see INTEGRATION_TESTS.md.
+    // SdkApiClient library lookup and hash-matching loop executed end-to-end against real Contrast
+    // data. If this fails, the test org is missing apps that actively load any vulnerable library's
+    // classes — see INTEGRATION_TESTS.md.
     assertThat(result.data().getApps())
         .as(
             "requires seeded app actively using the vulnerable library's classes so enrichment "

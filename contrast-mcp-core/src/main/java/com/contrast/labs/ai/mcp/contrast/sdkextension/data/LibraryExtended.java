@@ -98,10 +98,14 @@ public class LibraryExtended {
    * @return the count of vulnerabilities from the array, or the API value if array is empty/null
    */
   public int getTotalVulnerabilities() {
-    if (vulnerabilities != null && !vulnerabilities.isEmpty()) {
+    if (hasVulnerabilityDetails()) {
       return vulnerabilities.size();
     }
     return totalVulnerabilities;
+  }
+
+  private boolean hasVulnerabilityDetails() {
+    return vulnerabilities != null && !vulnerabilities.isEmpty();
   }
 
   private int countBySeverity(RuleSeverity severity) {
@@ -110,6 +114,20 @@ public class LibraryExtended {
         vulnerabilities.stream()
             .filter(v -> severity.name().equalsIgnoreCase(v.getSeverityCode()))
             .count();
+  }
+
+  public int getCriticalVulnerabilities() {
+    if (hasVulnerabilityDetails()) {
+      return countBySeverity(RuleSeverity.CRITICAL);
+    }
+    return criticalVulnerabilities;
+  }
+
+  public int getHighVulnerabilities() {
+    if (hasVulnerabilityDetails()) {
+      return countBySeverity(RuleSeverity.HIGH);
+    }
+    return highVulnerabilities;
   }
 
   public int getMediumVulnerabilities() {

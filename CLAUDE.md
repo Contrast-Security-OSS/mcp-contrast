@@ -324,8 +324,12 @@ EOF
 
 ### Human Review Labels
 
+- `ready-for-human` — human should inspect, decide, or run the work with agent assistance; autonomous agents should not pick it up
 - `needs-human-review` — DO NOT start work; ask human to review first
-- `human-reviewed` — approved; AI may proceed
+- `human-security-review` — security review is required before agent work proceeds
+- `external-approval` — blocked on approval outside the agent workflow
+
+`human-reviewed` is the cleared marker after review; AI may proceed when no human-only label remains.
 
 When reviewing a `needs-human-review` bead, update the description if needed, then:
 ```bash

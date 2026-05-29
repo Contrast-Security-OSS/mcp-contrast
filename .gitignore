@@ -64,6 +64,8 @@ test-plans-archive/
 ### Local tools ###
 .abacus/
 .cass/
+.gemini/
+opencode.json
 compound-engineering.local.md
 decisions/
 docs/brainstorms/

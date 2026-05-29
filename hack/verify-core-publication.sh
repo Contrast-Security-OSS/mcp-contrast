@@ -15,7 +15,7 @@ jar_path="${ROOT_DIR}/contrast-mcp-core/build/libs/contrast-mcp-core-${version}.
 log "gate=S3B-CORE-BOUNDARY-SMOKE step=publishToMavenLocal version=${version}"
 ./gradlew --no-daemon :contrast-mcp-core:publishToMavenLocal :contrast-mcp-core:verifyCorePublicationMetadata
 
-log "gate=S3B-CORE-BOUNDARY-SMOKE step=jarBoundary jar=${jar_path}"
+log "gate=S3B-CORE-BOUNDARY-SMOKE step=jarBoundary jar=<repo-root>/${jar_path#${ROOT_DIR}/}"
 if [[ ! -f "${jar_path}" ]]; then
   log "assertion=jar_exists status=failed"
   exit 1
@@ -25,6 +25,30 @@ required_classes=(
   "com/contrast/labs/ai/mcp/contrast/tool/validation/ToolValidationContext.class"
   "com/contrast/labs/ai/mcp/contrast/tool/base/ToolParams.class"
   "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/ListVulnerabilityTypesTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/SearchVulnerabilitiesTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/SearchAppVulnerabilitiesTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/GetVulnerabilityTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/VulnerabilityMapper.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/params/VulnerabilityFilterParams.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/params/SearchAppVulnerabilitiesParams.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/params/GetVulnerabilityParams.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/application/SearchApplicationsTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/application/GetSessionMetadataTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/application/params/ApplicationFilterParams.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/application/params/GetSessionMetadataParams.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/library/ListApplicationLibrariesTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/library/ListApplicationsByCveTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/library/params/ListApplicationLibrariesParams.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/library/params/ListApplicationsByCveParams.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/attack/GetProtectRulesTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/attack/SearchAttacksTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/attack/params/AttackFilterParams.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/attack/params/GetProtectRulesParams.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/coverage/GetRouteCoverageTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/coverage/RouteMapper.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/coverage/params/RouteCoverageParams.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/sast/GetSastProjectTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/sast/params/GetSastProjectParams.class"
   "com/contrast/labs/ai/mcp/contrast/hints/HintGenerator.class"
 )
 
@@ -46,6 +70,7 @@ forbidden_classes=(
   "com/contrast/labs/ai/mcp/contrast/sdkextension/SDKHelper.class"
   "com/contrast/labs/ai/mcp/contrast/sdkextension/SDKExtension.class"
   "com/contrast/labs/ai/mcp/contrast/tool/sast/GetSastResultsTool.class"
+  "com/contrast/labs/ai/mcp/contrast/tool/sast/params/GetSastResultsParams.class"
 )
 
 for forbidden_class in "${forbidden_classes[@]}"; do

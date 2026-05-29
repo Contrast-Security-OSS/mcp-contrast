@@ -31,6 +31,8 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Applicati
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
+import com.contrastsecurity.exceptions.HttpResponseException;
+import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.http.TraceFilterForm.TraceExpandValue;
 import com.contrastsecurity.models.EventSummaryResponse;
 import com.contrastsecurity.models.HttpRequestResponse;
@@ -98,9 +100,13 @@ public class SdkApiClient implements ContrastApiClient {
       int offset,
       EnumSet<TraceExpandValue> expand)
       throws Exception {
-    return sdkExtensionFactory
-        .getSDKExtension()
-        .getTraces(localOrganization(), appId, filters, limit, offset, expand);
+    try {
+      return sdkExtensionFactory
+          .getSDKExtension()
+          .getTraces(localOrganization(), appId, filters, limit, offset, expand);
+    } catch (UnauthorizedException e) {
+      throw normalizeForbidden(e);
+    }
   }
 
   @Override
@@ -185,5 +191,18 @@ public class SdkApiClient implements ContrastApiClient {
 
   private String localOrganization() {
     return contrastSDKFactory.getOrgId();
+  }
+
+  private static HttpResponseException normalizeForbidden(UnauthorizedException e) {
+    if (e.getCode() != 403) {
+      return e;
+    }
+    return new HttpResponseException(
+        "Downstream request failed",
+        "POST",
+        "[redacted]",
+        e.getCode(),
+        e.getStatus(),
+        "[redacted]");
   }
 }

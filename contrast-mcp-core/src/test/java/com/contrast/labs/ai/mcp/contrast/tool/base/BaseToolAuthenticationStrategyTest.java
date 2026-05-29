@@ -22,7 +22,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.ai.chat.model.ToolContext;
 
 class BaseToolAuthenticationStrategyTest {
@@ -49,7 +53,7 @@ class BaseToolAuthenticationStrategyTest {
   void executePipeline_should_bind_configured_strategy_before_doExecute_and_close_afterward() {
     var events = new ArrayList<String>();
     var tool = new RecordingSingleTool(events);
-    var context = new ToolContext(java.util.Map.of("requestId", "req-123"));
+    var context = new ToolContext(Map.of("requestId", "req-123"));
     tool.setAuthenticationStrategy(
         toolContext -> {
           events.add("authenticate");
@@ -68,7 +72,7 @@ class BaseToolAuthenticationStrategyTest {
   void paginatedExecutePipeline_should_forward_toolContext_to_configured_strategy() {
     var events = new ArrayList<String>();
     var tool = new RecordingPaginatedTool(events);
-    var context = new ToolContext(java.util.Map.of("requestId", "req-456"));
+    var context = new ToolContext(Map.of("requestId", "req-456"));
     tool.setAuthenticationStrategy(
         toolContext -> {
           events.add("authenticate");
@@ -106,7 +110,7 @@ class BaseToolAuthenticationStrategyTest {
   void executePipeline_should_return_error_when_authentication_strategy_throws() {
     var events = new ArrayList<String>();
     var tool = new RecordingSingleTool(events);
-    var context = new ToolContext(java.util.Map.of("requestId", "req-123"));
+    var context = new ToolContext(Map.of("requestId", "req-123"));
     tool.setAuthenticationStrategy(
         toolContext -> {
           events.add("authenticate");
@@ -143,7 +147,7 @@ class BaseToolAuthenticationStrategyTest {
       paginatedExecutePipeline_should_bind_configured_strategy_before_doExecute_and_close_afterward() {
     var events = new ArrayList<String>();
     var tool = new RecordingPaginatedTool(events);
-    var context = new ToolContext(java.util.Map.of("requestId", "req-123"));
+    var context = new ToolContext(Map.of("requestId", "req-123"));
     tool.setAuthenticationStrategy(
         toolContext -> {
           events.add("authenticate");
@@ -162,7 +166,7 @@ class BaseToolAuthenticationStrategyTest {
   void paginatedExecutePipeline_should_return_error_when_authentication_strategy_throws() {
     var events = new ArrayList<String>();
     var tool = new RecordingPaginatedTool(events);
-    var context = new ToolContext(java.util.Map.of("requestId", "req-123"));
+    var context = new ToolContext(Map.of("requestId", "req-123"));
     tool.setAuthenticationStrategy(
         toolContext -> {
           events.add("authenticate");
@@ -179,13 +183,18 @@ class BaseToolAuthenticationStrategyTest {
     assertThat(events).containsExactly("authenticate");
   }
 
-  @Test
-  void executePipeline_unexpected_error_logs_should_not_attach_stack_traces() throws Exception {
-    for (var sourcePath : PIPELINE_SOURCES) {
-      var source = Files.readString(sourcePath, StandardCharsets.UTF_8);
+  static Stream<Path> pipelineSources() {
+    return PIPELINE_SOURCES.stream();
+  }
 
-      assertThat(source).doesNotContain(".setCause(e)");
-    }
+  // Log builders in pipeline classes must not attach the throwable — it can leak sensitive content.
+  @ParameterizedTest
+  @MethodSource("pipelineSources")
+  void executePipeline_unexpected_error_logs_should_not_attach_stack_traces(Path sourcePath)
+      throws Exception {
+    var source = Files.readString(sourcePath, StandardCharsets.UTF_8);
+
+    assertThat(source).doesNotContain(".setCause(e)");
   }
 
   @Test

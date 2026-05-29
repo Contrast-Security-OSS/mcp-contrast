@@ -116,6 +116,14 @@ class WarningCollectorTest {
   }
 
   @Test
+  void warnForEmptyResults_should_append_warning_and_mark_empty_result_explained() {
+    collector.warnForEmptyResults("No domain objects found");
+
+    assertThat(collector.snapshot()).containsExactly("No domain objects found");
+    assertThat(collector.hasEmptyResultsWarning()).isTrue();
+  }
+
+  @Test
   void warn_should_throw_when_message_is_null() {
     assertThatThrownBy(() -> collector.warn(null)).isInstanceOf(NullPointerException.class);
   }
