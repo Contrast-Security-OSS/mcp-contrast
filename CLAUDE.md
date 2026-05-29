@@ -552,6 +552,20 @@ When user says "promote stacked PR" or "finalize stacked PR" for a bead WITH the
 
 **Parent beads** typically remain `in_progress` (with `in-review` label) until the PR review is complete and merged. Only close beads when explicitly instructed by the user.
 
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in Jira (AIML project) and Beads (`br`), not GitHub Issues. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Canonical triage labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) for all new triage work; existing CLAUDE.md human-review labels are documented for awareness. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root (created lazily). See `docs/agents/domain.md`.
+
 
 
 @SECURITY.md
