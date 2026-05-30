@@ -6,6 +6,7 @@ import javax.xml.xpath.XPathFactory
 
 plugins {
     id 'maven-publish'
+    id 'signing'
 }
 
 dependencies {
@@ -61,6 +62,24 @@ publishing {
     }
 }
 
+// Sign the publication only when an ASCII-armored OpenPGP private key is supplied.
+// PR builds, local builds, and the no-secrets verification job have no key and publish unsigned.
+def signingKey = findProperty('signingKey')?.toString()?.trim()
+def signingPassword = findProperty('signingPassword')
+
+signing {
+    required = false
+    if (signingKey) {
+        if (!signingKey.contains('-----BEGIN PGP PRIVATE KEY BLOCK-----')) {
+            throw new GradleException(
+                'Gradle property signingKey must contain an ASCII-armored OpenPGP private key. ' +
+                    'PEM/code-signing private keys are not compatible with Maven PGP signatures.')
+        }
+        useInMemoryPgpKeys(signingKey, signingPassword?.toString())
+        sign publishing.publications.mavenJava
+    }
+}
+
 tasks.withType(PublishToMavenRepository).configureEach {
     if (repository.name == artifactoryRepositoryName) {
         doFirst {
@@ -70,6 +89,11 @@ tasks.withType(PublishToMavenRepository).configureEach {
             if (!propertyValue) {
                 throw new GradleException(
                     "Missing Gradle property ${artifactoryUrlPropertyName} for remote publication.")
+            }
+            if (repository.name == 'contrastInternalRelease' && !signingKey) {
+                throw new GradleException(
+                    'Release publication requires Gradle property signingKey with an ' +
+                        'ASCII-armored OpenPGP private key.')
             }
         }
     }
