@@ -22,14 +22,10 @@ dependencies {
     testImplementation "org.mockito:mockito-inline:${mockitoInlineVersion}"
 }
 
-def artifactoryRepositoryName = version.toString().endsWith('-SNAPSHOT')
-    ? 'contrastInternalSnapshot'
-    : 'contrastInternalRelease'
-def artifactoryUrlPropertyName = version.toString().endsWith('-SNAPSHOT')
-    ? 'contrastArtifactorySnapshotUrl'
-    : 'contrastArtifactoryReleaseUrl'
-def artifactoryUrlFallback = 'https://artifactory-url-required.invalid'
-def configuredArtifactoryUrl = providers.gradleProperty(artifactoryUrlPropertyName)
+def publicMavenReleaseRepositoryName = 'contrastPublicRelease'
+def publicMavenReleaseUrlPropertyName = 'contrastPublicMavenReleaseUrl'
+def publicMavenReleaseUrlFallback = 'https://public-maven-release-url-required.invalid'
+def configuredPublicMavenReleaseUrl = providers.gradleProperty(publicMavenReleaseUrlPropertyName)
     .map { it.trim() }
     .getOrElse('')
 
@@ -52,8 +48,8 @@ publishing {
     }
     repositories {
         maven {
-            name = artifactoryRepositoryName
-            url = uri(configuredArtifactoryUrl ?: artifactoryUrlFallback)
+            name = publicMavenReleaseRepositoryName
+            url = uri(configuredPublicMavenReleaseUrl ?: publicMavenReleaseUrlFallback)
             credentials {
                 username = findProperty('contrastArtifactoryUser') ?: ''
                 password = findProperty('contrastArtifactoryPassword') ?: ''
@@ -81,18 +77,21 @@ signing {
 }
 
 tasks.withType(PublishToMavenRepository).configureEach {
-    if (repository.name == artifactoryRepositoryName) {
+    if (repository.name == publicMavenReleaseRepositoryName) {
         doFirst {
-            def propertyValue = providers.gradleProperty(artifactoryUrlPropertyName)
+            if (version.toString().endsWith('-SNAPSHOT')) {
+                throw new GradleException('Public Maven release publication requires a non-SNAPSHOT version.')
+            }
+            def propertyValue = providers.gradleProperty(publicMavenReleaseUrlPropertyName)
                 .map { it.trim() }
                 .getOrElse('')
             if (!propertyValue) {
                 throw new GradleException(
-                    "Missing Gradle property ${artifactoryUrlPropertyName} for remote publication.")
+                    "Missing Gradle property ${publicMavenReleaseUrlPropertyName} for remote publication.")
             }
-            if (repository.name == 'contrastInternalRelease' && !signingKey) {
+            if (!signingKey) {
                 throw new GradleException(
-                    'Release publication requires Gradle property signingKey with an ' +
+                    'Public Maven release publication requires Gradle property signingKey with an ' +
                         'ASCII-armored OpenPGP private key.')
             }
         }
