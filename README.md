@@ -163,6 +163,16 @@ Download the latest pre-built JAR from [GitHub Releases](https://github.com/Cont
 
 The JAR file will be named `mcp-contrast-X.X.X.jar`.
 
+### Verifying the Download
+
+Each release JAR is signed with a [GitHub build provenance attestation](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds), which proves the JAR was built by this repository's release workflow. Verify a downloaded JAR with the [GitHub CLI](https://cli.github.com/):
+
+```bash
+gh attestation verify mcp-contrast-X.X.X.jar --repo Contrast-Security-OSS/mcp-contrast
+```
+
+A successful check confirms the JAR was produced by the official release workflow and has not been altered. No key import or fingerprint comparison is required. The GitHub CLI validates the attestation against the public Sigstore transparency log.
+
 ### Build from Source
 
 Alternatively, you can build from source if you need the latest development version. Requires Java 21+:
