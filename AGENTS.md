@@ -93,7 +93,7 @@ includeBuild("../mcp-contrast") {
 }
 ```
 
-Use `hack/verify-core-publication.sh` for the public core publication/classpath gate and `hack/verify-public-workflow-alignment.sh` for the S3C public docs/CI/Makefile alignment gate.
+Use `hack/verify-core-publication.sh` for the public core publication/classpath gate.
 
 ### Jira Integration
 
