@@ -6,8 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an MCP (Model Context Protocol) server for Contrast Security that enables AI agents to access and analyze vulnerability data from Contrast's security platform. It serves as a bridge between Contrast Security's API and AI tools like Claude, enabling automated vulnerability remediation and security analysis.
 
-**This service is currently under construction.** The PRD is `plans/AIML-110/AIML-110-prd-v4.md` — refer to it for full scope and details. Work is tracked as beads hydrated from the PRD. Implementation slices are child beads of parent bead `mcp-325e`; each slice is further broken into smaller child beads. Beads are prefixed with an `AIML-???` Jira ticket ID referring to the slice (child beads share the slice's Jira ID even though they cover only a portion of it). This work spans two repos: the public stdio MCP server (this repo) and the new hosted (remote) MCP server (`aiml-services`). Each bead has a `repo:*` label declaring which repo the work should be done in (if a bead touches two repos, only the primary is indicated by the label).
-
 ## Branching Requirements
 
 **All code changes must be made on a feature branch.** Never commit directly to `main`.
@@ -121,11 +119,11 @@ Required environment variables/arguments:
 - **Build Tool**: Gradle with wrapper
 - **Packaging**: Executable JAR and Docker container
 
-**SDK Source Access:** The Contrast SDK Java source code is available in the parent directory at `/Users/chrisedwards/projects/contrast/contrast-sdk-java`. Reference this when you need to understand SDK types, method signatures, or behavior.
+**SDK Source Access:** The Contrast SDK Java source code is available at `../contrast-sdk-java`. Reference this when you need to understand SDK types, method signatures, or behavior.
 
 ### Working with the Contrast Codebase
 
-All Contrast repos live under `/Users/chrisedwards/projects/contrast/`. Most use `develop` as the default branch (not `main`). Always checkout the default branch and pull before reading.
+All Contrast repos live under `../`. Most use `develop` as the default branch (not `main`). Always checkout the default branch and pull before reading.
 
 **Finding code in unknown repos — search before guessing:**
 ```bash

@@ -32,9 +32,9 @@ make verify
 
 Checkstyle rules and suppressions are the same rules used before the Gradle split. Gradle binds `checkstyle.xml` and `checkstyle-suppressions.xml` to each module, and rules remain `error` severity.
 
-## Cross-Repo Local Development
+## Consuming `contrast-mcp-core` Locally
 
-The hosted remote MCP server lives in the private `aiml-services` monorepo as `services/aiml-hosted-mcp-server`. For shared-code changes, keep `mcp-contrast` and `aiml-services` checked out as siblings so the hosted service can consume local source through Gradle composite-build substitution instead of a previously published artifact:
+Downstream projects can validate unpublished shared-code changes by using a Gradle composite build that substitutes the published `contrast-mcp-core` artifact with a local checkout:
 
 ```kotlin
 includeBuild("../mcp-contrast") {
@@ -45,4 +45,4 @@ includeBuild("../mcp-contrast") {
 }
 ```
 
-The composite build is the local validation path while public Artifactory publishing is being finalized. Engineers without a local `mcp-contrast` checkout can use the published `contrast-mcp-core` artifact once the release path is approved.
+Use this only for local development. Released consumers should depend on the published `com.contrast.labs.ai.mcp:contrast-mcp-core` artifact.
