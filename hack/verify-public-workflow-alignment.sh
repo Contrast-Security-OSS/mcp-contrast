@@ -115,8 +115,8 @@ assert_contains ".github/workflows/gradle-release.yml" 'publishMavenJavaPublicat
 assert_contains ".github/workflows/gradle-release.yml" 'CODE_SIGNING_PKEY' "Gradle release maps OpenPGP private key secret"
 assert_contains ".github/workflows/gradle-release.yml" 'CODE_SIGNING_PASSPHRASE' "Gradle release maps OpenPGP passphrase secret"
 assert_not_contains ".github/workflows/gradle-release.yml" 'CONTRAST_ARTIFACTORY_RELEASE_URL|CONTRAST_ARTIFACTORY_USER|CONTRAST_ARTIFACTORY_PASSWORD|artifact_exists_check|contrastInternalRelease|contrastArtifactoryReleaseUrl|contrastArtifactorySnapshotUrl' "Gradle release avoids legacy internal Artifactory publish flow"
-assert_line_order ".github/workflows/gradle-release.yml" 'name: Checkout Release Tag' 'publishMavenJavaPublicationToContrastPublicReleaseRepository' "Core publish runs after release tag checkout"
-assert_line_order ".github/workflows/gradle-release.yml" 'publishMavenJavaPublicationToContrastPublicReleaseRepository' 'name: Create GitHub Release' "Core publish runs before GitHub release creation"
+assert_line_order ".github/workflows/gradle-release.yml" 'name: Checkout Release Tag' 'name: Publish contrast-mcp-core to public Artifactory' "Core publish runs after release tag checkout"
+assert_line_order ".github/workflows/gradle-release.yml" 'name: Publish contrast-mcp-core to public Artifactory' 'name: Create GitHub Release' "Core publish runs before GitHub release creation"
 
 assert_contains ".github/dependabot.yml" 'package-ecosystem: "gradle"' "Dependabot tracks Gradle"
 assert_not_contains ".github/dependabot.yml" 'package-ecosystem: "maven"' "Dependabot has no Maven ecosystem"
