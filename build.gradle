@@ -2,7 +2,7 @@ import org.gradle.api.plugins.quality.Checkstyle
 
 plugins {
     id 'base'
-    id 'pl.allegro.tech.build.axion-release' version '1.21.1'
+    id 'pl.allegro.tech.build.axion-release' version "${axionReleasePluginVersion}"
     id 'com.diffplug.spotless' version "${spotlessGradlePluginVersion}" apply false
     id 'org.springframework.boot' version "${springBootVersion}" apply false
 }
