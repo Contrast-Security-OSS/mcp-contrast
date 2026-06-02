@@ -1,11 +1,21 @@
 import org.gradle.api.plugins.quality.Checkstyle
-import java.util.regex.Matcher
 
 plugins {
     id 'base'
+    id 'pl.allegro.tech.build.axion-release' version '1.21.1'
     id 'com.diffplug.spotless' version "${spotlessGradlePluginVersion}" apply false
     id 'org.springframework.boot' version "${springBootVersion}" apply false
 }
+
+scmVersion {
+    tag {
+        prefix = 'v'
+        versionSeparator = ''
+    }
+    versionCreator 'simple'
+}
+
+version = scmVersion.version
 
 allprojects {
     group = 'com.contrast.labs.ai.mcp'
@@ -22,30 +32,6 @@ ext.positiveIntProperty = { String propertyName, int defaultValue ->
         return value
     } catch (NumberFormatException ex) {
         throw new GradleException("${propertyName} must be a positive integer, but was ${rawValue}", ex)
-    }
-}
-
-def requestedNewVersion = providers.gradleProperty('newVersion')
-def gradlePropertiesFile = layout.projectDirectory.file('gradle.properties')
-
-tasks.register('setVersion') {
-    description = 'Updates the project version in gradle.properties.'
-    group = 'release'
-    inputs.property('newVersion', requestedNewVersion).optional(true)
-    outputs.file(gradlePropertiesFile)
-    doLast {
-        def newVersion = inputs.properties['newVersion']
-        if (!newVersion) {
-            throw new GradleException('Supply -PnewVersion=<version>')
-        }
-        def propertiesFile = outputs.files.singleFile
-        def originalText = propertiesFile.text
-        if (!(originalText =~ /(?m)^version=.*/).find()) {
-            throw new GradleException('gradle.properties must contain a version= line')
-        }
-        propertiesFile.text = originalText.replaceFirst(
-            /(?m)^version=.*/,
-            Matcher.quoteReplacement("version=${newVersion}"))
     }
 }
 

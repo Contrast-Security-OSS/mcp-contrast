@@ -3,19 +3,11 @@ name: Gradle Release
 on:
   workflow_dispatch:
     inputs:
-      mode:
-        description: Release flow to run
+      release_version:
+        description: Optional explicit release version, e.g. 2.1.0. Leave blank for next patch.
         required: false
-        default: release
-        type: choice
-        options:
-          - release
-          - artifactory-smoke
-      publish_smoke_artifact:
-        description: Publish a permanent smoke-test Maven artifact
-        required: false
-        default: false
-        type: boolean
+        default: ''
+        type: string
 
 concurrency:
   group: gradle-release
@@ -25,74 +17,7 @@ permissions:
   contents: read
 
 jobs:
-  artifactory-smoke:
-    if: ${{ inputs.mode == 'artifactory-smoke' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@a5ad31d6a139d249332a2605b85202e8c0b78450 # v2.19.1
-        with:
-          egress-policy: audit
-
-      - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: gradle
-
-      - name: Validate public Artifactory smoke configuration
-        env:
-          CONTRAST_JFROG_URL: ${{ vars.CONTRAST_JFROG_URL }}
-          JFROG_OIDC_PROVIDER_NAME: ${{ vars.JFROG_OIDC_PROVIDER_NAME }}
-          CONTRAST_PUBLIC_MAVEN_RELEASE_URL: ${{ vars.CONTRAST_PUBLIC_MAVEN_RELEASE_URL }}
-        run: |
-          test -n "$CONTRAST_JFROG_URL" || { echo "Missing repository variable CONTRAST_JFROG_URL"; exit 1; }
-          test -n "$JFROG_OIDC_PROVIDER_NAME" || { echo "Missing repository variable JFROG_OIDC_PROVIDER_NAME"; exit 1; }
-          test -n "$CONTRAST_PUBLIC_MAVEN_RELEASE_URL" || { echo "Missing repository variable CONTRAST_PUBLIC_MAVEN_RELEASE_URL"; exit 1; }
-
-      - name: Set up JFrog CLI
-        id: setup-jfrog-cli
-        uses: jfrog/setup-jfrog-cli@88e9eba31c07e31beefa4cef5c0e93d1af9535d7 # v4.6.1
-        env:
-          JF_URL: ${{ vars.CONTRAST_JFROG_URL }}
-        with:
-          oidc-provider-name: ${{ vars.JFROG_OIDC_PROVIDER_NAME }}
-
-      - name: Ping public Artifactory with OIDC credentials
-        run: jf rt ping
-
-      - name: Publish public Artifactory smoke artifact
-        if: ${{ inputs.publish_smoke_artifact }}
-        env:
-          ORG_GRADLE_PROJECT_contrastPublicMavenReleaseUrl: ${{ vars.CONTRAST_PUBLIC_MAVEN_RELEASE_URL }}
-          ORG_GRADLE_PROJECT_contrastArtifactoryUser: ${{ steps.setup-jfrog-cli.outputs.oidc-user }}
-          ORG_GRADLE_PROJECT_contrastArtifactoryPassword: ${{ steps.setup-jfrog-cli.outputs.oidc-token }}
-          ORG_GRADLE_PROJECT_signingKey: ${{ secrets.CODE_SIGNING_PKEY }}
-          ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.CODE_SIGNING_PASSPHRASE }}
-        run: |
-          smoke_version="0.0.0-artifactory-smoke-${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}"
-          echo "Publishing smoke coordinate com.contrast.labs.ai.mcp:contrast-mcp-core:${smoke_version}"
-          ./gradlew \
-            :contrast-mcp-core:verifyCorePublicationMetadata \
-            :contrast-mcp-core:publishMavenJavaPublicationToContrastPublicReleaseRepository \
-            -Pversion="${smoke_version}" \
-            --no-daemon
-
   release:
-    if: ${{ inputs.mode == 'release' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -108,6 +33,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          ref: ${{ github.ref_name }}
           fetch-depth: 0
 
       - name: Ensure release runs from main
@@ -115,6 +41,15 @@ jobs:
         run: |
           echo "Gradle Release must be dispatched from main, but got $GITHUB_REF"
           exit 1
+
+      - name: Validate release version input
+        env:
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          if [[ -n "$RELEASE_VERSION" && ! "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "release_version must look like 2.1.0, without leading v"
+            exit 1
+          fi
 
       - name: Validate Gradle wrapper
         uses: gradle/actions/wrapper-validation@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
@@ -131,48 +66,102 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Determine release versions
+      - name: Verify tracked worktree is clean
+        run: |
+          git diff --quiet
+          git diff --cached --quiet
+
+      - name: Run release validation build
+        run: ./gradlew clean spotlessCheck check :contrast-mcp-stdio-app:integrationTest :contrast-mcp-stdio-app:bootJar --no-daemon
+
+      - name: Create or reuse release tag
         id: versions
+        env:
+          RELEASE_VERSION: ${{ inputs.release_version }}
         run: |
-          # Get current version from gradle.properties (e.g., "0.0.12-SNAPSHOT")
-          CURRENT=$(./gradlew -q printVersion --no-daemon)
-          echo "Current version: $CURRENT"
+          git fetch --force --tags origin
 
-          # Strip -SNAPSHOT to get release version (e.g., "0.0.12")
-          RELEASE_VERSION=$(echo "$CURRENT" | sed 's/-SNAPSHOT//')
-          echo "Release version: $RELEASE_VERSION"
+          git diff --quiet
+          git diff --cached --quiet
 
-          # Increment patch version for next dev version (e.g., "0.0.13-SNAPSHOT")
-          NEXT_VERSION=$(echo "$RELEASE_VERSION" | awk -F. '{$NF = $NF + 1;} 1' OFS=.)
-          NEXT_DEV_VERSION="${NEXT_VERSION}-SNAPSHOT"
-          echo "Next dev version: $NEXT_DEV_VERSION"
+          current_head="$(git rev-parse HEAD)"
 
-          # Output for use in later steps
-          echo "release=$RELEASE_VERSION" >> $GITHUB_OUTPUT
-          echo "next=$NEXT_DEV_VERSION" >> $GITHUB_OUTPUT
+          if [[ -n "$RELEASE_VERSION" ]]; then
+            tag_name="v${RELEASE_VERSION}"
 
-      - name: Prepare Release
-        run: |
-          ./gradlew setVersion -PnewVersion="${{ steps.versions.outputs.release }}" --no-daemon
-          ./gradlew clean spotlessCheck check :contrast-mcp-stdio-app:integrationTest :contrast-mcp-stdio-app:bootJar --no-daemon
-          test -f "contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar"
-          git add gradle.properties
-          git commit -m "[gradle-release] prepare release v${{ steps.versions.outputs.release }}"
-          git tag v${{ steps.versions.outputs.release }}
-          ./gradlew setVersion -PnewVersion="${{ steps.versions.outputs.next }}" --no-daemon
-          git add gradle.properties
-          git commit -m "[gradle-release] prepare next development iteration"
+            if git rev-parse -q --verify "refs/tags/${tag_name}" >/dev/null; then
+              tag_commit="$(git rev-list -n 1 "${tag_name}")"
+              if [[ "$tag_commit" != "$current_head" ]]; then
+                echo "Tag ${tag_name} already exists at ${tag_commit}, not current HEAD ${current_head}"
+                exit 1
+              fi
+              echo "Reusing existing release tag ${tag_name} at current HEAD"
+            else
+              ./gradlew release -Prelease.forceVersion="${RELEASE_VERSION}" --no-daemon
+            fi
+          else
+            existing_head_tag="$(
+              git tag --points-at HEAD \
+                | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+                | sort -V \
+                | tail -n 1 || true
+            )"
 
-      - name: Push Changes and Tags
-        run: |
-          git push origin HEAD:${{ github.ref_name }}
-          git push origin v${{ steps.versions.outputs.release }}
+            if [[ -n "$existing_head_tag" ]]; then
+              tag_name="$existing_head_tag"
+              RELEASE_VERSION="${tag_name#v}"
+              echo "Reusing existing release tag ${tag_name} at current HEAD"
+            else
+              ./gradlew release --no-daemon
+              tag_name="$(
+                git tag --points-at HEAD \
+                  | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+                  | sort -V \
+                  | tail -n 1 || true
+              )"
+
+              if [[ -z "$tag_name" ]]; then
+                echo "Axion release did not leave a vX.Y.Z tag on HEAD"
+                exit 1
+              fi
+              RELEASE_VERSION="${tag_name#v}"
+            fi
+          fi
+
+          tag_commit="$(git rev-list -n 1 "${tag_name}")"
+          if [[ "$tag_commit" != "$current_head" ]]; then
+            echo "Release tag ${tag_name} points at ${tag_commit}, not current HEAD ${current_head}"
+            exit 1
+          fi
+
+          git diff --quiet
+          git diff --cached --quiet
+
+          echo "release=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag_name" >> "$GITHUB_OUTPUT"
 
       - name: Checkout Release Tag
-        run: git checkout v${{ steps.versions.outputs.release }}
+        run: git checkout --detach "${{ steps.versions.outputs.tag }}"
+
+      - name: Verify release tag matches Gradle version
+        run: |
+          actual="$(./gradlew -q printVersion --no-daemon)"
+          expected="${{ steps.versions.outputs.release }}"
+
+          if [ "$actual" != "$expected" ]; then
+            echo "Gradle version $actual does not match tag ${{ steps.versions.outputs.tag }}"
+            exit 1
+          fi
 
       - name: Build Release Artifact
-        run: ./gradlew clean :contrast-mcp-stdio-app:bootJar -x test --no-daemon
+        run: |
+          ./gradlew clean :contrast-mcp-stdio-app:bootJar -x test --no-daemon
+          test -f "contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar"
+
+      - name: Verify tracked worktree is clean before publishing
+        run: |
+          git diff --quiet
+          git diff --cached --quiet
 
       - name: Validate public Artifactory release configuration
         env:
@@ -209,18 +198,6 @@ jobs:
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
           subject-path: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
-
-      - name: Create GitHub Release
-        uses: step-security/action-gh-release@dc29ef0d1f6f9a032a97ec797d9cb7ea788dde41 # v2.6.1
-        with:
-          tag_name: v${{ steps.versions.outputs.release }}
-          name: Release v${{ steps.versions.outputs.release }}
-          draft: false
-          prerelease: false
-          files: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create the trust keys folder
         shell: sh
@@ -288,3 +265,15 @@ jobs:
             echo "Pushing and signing $tag"
             docker push "$tag"
           done
+
+      - name: Create GitHub Release
+        uses: step-security/action-gh-release@dc29ef0d1f6f9a032a97ec797d9cb7ea788dde41 # v2.6.1
+        with:
+          tag_name: ${{ steps.versions.outputs.tag }}
+          name: Release ${{ steps.versions.outputs.tag }}
+          draft: false
+          prerelease: false
+          files: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
