@@ -1,6 +1,6 @@
 # Contrast MCP Server
 
-[![Java CI with Gradle](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Labs/mcp-contrast/actions/workflows/build.yml)
+[![Java CI with Gradle](https://github.com/Contrast-Security-OSS/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Security-OSS/mcp-contrast/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 The Contrast MCP Server allows you to connect Contrast Security to your AI coding agent to automatically remediate vulnerabilities, update insecure libraries, and analyze security coverage—all through natural language prompts.

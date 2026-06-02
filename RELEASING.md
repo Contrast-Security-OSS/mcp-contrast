@@ -20,7 +20,7 @@ This project uses the **Gradle Release** GitHub Actions workflow. The release ve
 4. Select the **Gradle Release** workflow.
 5. Click **Run workflow**, select `main`, and start the run.
 
-If `gradle.properties` contains `version=1.0.1-SNAPSHOT`, the workflow releases `1.0.1` and then updates `main` to `1.0.2-SNAPSHOT`.
+If `gradle.properties` contains `version=2.0.1-SNAPSHOT`, the workflow releases `2.0.1` and then updates `main` to `2.0.2-SNAPSHOT`.
 
 ## What the Workflow Does
 
@@ -30,8 +30,10 @@ If `gradle.properties` contains `version=1.0.1-SNAPSHOT`, the workflow releases 
 4. Updates `gradle.properties` to the next patch `-SNAPSHOT` version and commits it.
 5. Pushes commits and the tag.
 6. Builds `contrast-mcp-stdio-app/build/libs/mcp-contrast-{version}.jar`.
-7. Creates the GitHub release and attaches the JAR.
-8. Builds and publishes the Docker image with the release and `latest` tags.
+7. Publishes `contrast-mcp-core` to Artifactory (signed with PGP).
+8. Attests build provenance for the release JAR.
+9. Creates the GitHub release and attaches the JAR.
+10. Builds the Docker image, signs it with Docker Content Trust, and publishes with the release and `latest` tags.
 
 ## Versioning
 
@@ -50,24 +52,26 @@ Use this only if the workflow cannot run:
 ```bash
 git switch main
 git pull
-./gradlew setVersion -PnewVersion=1.0.1
+./gradlew setVersion -PnewVersion=X.Y.Z
 ./gradlew clean spotlessCheck check :contrast-mcp-stdio-app:integrationTest :contrast-mcp-stdio-app:bootJar
 git add gradle.properties
-git commit -m "[gradle-release] prepare release v1.0.1"
-git tag v1.0.1
-./gradlew setVersion -PnewVersion=1.0.2-SNAPSHOT
+git commit -m "[gradle-release] prepare release vX.Y.Z"
+git tag vX.Y.Z
+./gradlew setVersion -PnewVersion=X.Y.NEXT-SNAPSHOT
 git add gradle.properties
 git commit -m "[gradle-release] prepare next development iteration"
 git push origin main
-git push origin v1.0.1
+git push origin vX.Y.Z
 ```
 
-Then create a GitHub release for the tag and attach `contrast-mcp-stdio-app/build/libs/mcp-contrast-1.0.1.jar`.
+Then create a GitHub release for the tag and attach `contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar`. Note that a manual release will not publish to Artifactory or sign the Docker image. Use the workflow whenever possible.
 
 ## Verify the Release
 
 - GitHub release exists with the expected tag and attached JAR.
-- DockerHub has the version tag and updated `latest` tag.
+- `gh attestation verify mcp-contrast-X.Y.Z.jar --repo Contrast-Security-OSS/mcp-contrast` succeeds.
+- DockerHub has the version tag and updated `latest` tag (signed with DCT).
+- `contrast-mcp-core` artifact is available in Artifactory at the release version.
 - `main` contains the next `-SNAPSHOT` version in `gradle.properties`.
 - No uncommitted release changes remain.
 

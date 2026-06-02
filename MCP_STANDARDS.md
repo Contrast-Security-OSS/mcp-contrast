@@ -234,7 +234,7 @@ public List<ToolCallback> tools(
 
 **Important**: Both steps are required. The tool won't be exposed to AI agents if only the `@Service` annotation is present.
 
-For the hosted remote server, registration happens in the private hosted service through explicit `ToolCallback` wiring against the reviewed remote tool set. Hosted registration must also pass generated `tools/list` snapshot review and must not expose `ToolContext`, org/auth parameters, `get_scan_results`, mutation tools before approval, or cursor observation tools before the opaque cursor-client gate is satisfied.
+For any other application that consumes `contrast-mcp-core`, register tools through an explicit `ToolCallback` list owned by that application. Do not rely on component scanning alone, and review the generated `tools/list` surface before exposing a tool set to users.
 
 ---
 

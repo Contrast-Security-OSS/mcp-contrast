@@ -6,8 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an MCP (Model Context Protocol) server for Contrast Security that enables AI agents to access and analyze vulnerability data from Contrast's security platform. It serves as a bridge between Contrast Security's API and AI tools like Claude, enabling automated vulnerability remediation and security analysis.
 
-**This service is currently under construction.** The PRD is `plans/AIML-110/AIML-110-prd-v4.md` — refer to it for full scope and details. Work is tracked as beads hydrated from the PRD. Implementation slices are child beads of parent bead `mcp-325e`; each slice is further broken into smaller child beads. Beads are prefixed with an `AIML-???` Jira ticket ID referring to the slice (child beads share the slice's Jira ID even though they cover only a portion of it). This work spans two repos: the public stdio MCP server (this repo) and the new hosted (remote) MCP server (`aiml-services`). Each bead has a `repo:*` label declaring which repo the work should be done in (if a bead touches two repos, only the primary is indicated by the label).
-
 ## Branching Requirements
 
 **All code changes must be made on a feature branch.** Never commit directly to `main`.
@@ -33,9 +31,8 @@ Use these make targets for all checks and tests:
 ```bash
 make check       # Auto-format then run static analysis (no need to run make format first)
 make test        # Run unit tests (quiet output)
-make check-test  # Run workflow alignment, static analysis, and unit tests
+make check-test  # Run static analysis and unit tests
 make verify      # Run all tests including integration
-make workflow-check  # Temporary AIML-757 S3C tracer gate (see removal note below)
 make format      # Auto-format code with Spotless (also runs automatically via make check)
 make build       # Build the project
 make clean       # Clean build artifacts
@@ -56,7 +53,7 @@ make check VERBOSE=1
 - **Format code**: `./gradlew spotlessApply`
 - **Run locally**: `java -jar contrast-mcp-stdio-app/build/libs/mcp-contrast-*.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
 
-**Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard local verification command. It includes `make workflow-check`, which is a temporary AIML-757 S3C tracer gate. **Removal:** once the S3C slice is proven, delete these three together: `hack/verify-public-workflow-alignment.sh`, the `workflow-check` Makefile target, and the "Verify public workflow alignment" step in `.github/workflows/build.yml`.
+**Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard local verification command for static analysis and unit tests.
 
 **Integration Tests:** Require Contrast credentials in `.env.integration-test` (copy from `.env.integration-test.template`). See INTEGRATION_TESTS.md for details. Integration tests are intentionally skipped when credentials are not available (e.g., in CI forks or local builds without `.env.integration-test`).
 
@@ -122,11 +119,11 @@ Required environment variables/arguments:
 - **Build Tool**: Gradle with wrapper
 - **Packaging**: Executable JAR and Docker container
 
-**SDK Source Access:** The Contrast SDK Java source code is available in the parent directory at `/Users/chrisedwards/projects/contrast/contrast-sdk-java`. Reference this when you need to understand SDK types, method signatures, or behavior.
+**SDK Source Access:** The Contrast SDK Java source code is available at `../contrast-sdk-java`. Reference this when you need to understand SDK types, method signatures, or behavior.
 
 ### Working with the Contrast Codebase
 
-All Contrast repos live under `/Users/chrisedwards/projects/contrast/`. Most use `develop` as the default branch (not `main`). Always checkout the default branch and pull before reading.
+All Contrast repos live under `../`. Most use `develop` as the default branch (not `main`). Always checkout the default branch and pull before reading.
 
 **Finding code in unknown repos — search before guessing:**
 ```bash
@@ -458,7 +455,6 @@ NOTE: This is not for parent-child dependencies, these are blocks dependencies.
 
 **Build and verify artifacts** as needed for testing:
 - Build JAR for MCP server manual testing: `./gradlew :contrast-mcp-stdio-app:bootJar`
-- Run temporary S3C workflow gate when public docs/CI/Makefile/build workflow changes: `make workflow-check`
 - Verify version logging to confirm correct build is running
 
 ### Testing Requirements Before Moving to Review

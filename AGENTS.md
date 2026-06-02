@@ -93,7 +93,7 @@ includeBuild("../mcp-contrast") {
 }
 ```
 
-Use `hack/verify-core-publication.sh` for the public core publication/classpath gate and `hack/verify-public-workflow-alignment.sh` for the S3C public docs/CI/Makefile alignment gate.
+Use `hack/verify-core-publication.sh` for the public core publication/classpath gate.
 
 ### Jira Integration
 
@@ -108,33 +108,6 @@ When creating beads that relate to Jira tickets:
   - Jira tracks project management (planning, stakeholders, timeline)
   - Clear connection between both via issue ID in title and external_ref field
 
-### Auto-Sync
-
-br automatically syncs the local database and JSONL files:
-- Exports to `.beads/issues.jsonl` after changes (5s debounce)
-- Imports from JSONL when newer (e.g., after `git pull`)
-- No manual export/import needed for normal use
-- This repo does not commit bead state to git during normal development
-
-### MCP Server (Recommended)
-
-If using Claude or MCP-compatible clients, install the beads MCP server:
-
-```bash
-pip install beads-mcp
-```
-
-Add to MCP config (e.g., `~/.config/claude/config.json`):
-```json
-{
-  "beads": {
-    "command": "beads-mcp",
-    "args": []
-  }
-}
-```
-
-Then use `mcp__beads__*` functions instead of CLI commands.
 
 ### Managing AI-Generated Planning Documents
 

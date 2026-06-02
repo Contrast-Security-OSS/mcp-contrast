@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-06-01
+
+### Breaking Changes
+
+**Java 21 required**: The minimum Java version is now 21, up from 17. If you run the JAR directly, upgrade your JDK before updating. Docker users are unaffected since the container bundles its own JRE.
+
+**Build system changed to Gradle**: If you build from source, the build command is now `./gradlew :contrast-mcp-stdio-app:bootJar` instead of `mvn package`. Maven is no longer supported.
+
+### Bug Fixes
+
+**Library vulnerability counts were incorrect**: The `criticalVulnerabilities` and `highVulnerabilities` counts in `list_application_libraries` responses could report wrong numbers. Fixed.
+
+**`get_vulnerability` crashed on missing stack trace data**: Vulnerabilities without event stack information caused an error instead of returning partial results. The tool now gracefully handles missing stack data.
+
+**Duplicate warnings cluttered tool responses**: Some tools repeated the same warning multiple times or echoed errors as warnings. Cleaned up so each message appears once.
+
+**Safe libraries triggered unnecessary processing**: Libraries with no known vulnerabilities were still run through vulnerability enrichment, adding latency. Skipped.
+
+**Forbidden resource errors were vague**: Accessing an application or resource you lack permissions for now returns a clear "forbidden" message instead of a generic authentication error.
+
+**401 errors gave ambiguous guidance**: Authentication failures now distinguish between invalid credentials, expired keys, and wrong organization IDs with specific remediation steps.
+
+### Improvements
+
+**Better error messages across all tools**: Error responses now provide more actionable guidance, helping AI agents recover from common mistakes like invalid IDs or expired credentials without manual intervention.
+
+**Sensitive headers redacted more thoroughly**: HTTP request data included in vulnerability details now redacts a broader set of credential-bearing headers.
+
+### Security
+
+**Docker base images pinned by digest**: The Docker image now pins both the builder and runtime base images to specific SHA256 digests, preventing silent base image changes.
+
+**Contrast SDK updated to 3.7.0**: Picks up upstream fixes and improvements from the Contrast Java SDK.
+
+**Build provenance attestations**: Release JARs are now signed with GitHub build provenance attestations. Verify a download with `gh attestation verify mcp-contrast-X.X.X.jar --repo Contrast-Security-OSS/mcp-contrast`.
+
+**Docker images signed with DCT**: Published Docker images are now signed with Docker Content Trust for tamper detection.
+
+**Dependency soak window enforced**: All dependency upgrades now require a 7-day waiting period after publication before adoption, reducing supply chain risk.
+
 ## [1.0.0] - 2026-01-16
 
 This release represents a major overhaul of the MCP server, consolidating 27 inconsistently-named tools into 13 well-designed tools with consistent naming, fixing critical bugs that prevented core functionality from working, and adding significant new capabilities.
