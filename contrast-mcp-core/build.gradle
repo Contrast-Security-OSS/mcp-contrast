@@ -23,7 +23,7 @@ dependencies {
 }
 
 def publicMavenReleaseRepositoryName = 'contrastPublicRelease'
-def publicMavenReleaseUrl = 'https://contrastsecurity.jfrog.io/artifactory/contrast-mcp-release'
+def publicMavenReleaseUrl = mcpCoreArtifactProperty('publicMavenReleaseUrl')
 
 publishing {
     publications {
@@ -165,6 +165,17 @@ tasks.register('verifyCorePublicationMetadata') {
 }
 
 check.dependsOn tasks.named('verifyCorePublicationMetadata')
+
+String mcpCoreArtifactProperty(String name) {
+    def propertiesFile = rootProject.file('gradle/contrast-mcp-core-artifact.properties')
+    def properties = new Properties()
+    propertiesFile.withInputStream { properties.load(it) }
+    def value = properties.getProperty(name)?.trim()
+    if (!value) {
+        throw new GradleException("Missing required property ${name} in ${propertiesFile.path}")
+    }
+    value
+}
 
 private static String textOf(def xpath, def element, String name) {
     xpath.evaluate("*[local-name()='${name}']/text()", element)
