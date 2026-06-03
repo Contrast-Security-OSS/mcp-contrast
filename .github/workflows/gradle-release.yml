@@ -167,11 +167,9 @@ jobs:
         env:
           CONTRAST_JFROG_URL: ${{ vars.CONTRAST_JFROG_URL }}
           JFROG_OIDC_PROVIDER_NAME: ${{ vars.JFROG_OIDC_PROVIDER_NAME }}
-          CONTRAST_PUBLIC_MAVEN_RELEASE_URL: ${{ vars.CONTRAST_PUBLIC_MAVEN_RELEASE_URL }}
         run: |
           test -n "$CONTRAST_JFROG_URL" || { echo "Missing repository variable CONTRAST_JFROG_URL"; exit 1; }
           test -n "$JFROG_OIDC_PROVIDER_NAME" || { echo "Missing repository variable JFROG_OIDC_PROVIDER_NAME"; exit 1; }
-          test -n "$CONTRAST_PUBLIC_MAVEN_RELEASE_URL" || { echo "Missing repository variable CONTRAST_PUBLIC_MAVEN_RELEASE_URL"; exit 1; }
 
       - name: Set up JFrog CLI
         id: setup-jfrog-cli
@@ -183,7 +181,6 @@ jobs:
 
       - name: Publish contrast-mcp-core to public Artifactory
         env:
-          ORG_GRADLE_PROJECT_contrastPublicMavenReleaseUrl: ${{ vars.CONTRAST_PUBLIC_MAVEN_RELEASE_URL }}
           ORG_GRADLE_PROJECT_contrastArtifactoryUser: ${{ steps.setup-jfrog-cli.outputs.oidc-user }}
           ORG_GRADLE_PROJECT_contrastArtifactoryPassword: ${{ steps.setup-jfrog-cli.outputs.oidc-token }}
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.CODE_SIGNING_PKEY }}

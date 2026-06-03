@@ -23,11 +23,7 @@ dependencies {
 }
 
 def publicMavenReleaseRepositoryName = 'contrastPublicRelease'
-def publicMavenReleaseUrlPropertyName = 'contrastPublicMavenReleaseUrl'
-def publicMavenReleaseUrlFallback = 'https://public-maven-release-url-required.invalid'
-def configuredPublicMavenReleaseUrl = providers.gradleProperty(publicMavenReleaseUrlPropertyName)
-    .map { it.trim() }
-    .getOrElse('')
+def publicMavenReleaseUrl = mcpCoreArtifactProperty('publicMavenReleaseUrl')
 
 publishing {
     publications {
@@ -49,7 +45,7 @@ publishing {
     repositories {
         maven {
             name = publicMavenReleaseRepositoryName
-            url = uri(configuredPublicMavenReleaseUrl ?: publicMavenReleaseUrlFallback)
+            url = uri(publicMavenReleaseUrl)
             credentials {
                 username = findProperty('contrastArtifactoryUser') ?: ''
                 password = findProperty('contrastArtifactoryPassword') ?: ''
@@ -81,13 +77,6 @@ tasks.withType(PublishToMavenRepository).configureEach {
         doFirst {
             if (version.toString().endsWith('-SNAPSHOT')) {
                 throw new GradleException('Public Maven release publication requires a non-SNAPSHOT version.')
-            }
-            def propertyValue = providers.gradleProperty(publicMavenReleaseUrlPropertyName)
-                .map { it.trim() }
-                .getOrElse('')
-            if (!propertyValue) {
-                throw new GradleException(
-                    "Missing Gradle property ${publicMavenReleaseUrlPropertyName} for remote publication.")
             }
             if (!signingKey) {
                 throw new GradleException(
@@ -176,6 +165,17 @@ tasks.register('verifyCorePublicationMetadata') {
 }
 
 check.dependsOn tasks.named('verifyCorePublicationMetadata')
+
+String mcpCoreArtifactProperty(String name) {
+    def propertiesFile = rootProject.file('gradle/contrast-mcp-core-artifact.properties')
+    def properties = new Properties()
+    propertiesFile.withInputStream { properties.load(it) }
+    def value = properties.getProperty(name)?.trim()
+    if (!value) {
+        throw new GradleException("Missing required property ${name} in ${propertiesFile.path}")
+    }
+    value
+}
 
 private static String textOf(def xpath, def element, String name) {
     xpath.evaluate("*[local-name()='${name}']/text()", element)
