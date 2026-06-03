@@ -24,10 +24,10 @@ dependencies {
 
 def publicMavenReleaseRepositoryName = 'contrastPublicRelease'
 def publicMavenReleaseUrlPropertyName = 'contrastPublicMavenReleaseUrl'
-def publicMavenReleaseUrlFallback = 'https://public-maven-release-url-required.invalid'
+def publicMavenReleaseUrlDefault = 'https://contrastsecurity.jfrog.io/artifactory/contrast-mcp-release'
 def configuredPublicMavenReleaseUrl = providers.gradleProperty(publicMavenReleaseUrlPropertyName)
     .map { it.trim() }
-    .getOrElse('')
+    .getOrElse(publicMavenReleaseUrlDefault)
 
 publishing {
     publications {
@@ -82,12 +82,9 @@ tasks.withType(PublishToMavenRepository).configureEach {
             if (version.toString().endsWith('-SNAPSHOT')) {
                 throw new GradleException('Public Maven release publication requires a non-SNAPSHOT version.')
             }
-            def propertyValue = providers.gradleProperty(publicMavenReleaseUrlPropertyName)
-                .map { it.trim() }
-                .getOrElse('')
-            if (!propertyValue) {
+            if (!configuredPublicMavenReleaseUrl) {
                 throw new GradleException(
-                    "Missing Gradle property ${publicMavenReleaseUrlPropertyName} for remote publication.")
+                    "Public Maven release publication requires a non-empty ${publicMavenReleaseUrlPropertyName}.")
             }
             if (!signingKey) {
                 throw new GradleException(
