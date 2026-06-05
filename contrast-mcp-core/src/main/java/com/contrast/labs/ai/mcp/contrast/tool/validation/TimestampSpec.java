@@ -19,8 +19,8 @@ import com.contrast.labs.ai.mcp.contrast.tool.base.FilterHelper;
 import java.util.Date;
 
 /**
- * Fluent validation spec for timestamp parameters. Parses ISO timestamp strings, ISO dates, or
- * epoch timestamps with helpful error messages.
+ * Fluent validation spec for timestamp parameters. Parses ISO timestamp strings or epoch timestamps
+ * with helpful error messages.
  */
 public class TimestampSpec {
 

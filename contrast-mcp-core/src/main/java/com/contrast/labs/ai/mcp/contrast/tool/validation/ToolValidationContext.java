@@ -112,7 +112,7 @@ public class ToolValidationContext implements ToolParams {
   /**
    * Creates a fluent spec for timestamp parameter validation.
    *
-   * @param value timestamp string in ISO datetime, ISO date (YYYY-MM-DD), or epoch milliseconds
+   * @param value timestamp string in ISO datetime or epoch milliseconds
    * @param name the parameter name for error messages
    * @return TimestampSpec for fluent configuration
    */

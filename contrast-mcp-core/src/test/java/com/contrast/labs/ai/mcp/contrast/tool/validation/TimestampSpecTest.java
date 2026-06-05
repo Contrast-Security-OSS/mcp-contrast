@@ -18,8 +18,6 @@ package com.contrast.labs.ai.mcp.contrast.tool.validation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -51,13 +49,14 @@ class TimestampSpecTest {
   }
 
   @Test
-  void get_should_parse_iso_date_as_start_of_day() {
+  void get_should_reject_iso_date_without_time() {
     var result = ctx.timestampParam("2025-01-15", "startTime").get();
 
-    assertThat(result).isNotNull();
-    var localDate = result.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-    assertThat(localDate).isEqualTo(LocalDate.of(2025, 1, 15));
-    assertThat(ctx.isValid()).isTrue();
+    assertThat(result).isNull();
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors()).hasSize(1);
+    assertThat(ctx.errors().get(0)).contains("Invalid startTime timestamp");
+    assertThat(ctx.errors().get(0)).contains("must include a time");
   }
 
   @Test
@@ -95,7 +94,7 @@ class TimestampSpecTest {
     assertThat(ctx.errors()).hasSize(1);
     assertThat(ctx.errors().get(0)).contains("Invalid startTime timestamp");
     assertThat(ctx.errors().get(0)).contains("ISO timestamp");
-    assertThat(ctx.errors().get(0)).contains("YYYY-MM-DD");
+    assertThat(ctx.errors().get(0)).contains("must include a time");
     assertThat(ctx.errors().get(0)).contains("epoch timestamp");
   }
 }

@@ -122,10 +122,10 @@ public class FilterHelper {
   }
 
   /**
-   * Parse timestamp string in ISO datetime format, ISO date format (YYYY-MM-DD), or epoch timestamp
-   * (milliseconds). Returns validation message if format is invalid.
+   * Parse timestamp string in ISO datetime format or epoch timestamp (milliseconds). Returns
+   * validation message if format is invalid.
    *
-   * @param timestampStr timestamp string in ISO datetime, ISO date, or epoch timestamp format
+   * @param timestampStr timestamp string in ISO datetime or epoch timestamp format
    * @param paramName parameter name for error messages (e.g., "startTime")
    * @return ParseResult with Date object and optional validation message
    */
@@ -146,8 +146,7 @@ public class FilterHelper {
       String message =
           String.format(
               "Invalid %s timestamp '%s'. Expected ISO timestamp like '2025-01-15T10:30:00Z',"
-                  + " ISO date (YYYY-MM-DD) like '2025-01-15', or epoch timestamp like"
-                  + " '1705276800000'.",
+                  + " which must include a time, or epoch timestamp like '1705276800000'.",
               paramName, timestampStr);
       log.warn(message);
       return new ParseResult<>(null, message);
@@ -157,15 +156,6 @@ public class FilterHelper {
   private static Date parseIsoTimestamp(String timestampStr) {
     try {
       return Date.from(OffsetDateTime.parse(timestampStr).toInstant());
-    } catch (DateTimeParseException e) {
-      return parseIsoTimestampDate(timestampStr);
-    }
-  }
-
-  private static Date parseIsoTimestampDate(String timestampStr) {
-    try {
-      LocalDate localDate = LocalDate.parse(timestampStr);
-      return Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
     } catch (DateTimeParseException e) {
       return null;
     }
