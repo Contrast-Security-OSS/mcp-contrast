@@ -110,6 +110,17 @@ public class ToolValidationContext implements ToolParams {
   }
 
   /**
+   * Creates a fluent spec for timestamp parameter validation.
+   *
+   * @param value timestamp string in ISO datetime or epoch milliseconds
+   * @param name the parameter name for error messages
+   * @return TimestampSpec for fluent configuration
+   */
+  public TimestampSpec timestampParam(String value, String name) {
+    return new TimestampSpec(this, value, name);
+  }
+
+  /**
    * Creates a fluent spec for metadata filter JSON parameter validation. Used for session metadata
    * and application metadata filters.
    *
@@ -135,6 +146,24 @@ public class ToolValidationContext implements ToolParams {
           String.format(
               "Invalid date range: %s must be before %s. "
                   + "Example: %s='2025-01-01', %s='2025-12-31'",
+              startName, endName, startName, endName));
+    }
+  }
+
+  /**
+   * Validates that a timestamp range is logically consistent (start before end).
+   *
+   * @param start the start timestamp (may be null)
+   * @param end the end timestamp (may be null)
+   * @param startName the start parameter name for error messages
+   * @param endName the end parameter name for error messages
+   */
+  public void validateTimestampRange(Date start, Date end, String startName, String endName) {
+    if (start != null && end != null && start.after(end)) {
+      errors.add(
+          String.format(
+              "Invalid timestamp range: %s must be at or before %s. "
+                  + "Example: %s='2025-01-01T00:00:00Z', %s='2025-01-02T00:00:00Z'",
               startName, endName, startName, endName));
     }
   }

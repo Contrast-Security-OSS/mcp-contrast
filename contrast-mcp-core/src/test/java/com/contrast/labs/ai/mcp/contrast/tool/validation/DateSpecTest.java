@@ -53,6 +53,15 @@ class DateSpecTest {
   }
 
   @Test
+  void get_should_reject_iso_datetime() {
+    var result = ctx.dateParam("2025-01-01T00:00:00Z", "startDate").get();
+
+    assertThat(result).isNull();
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors().get(0)).contains("Invalid startDate date");
+  }
+
+  @Test
   void get_should_return_null_when_null() {
     var result = ctx.dateParam(null, "startDate").get();
 

@@ -15,8 +15,10 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -33,6 +35,9 @@ import org.springframework.util.StringUtils;
  */
 @Slf4j
 public class FilterHelper {
+  private static final long MIN_EPOCH_MILLIS = 0L;
+  private static final long MAX_EPOCH_MILLIS = 253402300799999L;
+
   /** Result of parsing with optional validation message for AI feedback */
   public static class ParseResult<T> {
     private final T value;
@@ -113,11 +118,72 @@ public class FilterHelper {
             String.format(
                 "Invalid %s date '%s'. Expected ISO format (YYYY-MM-DD) like '2025-01-15' or epoch"
                     + " timestamp like '1705276800000'.",
-                paramName, dateStr);
+                paramName, sanitizeForMessage(dateStr));
         log.warn(message);
         return new ParseResult<>(null, message);
       }
     }
+  }
+
+  /**
+   * Parse timestamp string in ISO datetime format or epoch timestamp (milliseconds). Returns
+   * validation message if format is invalid.
+   *
+   * @param timestampStr timestamp string in ISO datetime or epoch timestamp format
+   * @param paramName parameter name for error messages (e.g., "startTime")
+   * @return ParseResult with Date object and optional validation message
+   */
+  public static ParseResult<Date> parseTimestampWithValidation(
+      String timestampStr, String paramName) {
+    if (!StringUtils.hasText(timestampStr)) {
+      return new ParseResult<>(null);
+    }
+    var trimmed = timestampStr.trim();
+    try {
+      long timestamp = Long.parseLong(trimmed);
+      if (!isSupportedTimestampMillis(timestamp)) {
+        return invalidTimestampResult(timestampStr, paramName);
+      }
+      return new ParseResult<>(new Date(timestamp));
+    } catch (NumberFormatException e) {
+      Date parsed = parseIsoTimestamp(trimmed);
+      if (parsed != null) {
+        return new ParseResult<>(parsed);
+      }
+      return invalidTimestampResult(timestampStr, paramName);
+    }
+  }
+
+  private static Date parseIsoTimestamp(String timestampStr) {
+    try {
+      Instant instant = OffsetDateTime.parse(timestampStr).toInstant();
+      long epochMillis = instant.toEpochMilli();
+      if (!isSupportedTimestampMillis(epochMillis)) {
+        return null;
+      }
+      return Date.from(instant);
+    } catch (DateTimeException | ArithmeticException e) {
+      return null;
+    }
+  }
+
+  private static boolean isSupportedTimestampMillis(long epochMillis) {
+    return epochMillis >= MIN_EPOCH_MILLIS && epochMillis <= MAX_EPOCH_MILLIS;
+  }
+
+  private static ParseResult<Date> invalidTimestampResult(String timestampStr, String paramName) {
+    String message =
+        String.format(
+            "Invalid %s timestamp '%s'. Expected ISO timestamp with date, time, and timezone offset"
+                + " like '2025-01-15T10:30:00Z', or epoch timestamp between %d and %d millis"
+                + " like '1705276800000'.",
+            paramName, sanitizeForMessage(timestampStr), MIN_EPOCH_MILLIS, MAX_EPOCH_MILLIS);
+    log.warn(message);
+    return new ParseResult<>(null, message);
+  }
+
+  private static String sanitizeForMessage(String value) {
+    return value.replace("\r", "\\r").replace("\n", "\\n");
   }
 
   /**
