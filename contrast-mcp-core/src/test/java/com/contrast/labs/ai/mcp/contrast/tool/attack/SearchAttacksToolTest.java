@@ -74,7 +74,7 @@ class SearchAttacksToolTest {
             true,
             false,
             true,
-            "-status",
+            "status,DESC",
             "sql-injection",
             null);
 
@@ -114,7 +114,7 @@ class SearchAttacksToolTest {
 
     var result =
         tool.searchAttacks(
-            1, 10, null, null, null, null, null, null, "-startTime", null, toolContext);
+            1, 10, null, null, null, null, null, null, "startTime,DESC", null, toolContext);
     Method method =
         SearchAttacksTool.class.getDeclaredMethod(
             "searchAttacks",
@@ -154,7 +154,8 @@ class SearchAttacksToolTest {
         .thenReturn(response);
 
     var result =
-        tool.searchAttacks(1, 250, null, null, null, null, null, null, "-startTime", null, null);
+        tool.searchAttacks(
+            1, 250, null, null, null, null, null, null, "startTime,DESC", null, null);
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.pageSize()).isEqualTo(100);
@@ -168,7 +169,8 @@ class SearchAttacksToolTest {
     when(contrastApiClient.searchAttacks(any(), eq(50), eq(0), eq("-startTime"))).thenReturn(null);
 
     var result =
-        tool.searchAttacks(1, null, null, null, null, null, null, null, "-startTime", null, null);
+        tool.searchAttacks(
+            1, null, null, null, null, null, null, null, "startTime,DESC", null, null);
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
@@ -181,7 +183,7 @@ class SearchAttacksToolTest {
         .thenThrow(apiFailure(403));
 
     var result =
-        tool.searchAttacks(1, 10, null, null, null, null, null, null, "-startTime", null, null);
+        tool.searchAttacks(1, 10, null, null, null, null, null, null, "startTime,DESC", null, null);
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors())
@@ -197,7 +199,7 @@ class SearchAttacksToolTest {
         .thenThrow(apiFailure(429));
 
     var result =
-        tool.searchAttacks(1, 10, null, null, null, null, null, null, "-startTime", null, null);
+        tool.searchAttacks(1, 10, null, null, null, null, null, null, "startTime,DESC", null, null);
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).containsExactly("Rate limit exceeded. Retry after a brief pause.");
@@ -210,7 +212,7 @@ class SearchAttacksToolTest {
         .thenThrow(apiFailure(503));
 
     var result =
-        tool.searchAttacks(1, 10, null, null, null, null, null, null, "-startTime", null, null);
+        tool.searchAttacks(1, 10, null, null, null, null, null, null, "startTime,DESC", null, null);
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors())

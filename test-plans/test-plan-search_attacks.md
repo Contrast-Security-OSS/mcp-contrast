@@ -34,7 +34,7 @@ Search for attacks from Contrast ADR with flexible filtering, pagination, and so
 | `includeIpBlacklist` | Boolean | Include attacks from blacklisted IPs | false |
 | `page` | Integer | Page number (1-indexed) | null (no pagination) |
 | `pageSize` | Integer | Results per page | 25 |
-| `sort` | String | Sort field with optional `-` prefix for descending. Valid: `startTime`, `endTime`, `sourceIP`, `status`, `type` | "-startTime" |
+| `sort` | String | Sort as `property,DIRECTION`. Valid properties: `startTime`, `endTime`, `sourceIP`, `status`, `type`. Valid directions: `ASC`, `DESC` | `startTime,DESC` |
 
 ### Response Structure: AttackSummary
 
@@ -84,7 +84,7 @@ Search for attacks from Contrast ADR with flexible filtering, pagination, and so
 - Returns list of AttackSummary objects
 - Uses default `status="ALL"`
 - Uses default `includeSuppressed=false`, `includeBotBlockers=false`, `includeIpBlacklist=false`
-- Uses default `sort="-startTime"` (most recent first)
+- Uses default `sort="startTime,DESC"` (most recent first)
 - No pagination (returns all matching attacks)
 - Each AttackSummary contains all required fields
 
@@ -576,10 +576,10 @@ Test sequence:
 
 ### 6. Sorting
 
-#### Test Case 6.1: Sort - "-startTime" (Default, Descending)
+#### Test Case 6.1: Sort - "startTime,DESC" (Default, Descending)
 **Objective:** Sort by newest attacks first (descending start time).
 
-**Parameters:** `sort="-startTime"`
+**Parameters:** `sort="startTime,DESC"`
 
 **Expected Result:**
 - Returns attacks ordered by most recent first
@@ -589,10 +589,10 @@ Test sequence:
 
 ---
 
-#### Test Case 6.2: Sort - "startTime" (Ascending)
+#### Test Case 6.2: Sort - "startTime,ASC" (Ascending)
 **Objective:** Sort by oldest attacks first (ascending start time).
 
-**Parameters:** `sort="startTime"`
+**Parameters:** `sort="startTime,ASC"`
 
 **Expected Result:**
 - Returns attacks ordered by oldest first
@@ -602,10 +602,10 @@ Test sequence:
 
 ---
 
-#### Test Case 6.3: Sort - "status"
+#### Test Case 6.3: Sort - "status,ASC" and "status,DESC"
 **Objective:** Sort by attack status.
 
-**Parameters:** `sort="status"` or `sort="-status"`
+**Parameters:** `sort="status,ASC"` or `sort="status,DESC"`
 
 **Expected Result:**
 - Returns attacks ordered by status field
@@ -614,10 +614,10 @@ Test sequence:
 
 ---
 
-#### Test Case 6.4: Sort - "sourceIP"
+#### Test Case 6.4: Sort - "sourceIP,ASC" and "sourceIP,DESC"
 **Objective:** Sort by source IP address.
 
-**Parameters:** `sort="sourceIP"` or `sort="-sourceIP"`
+**Parameters:** `sort="sourceIP,ASC"` or `sort="sourceIP,DESC"`
 
 **Expected Result:**
 - Returns attacks ordered by source IP address
@@ -632,18 +632,20 @@ Test sequence:
 **Parameters:**
 ```
 Test cases:
-- sort="INVALID"
-- sort="invalid"
-- sort="UNKNOWN_SORT"
-- sort="severity" (not supported)
-- sort="probes" (not supported)
+- sort="INVALID,DESC"
+- sort="invalid,DESC"
+- sort="UNKNOWN_SORT,DESC"
+- sort="severity,DESC" (not supported)
+- sort="probes,DESC" (not supported)
+- sort="startTime," (missing direction)
+- sort="DESC" (missing property)
 ```
 
 **Expected Result:**
 - Returns validation error (not generic API error)
-- Error message lists valid sort fields: `startTime`, `endTime`, `sourceIP`, `status`, `type`
-- Error explains `-` prefix convention for descending order
-- Example: "Invalid sort field 'INVALID'. Valid fields: [endTime, sourceIP, startTime, status, type]. Use '-' prefix for descending order (e.g., '-startTime')."
+- Error message lists valid sort properties: `startTime`, `endTime`, `sourceIP`, `status`, `type`
+- Error explains `property,DIRECTION` format and valid directions: `ASC`, `DESC`
+- Example: "Invalid sort: 'INVALID,DESC'. Expected format: property,DIRECTION. Valid properties: endTime, sourceIP, startTime, status, type. Valid directions: ASC, DESC."
 
 ---
 
@@ -653,9 +655,9 @@ Test cases:
 **Parameters:** `sort=null` (or omit parameter)
 
 **Expected Result:**
-- Uses default sort order (`-startTime`)
+- Uses default sort order (`startTime,DESC`)
 - Results sorted by most recent first (descending start time)
-- Same behavior as explicitly passing `sort="-startTime"`
+- Same behavior as explicitly passing `sort="startTime,DESC"`
 
 ---
 
@@ -664,7 +666,7 @@ Test cases:
 
 **Parameters:**
 ```
-sort="-startTime"
+sort="startTime,DESC"
 page=1
 pageSize=10
 ```
@@ -1194,7 +1196,7 @@ pageSize=5
 ```
 status="BLOCKED"
 keyword="sql"
-sort="-startTime"
+sort="startTime,DESC"
 ```
 
 **Expected Result:**
@@ -1216,7 +1218,7 @@ includeBotBlockers=false
 includeIpBlacklist=false
 page=2
 pageSize=20
-sort="-startTime"
+sort="startTime,DESC"
 ```
 
 **Expected Result:**
@@ -1236,7 +1238,7 @@ includeBotBlockers=true
 includeIpBlacklist=true
 page=1
 pageSize=10
-sort="-startTime"
+sort="startTime,DESC"
 ```
 
 **Expected Result:**
@@ -1373,7 +1375,7 @@ Test cases:
 status="PROBED"
 keyword="sql"
 includeSuppressed=true
-sort="-startTime"
+sort="startTime,DESC"
 ```
 
 **Expected Result:**
