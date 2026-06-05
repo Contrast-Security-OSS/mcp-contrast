@@ -162,7 +162,7 @@ public class ToolValidationContext implements ToolParams {
     if (start != null && end != null && start.after(end)) {
       errors.add(
           String.format(
-              "Invalid timestamp range: %s must be before %s. "
+              "Invalid timestamp range: %s must be at or before %s. "
                   + "Example: %s='2025-01-01T00:00:00Z', %s='2025-01-02T00:00:00Z'",
               startName, endName, startName, endName));
     }

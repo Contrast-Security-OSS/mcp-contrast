@@ -124,7 +124,7 @@ class ToolValidationContextTest {
     assertThat(ctx.isValid()).isFalse();
     assertThat(ctx.errors())
         .containsExactly(
-            "Invalid timestamp range: startTime must be before endTime. "
+            "Invalid timestamp range: startTime must be at or before endTime. "
                 + "Example: startTime='2025-01-01T00:00:00Z', "
                 + "endTime='2025-01-02T00:00:00Z'");
   }
