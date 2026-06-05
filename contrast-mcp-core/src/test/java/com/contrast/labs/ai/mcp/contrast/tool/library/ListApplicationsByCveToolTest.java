@@ -26,6 +26,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.App;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Server;
 import com.contrastsecurity.exceptions.HttpResponseException;
 import com.contrastsecurity.exceptions.ResourceNotFoundException;
 import java.io.IOException;
@@ -147,6 +148,43 @@ class ListApplicationsByCveToolTest {
   }
 
   @Test
+  void listApplicationsByCve_should_dedupe_top_level_servers_by_server_id() throws Exception {
+    var cveData = cveData(app("Orders", APP_ID), vulnerableLibrary(LIBRARY_HASH));
+    cveData.setServers(
+        List.of(
+            server(92326, "first-server"),
+            server(92326, "duplicate-server"),
+            server(92327, "another-server")));
+
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID))).thenReturn(cveData);
+    when(contrastApiClient.getAllLibraries(eq(APP_ID))).thenReturn(List.of());
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.data().getServers())
+        .extracting(Server::getServer_id)
+        .containsExactly(92326, 92327);
+    assertThat(result.data().getServers())
+        .extracting(Server::getName)
+        .containsExactly("first-server", "another-server");
+  }
+
+  @Test
+  void listApplicationsByCve_should_preserve_empty_top_level_servers_list() throws Exception {
+    var cveData = cveData(app("Orders", APP_ID), vulnerableLibrary(LIBRARY_HASH));
+    cveData.setServers(List.of());
+
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID))).thenReturn(cveData);
+    when(contrastApiClient.getAllLibraries(eq(APP_ID))).thenReturn(List.of());
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.data().getServers()).isEmpty();
+  }
+
+  @Test
   void listApplicationsByCve_should_handle_null_libraries_list_gracefully() throws Exception {
     var app = app("Orders", APP_ID);
     var cveData = new CveData();
@@ -258,5 +296,16 @@ class ListApplicationsByCveToolTest {
     library.setClassCount(42);
     library.setClassesUsed(7);
     return library;
+  }
+
+  private static Server server(int serverId) {
+    return server(serverId, null);
+  }
+
+  private static Server server(int serverId, String name) {
+    var server = new Server();
+    server.setServer_id(serverId);
+    server.setName(name);
+    return server;
   }
 }

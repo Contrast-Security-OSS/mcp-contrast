@@ -33,6 +33,14 @@ class ListApplicationsByCveParamsTest {
     assertThat(params.warnings()).isEmpty();
   }
 
+  @Test
+  void of_should_normalize_cve_id_before_validation() {
+    var params = ListApplicationsByCveParams.of(" cve-2021-44228 ");
+
+    assertThat(params.isValid()).isTrue();
+    assertThat(params.cveId()).isEqualTo("CVE-2021-44228");
+  }
+
   @ParameterizedTest
   @ValueSource(strings = {"CVE-2023-12345", "CVE-1999-0001", "CVE-2024-123456"})
   void of_should_accept_various_valid_cve_formats(String cveId) {
@@ -51,8 +59,7 @@ class ListApplicationsByCveParamsTest {
   }
 
   @ParameterizedTest
-  @ValueSource(
-      strings = {"not-a-cve", "CVE2021-44228", "CVE-21-44228", "CVE-2021-123", "cve-2021-44228"})
+  @ValueSource(strings = {"not-a-cve", "CVE2021-44228", "CVE-21-44228", "CVE-2021-123"})
   void of_should_reject_invalid_cve_format(String invalidCve) {
     var params = ListApplicationsByCveParams.of(invalidCve);
 

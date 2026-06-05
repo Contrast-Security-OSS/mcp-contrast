@@ -20,6 +20,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.App;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Server;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
@@ -27,8 +28,11 @@ import com.contrast.labs.ai.mcp.contrast.tool.library.params.ListApplicationsByC
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ToolContext;
@@ -90,6 +94,7 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
     if (cveData == null) {
       return null; // SingleTool converts this to notFound response
     }
+    dedupeServersById(cveData);
 
     var vulnerableLibs =
         cveData.getLibraries() != null ? cveData.getLibraries() : Collections.<Library>emptyList();
@@ -146,5 +151,24 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
             }
           });
     }
+  }
+
+  private static void dedupeServersById(CveData cveData) {
+    if (cveData.getServers() == null) {
+      return;
+    }
+
+    var dedupedServers =
+        cveData.getServers().stream()
+            .collect(
+                Collectors.toMap(
+                    Server::getServer_id,
+                    Function.identity(),
+                    (first, duplicate) -> first,
+                    LinkedHashMap::new))
+            .values()
+            .stream()
+            .toList();
+    cveData.setServers(dedupedServers);
   }
 }
