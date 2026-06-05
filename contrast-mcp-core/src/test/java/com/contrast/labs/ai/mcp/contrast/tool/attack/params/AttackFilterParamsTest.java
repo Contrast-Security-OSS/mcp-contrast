@@ -17,14 +17,31 @@ package com.contrast.labs.ai.mcp.contrast.tool.attack.params;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 
 /** Unit tests for AttackFilterParams validation. */
 class AttackFilterParamsTest {
 
   // ========== Valid Input Tests ==========
+
+  @Test
+  void parseSort_should_document_nullability_contract() throws Exception {
+    var parseSort =
+        AttackFilterParams.class.getDeclaredMethod(
+            "parseSort", ToolValidationContext.class, String.class);
+
+    assertThat(parseSort.isAnnotationPresent(Nullable.class)).isTrue();
+    assertThat(parseSort.getParameters()[0].isAnnotationPresent(NonNull.class)).isTrue();
+    assertThat(parseSort.getParameters()[1].isAnnotationPresent(Nullable.class)).isTrue();
+    assertThat(
+            AttackFilterParams.class.getDeclaredField("sort").isAnnotationPresent(Nullable.class))
+        .isTrue();
+  }
 
   @Test
   void of_should_accept_null_filters_with_defaults() {

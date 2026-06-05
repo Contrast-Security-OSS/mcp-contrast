@@ -24,6 +24,8 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Getter;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
 /**
@@ -67,7 +69,7 @@ public class AttackFilterParams extends BaseToolParams {
   private Boolean includeSuppressed;
   private Boolean includeBotBlockers;
   private Boolean includeIpBlacklist;
-  private String sort;
+  @Nullable private String sort;
   private List<String> rules;
 
   /** Private constructor - use static factory method {@link #of}. */
@@ -141,7 +143,8 @@ public class AttackFilterParams extends BaseToolParams {
     return params;
   }
 
-  private static String parseSort(ToolValidationContext ctx, String sort) {
+  private static @Nullable String parseSort(
+      @NonNull ToolValidationContext ctx, @Nullable String sort) {
     if (!StringUtils.hasText(sort)) {
       return null;
     }
