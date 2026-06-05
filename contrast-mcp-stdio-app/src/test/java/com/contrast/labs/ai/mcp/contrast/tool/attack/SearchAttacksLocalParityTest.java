@@ -74,7 +74,7 @@ class SearchAttacksLocalParityTest {
 
     var result =
         tool.searchAttacks(
-            3, 25, "ACTIVE", "EXPLOITED", "SQL", true, false, true, "-status", "sql-injection");
+            3, 25, "ACTIVE", "EXPLOITED", "SQL", true, false, true, "status,DESC", "sql-injection");
     var responseJson = objectMapper.writeValueAsString(result);
 
     var filterCaptor = ArgumentCaptor.forClass(AttacksFilterBody.class);

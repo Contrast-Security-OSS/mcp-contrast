@@ -117,6 +117,15 @@ Tools returning analytical data (reports, coverage, metadata) may use `get_*` ev
 - **Plural** for comma-separated: `severities`, `statuses`, `environments`
 - **Singular** for single values: `appId`, `keyword`, `sort`
 
+### Sort Convention
+- Use a single optional `sort` string parameter when a tool exposes caller-controlled ordering.
+- Public MCP sort syntax is `property,DIRECTION`.
+- Valid directions are `ASC` and `DESC`.
+- Validate the property with a tool-specific allowlist before calling downstream services.
+- Translate to backend-specific sort syntax inside the tool/client adapter. Do not expose backend-specific conventions such as `-property`, `sortBy` + `sortDirection`, or raw cursor sort internals as the MCP-facing contract.
+
+**Example:** `sort="startTime,DESC"`
+
 ### Required vs Optional
 - `@NonNull` - required
 - `@Nullable` - optional

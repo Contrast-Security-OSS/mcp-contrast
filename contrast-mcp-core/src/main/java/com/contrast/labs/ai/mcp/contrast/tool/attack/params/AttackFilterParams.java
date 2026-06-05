@@ -18,9 +18,14 @@ package com.contrast.labs.ai.mcp.contrast.tool.attack.params;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksFilterBody;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.Getter;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
 /**
@@ -30,7 +35,7 @@ import org.springframework.util.StringUtils;
  * <p>Usage:
  *
  * <pre>{@code
- * var params = AttackFilterParams.of("ACTIVE", "EXPLOITED", "sql", false, null, null, "-startTime");
+ * var params = AttackFilterParams.of("ACTIVE", "EXPLOITED", "sql", false, null, null, "startTime,DESC");
  * if (!params.isValid()) {
  *   // Handle errors
  * }
@@ -50,11 +55,13 @@ public class AttackFilterParams extends BaseToolParams {
           "EXPLOITED", "PROBED", "BLOCKED", "BLOCKED_PERIMETER", "PROBED_PERIMETER", "SUSPICIOUS");
 
   /**
-   * Valid sort fields for attacks API (from TeamServer NgAttackRestController). Use '-' prefix for
-   * descending order. Default is -startTime when not specified.
+   * Valid sort fields for attacks API (from TeamServer NgAttackRestController). MCP callers use
+   * property,DIRECTION. Default is startTime,DESC when not specified.
    */
   public static final Set<String> VALID_SORT_FIELDS =
       Set.of("sourceIP", "status", "startTime", "endTime", "type");
+
+  private static final Set<String> VALID_SORT_DIRECTIONS = Set.of("ASC", "DESC");
 
   private String quickFilter;
   private List<String> statusFilters;
@@ -62,7 +69,7 @@ public class AttackFilterParams extends BaseToolParams {
   private Boolean includeSuppressed;
   private Boolean includeBotBlockers;
   private Boolean includeIpBlacklist;
-  private String sort;
+  @Nullable private String sort;
   private List<String> rules;
 
   /** Private constructor - use static factory method {@link #of}. */
@@ -77,7 +84,7 @@ public class AttackFilterParams extends BaseToolParams {
    * @param includeSuppressed Include suppressed attacks (null = use smart default of false)
    * @param includeBotBlockers Include bot blocker attacks
    * @param includeIpBlacklist Include IP blacklist attacks
-   * @param sort Sort field (e.g., "startTime", "-startTime" for descending)
+   * @param sort Sort field (e.g., "startTime,DESC")
    * @param rules Comma-separated list of rule IDs (e.g., "sql-injection,xss-reflected")
    * @return AttackFilterParams with validation state
    */
@@ -127,29 +134,45 @@ public class AttackFilterParams extends BaseToolParams {
     params.includeBotBlockers = includeBotBlockers;
     params.includeIpBlacklist = includeIpBlacklist;
 
-    // Parse sort with allowlist validation (case-sensitive to match API)
-    if (StringUtils.hasText(sort)) {
-      String trimmedSort = sort.trim();
-      // Extract base field (strip '-' prefix for validation)
-      String baseField = trimmedSort.startsWith("-") ? trimmedSort.substring(1) : trimmedSort;
-
-      if (VALID_SORT_FIELDS.contains(baseField)) {
-        params.sort = trimmedSort;
-      } else {
-        ctx.errorIf(
-            true,
-            String.format(
-                "Invalid sort field '%s'. Valid fields: %s. Use '-' prefix for descending order"
-                    + " (e.g., '-startTime'). Default: -startTime",
-                baseField, VALID_SORT_FIELDS.stream().sorted().toList()));
-      }
-    }
+    params.sort = parseSort(ctx, sort);
 
     // Parse rules (comma-separated list of rule IDs)
     params.rules = ctx.stringListParam(rules, "rules").get();
 
     params.setValidationResult(ctx);
     return params;
+  }
+
+  private static @Nullable String parseSort(
+      @NonNull ToolValidationContext ctx, @Nullable String sort) {
+    if (!StringUtils.hasText(sort)) {
+      return null;
+    }
+
+    var trimmedSort = sort.trim();
+    var parts = Arrays.stream(trimmedSort.split(",", -1)).map(String::trim).toList();
+    if (parts.size() != 2) {
+      ctx.errorIf(true, sortError(trimmedSort));
+      return null;
+    }
+
+    var property = parts.getFirst();
+    var direction = parts.get(1).toUpperCase(Locale.ROOT);
+    var valid = VALID_SORT_FIELDS.contains(property) && VALID_SORT_DIRECTIONS.contains(direction);
+    if (!valid) {
+      ctx.errorIf(true, sortError(trimmedSort));
+      return null;
+    }
+    return "DESC".equals(direction) ? "-" + property : property;
+  }
+
+  private static String sortError(String sort) {
+    return String.format(
+        "Invalid sort: '%s'. Expected format: property,DIRECTION. Valid properties: %s. Valid"
+            + " directions: %s.",
+        sort,
+        VALID_SORT_FIELDS.stream().sorted().collect(Collectors.joining(", ")),
+        VALID_SORT_DIRECTIONS.stream().sorted().collect(Collectors.joining(", ")));
   }
 
   /**

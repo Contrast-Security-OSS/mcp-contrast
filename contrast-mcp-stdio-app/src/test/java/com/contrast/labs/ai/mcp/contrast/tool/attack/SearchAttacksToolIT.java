@@ -159,7 +159,7 @@ class SearchAttacksToolIT {
   void searchAttacks_should_handle_sort() {
     var response =
         searchAttacksTool.searchAttacks(
-            1, 10, null, null, null, null, null, null, "-startTime", null);
+            1, 10, null, null, null, null, null, null, "startTime,DESC", null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors()).as("Should have no errors").isEmpty();
@@ -167,7 +167,7 @@ class SearchAttacksToolIT {
         .as("requires seeded attacks to verify sort order — see INTEGRATION_TESTS.md")
         .isNotEmpty();
     assertThat(response.items())
-        .as("sort=-startTime must return items ordered by startTimeMs descending")
+        .as("sort=startTime,DESC must return items ordered by startTimeMs descending")
         .isSortedAccordingTo(Comparator.comparingLong(AttackSummary::startTimeMs).reversed());
   }
 
@@ -252,16 +252,16 @@ class SearchAttacksToolIT {
     // validation error listing valid options, NOT a generic "Contrast API error"
     var response =
         searchAttacksTool.searchAttacks(
-            1, 10, null, null, null, null, null, null, "severity", null);
+            1, 10, null, null, null, null, null, null, "severity,DESC", null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors()).as("Should have validation errors").isNotEmpty();
     assertThat(response.errors())
-        .as("Should contain 'Invalid sort field' not generic API error")
-        .anyMatch(e -> e.contains("Invalid sort field"));
+        .as("Should contain 'Invalid sort' not generic API error")
+        .anyMatch(e -> e.contains("Invalid sort"));
     assertThat(response.errors())
         .as("Should list valid sort fields")
-        .anyMatch(e -> e.contains("Valid fields:"));
+        .anyMatch(e -> e.contains("Valid properties:"));
     assertThat(response.errors())
         .as("Error message should NOT be generic API error")
         .noneMatch(e -> e.contains("Contrast API error"));
@@ -271,17 +271,19 @@ class SearchAttacksToolIT {
   @ValueSource(strings = {"sourceIP", "status", "startTime", "endTime", "type"})
   void searchAttacks_should_accept_all_valid_sort_fields(String sortField) {
     var response =
-        searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, sortField, null);
+        searchAttacksTool.searchAttacks(
+            1, 10, null, null, null, null, null, null, sortField + ",ASC", null);
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors()).as("Should have no errors for sort: " + sortField).isEmpty();
     assertThat(response.items()).as("Items should not be null").isNotNull();
   }
 
-  @ParameterizedTest(name = "valid sort field descending: -{0}")
+  @ParameterizedTest(name = "valid sort field descending: {0},DESC")
   @ValueSource(strings = {"sourceIP", "status", "startTime", "endTime", "type"})
-  void searchAttacks_should_accept_all_valid_sort_fields_with_descending_prefix(String sortField) {
-    String descending = "-" + sortField;
+  void searchAttacks_should_accept_all_valid_sort_fields_with_descending_direction(
+      String sortField) {
+    String descending = sortField + ",DESC";
     var response =
         searchAttacksTool.searchAttacks(
             1, 10, null, null, null, null, null, null, descending, null);
@@ -292,7 +294,16 @@ class SearchAttacksToolIT {
   }
 
   @ParameterizedTest(name = "invalid sort field: {0}")
-  @ValueSource(strings = {"severity", "probes", "NEWEST", "OLDEST", "invalidField"})
+  @ValueSource(
+      strings = {
+        "severity,DESC",
+        "probes,DESC",
+        "NEWEST,DESC",
+        "OLDEST,DESC",
+        "invalidField,DESC",
+        "status",
+        "-status"
+      })
   void searchAttacks_should_reject_invalid_sort_fields(String sortField) {
     var response =
         searchAttacksTool.searchAttacks(1, 10, null, null, null, null, null, null, sortField, null);
@@ -303,7 +314,7 @@ class SearchAttacksToolIT {
         .isNotEmpty();
     assertThat(response.errors())
         .as("Should be validation error not API error")
-        .anyMatch(e -> e.contains("Invalid sort field"));
+        .anyMatch(e -> e.contains("Invalid sort"));
   }
 
   // ========== Keyword and Rules Parameter Tests (Bug Fix: AIML-385) ==========

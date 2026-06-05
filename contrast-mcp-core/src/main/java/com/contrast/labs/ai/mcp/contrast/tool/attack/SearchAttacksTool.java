@@ -116,9 +116,8 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
           Boolean includeIpBlacklist,
       @ToolParam(
               description =
-                  "Sort field for ordering results. Valid fields: sourceIP, status, startTime,"
-                      + " endTime, type. Use '-' prefix for descending order (e.g., '-startTime')."
-                      + " Default: -startTime",
+                  "Sort as property,DIRECTION. Valid properties: sourceIP, status, startTime,"
+                      + " endTime, type. Valid directions: ASC, DESC. Default: startTime,DESC",
               required = false)
           String sort,
       @ToolParam(
