@@ -17,6 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.library.params;
 
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
+import java.util.Locale;
 import java.util.regex.Pattern;
 import org.springframework.util.StringUtils;
 
@@ -32,16 +33,18 @@ public class ListApplicationsByCveParams extends BaseToolParams {
   public static ListApplicationsByCveParams of(String cveId) {
     var params = new ListApplicationsByCveParams();
     var ctx = new ToolValidationContext();
+    var normalizedCveId =
+        StringUtils.hasText(cveId) ? cveId.trim().toUpperCase(Locale.ROOT) : cveId;
 
-    ctx.require(cveId, "cveId");
-    if (StringUtils.hasText(cveId) && !CVE_PATTERN.matcher(cveId).matches()) {
+    ctx.require(normalizedCveId, "cveId");
+    if (StringUtils.hasText(normalizedCveId) && !CVE_PATTERN.matcher(normalizedCveId).matches()) {
       ctx.errorIf(
           true,
           "cveId must be in CVE format (e.g., CVE-2021-44228). "
               + "Format: CVE-YYYY-NNNNN where YYYY is the year and NNNNN is a sequence number.");
     }
 
-    params.cveId = cveId;
+    params.cveId = normalizedCveId;
     params.setValidationResult(ctx);
     return params;
   }
