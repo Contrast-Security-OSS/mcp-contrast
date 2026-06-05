@@ -150,7 +150,11 @@ class ListApplicationsByCveToolTest {
   @Test
   void listApplicationsByCve_should_dedupe_top_level_servers_by_server_id() throws Exception {
     var cveData = cveData(app("Orders", APP_ID), vulnerableLibrary(LIBRARY_HASH));
-    cveData.setServers(List.of(server(92326), server(92326), server(92327)));
+    cveData.setServers(
+        List.of(
+            server(92326, "first-server"),
+            server(92326, "duplicate-server"),
+            server(92327, "another-server")));
 
     when(contrastApiClient.getApplicationsByCve(eq(CVE_ID))).thenReturn(cveData);
     when(contrastApiClient.getAllLibraries(eq(APP_ID))).thenReturn(List.of());
@@ -161,6 +165,23 @@ class ListApplicationsByCveToolTest {
     assertThat(result.data().getServers())
         .extracting(Server::getServer_id)
         .containsExactly(92326, 92327);
+    assertThat(result.data().getServers())
+        .extracting(Server::getName)
+        .containsExactly("first-server", "another-server");
+  }
+
+  @Test
+  void listApplicationsByCve_should_preserve_empty_top_level_servers_list() throws Exception {
+    var cveData = cveData(app("Orders", APP_ID), vulnerableLibrary(LIBRARY_HASH));
+    cveData.setServers(List.of());
+
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID))).thenReturn(cveData);
+    when(contrastApiClient.getAllLibraries(eq(APP_ID))).thenReturn(List.of());
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.data().getServers()).isEmpty();
   }
 
   @Test
@@ -278,8 +299,13 @@ class ListApplicationsByCveToolTest {
   }
 
   private static Server server(int serverId) {
+    return server(serverId, null);
+  }
+
+  private static Server server(int serverId, String name) {
     var server = new Server();
     server.setServer_id(serverId);
+    server.setName(name);
     return server;
   }
 }
