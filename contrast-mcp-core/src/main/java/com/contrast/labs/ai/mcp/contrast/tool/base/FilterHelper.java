@@ -17,6 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -117,6 +118,56 @@ public class FilterHelper {
         log.warn(message);
         return new ParseResult<>(null, message);
       }
+    }
+  }
+
+  /**
+   * Parse timestamp string in ISO datetime format, ISO date format (YYYY-MM-DD), or epoch timestamp
+   * (milliseconds). Returns validation message if format is invalid.
+   *
+   * @param timestampStr timestamp string in ISO datetime, ISO date, or epoch timestamp format
+   * @param paramName parameter name for error messages (e.g., "startTime")
+   * @return ParseResult with Date object and optional validation message
+   */
+  public static ParseResult<Date> parseTimestampWithValidation(
+      String timestampStr, String paramName) {
+    if (!StringUtils.hasText(timestampStr)) {
+      return new ParseResult<>(null);
+    }
+    var trimmed = timestampStr.trim();
+    try {
+      long timestamp = Long.parseLong(trimmed);
+      return new ParseResult<>(new Date(timestamp));
+    } catch (NumberFormatException e) {
+      Date parsed = parseIsoTimestamp(trimmed);
+      if (parsed != null) {
+        return new ParseResult<>(parsed);
+      }
+      String message =
+          String.format(
+              "Invalid %s timestamp '%s'. Expected ISO timestamp like '2025-01-15T10:30:00Z',"
+                  + " ISO date (YYYY-MM-DD) like '2025-01-15', or epoch timestamp like"
+                  + " '1705276800000'.",
+              paramName, timestampStr);
+      log.warn(message);
+      return new ParseResult<>(null, message);
+    }
+  }
+
+  private static Date parseIsoTimestamp(String timestampStr) {
+    try {
+      return Date.from(OffsetDateTime.parse(timestampStr).toInstant());
+    } catch (DateTimeParseException e) {
+      return parseIsoTimestampDate(timestampStr);
+    }
+  }
+
+  private static Date parseIsoTimestampDate(String timestampStr) {
+    try {
+      LocalDate localDate = LocalDate.parse(timestampStr);
+      return Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+    } catch (DateTimeParseException e) {
+      return null;
     }
   }
 

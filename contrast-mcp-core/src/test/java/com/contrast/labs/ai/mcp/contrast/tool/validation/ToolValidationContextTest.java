@@ -112,6 +112,59 @@ class ToolValidationContextTest {
     assertThat(ctx.isValid()).isTrue();
   }
 
+  // -- validateTimestampRange tests --
+
+  @Test
+  void validateTimestampRange_should_add_error_when_start_after_end() {
+    Date start = new Date(1705363200000L); // 2024-01-16
+    Date end = new Date(1705276800000L); // 2024-01-15
+
+    ctx.validateTimestampRange(start, end, "startTime", "endTime");
+
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors())
+        .containsExactly(
+            "Invalid timestamp range: startTime must be before endTime. "
+                + "Example: startTime='2025-01-01T00:00:00Z', "
+                + "endTime='2025-01-02T00:00:00Z'");
+  }
+
+  @Test
+  void validateTimestampRange_should_pass_when_start_before_end() {
+    Date start = new Date(1705276800000L); // 2024-01-15
+    Date end = new Date(1705363200000L); // 2024-01-16
+
+    ctx.validateTimestampRange(start, end, "startTime", "endTime");
+
+    assertThat(ctx.isValid()).isTrue();
+    assertThat(ctx.errors()).isEmpty();
+  }
+
+  @Test
+  void validateTimestampRange_should_pass_when_start_is_null() {
+    Date end = new Date(1705363200000L);
+
+    ctx.validateTimestampRange(null, end, "startTime", "endTime");
+
+    assertThat(ctx.isValid()).isTrue();
+  }
+
+  @Test
+  void validateTimestampRange_should_pass_when_end_is_null() {
+    Date start = new Date(1705276800000L);
+
+    ctx.validateTimestampRange(start, null, "startTime", "endTime");
+
+    assertThat(ctx.isValid()).isTrue();
+  }
+
+  @Test
+  void validateTimestampRange_should_pass_when_both_null() {
+    ctx.validateTimestampRange(null, null, "startTime", "endTime");
+
+    assertThat(ctx.isValid()).isTrue();
+  }
+
   // -- requireIfPresent tests --
 
   @Test

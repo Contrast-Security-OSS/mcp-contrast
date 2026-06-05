@@ -17,13 +17,13 @@ package com.contrast.labs.ai.mcp.contrast.tool.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Date;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class DateSpecTest {
+class TimestampSpecTest {
 
   private ToolValidationContext ctx;
 
@@ -33,8 +33,26 @@ class DateSpecTest {
   }
 
   @Test
-  void get_should_parse_iso_date() {
-    var result = ctx.dateParam("2025-01-15", "startDate").get();
+  void get_should_parse_iso_instant() {
+    var result = ctx.timestampParam("2025-01-01T00:00:00Z", "startTime").get();
+
+    assertThat(result).isNotNull();
+    assertThat(result.toInstant()).isEqualTo(Instant.parse("2025-01-01T00:00:00Z"));
+    assertThat(ctx.isValid()).isTrue();
+  }
+
+  @Test
+  void get_should_parse_iso_timestamp_with_numeric_offset() {
+    var result = ctx.timestampParam("2025-01-01T00:00:00-05:00", "startTime").get();
+
+    assertThat(result).isNotNull();
+    assertThat(result.toInstant()).isEqualTo(Instant.parse("2025-01-01T05:00:00Z"));
+    assertThat(ctx.isValid()).isTrue();
+  }
+
+  @Test
+  void get_should_parse_iso_date_as_start_of_day() {
+    var result = ctx.timestampParam("2025-01-15", "startTime").get();
 
     assertThat(result).isNotNull();
     var localDate = result.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
@@ -45,7 +63,7 @@ class DateSpecTest {
   @Test
   void get_should_parse_epoch_timestamp() {
     long epochMillis = 1705276800000L;
-    var result = ctx.dateParam(String.valueOf(epochMillis), "startDate").get();
+    var result = ctx.timestampParam(String.valueOf(epochMillis), "startTime").get();
 
     assertThat(result).isNotNull();
     assertThat(result.getTime()).isEqualTo(epochMillis);
@@ -53,17 +71,8 @@ class DateSpecTest {
   }
 
   @Test
-  void get_should_reject_iso_datetime() {
-    var result = ctx.dateParam("2025-01-01T00:00:00Z", "startDate").get();
-
-    assertThat(result).isNull();
-    assertThat(ctx.isValid()).isFalse();
-    assertThat(ctx.errors().get(0)).contains("Invalid startDate date");
-  }
-
-  @Test
   void get_should_return_null_when_null() {
-    var result = ctx.dateParam(null, "startDate").get();
+    var result = ctx.timestampParam(null, "startTime").get();
 
     assertThat(result).isNull();
     assertThat(ctx.isValid()).isTrue();
@@ -71,7 +80,7 @@ class DateSpecTest {
 
   @Test
   void get_should_return_null_when_blank() {
-    var result = ctx.dateParam("   ", "startDate").get();
+    var result = ctx.timestampParam("   ", "startTime").get();
 
     assertThat(result).isNull();
     assertThat(ctx.isValid()).isTrue();
@@ -79,39 +88,14 @@ class DateSpecTest {
 
   @Test
   void get_should_add_error_for_invalid_format() {
-    var result = ctx.dateParam("not-a-date", "startDate").get();
+    var result = ctx.timestampParam("not-a-timestamp", "startTime").get();
 
     assertThat(result).isNull();
     assertThat(ctx.isValid()).isFalse();
     assertThat(ctx.errors()).hasSize(1);
-    assertThat(ctx.errors().get(0)).contains("Invalid startDate date");
+    assertThat(ctx.errors().get(0)).contains("Invalid startTime timestamp");
+    assertThat(ctx.errors().get(0)).contains("ISO timestamp");
     assertThat(ctx.errors().get(0)).contains("YYYY-MM-DD");
     assertThat(ctx.errors().get(0)).contains("epoch timestamp");
-  }
-
-  @Test
-  void get_should_add_error_for_invalid_date() {
-    var result = ctx.dateParam("2025-13-45", "lastSeen").get();
-
-    assertThat(result).isNull();
-    assertThat(ctx.isValid()).isFalse();
-    assertThat(ctx.errors()).hasSize(1);
-  }
-
-  @Test
-  void get_should_trim_whitespace() {
-    var result = ctx.dateParam("  2025-01-15  ", "startDate").get();
-
-    assertThat(result).isNotNull();
-    assertThat(ctx.isValid()).isTrue();
-  }
-
-  @Test
-  void get_should_parse_different_dates() {
-    Date startDate = ctx.dateParam("2025-01-01", "startDate").get();
-    Date endDate = ctx.dateParam("2025-12-31", "endDate").get();
-
-    assertThat(startDate).isBefore(endDate);
-    assertThat(ctx.isValid()).isTrue();
   }
 }
