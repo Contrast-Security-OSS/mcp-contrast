@@ -34,7 +34,6 @@ class TimestampSpecTest {
   void get_should_parse_iso_instant() {
     var result = ctx.timestampParam("2025-01-01T00:00:00Z", "startTime").get();
 
-    assertThat(result).isNotNull();
     assertThat(result.toInstant()).isEqualTo(Instant.parse("2025-01-01T00:00:00Z"));
     assertThat(ctx.isValid()).isTrue();
   }
@@ -43,7 +42,6 @@ class TimestampSpecTest {
   void get_should_parse_iso_timestamp_with_numeric_offset() {
     var result = ctx.timestampParam("2025-01-01T00:00:00-05:00", "startTime").get();
 
-    assertThat(result).isNotNull();
     assertThat(result.toInstant()).isEqualTo(Instant.parse("2025-01-01T05:00:00Z"));
     assertThat(ctx.isValid()).isTrue();
   }
@@ -56,7 +54,18 @@ class TimestampSpecTest {
     assertThat(ctx.isValid()).isFalse();
     assertThat(ctx.errors()).hasSize(1);
     assertThat(ctx.errors().get(0)).contains("Invalid startTime timestamp");
-    assertThat(ctx.errors().get(0)).contains("must include a time");
+    assertThat(ctx.errors().get(0)).contains("date, time, and timezone offset");
+  }
+
+  @Test
+  void get_should_reject_iso_timestamp_without_timezone_offset() {
+    var result = ctx.timestampParam("2025-01-15T10:30:00", "startTime").get();
+
+    assertThat(result).isNull();
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors()).hasSize(1);
+    assertThat(ctx.errors().get(0)).contains("Invalid startTime timestamp");
+    assertThat(ctx.errors().get(0)).contains("date, time, and timezone offset");
   }
 
   @Test
@@ -64,9 +73,30 @@ class TimestampSpecTest {
     long epochMillis = 1705276800000L;
     var result = ctx.timestampParam(String.valueOf(epochMillis), "startTime").get();
 
-    assertThat(result).isNotNull();
     assertThat(result.getTime()).isEqualTo(epochMillis);
     assertThat(ctx.isValid()).isTrue();
+  }
+
+  @Test
+  void get_should_reject_negative_epoch_timestamp() {
+    var result = ctx.timestampParam("-1", "startTime").get();
+
+    assertThat(result).isNull();
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors()).hasSize(1);
+    assertThat(ctx.errors().get(0)).contains("Invalid startTime timestamp");
+    assertThat(ctx.errors().get(0)).contains("between 0 and 253402300799999");
+  }
+
+  @Test
+  void get_should_reject_epoch_timestamp_after_supported_iso_year_range() {
+    var result = ctx.timestampParam(String.valueOf(Long.MAX_VALUE), "startTime").get();
+
+    assertThat(result).isNull();
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors()).hasSize(1);
+    assertThat(ctx.errors().get(0)).contains("Invalid startTime timestamp");
+    assertThat(ctx.errors().get(0)).contains("between 0 and 253402300799999");
   }
 
   @Test
@@ -94,7 +124,19 @@ class TimestampSpecTest {
     assertThat(ctx.errors()).hasSize(1);
     assertThat(ctx.errors().get(0)).contains("Invalid startTime timestamp");
     assertThat(ctx.errors().get(0)).contains("ISO timestamp");
-    assertThat(ctx.errors().get(0)).contains("must include a time");
+    assertThat(ctx.errors().get(0)).contains("date, time, and timezone offset");
     assertThat(ctx.errors().get(0)).contains("epoch timestamp");
+  }
+
+  @Test
+  void get_should_sanitize_control_characters_in_validation_message() {
+    var result = ctx.timestampParam("bad\nvalue\rnext", "startTime").get();
+
+    assertThat(result).isNull();
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors()).hasSize(1);
+    assertThat(ctx.errors().get(0)).doesNotContain("\n");
+    assertThat(ctx.errors().get(0)).doesNotContain("\r");
+    assertThat(ctx.errors().get(0)).contains("bad\\nvalue\\rnext");
   }
 }

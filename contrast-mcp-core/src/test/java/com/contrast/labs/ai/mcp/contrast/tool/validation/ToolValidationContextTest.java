@@ -141,6 +141,17 @@ class ToolValidationContextTest {
   }
 
   @Test
+  void validateTimestampRange_should_pass_when_start_equals_end() {
+    Date start = new Date(1705276800000L); // 2024-01-15
+    Date end = new Date(1705276800000L); // 2024-01-15
+
+    ctx.validateTimestampRange(start, end, "startTime", "endTime");
+
+    assertThat(ctx.isValid()).isTrue();
+    assertThat(ctx.errors()).isEmpty();
+  }
+
+  @Test
   void validateTimestampRange_should_pass_when_start_is_null() {
     Date end = new Date(1705363200000L);
 
