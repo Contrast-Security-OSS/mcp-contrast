@@ -15,7 +15,7 @@ jobs:
       run:
         shell: bash
     env:
-      POLICY: "Block-VM" # Set the desired Wiz CLI policy to use
+      POLICY: "Contrast-OSS,EOL-Scan" # Set the desired Wiz CLI policy to use
     permissions:
       id-token: write
       contents: read
