@@ -55,7 +55,7 @@ Add the server to Claude Code by pointing it at your Contrast host followed by `
 claude mcp add --transport http contrast-hosted-mcp https://app.contrastsecurity.com/mcp
 ```
 
-Replace `app.contrastsecurity.com` with your organization's Contrast URL if you use a dedicated instance. The first time your agent calls a tool, your browser opens for sign-in. You log in with your existing Contrast credentials, choose an organization, and approve read access. Your session refreshes on its own, so you typically sign in once and keep working.
+Replace `app.contrastsecurity.com` with your organization's Contrast URL if you use a dedicated instance. The first time your agent calls a tool, your browser opens for sign-in. If sign-in does not start automatically, run `/mcp` in Claude Code and choose Authenticate for `contrast-hosted-mcp`. You log in with your existing Contrast credentials, choose an organization, and approve read access. Your session refreshes on its own, so you typically sign in once and keep working.
 
 For step-by-step setup for Claude Desktop, the Codex CLI, the GitHub Copilot CLI, and opencode, see the [Hosted MCP Server installation guide](docs/installation-guides/install-hosted.md).
 

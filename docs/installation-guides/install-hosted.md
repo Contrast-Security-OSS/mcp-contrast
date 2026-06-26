@@ -26,7 +26,7 @@ Verify it was added.
 claude mcp list
 ```
 
-You should see `contrast-hosted-mcp` in the list. The first time a tool is called, your browser opens for sign-in.
+You should see `contrast-hosted-mcp` in the list. The first time a tool is called, your browser opens for sign-in. If sign-in does not start automatically, run `/mcp` in Claude Code and choose Authenticate for `contrast-hosted-mcp`.
 
 ## Claude Desktop
 
