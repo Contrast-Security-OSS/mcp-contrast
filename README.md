@@ -165,6 +165,7 @@ These tools require the Contrast unified data platform (NorthStar) to be enabled
 | `get_observation` | Get full details for a specific observation |
 | `list_issue_observations` | List observations linked to an issue (cursor-paginated) |
 | `list_incident_observations` | List observations linked to an incident (cursor-paginated) |
+| `get_incident_observation_count` | Count observations linked to an incident without paging |
 
 </details>
 
