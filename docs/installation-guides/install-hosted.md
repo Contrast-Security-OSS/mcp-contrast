@@ -90,7 +90,7 @@ Ask your agent to run `get_user_info`. A successful response shows your user ide
 | Codex CLI | Working |
 | GitHub Copilot CLI | Working |
 | opencode | Working |
-| Claude Desktop | Working (requires an HTTPS endpoint) |
+| Claude Desktop | Working |
 | Gemini CLI | Not yet supported, OAuth compatibility issue |
 | VS Code Copilot plugin | Not yet supported, OAuth compatibility issue |
 
