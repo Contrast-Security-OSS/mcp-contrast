@@ -88,7 +88,7 @@ If you prefer to run the JAR directly (requires Java 21+):
 
 **Getting the JAR file:**
 - **Download** from [GitHub Releases](https://github.com/Contrast-Security-OSS/mcp-contrast/releases/latest) (recommended)
-- **Build** from source ([instructions](../../README.md#build-from-source))
+- **Build** from source ([instructions](../local-mcp-server.md#build-from-source))
 
 Replace `/path/to/mcp-contrast-X.X.X.jar` with the path to your downloaded or built JAR file.
 
@@ -120,8 +120,8 @@ If you encounter issues:
    docker pull contrast/mcp-contrast:latest
    ```
 
-For more troubleshooting help, see the [Common Issues](../../README.md#common-issues) section in the main README.
+For more troubleshooting help, see the [Common Issues](../local-mcp-server.md#common-issues) section in the Local MCP Server guide.
 
 ## Proxy Configuration
 
-If you're behind a corporate proxy, see the [Proxy Configuration](../../README.md#proxy-configuration) section in the main README.
+If you're behind a corporate proxy, see the [Proxy Configuration](../local-mcp-server.md#proxy-configuration) section in the Local MCP Server guide.

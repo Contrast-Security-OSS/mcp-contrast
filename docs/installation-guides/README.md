@@ -26,4 +26,4 @@ All guides support both deployment methods - choose the one that fits your envir
 - No Docker required
 - Direct process control for debugging
 - Works in Docker-restricted environments
-- Requires Java 21+ and JAR file ([download](../../README.md#getting-the-jar-file))
+- Requires Java 21+ and JAR file ([download](../local-mcp-server.md#getting-the-jar-file))

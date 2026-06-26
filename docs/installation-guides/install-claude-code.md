@@ -60,7 +60,7 @@ Replace `/path/to/mcp-contrast-X.X.X.jar` with the actual path to your downloade
 
 **Getting the JAR file:**
 - **Download** from [GitHub Releases](https://github.com/Contrast-Security-OSS/mcp-contrast/releases/latest) (recommended)
-- **Build** from source ([instructions](../../README.md#build-from-source))
+- **Build** from source ([instructions](../local-mcp-server.md#build-from-source))
 
 
 ## Configuration Scopes
@@ -140,11 +140,11 @@ If you encounter issues:
 
 4. **Environment variable issues**: Ensure all required credentials are provided as `--env` flags
 
-For more troubleshooting help, see the [Common Issues](../../README.md#common-issues) section in the main README.
+For more troubleshooting help, see the [Common Issues](../local-mcp-server.md#common-issues) section in the Local MCP Server guide.
 
 ## Proxy Configuration
 
-If you're behind a corporate proxy, you'll need to configure Docker or Java to use your proxy settings. See the [Proxy Configuration](../../README.md#proxy-configuration) section in the main README for details.
+If you're behind a corporate proxy, you'll need to configure Docker or Java to use your proxy settings. See the [Proxy Configuration](../local-mcp-server.md#proxy-configuration) section in the Local MCP Server guide for details.
 
 ## Windows Users
 
