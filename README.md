@@ -128,7 +128,7 @@ The hosted server provides read-only tools across the domains below. Your agent 
 #### Libraries (SCA)
 | Tool | Description |
 |------|-------------|
-| `list_application_libraries` | List libraries used by an application with class usage statistics |
+| `list_application_libraries` | List libraries used by an application with class usage statistics and vulnerability counts |
 | `list_applications_by_cve` | Find applications affected by a specific CVE |
 
 #### Protection (ADR/Protect)
@@ -194,7 +194,7 @@ The Local MCP Server provides 13 tools for security analysis and vulnerability m
 #### Libraries (SCA)
 | Tool | Description |
 |------|-------------|
-| `list_application_libraries` | List libraries used by an application with vulnerability counts |
+| `list_application_libraries` | List libraries used by an application with class usage statistics and vulnerability counts |
 | `list_applications_by_cve` | Find applications affected by a specific CVE |
 
 #### Protection (ADR/Protect)
