@@ -1,6 +1,8 @@
 # Installing Contrast MCP Server in Claude Desktop
 
-This guide covers how to install and configure the Contrast MCP Server with Claude Desktop.
+This guide covers how to install and configure the Contrast Local MCP Server with Claude Desktop.
+
+> **This is a Local MCP Server guide.** It runs the open-source server as a local process using Contrast API and service keys. If you use Contrast SaaS, the [Hosted MCP Server](./install-hosted.md) is easier to set up and needs no local process or keys.
 
 > [!NOTE] Claude Desktop Documentation Reference
 > Anthropic's documentation for connecting local MCP servers can be found here: https://modelcontextprotocol.io/docs/develop/connect-local-servers
@@ -97,7 +99,7 @@ Replace `/path/to/mcp-contrast-X.X.X.jar` with the path to your downloaded or bu
 
 **Getting the JAR file:**
 - **Download** from [GitHub Releases](https://github.com/Contrast-Security-OSS/mcp-contrast/releases/latest) (recommended)
-- **Build** from source ([instructions](../../README.md#build-from-source))
+- **Build** from source ([instructions](../local-mcp-server.md#build-from-source))
 
 
 After saving the configuration, completely quit and restart Claude Desktop for the changes to take effect.
@@ -135,8 +137,8 @@ If you encounter issues:
 - **Windows**: `%APPDATA%\Claude\logs\mcp*.log`
 - **Linux**: `~/.config/Claude/logs/mcp*.log`
 
-For more troubleshooting help, see the [Common Issues](../../README.md#common-issues) section in the main README.
+For more troubleshooting help, see the [Common Issues](../local-mcp-server.md#common-issues) section in the Local MCP Server guide.
 
 ## Proxy Configuration
 
-If you're behind a corporate proxy, see the [Proxy Configuration](../../README.md#proxy-configuration) section in the main README.
+If you're behind a corporate proxy, see the [Proxy Configuration](../local-mcp-server.md#proxy-configuration) section in the Local MCP Server guide.

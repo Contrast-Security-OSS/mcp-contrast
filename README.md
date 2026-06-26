@@ -3,14 +3,15 @@
 [![Java CI with Gradle](https://github.com/Contrast-Security-OSS/mcp-contrast/actions/workflows/build.yml/badge.svg)](https://github.com/Contrast-Security-OSS/mcp-contrast/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-The Contrast MCP Server allows you to connect Contrast Security to your AI coding agent to automatically remediate vulnerabilities, update insecure libraries, and analyze security coverage—all through natural language prompts.
+The Contrast MCP Server connects Contrast Security to your AI coding agent so you can remediate vulnerabilities, update insecure libraries, and analyze security coverage through natural language.
 
-- Remediate vulnerabilities directly from Contrast Assess data
-- Identify and update insecure third-party libraries with Contrast SCA insights
-- Review route coverage, Protect/ADR findings, and other security metadata on demand
+It comes in two forms.
+
+- **[Hosted MCP Server](#hosted-mcp-server-recommended)** is a remote MCP server that Contrast runs for you. It is the simplest path for Contrast SaaS customers, with browser-based OAuth sign-in and nothing to install. **Recommended for most users.**
+- **[Local MCP Server](#local-mcp-server)** is the open-source server in this repository that you run yourself with API keys. It is the right choice for on-premises and EOP (Enterprise On-Premises) instances.
 
 > [!WARNING]
-> **CRITICAL SECURITY WARNING:** Exposing Contrast vulnerability data to an AI service that trains on your prompts can leak sensitive information. Only use mcp-contrast with environments that contractually guarantee data isolation and prohibit model training on your inputs.
+> **CRITICAL SECURITY WARNING:** Exposing Contrast vulnerability data to an AI service that trains on your prompts can leak sensitive information. Only use the Contrast MCP Server with environments that contractually guarantee data isolation and prohibit model training on your inputs.
 >
 > **Verify AI Data Privacy:** Confirm that your service agreement prevents model training on your prompts and consult your security team before sharing Contrast data.
 >
@@ -18,21 +19,171 @@ The Contrast MCP Server allows you to connect Contrast Security to your AI codin
 >
 > **POTENTIALLY SAFE:** Enterprise services with contractual privacy guarantees (e.g., Google Cloud AI, AWS Bedrock, Azure OpenAI).
 
-## What's New
+## Contents
 
-See [CHANGELOG.md](CHANGELOG.md) for the complete release history, including breaking changes and new features.
+- [Hosted MCP Server (recommended)](#hosted-mcp-server-recommended)
+  - [Prerequisites](#prerequisites)
+  - [Connect](#connect)
+  - [Connection details](#connection-details)
+  - [Supported clients](#supported-clients)
+  - [Security and privacy](#security-and-privacy)
+  - [Available tools](#available-tools-hosted)
+- [Local MCP Server](#local-mcp-server)
+  - [Available tools](#available-tools-local)
+  - [Quick start](#quick-start)
+  - [More setup and troubleshooting](#more-setup-and-troubleshooting)
+- [Sample prompts](#sample-prompts)
+- [Data privacy](#data-privacy)
 
-## Available Tools
+## Hosted MCP Server (recommended)
 
-The Contrast MCP Server provides 13 tools for security analysis and vulnerability management:
+The Hosted MCP Server, a remote MCP server that Contrast operates for you, is the easiest way to connect an AI agent to Contrast. You point your client at one URL, sign in through your browser, and your agent can start asking questions about your security data. There are no API keys to copy around, no container or JAR to keep updated, and no local process to run.
 
-### Applications
+The hosted server is read-only and is available now for Contrast SaaS.
+
+### Prerequisites
+
+- A Contrast SaaS account with access to at least one organization
+- An MCP client that supports Streamable HTTP transport and OAuth 2.0 with PKCE (see [Supported clients](#supported-clients))
+- A modern web browser for the OAuth sign-in
+
+### Connect
+
+Add the server to Claude Code by pointing it at your Contrast host followed by `/mcp`.
+
+```bash
+claude mcp add --transport http contrast-hosted-mcp https://app.contrastsecurity.com/mcp
+```
+
+Replace `app.contrastsecurity.com` with your organization's Contrast URL if you use a dedicated instance. The first time your agent calls a tool, your browser opens for sign-in. If sign-in does not start automatically, run `/mcp` in Claude Code and choose Authenticate for `contrast-hosted-mcp`. You log in with your existing Contrast credentials, choose an organization, and approve read access. Your session refreshes on its own, so you typically sign in once and keep working.
+
+For step-by-step setup for Claude Code, Claude Desktop, the Codex CLI, the GitHub Copilot CLI, and opencode, see the [Hosted MCP Server installation guide](docs/installation-guides/install-hosted.md).
+
+### Connection details
+
+Any MCP client that supports Streamable HTTP transport and OAuth 2.0 with PKCE can connect.
+
+| Setting | Value |
+|---------|-------|
+| Endpoint URL | `https://<your-contrast-host>/mcp` (for example `https://app.contrastsecurity.com/mcp`) |
+| Transport | Streamable HTTP (stateless) |
+| HTTP method | `POST` |
+| Authentication | OAuth 2.0 with PKCE (S256) |
+| OAuth scopes | `openid`, `profile`, `offline_access` |
+
+Your client discovers the OAuth configuration automatically through the `WWW-Authenticate` response header, which points to the standard `/.well-known/oauth-protected-resource` metadata document. Clients that support Dynamic Client Registration can register at `/oauth2/connect/register` on the Contrast origin.
+
+### Supported clients
+
+| Client | Status |
+|--------|--------|
+| Claude Code CLI | Working |
+| Codex CLI | Working |
+| GitHub Copilot CLI | Working |
+| opencode | Working |
+| Claude Desktop | Working |
+| Gemini CLI | Not yet supported, OAuth compatibility issue |
+| VS Code Copilot plugin | Not yet supported, OAuth compatibility issue |
+
+Support for more clients is in progress as their OAuth handling matures. If your client fails during OAuth registration before the login page appears, that is usually a client compatibility issue rather than a problem with your account.
+
+### Security and privacy
+
+The hosted server changes how access works without changing what you are allowed to see.
+
+- **OAuth, not API keys.** You sign in through your browser, so there are no long-lived keys to distribute or store on developer machines.
+- **Read-only.** Every hosted tool is read-only. You cannot modify, update, or delete data through the hosted server.
+- **Organization-scoped.** Each session is bound to the single organization you select at sign-in, so there is no organization ID to guess or get wrong.
+- **Your existing permissions apply.** Every request carries your identity to Contrast, which enforces the same role-based access control as the web interface. If you cannot see something in Contrast, your agent cannot see it either.
+- **No data storage.** The hosted server stores none of your data, and your token never appears in a tool response.
+
+The shared warning above still applies. Tool results become part of your AI conversation, so follow your organization's policy on what security data can be sent to your chosen AI client and model.
+
+### Available tools (hosted)
+
+The hosted server provides read-only tools across the domains below. Your agent calls them automatically based on your questions.
+
+<details>
+<summary>Show hosted tools</summary>
+
+#### Authentication
+| Tool | Description |
+|------|-------------|
+| `get_user_info` | Show who you are signed in as and which organization is active |
+
+#### Vulnerabilities (Assess)
+| Tool | Description |
+|------|-------------|
+| `search_vulnerabilities` | Search vulnerabilities across all applications |
+| `search_app_vulnerabilities` | Search vulnerabilities within a specific application with session filtering |
+| `get_vulnerability` | Get detailed vulnerability info including remediation guidance |
+| `list_vulnerability_types` | List all available vulnerability types for filtering |
+
+#### Applications
 | Tool | Description |
 |------|-------------|
 | `search_applications` | Search applications by name, tag, or metadata filters |
 | `get_session_metadata` | Get session metadata fields available for an application |
 
-### Vulnerabilities
+#### Libraries (SCA)
+| Tool | Description |
+|------|-------------|
+| `list_application_libraries` | List libraries used by an application with class usage statistics and vulnerability counts |
+| `list_applications_by_cve` | Find applications affected by a specific CVE |
+
+#### Protection (ADR/Protect)
+| Tool | Description |
+|------|-------------|
+| `search_attacks` | Search attack events with filtering by status, type, and rules |
+| `get_protect_rules` | Get protection rules configured for an application |
+
+#### Coverage
+| Tool | Description |
+|------|-------------|
+| `get_route_coverage` | Get route coverage data showing exercised vs discovered routes |
+
+#### SAST (Scan)
+| Tool | Description |
+|------|-------------|
+| `get_scan_project` | Get SAST project details and vulnerability counts |
+
+#### Issues, Incidents, and Observations
+These tools require the Contrast unified data platform (NorthStar) to be enabled for your organization.
+
+| Tool | Description |
+|------|-------------|
+| `search_issues` | Search and filter security issues across your organization |
+| `get_issue` | Get full details for a specific issue |
+| `get_issue_summary` | Get a concise summary of a specific issue |
+| `get_issue_count` | Count issues matching filters without fetching full details |
+| `list_issue_incidents` | List incidents linked to an issue |
+| `list_issues_by_library` | List open issues associated with an application library |
+| `search_incidents` | Search and filter incidents |
+| `get_incident` | Get full details for a specific incident |
+| `get_incident_summary` | Get a concise summary of a specific incident |
+| `list_incident_issues` | List issues linked to an incident |
+| `get_observation` | Get full details for a specific observation |
+| `list_issue_observations` | List observations linked to an issue (cursor-paginated) |
+| `list_incident_observations` | List observations linked to an incident (cursor-paginated) |
+| `get_incident_observation_count` | Count observations linked to an incident without paging |
+
+</details>
+
+## Local MCP Server
+
+The Local MCP Server is the open-source server in this repository. Your MCP client launches it as a local process over stdio, it authenticates with Contrast API and service keys, and it connects to your own Contrast instance, including on-premises and EOP. Use it when you cannot use the hosted server, or when you need raw SARIF scan output.
+
+### Available tools (local)
+
+The Local MCP Server provides 13 tools for security analysis and vulnerability management.
+
+#### Applications
+| Tool | Description |
+|------|-------------|
+| `search_applications` | Search applications by name, tag, or metadata filters |
+| `get_session_metadata` | Get session metadata fields available for an application |
+
+#### Vulnerabilities
 | Tool | Description |
 |------|-------------|
 | `search_vulnerabilities` | Search vulnerabilities across all applications (org-level) |
@@ -40,42 +191,42 @@ The Contrast MCP Server provides 13 tools for security analysis and vulnerabilit
 | `get_vulnerability` | Get detailed vulnerability info including stack trace and remediation guidance |
 | `list_vulnerability_types` | List all available vulnerability types for filtering |
 
-### Libraries (SCA)
+#### Libraries (SCA)
 | Tool | Description |
 |------|-------------|
-| `list_application_libraries` | List libraries used by an application with vulnerability counts |
+| `list_application_libraries` | List libraries used by an application with class usage statistics and vulnerability counts |
 | `list_applications_by_cve` | Find applications affected by a specific CVE |
 
-### Protection (ADR/Protect)
+#### Protection (ADR/Protect)
 | Tool | Description |
 |------|-------------|
 | `search_attacks` | Search attack events with filtering by status, type, and rules |
 | `get_protect_rules` | Get protection rules configured for an application |
 
-### Coverage
+#### Coverage
 | Tool | Description |
 |------|-------------|
 | `get_route_coverage` | Get route coverage data showing exercised vs discovered routes |
 
-### SAST (Scan)
+#### SAST (Scan)
 | Tool | Description |
 |------|-------------|
 | `get_scan_project` | Get SAST project details and vulnerability counts |
 | `get_scan_results` | Get SAST scan results in SARIF format |
 
-## Quick Start
+### Quick start
 
-### Prerequisites
+#### Prerequisites
 - Docker (recommended) or Java 21+ for JAR deployment
 - Contrast API credentials ([how to get API credentials](https://docs.contrastsecurity.com/en/personal-keys.html))
 
-### VS Code (GitHub Copilot) - One-Click Install
+#### VS Code (GitHub Copilot) - One-Click Install
 
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_contrast--mcp-0098FF?style=for-the-badge&logo=visualstudiocode&logoColor=ffffff)](vscode:mcp/install?%7B%22name%22%3A%22contrast%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22docker%22%2C%22args%22%3A%5B%22run%22%2C%22-e%22%2C%22CONTRAST_HOST_NAME%22%2C%22-e%22%2C%22CONTRAST_API_KEY%22%2C%22-e%22%2C%22CONTRAST_SERVICE_KEY%22%2C%22-e%22%2C%22CONTRAST_USERNAME%22%2C%22-e%22%2C%22CONTRAST_ORG_ID%22%2C%22-i%22%2C%22--rm%22%2C%22contrast%2Fmcp-contrast%3Alatest%22%2C%22-t%22%2C%22stdio%22%5D%2C%22env%22%3A%7B%22CONTRAST_HOST_NAME%22%3A%22%24%7Binput%3Acontrast_host_name%7D%22%2C%22CONTRAST_ORG_ID%22%3A%22%24%7Binput%3Acontrast_org_id%7D%22%2C%22CONTRAST_USERNAME%22%3A%22%24%7Binput%3Acontrast_username%7D%22%2C%22CONTRAST_API_KEY%22%3A%22%24%7Binput%3Acontrast_api_key%7D%22%2C%22CONTRAST_SERVICE_KEY%22%3A%22%24%7Binput%3Acontrast_service_key%7D%22%7D%7D)
 
-Click the button above to automatically install in VS Code. For manual setup, see [VS Code (GitHub Copilot) Installation Guide](docs/installation-guides/install-vscode.md).
+Click the button above to automatically install in VS Code. For manual setup, see the [VS Code (GitHub Copilot) Installation Guide](docs/installation-guides/install-vscode.md).
 
-### IntelliJ IDEA (GitHub Copilot)
+#### IntelliJ IDEA (GitHub Copilot)
 
 Add this to your `mcp.json` configuration file and replace the placeholder values with your Contrast credentials:
 
@@ -116,14 +267,21 @@ Add this to your `mcp.json` configuration file and replace the placeholder value
 
 📖 [Full IntelliJ (GitHub Copilot) Installation Guide](docs/installation-guides/install-intellij.md) - Includes step-by-step setup and JAR deployment option
 
-### Other AI Assistants
+#### Other AI Assistants
 
 - **[Claude Code](docs/installation-guides/install-claude-code.md)** - Anthropic's official CLI tool
 - **[Claude Desktop](docs/installation-guides/install-claude-desktop.md)** - Standalone Claude application
 - **[Cline Plugin](docs/installation-guides/install-cline.md)** - VS Code alternative AI assistant
 - **[All Other MCP Hosts](docs/installation-guides/)** - Complete installation guides for oterm and more
 
-## Sample Prompts
+### More setup and troubleshooting
+
+Getting the JAR file (download, attestation verification, and build from source), proxy configuration, and troubleshooting have moved to the [Local MCP Server guide](docs/local-mcp-server.md).
+
+## Sample prompts
+
+These prompts work with either server.
+
 ### For the Developer
 #### Remediate Vulnerabilities in Code
 * Please list vulnerabilities for Application Y.
@@ -153,212 +311,7 @@ Add this to your `mcp.json` configuration file and replace the placeholder value
 * Please list the libraries for the application named xxx and tell me what version of commons-collections is being used.
 * Which vulnerabilities in Application X are being blocked by a Protect or ADR rule?
 
-## Getting the JAR File
-
-If you're using JAR deployment (instead of Docker), you'll need the JAR file:
-
-### Download (Recommended)
-
-Download the latest pre-built JAR from [GitHub Releases](https://github.com/Contrast-Security-OSS/mcp-contrast/releases/latest).
-
-The JAR file will be named `mcp-contrast-X.X.X.jar`.
-
-### Verifying the Download
-
-Each release JAR is signed with a [GitHub build provenance attestation](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds), which proves the JAR was built by this repository's release workflow. Verify a downloaded JAR with the [GitHub CLI](https://cli.github.com/):
-
-```bash
-gh attestation verify mcp-contrast-X.X.X.jar --repo Contrast-Security-OSS/mcp-contrast
-```
-
-A successful check confirms the JAR was produced by the official release workflow and has not been altered. No key import or fingerprint comparison is required. The GitHub CLI validates the attestation against the public Sigstore transparency log.
-
-### Build from Source
-
-Alternatively, you can build from source if you need the latest development version. Requires Java 21+:
-
-```bash
-./gradlew :contrast-mcp-stdio-app:bootJar
-```
-
-The built JAR will be located at `contrast-mcp-stdio-app/build/libs/mcp-contrast-X.X.X-SNAPSHOT.jar`
-
-## Proxy Configuration
-
-If you're behind a corporate firewall or proxy, you'll need to configure proxy settings for the MCP server to reach your Contrast instance. The configuration differs depending on whether you're using Docker or JAR deployment.
-
-### Java Process (JAR Deployment)
-
-Choose ONE of the following based on how you're running the JAR:
-
-#### Direct Java Command
-
-Use this if you're running the JAR directly from the command line or a script.
-
-Add these two system properties to your `java` command:
-
-```
--Dhttp_proxy_host=proxy.example.com
--Dhttp_proxy_port=8080
-```
-
-**Complete example:**
-```bash
-java \
-  -Dhttp_proxy_host=proxy.example.com \
-  -Dhttp_proxy_port=8080 \
-  -jar /path/to/mcp-contrast-X.X.X.jar \
-  --CONTRAST_HOST_NAME=example.contrastsecurity.com \
-  --CONTRAST_API_KEY=example \
-  --CONTRAST_SERVICE_KEY=example \
-  --CONTRAST_USERNAME=example@example.com \
-  --CONTRAST_ORG_ID=example
-```
-
-#### MCP Configuration File
-
-Use this if you're running the JAR through an MCP host (IntelliJ, Claude Desktop, Cline, etc.).
-
-Add these two lines to the beginning of your `args` array:
-
-```json
-"-Dhttp_proxy_host=proxy.example.com",
-"-Dhttp_proxy_port=8080",
-```
-
-**Complete example using IntelliJ's `mcp.json`:**
-```json
-{
-  "servers": {
-    "contrast": {
-      "command": "java",
-      "args": [
-        "-Dhttp_proxy_host=proxy.example.com",
-        "-Dhttp_proxy_port=8080",
-        "-jar",
-        "/path/to/mcp-contrast-X.X.X.jar",
-        "--CONTRAST_HOST_NAME=example.contrastsecurity.com",
-        "--CONTRAST_API_KEY=example",
-        "--CONTRAST_SERVICE_KEY=example",
-        "--CONTRAST_USERNAME=example@example.com",
-        "--CONTRAST_ORG_ID=example"
-      ]
-    }
-  }
-}
-```
-
-### Docker (Docker Deployment)
-
-Choose ONE of the following based on how you're running Docker:
-
-#### Direct Docker Run Command
-
-Use this if you're running Docker directly from the command line.
-
-Add these two environment variables to your `docker run` command:
-
-```bash
--e http_proxy_host="proxy.example.com" \
--e http_proxy_port="8080" \
-```
-
-**Complete example:**
-```bash
-docker run \
-  -e http_proxy_host="proxy.example.com" \
-  -e http_proxy_port="8080" \
-  -e CONTRAST_HOST_NAME=example.contrastsecurity.com \
-  -e CONTRAST_API_KEY=example \
-  -e CONTRAST_SERVICE_KEY=example \
-  -e CONTRAST_USERNAME=example \
-  -e CONTRAST_ORG_ID=example \
-  -i --rm \
-  contrast/mcp-contrast:latest \
-  -t stdio
-```
-
-#### MCP Configuration File
-
-Use this if you're running Docker through an MCP host (IntelliJ, VS Code, Claude Desktop, Cline, etc.).
-
-Add these proxy settings:
-
-Add to the `args` array (after the Contrast credentials):
-```json
-"-e", "http_proxy_host",
-"-e", "http_proxy_port",
-```
-
-Add to the `env` object:
-```json
-"http_proxy_host": "proxy.example.com",
-"http_proxy_port": "8080"
-```
-
-**Complete example using IntelliJ's `mcp.json`:**
-```json
-{
-  "servers": {
-    "contrast": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-e", "CONTRAST_HOST_NAME",
-        "-e", "CONTRAST_API_KEY",
-        "-e", "CONTRAST_SERVICE_KEY",
-        "-e", "CONTRAST_USERNAME",
-        "-e", "CONTRAST_ORG_ID",
-        "-e", "http_proxy_host",
-        "-e", "http_proxy_port",
-        "-i", "--rm",
-        "contrast/mcp-contrast:latest",
-        "-t", "stdio"
-      ],
-      "env": {
-        "CONTRAST_HOST_NAME": "example.contrastsecurity.com",
-        "CONTRAST_API_KEY": "example",
-        "CONTRAST_SERVICE_KEY": "example",
-        "CONTRAST_USERNAME": "example@example.com",
-        "CONTRAST_ORG_ID": "example",
-        "http_proxy_host": "proxy.example.com",
-        "http_proxy_port": "8080"
-      }
-    }
-  }
-}
-```
-
-For VS Code with input variables, see the [VS Code Installation Guide](docs/installation-guides/install-vscode.md).
-
-## Common Issues
-If you are experiencing issues with the MCP server, here are some common troubleshooting steps:
-### Review Log
-A log will be created, by default under `/tmp/mcp-contrast.log` either locally or within the Docker container. You can view this log to see if there are any errors or issues with the MCP server.
-
-### Enable Debug Logging
-To enable debug logging you can add the following flag to the command line arguments when running the MCP server:
-`--logging.level.root=DEBUG`
-This can be added at this part of the docker command
-```
-        "--rm",
-        "contrast/mcp-contrast:latest",
-        "-t",
-        "--logging.level.root=DEBUG",
-        "stdio"
-        ],
-```
-
-### Certificate Issues
-If the SSL Certificate for the Teamserver URL is not trusted, you may see the following error:
-```
-Failed to list applications: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested target
-```
-If this occurs you will need to add the certificate to the Java Truststore and then add the following to the command line arguments when running the MCP server:
-`-Djavax.net.ssl.trustStore=/location/to/mcp-truststore.jks, -Djavax.net.ssl.trustStorePassword=yourpassword`
-More details on how to do this can be found in the [Java documentation](https://docs.oracle.com/cd/E19509-01/820-3503/6nf1il6er/index.html). Or ask your LLM to help you with this.
-
-## Data Privacy
+## Data privacy
 
 The Contrast MCP Server provides a bridge between your Contrast Data and the AI Agent/LLM of your choice.
 By using Contrast's MCP server you will be providing your Contrast Data to your AI Agent/LLM, it is your responsibility to ensure that the AI Agent/LLM you use complies with your data privacy policy.
@@ -368,3 +321,7 @@ Depending on what questions you ask the following information will be provided t
 * Vulnerability Details
 * Route Coverage data
 * ADR/Protect Attack Event Details
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the complete release history, including breaking changes and new features.

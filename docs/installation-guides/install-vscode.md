@@ -1,6 +1,8 @@
 # Installing Contrast MCP Server in VS Code (GitHub Copilot)
 
-This guide covers how to install and configure the Contrast MCP Server in VS Code with GitHub Copilot.
+This guide covers how to install and configure the Contrast Local MCP Server in VS Code with GitHub Copilot.
+
+> **This is a Local MCP Server guide.** It runs the open-source server as a local process using Contrast API and service keys. If you use Contrast SaaS, the [Hosted MCP Server](./install-hosted.md) is easier to set up and needs no local process or keys.
 
 > [!NOTE] Official VS Code Documentation Reference
 > VS Code's full documentation for MCP servers can be found here: https://code.visualstudio.com/docs/copilot/customization/mcp-servers
@@ -129,7 +131,7 @@ If you prefer to run the JAR directly (requires Java 21+):
 
 **Getting the JAR file:**
 - **Download** from [GitHub Releases](https://github.com/Contrast-Security-OSS/mcp-contrast/releases/latest) (recommended)
-- **Build** from source ([instructions](../../README.md#build-from-source))
+- **Build** from source ([instructions](../local-mcp-server.md#build-from-source))
 
 Replace `/path/to/mcp-contrast-X.X.X.jar` with the path to your downloaded or built JAR file and update the credential values.
 
@@ -195,8 +197,8 @@ If you encounter issues:
 - Select "MCP Servers" from the dropdown
 - Look for error messages or connection status
 
-For more troubleshooting help, see the [Common Issues](../../README.md#common-issues) section in the main README.
+For more troubleshooting help, see the [Common Issues](../local-mcp-server.md#common-issues) section in the Local MCP Server guide.
 
 ## Proxy Configuration
 
-If you're behind a corporate proxy, see the [Proxy Configuration](../../README.md#proxy-configuration) section in the main README.
+If you're behind a corporate proxy, see the [Proxy Configuration](../local-mcp-server.md#proxy-configuration) section in the Local MCP Server guide.
