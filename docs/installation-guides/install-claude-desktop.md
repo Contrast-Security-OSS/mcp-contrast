@@ -1,6 +1,8 @@
 # Installing Contrast MCP Server in Claude Desktop
 
-This guide covers how to install and configure the Contrast MCP Server with Claude Desktop.
+This guide covers how to install and configure the Contrast Local MCP Server with Claude Desktop.
+
+> **This is a Local MCP Server guide.** It runs the open-source server as a local process using Contrast API and service keys. If you use Contrast SaaS, the [Hosted MCP Server](./install-hosted.md) is easier to set up and needs no local process or keys.
 
 > [!NOTE] Claude Desktop Documentation Reference
 > Anthropic's documentation for connecting local MCP servers can be found here: https://modelcontextprotocol.io/docs/develop/connect-local-servers

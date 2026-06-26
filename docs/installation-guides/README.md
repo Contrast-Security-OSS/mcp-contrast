@@ -1,6 +1,8 @@
-# Installation Guides
+# Local MCP Server installation guides
 
-Choose your MCP host to get started. Each guide provides step-by-step instructions for both Docker and JAR deployment.
+These guides cover the [Local MCP Server](../local-mcp-server.md), the open-source server you run yourself over stdio with Contrast API and service keys. Choose your MCP host to get started. Each guide provides step-by-step instructions for both Docker and JAR deployment.
+
+> **Looking for the Hosted MCP Server?** If you use Contrast SaaS, the [Hosted MCP Server](./install-hosted.md) is the easiest way to connect. It needs no local process, no keys, and no container. These local-server guides are for when you cannot use the hosted server, or when you need raw SARIF scan output.
 
 ## MCP Hosts
 

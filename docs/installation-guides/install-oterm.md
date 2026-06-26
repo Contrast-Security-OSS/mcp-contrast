@@ -1,6 +1,8 @@
 # Installing Contrast MCP Server in oterm
 
-This guide covers how to install and configure the Contrast MCP Server with oterm, a terminal wrapper for Ollama.
+This guide covers how to install and configure the Contrast Local MCP Server with oterm, a terminal wrapper for Ollama.
+
+> **This is a Local MCP Server guide.** It runs the open-source server as a local process using Contrast API and service keys. If you use Contrast SaaS, the [Hosted MCP Server](./install-hosted.md) is easier to set up and needs no local process or keys.
 
 ## Prerequisites
 
