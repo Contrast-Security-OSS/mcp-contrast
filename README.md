@@ -8,7 +8,7 @@ The Contrast MCP Server connects Contrast Security to your AI coding agent so yo
 It comes in two forms.
 
 - **[Hosted MCP Server](#hosted-mcp-server-recommended)** is a remote MCP server that Contrast runs for you. It is the simplest path for Contrast SaaS customers, with browser-based OAuth sign-in and nothing to install. **Recommended for most users.**
-- **[Local MCP Server](#local-mcp-server)** is the open-source server in this repository that you run yourself with API keys. It is the right choice for on-premises and EOP (Enterprise On-Premises) instances, or when you need raw SARIF scan output.
+- **[Local MCP Server](#local-mcp-server)** is the open-source server in this repository that you run yourself with API keys. It is the right choice for on-premises and EOP (Enterprise On-Premises) instances.
 
 > [!WARNING]
 > **CRITICAL SECURITY WARNING:** Exposing Contrast vulnerability data to an AI service that trains on your prompts can leak sensitive information. Only use the Contrast MCP Server with environments that contractually guarantee data isolation and prohibit model training on your inputs.
@@ -81,7 +81,7 @@ Your client discovers the OAuth configuration automatically through the `WWW-Aut
 | Codex CLI | Working |
 | GitHub Copilot CLI | Working |
 | opencode | Working |
-| Claude Desktop | Working (requires an HTTPS endpoint) |
+| Claude Desktop | Working |
 | Gemini CLI | Not yet supported, OAuth compatibility issue |
 | VS Code Copilot plugin | Not yet supported, OAuth compatibility issue |
 
