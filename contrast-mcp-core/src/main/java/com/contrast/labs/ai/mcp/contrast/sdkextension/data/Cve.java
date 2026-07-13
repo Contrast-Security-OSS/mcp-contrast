@@ -24,9 +24,7 @@ import lombok.Data;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Cve {
   private Long id;
-  private String availabilityImpact;
   private String name;
-  private String uuid;
   private String description;
   private String status;
   private String cwe;
@@ -37,14 +35,21 @@ public class Cve {
   private Long nvdPublished;
   private Long nvdModified;
   private Long firstSeen;
-  private String severity;
+
+  // Legacy flat CVSS fields retained for the get_protect_rules contract.
+  private String uuid;
   private String accessVector;
   private String accessComplexity;
   private String authentication;
   private String confidentialityImpact;
   private String integrityImpact;
-  private Double score;
+  private String availabilityImpact;
   private List<String> references;
+
   private CvssV2 cvssv2;
   private CvssV3 cvssv3;
+
+  // Preferred summary derived from the nested CVSS data.
+  private Double score;
+  private String severity;
 }
