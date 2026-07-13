@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Bug Fixes
+
+**Session-filtered route coverage statistics were always zero**: Filtered route coverage now reports
+the correct total, exercised, and discovered route counts and coverage percentage.
+
 ## [2.0.0] - 2026-06-01
 
 ### Breaking Changes
