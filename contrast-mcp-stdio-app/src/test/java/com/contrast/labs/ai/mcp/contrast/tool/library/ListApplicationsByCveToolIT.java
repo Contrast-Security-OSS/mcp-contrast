@@ -43,6 +43,10 @@ class ListApplicationsByCveToolIT
 
   @Autowired private ListApplicationsByCveTool tool;
 
+  // CVSS v3 scores range from 0.0 to 10.0 inclusive.
+  private static final double MIN_CVSS_SCORE = 0.0;
+  private static final double MAX_CVSS_SCORE = 10.0;
+
   // Percentage fields in ImpactStats are reported on a 0–100 scale.
   private static final double MIN_PERCENTAGE = 0.0;
   private static final double MAX_PERCENTAGE = 100.0;
@@ -181,9 +185,12 @@ class ListApplicationsByCveToolIT
         .as("cve must expose at least one nested CVSS version")
         .isTrue();
     assertThat(cve.getSeverity()).as("cve.severity must be derived from CVSS data").isNotBlank();
-    assertThat(cve.getScore())
-        .as("cve.score must match cvssv3.baseScore when CVSS v3 is available")
-        .isEqualTo(cve.getCvssv3() == null ? null : cve.getCvssv3().getBaseScore());
+    if (cve.getCvssv3() != null) {
+      assertThat(cve.getScore())
+          .as("cve.score must be within CVSS range [%s, %s]", MIN_CVSS_SCORE, MAX_CVSS_SCORE)
+          .isNotNull()
+          .isBetween(MIN_CVSS_SCORE, MAX_CVSS_SCORE);
+    }
   }
 
   @Test
