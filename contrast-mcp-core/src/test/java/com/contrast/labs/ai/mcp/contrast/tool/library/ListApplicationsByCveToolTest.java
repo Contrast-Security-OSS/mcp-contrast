@@ -172,6 +172,7 @@ class ListApplicationsByCveToolTest {
   void listApplicationsByCve_should_fallback_to_cvss_v2_severity_when_cvss_v3_is_absent()
       throws Exception {
     var cveData = GsonFactory.create().fromJson(CVSS_V2_CVE_RESPONSE, CveData.class);
+    cveData.getCve().setScore(9.9);
     when(contrastApiClient.getApplicationsByCve(eq("CVE-2015-4000"))).thenReturn(cveData);
 
     var result = tool.listApplicationsByCve("CVE-2015-4000", null);

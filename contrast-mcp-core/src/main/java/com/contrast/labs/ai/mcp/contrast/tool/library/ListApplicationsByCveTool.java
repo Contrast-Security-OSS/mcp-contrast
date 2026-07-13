@@ -143,6 +143,7 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
       cve.setScore(cve.getCvssv3().getBaseScore());
       cve.setSeverity(cve.getCvssv3().getSeverity());
     } else if (cve.getCvssv2() != null) {
+      cve.setScore(null);
       cve.setSeverity(cve.getCvssv2().getSeverity());
     }
   }
