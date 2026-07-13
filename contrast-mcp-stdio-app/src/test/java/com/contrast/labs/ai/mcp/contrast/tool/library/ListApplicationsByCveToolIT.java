@@ -181,9 +181,12 @@ class ListApplicationsByCveToolIT
     assertThat(cve.getDescription())
         .as("cve.description must be populated for a known CVE")
         .isNotBlank();
-    assertThat(cve.getCvssv3() != null || cve.getCvssv2() != null)
-        .as("cve must expose at least one nested CVSS version")
-        .isTrue();
+    assertThat(cve)
+        .satisfiesAnyOf(
+            candidate ->
+                assertThat(candidate.getCvssv3()).as("cve.cvssv3 must be populated").isNotNull(),
+            candidate ->
+                assertThat(candidate.getCvssv2()).as("cve.cvssv2 must be populated").isNotNull());
     assertThat(cve.getSeverity()).as("cve.severity must be derived from CVSS data").isNotBlank();
     if (cve.getCvssv3() != null) {
       assertThat(cve.getScore())
