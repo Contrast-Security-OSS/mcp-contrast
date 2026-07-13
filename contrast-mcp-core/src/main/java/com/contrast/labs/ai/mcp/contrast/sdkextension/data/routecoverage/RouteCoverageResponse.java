@@ -30,7 +30,6 @@ public class RouteCoverageResponse {
   private List<String> messages;
   private List<Route> routes;
 
-  @SerializedName("count")
   private Integer count;
 
   @SerializedName("exercised_count")
