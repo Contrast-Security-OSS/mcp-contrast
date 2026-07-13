@@ -148,6 +148,25 @@ class RouteMapperTest {
   }
 
   @Test
+  void toResponseLight_should_derive_counts_from_exercised_when_status_and_counts_missing() {
+    var exercisedRoute = new Route();
+    exercisedRoute.setExercised(1L);
+
+    var discoveredRoute = new Route();
+    discoveredRoute.setExercised(0L);
+
+    var response = new RouteCoverageResponse();
+    response.setRoutes(List.of(exercisedRoute, discoveredRoute));
+
+    var result = mapper.toResponseLight(response);
+
+    assertThat(result.totalRoutes()).isEqualTo(2);
+    assertThat(result.exercisedCount()).isEqualTo(1);
+    assertThat(result.discoveredCount()).isEqualTo(1);
+    assertThat(result.coveragePercent()).isEqualTo(50.0);
+  }
+
+  @Test
   void toResponseLight_should_handle_null_routes() {
     var response = new RouteCoverageResponse();
     response.setSuccess(true);
