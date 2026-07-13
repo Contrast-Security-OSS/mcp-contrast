@@ -148,6 +148,8 @@ class ListApplicationsByCveToolTest {
     assertThat(result.data().getCve())
         .extracting(
             cve -> cve.getId(),
+            cve -> cve.getDescription(),
+            cve -> cve.getStatus(),
             cve -> cve.getCwe(),
             cve -> cve.getEpssScore(),
             cve -> cve.getEpssPercentile(),
@@ -158,6 +160,8 @@ class ListApplicationsByCveToolTest {
             cve -> cve.getFirstSeen())
         .containsExactly(
             12345L,
+            "Apache Log4j remote code execution",
+            "unseen",
             "CWE-502",
             0.97565,
             0.99996,
