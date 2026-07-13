@@ -23,7 +23,9 @@ import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.App;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Cve;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CveData;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CvssV3;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Server;
@@ -186,6 +188,39 @@ class ListApplicationsByCveToolTest {
             cvss -> cvss.getIntegrityImpact(),
             cvss -> cvss.getAvailabilityImpact())
         .containsExactly("NETWORK", "MEDIUM", "NONE", "PARTIAL", "NONE", "NONE");
+  }
+
+  @Test
+  void listApplicationsByCve_should_leave_summary_absent_when_cve_has_no_cvss_data()
+      throws Exception {
+    var cve = new Cve();
+    var cveData = cveData(cve);
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID))).thenReturn(cveData);
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.data().getCve()).isSameAs(cve);
+    assertThat(result.data().getCve())
+        .extracting(Cve::getScore, Cve::getSeverity)
+        .containsExactly(null, null);
+  }
+
+  @Test
+  void listApplicationsByCve_should_leave_severity_absent_when_cvss_v3_severity_is_absent()
+      throws Exception {
+    var cvssv3 = new CvssV3();
+    cvssv3.setBaseScore(7.5);
+    var cve = new Cve();
+    cve.setCvssv3(cvssv3);
+    var cveData = cveData(cve);
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID))).thenReturn(cveData);
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.data().getCve().getScore()).isEqualTo(7.5);
+    assertThat(result.data().getCve().getSeverity()).isNull();
   }
 
   @Test
@@ -383,6 +418,14 @@ class ListApplicationsByCveToolTest {
     var cveData = new CveData();
     cveData.setApps(List.of(app));
     cveData.setLibraries(List.of(library));
+    return cveData;
+  }
+
+  private static CveData cveData(Cve cve) {
+    var cveData = new CveData();
+    cveData.setCve(cve);
+    cveData.setApps(List.of());
+    cveData.setLibraries(List.of());
     return cveData;
   }
 
