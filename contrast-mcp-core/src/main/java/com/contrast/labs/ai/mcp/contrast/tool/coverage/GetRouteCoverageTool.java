@@ -50,14 +50,23 @@ public class GetRouteCoverageTool
           """
           Retrieves route coverage data for an application.
 
-          Routes can have two statuses:
+          Routes can have these statuses:
           - DISCOVERED: Found by Contrast Assess but has not received any HTTP requests
           - EXERCISED: Has received at least one HTTP request
+          - EXCLUDED: Excluded from route coverage tracking
 
           Response fields:
-          - routes: List of routes with coverage status and details
           - success: Whether the request completed successfully
-          - environments: Empty for session-filtered routes because the source omits this data
+          - messages: Informational messages returned by the service
+          - totalRoutes: Total number of routes
+          - exercisedCount: Number of routes with EXERCISED status
+          - discoveredCount: Number of routes with DISCOVERED status
+          - coveragePercent: Percentage of routes that are exercised
+          - totalVulnerabilities: Total vulnerabilities across the returned routes
+          - totalCriticalVulnerabilities: Critical vulnerabilities across the returned routes
+          - routes: List of routes with coverage status and details. Each route includes
+            environments; this list is empty for session-filtered routes because the source omits
+            that data.
 
           Filtering options (mutually exclusive):
           - No filter: Returns all routes across all sessions
