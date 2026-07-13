@@ -42,7 +42,14 @@ class CveTest {
         .contains(
             "\"name\":\"CVE-2015-4000\"", "\"severity\":\"High\"", "\"severity\":\"Critical\"")
         .doesNotContain(
-            "\"score\"", "\"uuid\"", "\"references\"", "\"exploitability\"", "\"attackVector\"");
+            "\"score\"",
+            "\"uuid\"",
+            "\"references\"",
+            "\"id\"",
+            "\"epssScore\"",
+            "\"cisa\"",
+            "\"exploitability\"",
+            "\"attackVector\"");
   }
 
   @Test
