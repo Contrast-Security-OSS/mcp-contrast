@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Breaking Changes
+
+**CVE score accessors now use `Double`**: The published `contrast-mcp-core` `Cve` model changed `getScore()` and `setScore()` from primitive `double` to nullable `Double` so unavailable scores can be represented accurately. Consumers compiled against the previous signature must recompile.
+
+### Improvements
+
+**Richer CVE scoring details**: `list_applications_by_cve` responses now include nested `cvssv2` and `cvssv3` metrics plus a preferred `severity`. CVSS v3 scores remain available through `score`; v2-only CVEs omit `score` instead of reporting `0.0`. A null `score` is also omitted from `get_protect_rules` CVE output.
+
 ## [2.0.0] - 2026-06-01
 
 ### Breaking Changes
