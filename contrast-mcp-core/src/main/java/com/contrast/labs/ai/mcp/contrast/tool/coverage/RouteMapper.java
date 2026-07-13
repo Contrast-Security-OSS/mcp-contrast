@@ -85,6 +85,7 @@ public class RouteMapper {
       totalCriticalVulnerabilities += route.getCriticalVulnerabilities();
     }
 
+    // Filtered responses omit route status, so prefer their authoritative aggregate counts.
     int totalRoutes = Optional.ofNullable(response.getCount()).orElse(routes.size());
     exercisedCount = Optional.ofNullable(response.getExercisedCount()).orElse(exercisedCount);
     discoveredCount = Optional.ofNullable(response.getDiscoveredCount()).orElse(discoveredCount);
