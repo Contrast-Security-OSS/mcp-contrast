@@ -30,10 +30,19 @@ public class Cve {
   private String cwe;
   private Double epssScore;
   private Double epssPercentile;
+
+  /** Whether the CVE appears in CISA's Known Exploited Vulnerabilities catalog. */
   private Boolean cisa;
+
   private String cvssScoreSource;
+
+  /** NVD publication time as Unix epoch milliseconds. */
   private Long nvdPublished;
+
+  /** NVD modification time as Unix epoch milliseconds. */
   private Long nvdModified;
+
+  /** First-seen time as Unix epoch milliseconds. */
   private Long firstSeen;
 
   // Legacy flat CVSS fields retained for the get_protect_rules contract.
