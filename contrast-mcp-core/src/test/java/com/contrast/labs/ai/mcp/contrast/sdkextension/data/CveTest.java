@@ -32,12 +32,17 @@ class CveTest {
     var cvssv2 = new CvssV2();
     cvssv2.setSeverity("High");
     cve.setCvssv2(cvssv2);
+    var cvssv3 = new CvssV3();
+    cvssv3.setSeverity("Critical");
+    cve.setCvssv3(cvssv3);
 
     var json = objectMapper.writeValueAsString(cve);
 
     assertThat(json)
-        .contains("\"name\":\"CVE-2015-4000\"", "\"severity\":\"High\"")
-        .doesNotContain("\"score\"", "\"uuid\"", "\"references\"");
+        .contains(
+            "\"name\":\"CVE-2015-4000\"", "\"severity\":\"High\"", "\"severity\":\"Critical\"")
+        .doesNotContain(
+            "\"score\"", "\"uuid\"", "\"references\"", "\"exploitability\"", "\"attackVector\"");
   }
 
   @Test

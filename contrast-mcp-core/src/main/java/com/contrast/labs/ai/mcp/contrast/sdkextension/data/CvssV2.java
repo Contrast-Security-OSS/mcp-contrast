@@ -15,10 +15,12 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 /** Class representing CVSS v2 scoring details for a CVE. */
 @Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class CvssV2 {
 
   private String accessVector;
