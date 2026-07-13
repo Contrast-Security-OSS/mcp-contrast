@@ -15,36 +15,25 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.List;
 import lombok.Data;
 
-/** Class representing CVE vulnerability information. */
+/** Class representing CVSS v2 scoring details for a CVE. */
 @Data
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class Cve {
-  private Long id;
-  private String availabilityImpact;
-  private String name;
-  private String uuid;
-  private String description;
-  private String status;
-  private String cwe;
-  private Double epssScore;
-  private Double epssPercentile;
-  private Boolean cisa;
-  private String cvssScoreSource;
-  private Long nvdPublished;
-  private Long nvdModified;
-  private Long firstSeen;
-  private String severity;
+public class CvssV2 {
+
   private String accessVector;
   private String accessComplexity;
   private String authentication;
   private String confidentialityImpact;
   private String integrityImpact;
-  private Double score;
-  private List<String> references;
-  private CvssV2 cvssv2;
-  private CvssV3 cvssv3;
+  private String availabilityImpact;
+  private String exploitability;
+  private String remediationLevel;
+  private String reportConfidence;
+  private String collateralDamagePotential;
+  private String targetDistribution;
+  private String confidentialityRequirement;
+  private String integrityRequirement;
+  private String availabilityRequirement;
+  private String severity;
 }
