@@ -136,10 +136,13 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
   }
 
   private static void applyPreferredCvssSummary(Cve cve) {
-    if (cve != null && cve.getCvssv3() != null) {
+    if (cve == null) {
+      return;
+    }
+    if (cve.getCvssv3() != null) {
       cve.setScore(cve.getCvssv3().getBaseScore());
       cve.setSeverity(cve.getCvssv3().getSeverity());
-    } else if (cve != null && cve.getCvssv2() != null) {
+    } else if (cve.getCvssv2() != null) {
       cve.setSeverity(cve.getCvssv2().getSeverity());
     }
   }
