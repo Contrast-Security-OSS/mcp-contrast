@@ -340,7 +340,9 @@ use contrast mcp to get the route coverage statistics for the DemoRouteSession a
 
 **Expected Result:**
 - totalRoutes: 2
-- coveragePercent: 0.0 (session-scoped view doesn't aggregate overall status)
+- exercisedCount: 1
+- discoveredCount: 1
+- coveragePercent: 50.0
 
 ---
 
@@ -368,4 +370,4 @@ use contrast mcp to get the route coverage statistics for the DemoRouteSession a
 | 18 | Route Status | exercised routes | 1 |
 | 19 | Route Status | discovered routes | 2 |
 | 20 | Statistics | unfiltered stats | 3 total, 33.33% |
-| 21 | Statistics | filtered stats | 2 total |
+| 21 | Statistics | filtered stats | 2 total, 50% |
