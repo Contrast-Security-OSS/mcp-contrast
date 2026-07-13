@@ -22,6 +22,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCo
 import java.util.Collections;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 /**
  * Mapper for transforming Route objects into lightweight RouteLight representations. Eliminates
@@ -29,6 +30,9 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class RouteMapper {
+
+  private static final String STATUS_DISCOVERED = "DISCOVERED";
+  private static final String STATUS_EXERCISED = "EXERCISED";
 
   /**
    * Transform a Route object into a lightweight representation. Removes redundant app data, full
@@ -41,7 +45,7 @@ public class RouteMapper {
     return new RouteLight(
         route.getSignature(),
         Optional.ofNullable(route.getEnvironments()).orElse(Collections.emptyList()),
-        route.getStatus(),
+        statusFor(route),
         route.getRouteHash(),
         route.getVulnerabilities(),
         route.getCriticalVulnerabilities(),
@@ -71,16 +75,19 @@ public class RouteMapper {
     int totalCriticalVulnerabilities = 0;
 
     for (var route : routes) {
-      if ("EXERCISED".equalsIgnoreCase(route.getStatus())) {
+      var status = statusFor(route);
+      if (STATUS_EXERCISED.equalsIgnoreCase(status)) {
         exercisedCount++;
-      } else if ("DISCOVERED".equalsIgnoreCase(route.getStatus())) {
+      } else if (STATUS_DISCOVERED.equalsIgnoreCase(status)) {
         discoveredCount++;
       }
       totalVulnerabilities += route.getVulnerabilities();
       totalCriticalVulnerabilities += route.getCriticalVulnerabilities();
     }
 
-    int totalRoutes = routes.size();
+    int totalRoutes = Optional.ofNullable(response.getCount()).orElse(routes.size());
+    exercisedCount = Optional.ofNullable(response.getExercisedCount()).orElse(exercisedCount);
+    discoveredCount = Optional.ofNullable(response.getDiscoveredCount()).orElse(discoveredCount);
     double coveragePercent =
         totalRoutes > 0 ? Math.round((exercisedCount * 100.0) / totalRoutes * 100.0) / 100.0 : 0.0;
 
@@ -94,5 +101,12 @@ public class RouteMapper {
         totalVulnerabilities,
         totalCriticalVulnerabilities,
         lightRoutes);
+  }
+
+  private static String statusFor(Route route) {
+    if (StringUtils.hasText(route.getStatus())) {
+      return route.getStatus();
+    }
+    return route.getExercised() > 0 ? STATUS_EXERCISED : STATUS_DISCOVERED;
   }
 }

@@ -57,6 +57,7 @@ public class GetRouteCoverageTool
           Response fields:
           - routes: List of routes with coverage status and details
           - success: Whether the request completed successfully
+          - environments: Empty for session-filtered routes because the source omits this data
 
           Filtering options (mutually exclusive):
           - No filter: Returns all routes across all sessions

@@ -34,6 +34,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.Agent
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
 import com.contrastsecurity.exceptions.HttpResponseException;
 import com.contrastsecurity.models.RouteCoverageBySessionIDAndMetadataRequest;
+import com.contrastsecurity.sdk.internal.GsonFactory;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,6 +54,27 @@ class GetRouteCoverageToolTest {
   private static final String SESSION_ID = "session-456";
   private static final String ROUTE_HASH = "route-hash-789";
   private static final String SECRET_BODY = "token=raw-token-value&apiKey=secret";
+  private static final String FILTERED_ROUTE_COVERAGE_RESPONSE =
+      """
+      {
+        "success": true,
+        "count": 48,
+        "exercised_count": 6,
+        "discovered_count": 42,
+        "routes": [
+          {
+            "signature": "GET /login",
+            "route_hash": "login-route",
+            "exercised": 1710000000000
+          },
+          {
+            "signature": "GET /health",
+            "route_hash": "health-route",
+            "exercised": 0
+          }
+        ]
+      }
+      """;
 
   private ContrastApiClient contrastApiClient;
   private GetRouteCoverageTool tool;
@@ -104,6 +126,43 @@ class GetRouteCoverageToolTest {
     assertThat(request.getValues()).hasSize(1);
     assertThat(request.getValues().get(0).getLabel()).isEqualTo(METADATA_NAME);
     assertThat(request.getValues().get(0).getValues()).containsExactly(METADATA_VALUE);
+  }
+
+  @Test
+  void getRouteCoverage_should_use_authoritative_counts_from_filtered_response() throws Exception {
+    var response =
+        GsonFactory.create()
+            .fromJson(FILTERED_ROUTE_COVERAGE_RESPONSE, RouteCoverageResponse.class);
+    when(contrastApiClient.getRouteCoverage(
+            eq(VALID_APP_ID), any(RouteCoverageBySessionIDAndMetadataRequest.class)))
+        .thenReturn(response);
+
+    var result = tool.getRouteCoverage(VALID_APP_ID, METADATA_NAME, METADATA_VALUE, false, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.data().totalRoutes()).isEqualTo(48);
+    assertThat(result.data().exercisedCount()).isEqualTo(6);
+    assertThat(result.data().discoveredCount()).isEqualTo(42);
+    assertThat(result.data().coveragePercent()).isEqualTo(12.5);
+  }
+
+  @Test
+  void getRouteCoverage_should_derive_missing_filtered_route_status_from_exercised_timestamp()
+      throws Exception {
+    var response =
+        GsonFactory.create()
+            .fromJson(FILTERED_ROUTE_COVERAGE_RESPONSE, RouteCoverageResponse.class);
+    when(contrastApiClient.getRouteCoverage(
+            eq(VALID_APP_ID), any(RouteCoverageBySessionIDAndMetadataRequest.class)))
+        .thenReturn(response);
+
+    var result = tool.getRouteCoverage(VALID_APP_ID, METADATA_NAME, METADATA_VALUE, false, null);
+
+    assertThat(result.data().routes())
+        .extracting(route -> route.status())
+        .containsExactly("EXERCISED", "DISCOVERED");
+    assertThat(result.data().routes())
+        .allSatisfy(route -> assertThat(route.environments()).isEmpty());
   }
 
   @Test

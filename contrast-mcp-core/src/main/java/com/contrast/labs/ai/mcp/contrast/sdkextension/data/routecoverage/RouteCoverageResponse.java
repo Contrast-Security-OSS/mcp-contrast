@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage;
 
+import com.google.gson.annotations.SerializedName;
 import java.util.List;
 import lombok.Data;
 
@@ -28,4 +29,13 @@ public class RouteCoverageResponse {
   private boolean success;
   private List<String> messages;
   private List<Route> routes;
+
+  @SerializedName("count")
+  private Integer count;
+
+  @SerializedName("exercised_count")
+  private Integer exercisedCount;
+
+  @SerializedName("discovered_count")
+  private Integer discoveredCount;
 }
