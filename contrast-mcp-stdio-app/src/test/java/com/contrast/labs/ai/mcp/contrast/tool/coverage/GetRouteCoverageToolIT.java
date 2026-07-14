@@ -18,6 +18,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
+import com.contrast.labs.ai.mcp.contrast.result.RouteCoverageResponseLight;
 import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper.RouteCoverageTestData;
@@ -356,6 +357,7 @@ public class GetRouteCoverageToolIT
               assertThat(route.signature()).as("route.signature").isNotBlank();
               assertThat(route.routeHash()).as("route.routeHash").isNotBlank();
             });
+    assertFilteredCoverageConsistent(response.data());
   }
 
   @Test
@@ -380,6 +382,7 @@ public class GetRouteCoverageToolIT
     assertThat(response.data().routes())
         .as("every latest-session route must populate signature")
         .allSatisfy(route -> assertThat(route.signature()).isNotBlank());
+    assertFilteredCoverageConsistent(response.data());
   }
 
   // ========== Empty string handling (MCP-OU8 bug fix) ==========
@@ -629,5 +632,24 @@ public class GetRouteCoverageToolIT
             "unfiltered (%d) must return at least as many routes as latest-session filter (%d)",
             unfilteredCount, latestSessionCount)
         .isGreaterThanOrEqualTo(latestSessionCount);
+  }
+
+  private static void assertFilteredCoverageConsistent(RouteCoverageResponseLight coverage) {
+    assertThat(coverage.routes()).as("filtered coverage must contain routes").isNotEmpty();
+    assertThat(coverage.totalRoutes())
+        .as("filtered totalRoutes must equal exercisedCount + discoveredCount")
+        .isEqualTo(coverage.exercisedCount() + coverage.discoveredCount());
+    // totalRoutes == routes.size() holds because the MCP client's getRouteCoverage sends no
+    // limit/offset, so /route/filter returns the full result set in a single page. Validated
+    // against teamserver source, where the endpoint emits count alongside every matching route.
+    assertThat(coverage.totalRoutes())
+        .as("filtered totalRoutes must equal routes.size()")
+        .isEqualTo(coverage.routes().size());
+    assertThat(coverage.routes())
+        .allSatisfy(
+            route -> {
+              assertThat(route.status()).isIn(KNOWN_ROUTE_STATUSES);
+              assertThat(route.environments()).isEmpty();
+            });
   }
 }

@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 **CVE score accessors now use `Double`**: The published `contrast-mcp-core` `Cve` model changed `getScore()` and `setScore()` from primitive `double` to nullable `Double` so unavailable scores can be represented accurately. Consumers compiled against the previous signature must recompile.
 
+### Bug Fixes
+
+**Session-filtered route coverage statistics were always zero**: Filtered route coverage now reports
+the correct total, exercised, and discovered route counts and coverage percentage.
+
 ### Improvements
 
 **Richer CVE scoring details**: `list_applications_by_cve` responses now include nested `cvssv2` and `cvssv3` metrics plus a preferred `severity`. CVSS v3 scores remain available through `score`; v2-only CVEs omit `score` instead of reporting `0.0`. A null `score` is also omitted from `get_protect_rules` CVE output.
