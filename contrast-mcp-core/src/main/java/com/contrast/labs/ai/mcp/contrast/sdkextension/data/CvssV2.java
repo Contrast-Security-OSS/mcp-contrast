@@ -18,22 +18,24 @@ package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
-/** Class representing CVSS v3 scoring details for a CVE. */
+/** Class representing CVSS v2 scoring details for a CVE. */
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class CvssV3 {
+public class CvssV2 {
 
-  private String attackVector;
-  private String attackComplexity;
-  private String privilegesRequired;
-  private String userInteraction;
-  private String scope;
+  private String accessVector;
+  private String accessComplexity;
+  private String authentication;
   private String confidentialityImpact;
   private String integrityImpact;
   private String availabilityImpact;
-  private double impactSubscore;
-  private double exploitabilitySubscore;
-  private double baseScore;
-  private String vector;
+  private String exploitability;
+  private String remediationLevel;
+  private String reportConfidence;
+  private String collateralDamagePotential;
+  private String targetDistribution;
+  private String confidentialityRequirement;
+  private String integrityRequirement;
+  private String availabilityRequirement;
   private String severity;
 }
