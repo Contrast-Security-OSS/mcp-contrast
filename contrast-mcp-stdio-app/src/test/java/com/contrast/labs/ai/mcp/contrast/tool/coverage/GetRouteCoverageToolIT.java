@@ -639,6 +639,9 @@ public class GetRouteCoverageToolIT
     assertThat(coverage.totalRoutes())
         .as("filtered totalRoutes must equal exercisedCount + discoveredCount")
         .isEqualTo(coverage.exercisedCount() + coverage.discoveredCount());
+    // totalRoutes == routes.size() holds because the MCP client's getRouteCoverage sends no
+    // limit/offset, so /route/filter returns the full result set in a single page. Validated
+    // against teamserver source, where the endpoint emits count alongside every matching route.
     assertThat(coverage.totalRoutes())
         .as("filtered totalRoutes must equal routes.size()")
         .isEqualTo(coverage.routes().size());
