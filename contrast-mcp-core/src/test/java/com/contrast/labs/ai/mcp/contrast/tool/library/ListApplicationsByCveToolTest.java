@@ -23,12 +23,15 @@ import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.App;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Cve;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CveData;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CvssV3;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Server;
 import com.contrastsecurity.exceptions.HttpResponseException;
 import com.contrastsecurity.exceptions.ResourceNotFoundException;
+import com.contrastsecurity.sdk.internal.GsonFactory;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -45,6 +48,58 @@ class ListApplicationsByCveToolTest {
   private static final String CVE_ID = "CVE-2021-44228";
   private static final String LIBRARY_HASH = "hash-123";
   private static final String SECRET_BODY = "token=raw-token-value&apiKey=secret";
+  private static final String CVSS_V3_CVE_RESPONSE =
+      """
+      {
+        "cve": {
+          "id": 12345,
+          "name": "CVE-2021-44228",
+          "description": "Apache Log4j remote code execution",
+          "status": "unseen",
+          "cwe": "CWE-502",
+          "epssScore": 0.97565,
+          "epssPercentile": 0.99996,
+          "cisa": true,
+          "cvssScoreSource": "NVD",
+          "nvdPublished": 1639008000000,
+          "nvdModified": 1716336000000,
+          "firstSeen": 1640995200000,
+          "cvssv2": {
+            "severity": "High"
+          },
+          "cvssv3": {
+            "baseScore": 9.3,
+            "severity": "Critical"
+          }
+        },
+        "apps": [],
+        "libraries": [],
+        "servers": []
+      }
+      """;
+  private static final String CVSS_V2_CVE_RESPONSE =
+      """
+      {
+        "cve": {
+          "id": 2,
+          "name": "CVE-2015-4000",
+          "description": "TLS weak Diffie-Hellman key exchange",
+          "status": "seen",
+          "cvssv2": {
+            "accessVector": "NETWORK",
+            "accessComplexity": "MEDIUM",
+            "authentication": "NONE",
+            "confidentialityImpact": "PARTIAL",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "NONE",
+            "severity": "High"
+          }
+        },
+        "apps": [],
+        "libraries": [],
+        "servers": []
+      }
+      """;
 
   private ContrastApiClient contrastApiClient;
   private ListApplicationsByCveTool tool;
@@ -77,6 +132,100 @@ class ListApplicationsByCveToolTest {
               assertThat(enriched.getClassCount()).isEqualTo(42);
               assertThat(enriched.getClassUsage()).isEqualTo(7);
             });
+  }
+
+  @Test
+  void listApplicationsByCve_should_return_cvss_v3_score_when_teamserver_nests_cvss_data()
+      throws Exception {
+    var cveData = GsonFactory.create().fromJson(CVSS_V3_CVE_RESPONSE, CveData.class);
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID))).thenReturn(cveData);
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.data().getCve().getScore()).isEqualTo(9.3);
+    assertThat(result.data().getCve().getSeverity()).isEqualTo("Critical");
+    assertThat(result.data().getCve())
+        .extracting(
+            cve -> cve.getId(),
+            cve -> cve.getDescription(),
+            cve -> cve.getStatus(),
+            cve -> cve.getCwe(),
+            cve -> cve.getEpssScore(),
+            cve -> cve.getEpssPercentile(),
+            cve -> cve.getCisa(),
+            cve -> cve.getCvssScoreSource(),
+            cve -> cve.getNvdPublished(),
+            cve -> cve.getNvdModified(),
+            cve -> cve.getFirstSeen())
+        .containsExactly(
+            12345L,
+            "Apache Log4j remote code execution",
+            "unseen",
+            "CWE-502",
+            0.97565,
+            0.99996,
+            true,
+            "NVD",
+            1639008000000L,
+            1716336000000L,
+            1640995200000L);
+  }
+
+  @Test
+  void listApplicationsByCve_should_fallback_to_cvss_v2_severity_when_cvss_v3_is_absent()
+      throws Exception {
+    var cveData = GsonFactory.create().fromJson(CVSS_V2_CVE_RESPONSE, CveData.class);
+    cveData.getCve().setScore(9.9);
+    when(contrastApiClient.getApplicationsByCve(eq("CVE-2015-4000"))).thenReturn(cveData);
+
+    var result = tool.listApplicationsByCve("CVE-2015-4000", null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.data().getCve().getSeverity()).isEqualTo("High");
+    assertThat(result.data().getCve().getScore()).isNull();
+    assertThat(result.data().getCve().getCvssv2())
+        .extracting(
+            cvss -> cvss.getAccessVector(),
+            cvss -> cvss.getAccessComplexity(),
+            cvss -> cvss.getAuthentication(),
+            cvss -> cvss.getConfidentialityImpact(),
+            cvss -> cvss.getIntegrityImpact(),
+            cvss -> cvss.getAvailabilityImpact())
+        .containsExactly("NETWORK", "MEDIUM", "NONE", "PARTIAL", "NONE", "NONE");
+  }
+
+  @Test
+  void listApplicationsByCve_should_leave_summary_absent_when_cve_has_no_cvss_data()
+      throws Exception {
+    var cve = new Cve();
+    var cveData = cveData(cve);
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID))).thenReturn(cveData);
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.data().getCve()).isSameAs(cve);
+    assertThat(result.data().getCve())
+        .extracting(Cve::getScore, Cve::getSeverity)
+        .containsExactly(null, null);
+  }
+
+  @Test
+  void listApplicationsByCve_should_leave_severity_absent_when_cvss_v3_severity_is_absent()
+      throws Exception {
+    var cvssv3 = new CvssV3();
+    cvssv3.setBaseScore(7.5);
+    var cve = new Cve();
+    cve.setCvssv3(cvssv3);
+    var cveData = cveData(cve);
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID))).thenReturn(cveData);
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.data().getCve().getScore()).isEqualTo(7.5);
+    assertThat(result.data().getCve().getSeverity()).isNull();
   }
 
   @Test
@@ -274,6 +423,14 @@ class ListApplicationsByCveToolTest {
     var cveData = new CveData();
     cveData.setApps(List.of(app));
     cveData.setLibraries(List.of(library));
+    return cveData;
+  }
+
+  private static CveData cveData(Cve cve) {
+    var cveData = new CveData();
+    cveData.setCve(cve);
+    cveData.setApps(List.of());
+    cveData.setLibraries(List.of());
     return cveData;
   }
 

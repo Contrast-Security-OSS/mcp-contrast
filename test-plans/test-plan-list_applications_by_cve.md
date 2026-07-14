@@ -41,7 +41,7 @@ SingleToolResponse {
 
 // CveData structure:
 CveData {
-    Cve cve,                    // CVE details (name, score, description)
+    Cve cve,                    // CVE details plus preferred and nested CVSS data
     ImpactStats impactStats,    // Impact statistics
     List<Library> libraries,    // Vulnerable library versions
     List<App> apps,             // Affected applications
@@ -108,9 +108,10 @@ App {
 **cve object contains:**
 - `name`: CVE ID string (matches request)
 - `description`: Text description of vulnerability
-- `score`: CVSS score (0.0-10.0)
-- `availabilityImpact`, `confidentialityImpact`, `integrityImpact`: Impact ratings
-- `accessVector`, `accessComplexity`: Access information
+- `severity`: Preferred CVSS v3 severity, falling back to CVSS v2 severity
+- `score`: Preferred CVSS v3 score (0.0-10.0); absent for v2-only CVEs
+- `cvssv2`: Nested CVSS v2 metrics, including access and impact ratings
+- `cvssv3`: Nested CVSS v3 metrics, including attack, impact, vector, and score details
 - `references`: List of reference URLs
 
 **impactStats object contains:**

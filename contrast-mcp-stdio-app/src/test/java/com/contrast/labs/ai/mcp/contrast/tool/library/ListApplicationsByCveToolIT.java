@@ -181,9 +181,19 @@ class ListApplicationsByCveToolIT
     assertThat(cve.getDescription())
         .as("cve.description must be populated for a known CVE")
         .isNotBlank();
-    assertThat(cve.getScore())
-        .as("cve.score must be within CVSS range [%s, %s]", MIN_CVSS_SCORE, MAX_CVSS_SCORE)
-        .isBetween(MIN_CVSS_SCORE, MAX_CVSS_SCORE);
+    assertThat(cve)
+        .satisfiesAnyOf(
+            candidate ->
+                assertThat(candidate.getCvssv3()).as("cve.cvssv3 must be populated").isNotNull(),
+            candidate ->
+                assertThat(candidate.getCvssv2()).as("cve.cvssv2 must be populated").isNotNull());
+    assertThat(cve.getSeverity()).as("cve.severity must be derived from CVSS data").isNotBlank();
+    if (cve.getCvssv3() != null) {
+      assertThat(cve.getScore())
+          .as("cve.score must be within CVSS range [%s, %s]", MIN_CVSS_SCORE, MAX_CVSS_SCORE)
+          .isNotNull()
+          .isBetween(MIN_CVSS_SCORE, MAX_CVSS_SCORE);
+    }
   }
 
   @Test

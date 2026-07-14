@@ -15,22 +15,50 @@
  */
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import lombok.Data;
 
 /** Class representing CVE vulnerability information. */
 @Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Cve {
-  private String availabilityImpact;
+  private Long id;
   private String name;
-  private String uuid;
   private String description;
   private String status;
+  private String cwe;
+  private Double epssScore;
+  private Double epssPercentile;
+
+  /** Whether the CVE appears in CISA's Known Exploited Vulnerabilities catalog. */
+  private Boolean cisa;
+
+  private String cvssScoreSource;
+
+  /** NVD publication time as Unix epoch milliseconds. */
+  private Long nvdPublished;
+
+  /** NVD modification time as Unix epoch milliseconds. */
+  private Long nvdModified;
+
+  /** First-seen time as Unix epoch milliseconds. */
+  private Long firstSeen;
+
+  // Legacy flat CVSS fields retained for the get_protect_rules contract.
+  private String uuid;
   private String accessVector;
   private String accessComplexity;
   private String authentication;
   private String confidentialityImpact;
   private String integrityImpact;
-  private double score;
+  private String availabilityImpact;
   private List<String> references;
+
+  private CvssV2 cvssv2;
+  private CvssV3 cvssv3;
+
+  // Preferred summary derived from the nested CVSS data.
+  private Double score;
+  private String severity;
 }

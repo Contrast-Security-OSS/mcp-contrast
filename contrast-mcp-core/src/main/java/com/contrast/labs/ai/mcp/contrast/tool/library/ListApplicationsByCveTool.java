@@ -17,6 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.library;
 
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.App;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Cve;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
@@ -60,7 +61,7 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
           Takes a CVE ID (e.g., CVE-2021-44228) and returns:
           - apps: List of applications containing vulnerable libraries
           - libraries: The vulnerable library versions
-          - cve: CVE details including severity and description
+          - cve: CVE details including preferred CVSS score/severity and nested v2/v3 metrics
 
           For each application, class usage data is populated:
           - classCount: Total classes in the vulnerable library
@@ -69,6 +70,9 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
           Important: If classUsage is 0, the vulnerable library code is likely NOT
           being executed, significantly reducing exploitability risk. Prioritize
           remediation for applications where classUsage > 0.
+
+          score is absent for v2-only CVEs because TeamServer does not provide a numeric v2
+          base score; use severity and cvssv2 metrics in that case.
 
           Related tools:
           - list_application_libraries: Get all libraries for a specific application
@@ -94,6 +98,7 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
     if (cveData == null) {
       return null; // SingleTool converts this to notFound response
     }
+    applyPreferredCvssSummary(cveData.getCve());
     dedupeServersById(cveData);
 
     var vulnerableLibs =
@@ -128,6 +133,19 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
         apps.size());
 
     return cveData;
+  }
+
+  private static void applyPreferredCvssSummary(Cve cve) {
+    if (cve == null) {
+      return;
+    }
+    if (cve.getCvssv3() != null) {
+      cve.setScore(cve.getCvssv3().getBaseScore());
+      cve.setSeverity(cve.getCvssv3().getSeverity());
+    } else if (cve.getCvssv2() != null) {
+      cve.setScore(null);
+      cve.setSeverity(cve.getCvssv2().getSeverity());
+    }
   }
 
   private void enrichAppsWithClassUsage(
