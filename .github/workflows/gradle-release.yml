@@ -169,6 +169,12 @@ jobs:
           syft scan file:contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar \
             -o "cyclonedx-json=$SBOM_DIR/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json" \
             -o "spdx-json=$SBOM_DIR/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json"
+          for sbom in \
+            "$SBOM_DIR/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json" \
+            "$SBOM_DIR/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json"; do
+            test -s "$sbom"
+            jq empty "$sbom"
+          done
 
       - name: Verify tracked worktree is clean before publishing
         run: |
@@ -276,6 +282,12 @@ jobs:
           syft scan docker:contrast/mcp-contrast:${{ steps.versions.outputs.release }} \
             -o "cyclonedx-json=$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json" \
             -o "spdx-json=$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json"
+          for sbom in \
+            "$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json" \
+            "$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json"; do
+            test -s "$sbom"
+            jq empty "$sbom"
+          done
 
       - name: Push and sign Docker image with DCT
         env:
