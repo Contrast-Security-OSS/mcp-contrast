@@ -160,13 +160,15 @@ jobs:
           ./gradlew clean :contrast-mcp-stdio-app:bootJar -x test --no-daemon
           test -f "contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar"
 
-      # Pin the Syft version explicitly. The download action SHA-verifies the
-      # downloaded binary against anchore's signed checksums. Bump respecting
-      # the ENTSEC-1742 7-day dependency soak window.
+      # Syft version is intentionally left unset. The download action is
+      # SHA-pinned above, so its baked-in default Syft version is already
+      # deterministic, and the action SHA-verifies the downloaded binary
+      # against anchore's signed checksums. Bumping the pinned action (via
+      # Dependabot) carries the Syft version forward with it; an explicit
+      # syft-version input is not tracked by Dependabot and could silently
+      # go stale.
       - name: Install Syft
         uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
-        with:
-          syft-version: v1.46.0
 
       # Scan the packaged JAR here in both formats for ecosystem interoperability.
       - name: Generate release jar SBOMs
