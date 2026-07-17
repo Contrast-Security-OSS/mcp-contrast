@@ -292,6 +292,7 @@ jobs:
           name: Release ${{ steps.versions.outputs.tag }}
           draft: false
           prerelease: false
+          fail_on_unmatched_files: true
           files: |
             contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
             mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json
