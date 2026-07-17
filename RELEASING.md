@@ -33,12 +33,15 @@ The first Axion-managed release must be run with `release_version=2.0.0`. After 
 5. Checks out the release tag.
 6. Verifies that `./gradlew -q printVersion` matches the tag version.
 7. Builds `contrast-mcp-stdio-app/build/libs/mcp-contrast-{version}.jar` from the tag.
-8. Publishes `contrast-mcp-core` to Artifactory (signed with PGP).
-9. Attests build provenance for the release JAR.
-10. Builds the Docker image, signs it with Docker Content Trust, and publishes with the release and `latest` tags.
-11. Creates the GitHub release and attaches the JAR.
+8. Generates CycloneDX and SPDX JSON SBOMs for the release JAR.
+9. Publishes `contrast-mcp-core` to Artifactory (signed with PGP).
+10. Attests build provenance and both SBOM formats for the release JAR.
+11. Builds the Docker image and generates CycloneDX and SPDX JSON SBOM release assets from the loaded image.
+12. Signs the Docker image with Docker Content Trust and publishes the release and `latest` tags.
+13. Creates the GitHub release and attaches the JAR plus all four JAR and Docker image SBOM files.
 
 The workflow does not commit release-version or next-snapshot changes to `main`.
+The release-attached Docker image SBOMs are convenience artifacts; a separate repository generates the registry-bound image SBOM.
 
 ## Versioning
 
@@ -84,7 +87,8 @@ Then create a GitHub release for the tag and attach `contrast-mcp-stdio-app/buil
 
 ## Verify the Release
 
-- GitHub release exists with the expected tag and attached JAR.
+- GitHub release exists with the expected tag, attached JAR, and CycloneDX and SPDX JSON SBOMs for both the JAR and Docker image.
+- All four downloaded SBOM files are non-empty and pass `jq empty <file>`.
 - `gh attestation verify mcp-contrast-X.Y.Z.jar --repo Contrast-Security-OSS/mcp-contrast` succeeds.
 - DockerHub has the version tag and updated `latest` tag (signed with DCT).
 - `contrast-mcp-core` artifact is available in Artifactory at the release version.

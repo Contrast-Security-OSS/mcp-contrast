@@ -23,6 +23,8 @@ environment, application, tag, and Protect coverage with pagination and sorting.
 
 **Richer CVE scoring details**: `list_applications_by_cve` responses now include nested `cvssv2` and `cvssv3` metrics plus a preferred `severity`. CVSS v3 scores remain available through `score`; v2-only CVEs omit `score` instead of reporting `0.0`. A null `score` is also omitted from `get_protect_rules` CVE output.
 
+**Release SBOMs added**: GitHub releases now include CycloneDX and SPDX JSON SBOMs for both the release JAR and Docker image. Both JAR SBOM formats are bound to the JAR with GitHub attestations.
+
 ### Security
 
 **Spring Boot 4.1.0 and Spring AI 1.1.7 baseline**: Upgraded the build and stdio
