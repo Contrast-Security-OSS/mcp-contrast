@@ -291,6 +291,7 @@ jobs:
       # A separate repository produces the registry-bound image SBOM; these copies are release assets only.
       - name: Generate release Docker image SBOMs
         run: |
+          mkdir -p "$SBOM_DIR"
           syft scan docker:contrast/mcp-contrast:${{ steps.versions.outputs.release }} \
             -o "cyclonedx-json=$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json" \
             -o "spdx-json=$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json"
