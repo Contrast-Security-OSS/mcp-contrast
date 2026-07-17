@@ -176,6 +176,10 @@ jobs:
             test -s "$sbom"
             jq empty "$sbom"
           done
+          jq -e '(.components // []) | length > 0' \
+            "$SBOM_DIR/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json"
+          jq -e '(.packages // []) | length > 1' \
+            "$SBOM_DIR/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json"
 
       - name: Verify tracked worktree is clean before publishing
         run: |
@@ -296,6 +300,10 @@ jobs:
             test -s "$sbom"
             jq empty "$sbom"
           done
+          jq -e '(.components // []) | length > 0' \
+            "$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json"
+          jq -e '(.packages // []) | length > 1' \
+            "$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json"
 
       - name: Push and sign Docker image with DCT
         env:
