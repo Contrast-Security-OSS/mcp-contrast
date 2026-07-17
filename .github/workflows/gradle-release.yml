@@ -158,6 +158,15 @@ jobs:
           ./gradlew clean :contrast-mcp-stdio-app:bootJar -x test --no-daemon
           test -f "contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar"
 
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+
+      - name: Generate release jar SBOMs
+        run: |
+          syft scan file:contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar \
+            -o cyclonedx-json=mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json \
+            -o spdx-json=mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json
+
       - name: Verify tracked worktree is clean before publishing
         run: |
           git diff --quiet
@@ -195,6 +204,12 @@ jobs:
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
           subject-path: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
+
+      - name: Attest release jar SBOM
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
+          sbom-path: mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json
 
       - name: Create the trust keys folder
         shell: sh
@@ -252,6 +267,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Generate release Docker image SBOMs
+        run: |
+          syft scan docker:contrast/mcp-contrast:${{ steps.versions.outputs.release }} \
+            -o cyclonedx-json=mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json \
+            -o spdx-json=mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json
+
       - name: Push and sign Docker image with DCT
         env:
           DOCKER_CONTENT_TRUST: 1
@@ -270,7 +291,12 @@ jobs:
           name: Release ${{ steps.versions.outputs.tag }}
           draft: false
           prerelease: false
-          files: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
+          files: |
+            contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
+            mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json
+            mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json
+            mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json
+            mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
