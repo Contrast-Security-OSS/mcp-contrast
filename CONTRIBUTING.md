@@ -3,7 +3,7 @@
 ## Build Compatibility
 
 This repository builds and tests against Java 21 and the Spring Boot dependency-management
-version pinned by `springBootVersion` in `gradle.properties` (currently Spring Boot 3.5.7).
+version pinned by `springBootVersion` in `gradle.properties` (currently Spring Boot 4.1.0).
 
 The `contrast-mcp-core` module imports the Spring Boot BOM as a regular Gradle `platform()`
 so published-library consumers can keep control of their dependency graph. The deployable
