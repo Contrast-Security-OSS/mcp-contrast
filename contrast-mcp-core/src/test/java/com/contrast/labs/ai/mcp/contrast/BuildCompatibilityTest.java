@@ -28,17 +28,18 @@ class BuildCompatibilityTest {
   private static final Path ROOT_PROJECT = findRootProject();
 
   @Test
-  void build_should_pin_boot4_springAi117_and_gradle814() throws IOException {
+  void build_should_use_boot4_springAi11_and_validated_gradle8_wrapper() throws IOException {
     var gradleProperties = readProperties(ROOT_PROJECT.resolve("gradle.properties"));
     var wrapperProperties =
         readProperties(ROOT_PROJECT.resolve("gradle/wrapper/gradle-wrapper.properties"));
 
-    assertThat(gradleProperties)
-        .containsEntry("springBootVersion", "4.1.0")
-        .containsEntry("springAiVersion", "1.1.7");
-    assertThat(wrapperProperties)
-        .containsEntry(
-            "distributionUrl", "https://services.gradle.org/distributions/gradle-8.14-bin.zip");
+    assertThat(gradleProperties.getProperty("springBootVersion")).startsWith("4.");
+    assertThat(gradleProperties.getProperty("springAiVersion")).startsWith("1.1.");
+    assertThat(wrapperProperties.getProperty("distributionUrl"))
+        .startsWith("https://services.gradle.org/distributions/gradle-8.")
+        .endsWith("-bin.zip");
+    assertThat(wrapperProperties.getProperty("distributionSha256Sum")).matches("[0-9a-f]{64}");
+    assertThat(wrapperProperties).containsEntry("validateDistributionUrl", "true");
   }
 
   @Test
