@@ -287,11 +287,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # This relies on the single-platform load above; inspect keeps the scan bound to the local image.
       # Scan the loaded image here so both formats describe the exact image that will be pushed.
       # A separate repository produces the registry-bound image SBOM; these copies are release assets only.
       - name: Generate release Docker image SBOMs
         run: |
           mkdir -p "$SBOM_DIR"
+          docker image inspect "contrast/mcp-contrast:${{ steps.versions.outputs.release }}" >/dev/null
           syft scan docker:contrast/mcp-contrast:${{ steps.versions.outputs.release }} \
             -o "cyclonedx-json=$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json" \
             -o "spdx-json=$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json"
