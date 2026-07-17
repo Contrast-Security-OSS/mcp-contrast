@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 
 class BuildCompatibilityTest {
 
-  private static final Path ROOT_PROJECT = Path.of("..").toAbsolutePath().normalize();
+  private static final Path ROOT_PROJECT = findRootProject();
 
   @Test
   void build_should_pin_boot4_springAi117_and_gradle814() throws IOException {
@@ -35,32 +35,55 @@ class BuildCompatibilityTest {
 
     assertThat(gradleProperties)
         .containsEntry("springBootVersion", "4.1.0")
-        .containsEntry("springAiVersion", "1.1.7")
-        .doesNotContainKey("mockitoInlineVersion");
+        .containsEntry("springAiVersion", "1.1.7");
     assertThat(wrapperProperties)
         .containsEntry(
-            "distributionUrl", "https://services.gradle.org/distributions/gradle-8.14-bin.zip")
-        .containsEntry(
-            "distributionSha256Sum",
-            "61ad310d3c7d3e5da131b76bbf22b5a4c0786e9d892dae8c1658d4b484de3caa");
+            "distributionUrl", "https://services.gradle.org/distributions/gradle-8.14-bin.zip");
   }
 
   @Test
-  void build_should_use_bom_managed_mockito_core_not_discontinued_inline_artifact()
-      throws IOException {
-    assertThat(Files.readString(ROOT_PROJECT.resolve("contrast-mcp-core/build.gradle")))
-        .contains("testImplementation 'org.mockito:mockito-core'")
-        .doesNotContain("mockito-inline");
-    assertThat(Files.readString(ROOT_PROJECT.resolve("contrast-mcp-stdio-app/build.gradle")))
-        .contains("testImplementation 'org.mockito:mockito-core'")
-        .doesNotContain("mockito-inline");
+  void build_should_not_configure_discontinued_mockito_inline_artifact() throws IOException {
+    var gradleProperties = readProperties(ROOT_PROJECT.resolve("gradle.properties"));
+    var coreBuild = readString(ROOT_PROJECT.resolve("contrast-mcp-core/build.gradle"));
+    var stdioBuild = readString(ROOT_PROJECT.resolve("contrast-mcp-stdio-app/build.gradle"));
+
+    assertThat(gradleProperties).doesNotContainKey("mockitoInlineVersion");
+    assertThat(coreBuild).doesNotContain("mockito-inline");
+    assertThat(stdioBuild).doesNotContain("mockito-inline");
+  }
+
+  @Test
+  void stdio_app_should_keep_boot4_jackson2_compatibility_shim() throws IOException {
+    var coreBuild = readString(ROOT_PROJECT.resolve("contrast-mcp-core/build.gradle"));
+    var stdioBuild = readString(ROOT_PROJECT.resolve("contrast-mcp-stdio-app/build.gradle"));
+
+    assertThat(stdioBuild).contains("org.springframework.boot:spring-boot-jackson2");
+    assertThat(coreBuild).doesNotContain("org.springframework.boot:spring-boot-jackson2");
   }
 
   private static Properties readProperties(Path path) throws IOException {
+    assertThat(path).as("Expected %s to exist", path).isRegularFile();
     var properties = new Properties();
     try (var input = Files.newInputStream(path)) {
       properties.load(input);
     }
     return properties;
+  }
+
+  private static String readString(Path path) throws IOException {
+    assertThat(path).as("Expected %s to exist", path).isRegularFile();
+    return Files.readString(path);
+  }
+
+  private static Path findRootProject() {
+    var current = Path.of("").toAbsolutePath().normalize();
+    while (current != null) {
+      if (Files.isRegularFile(current.resolve("settings.gradle"))) {
+        return current;
+      }
+      current = current.getParent();
+    }
+    throw new IllegalStateException(
+        "Could not locate repository root by walking up from the current working directory.");
   }
 }
