@@ -83,9 +83,11 @@ git checkout vX.Y.Z
 test -f contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar
 ```
 
-Then create a GitHub release for the tag and attach `contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar`. Note that a manual release will not publish to Artifactory or sign the Docker image. Use the workflow whenever possible.
+Then create a GitHub release for the tag and attach `contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar`. Note that these manual instructions do not publish to Artifactory, sign the Docker image, generate SBOMs, or create attestations. Use the workflow whenever possible.
 
 ## Verify the Release
+
+This checklist describes an automated workflow release. For a manual recovery release, verify only the outputs you explicitly reproduced and document any omitted publication, SBOM, or attestation assets in the release notes.
 
 - GitHub release exists with the expected tag, attached JAR, and CycloneDX and SPDX JSON SBOMs for both the JAR and Docker image.
 - All four downloaded SBOM files are non-empty and pass `jq empty <file>`.
@@ -119,8 +121,9 @@ DockerHub credentials and signing keys are only available in the main repository
 2. Enable GitHub Actions and read/write workflow permissions in the fork.
 3. Push the branch containing `.github/workflows/gradle-release.yml` to the fork's `main` branch.
 4. Run **Gradle Release** from the Actions tab.
-5. Verify the release tag and attached JAR.
-6. Delete the test release and tag when done.
+5. Verify the release tag, JAR build, and JAR CycloneDX and SPDX SBOM generation.
+6. Without equivalent Artifactory, DockerHub, and signing configuration, expect the workflow to stop before Docker SBOM generation and the GitHub release. If the fork is fully configured, verify the attached JAR and all four SBOM files.
+7. Delete any test release and tag created by the run when done.
 
 ## Support
 
