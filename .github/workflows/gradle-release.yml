@@ -163,6 +163,7 @@ jobs:
       - name: Install Syft
         uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
 
+      # Scan the packaged JAR here in both formats for ecosystem interoperability.
       - name: Generate release jar SBOMs
         run: |
           mkdir -p "$SBOM_DIR"
@@ -282,6 +283,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # Scan the loaded image here so both formats describe the exact image that will be pushed.
       # A separate repository produces the registry-bound image SBOM; these copies are release assets only.
       - name: Generate release Docker image SBOMs
         run: |
