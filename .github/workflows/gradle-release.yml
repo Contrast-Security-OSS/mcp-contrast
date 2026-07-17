@@ -267,6 +267,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # A separate repository produces the registry-bound image SBOM; these copies are release assets only.
       - name: Generate release Docker image SBOMs
         run: |
           syft scan docker:contrast/mcp-contrast:${{ steps.versions.outputs.release }} \
