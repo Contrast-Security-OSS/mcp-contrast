@@ -19,6 +19,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      SBOM_DIR: build/release-sboms
     permissions:
       contents: write
       id-token: write
@@ -163,9 +165,10 @@ jobs:
 
       - name: Generate release jar SBOMs
         run: |
+          mkdir -p "$SBOM_DIR"
           syft scan file:contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar \
-            -o cyclonedx-json=mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json \
-            -o spdx-json=mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json
+            -o "cyclonedx-json=$SBOM_DIR/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json" \
+            -o "spdx-json=$SBOM_DIR/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json"
 
       - name: Verify tracked worktree is clean before publishing
         run: |
@@ -209,7 +212,7 @@ jobs:
         uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-path: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
-          sbom-path: mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json
+          sbom-path: ${{ env.SBOM_DIR }}/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json
 
       - name: Create the trust keys folder
         shell: sh
@@ -271,8 +274,8 @@ jobs:
       - name: Generate release Docker image SBOMs
         run: |
           syft scan docker:contrast/mcp-contrast:${{ steps.versions.outputs.release }} \
-            -o cyclonedx-json=mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json \
-            -o spdx-json=mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json
+            -o "cyclonedx-json=$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json" \
+            -o "spdx-json=$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json"
 
       - name: Push and sign Docker image with DCT
         env:
@@ -295,10 +298,10 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
-            mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json
-            mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json
-            mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json
-            mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json
+            ${{ env.SBOM_DIR }}/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json
+            ${{ env.SBOM_DIR }}/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json
+            ${{ env.SBOM_DIR }}/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json
+            ${{ env.SBOM_DIR }}/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
