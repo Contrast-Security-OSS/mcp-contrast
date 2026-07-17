@@ -214,11 +214,17 @@ jobs:
         with:
           subject-path: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
 
-      - name: Attest release jar SBOM
+      - name: Attest release jar CycloneDX SBOM
         uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
         with:
           subject-path: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
           sbom-path: ${{ env.SBOM_DIR }}/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json
+
+      - name: Attest release jar SPDX SBOM
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
+          sbom-path: ${{ env.SBOM_DIR }}/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json
 
       - name: Create the trust keys folder
         shell: sh
