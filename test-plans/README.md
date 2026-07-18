@@ -8,6 +8,7 @@ Test plans for validating MCP Contrast server tools.
 |------|-----------|--------------|
 | search_applications | [test-plan-search_applications.md](test-plan-search_applications.md) | 5 old plans |
 | search_attacks | [test-plan-search_attacks.md](test-plan-search_attacks.md) | 2 old plans |
+| search_servers | [test-plan-search_servers.md](test-plan-search_servers.md) | New tool |
 | search_vulnerabilities | [test-plan-search_vulnerabilities.md](test-plan-search_vulnerabilities.md) | 1 old plan |
 | search_app_vulnerabilities | [test-plan-search_app_vulnerabilities.md](test-plan-search_app_vulnerabilities.md) | 1 old plan |
 | get_vulnerability | [test-plan-get_vulnerability.md](test-plan-get_vulnerability.md) | 1 old plan |
@@ -36,6 +37,7 @@ Test plans for validating MCP Contrast server tools.
 - **get_protect_rules** - ADR/Protect rule configuration
 
 ### 4. Supporting Tools
+- **search_servers** - Server inventory, agent health, and Protect coverage
 - **get_session_metadata** - Session metadata for applications
 - **list_application_libraries** - Library inventory
 - **list_applications_by_cve** - CVE exposure search
@@ -49,6 +51,7 @@ Before running tests, ensure you have access to:
 - At least one application with vulnerabilities
 - Applications with various tags and metadata for filtering
 - Attack events (if testing Protect features)
+- Servers spanning useful health states, environments, tags, and application associations
 - SAST scan data (if testing SAST tools)
 
 ## Running Tests

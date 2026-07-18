@@ -18,6 +18,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.validation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -129,5 +130,24 @@ class StringListSpecTest {
         ctx.stringListParam(null, "items").defaultTo(List.of("a", "b"), "Using default").get();
 
     assertThat(result).isUnmodifiable();
+  }
+
+  @Test
+  void toUpperCase_should_use_locale_independent_enum_normalization() {
+    var originalLocale = Locale.getDefault();
+    try {
+      Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+
+      var result =
+          ctx.stringListParam("info", "logLevels")
+              .toUpperCase()
+              .allowedValues(Set.of("INFO"))
+              .get();
+
+      assertThat(result).containsExactly("INFO");
+      assertThat(ctx.isValid()).isTrue();
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
   }
 }

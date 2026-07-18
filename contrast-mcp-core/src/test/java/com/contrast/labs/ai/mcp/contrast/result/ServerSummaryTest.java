@@ -50,10 +50,13 @@ class ServerSummaryTest {
     var summary = ServerSummary.fromServer(response.getServers().getFirst(), false);
 
     assertThat(summary.serverId()).isEqualTo(42L);
+    assertThat(summary.name()).isEqualTo("prod-1");
     assertThat(summary.protectEnabled()).isNull();
     assertThat(summary.protectPending()).isNull();
     assertThat(summary.agentOutOfDate()).isNull();
     assertThat(summary.assessEnabled()).isTrue();
+    assertThat(summary.assessPending()).isFalse();
+    assertThat(summary.applicationCount()).isZero();
     assertThat(summary.applications()).isNull();
     assertThat(OffsetDateTime.parse(summary.lastActivityAt()).toInstant().toEpochMilli())
         .isEqualTo(1712345678123L);

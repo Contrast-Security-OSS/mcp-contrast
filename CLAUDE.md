@@ -81,6 +81,7 @@ tool/
 ├── application/    # Application tools (search_applications, get_session_metadata)
 ├── library/        # Library tools (list_application_libraries, list_applications_by_cve)
 ├── attack/         # Attack tools (search_attacks, get_protect_rules)
+├── server/         # Server tools (search_servers)
 ├── sast/           # SAST tools (get_sast_project, get_scan_results)
 └── coverage/       # Coverage tools (get_route_coverage)
 ```

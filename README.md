@@ -175,13 +175,18 @@ The Local MCP Server is the open-source server in this repository. Your MCP clie
 
 ### Available tools (local)
 
-The Local MCP Server provides 13 tools for security analysis and vulnerability management.
+The Local MCP Server provides 14 tools for security analysis and vulnerability management.
 
 #### Applications
 | Tool | Description |
 |------|-------------|
 | `search_applications` | Search applications by name, tag, or metadata filters |
 | `get_session_metadata` | Get session metadata fields available for an application |
+
+#### Servers
+| Tool | Description |
+|------|-------------|
+| `search_servers` | Search the server inventory for agent health and Protect coverage |
 
 #### Vulnerabilities
 | Tool | Description |
@@ -321,6 +326,7 @@ Depending on what questions you ask the following information will be provided t
 * Vulnerability Details
 * Route Coverage data
 * ADR/Protect Attack Event Details
+* Server inventory and agent details (hostnames, paths, agent versions, environments, log levels, and tags)
 
 ## Changelog
 

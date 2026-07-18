@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.validation;
 
+import java.util.Locale;
 import java.util.Set;
 import org.springframework.util.StringUtils;
 
@@ -91,7 +92,7 @@ public class StringSpec {
    */
   public StringSpec toUpperCase() {
     if (this.value != null) {
-      this.value = this.value.toUpperCase();
+      this.value = this.value.toUpperCase(Locale.ROOT);
     }
     return this;
   }

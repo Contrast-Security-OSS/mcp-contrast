@@ -23,7 +23,6 @@ import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import java.time.OffsetDateTime;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -164,7 +163,7 @@ class SearchServersToolIT {
   }
 
   @Test
-  void searchServers_should_filter_by_keyword_across_exposed_searchable_fields() {
+  void searchServers_should_filter_by_keyword_using_seeded_server_name() {
     var seeded = seededServers().getFirst();
     var keyword = seeded.name();
     var response =
@@ -174,7 +173,13 @@ class SearchServersToolIT {
     assertThat(response.items())
         .as("requires servers matching keyword %s", keyword)
         .isNotEmpty()
-        .allSatisfy(server -> assertThat(matchesKeyword(server, keyword)).isTrue());
+        .allSatisfy(
+            server ->
+                assertThat(searchableFields(server))
+                    .as(
+                        "server %s name, hostname, path, or tags should match keyword %s",
+                        server.serverId(), keyword)
+                    .anySatisfy(field -> assertThat(field).containsIgnoringCase(keyword)));
   }
 
   @Test
@@ -471,15 +476,11 @@ class SearchServersToolIT {
     assertThat(response.isSuccess()).isTrue();
   }
 
-  private static boolean matchesKeyword(ServerSummary server, String keyword) {
-    var normalized = keyword.toLowerCase(Locale.ROOT);
-    return Stream.of(server.name(), server.hostname(), server.path())
-            .filter(Objects::nonNull)
-            .map(value -> value.toLowerCase(Locale.ROOT))
-            .anyMatch(value -> value.contains(normalized))
-        || server.tags().stream()
-            .map(value -> value.toLowerCase(Locale.ROOT))
-            .anyMatch(value -> value.contains(normalized));
+  private static List<String> searchableFields(ServerSummary server) {
+    return Stream.concat(
+            Stream.of(server.name(), server.hostname(), server.path()), server.tags().stream())
+        .filter(Objects::nonNull)
+        .toList();
   }
 
   private static Object sortValue(ServerSummary server, String property) {
@@ -495,8 +496,13 @@ class SearchServersToolIT {
 
   private static Comparator<ServerSummary> sortComparator(String property) {
     return switch (property) {
-      case "name" -> Comparator.comparing(ServerSummary::name, String.CASE_INSENSITIVE_ORDER);
-      case "environment" -> Comparator.comparing(ServerSummary::environment);
+      case "name" ->
+          // TeamServer orders the raw serverName column using its case-insensitive schema
+          // collation.
+          Comparator.comparing(ServerSummary::name, String.CASE_INSENSITIVE_ORDER);
+      case "environment" ->
+          // Server.environment is persisted as EnumType.STRING, so the DAO order is lexical.
+          Comparator.comparing(ServerSummary::environment);
       case "lastActivity" ->
           Comparator.comparing(server -> OffsetDateTime.parse(server.lastActivityAt()));
       case "agentVersion" -> Comparator.comparing(ServerSummary::agentVersion);

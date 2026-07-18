@@ -18,6 +18,9 @@ the correct total, exercised, and discovered route counts and coverage percentag
 
 ### Improvements
 
+**New `search_servers` tool**: Search the EAC-visible server inventory by agent health,
+environment, application, tag, and Protect coverage with pagination and sorting.
+
 **Richer CVE scoring details**: `list_applications_by_cve` responses now include nested `cvssv2` and `cvssv3` metrics plus a preferred `severity`. CVSS v3 scores remain available through `score`; v2-only CVEs omit `score` instead of reporting `0.0`. A null `score` is also omitted from `get_protect_rules` CVE output.
 
 ### Security

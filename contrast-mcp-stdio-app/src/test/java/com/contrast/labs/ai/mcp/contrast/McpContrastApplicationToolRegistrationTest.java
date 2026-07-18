@@ -20,17 +20,14 @@ import static org.mockito.Mockito.mock;
 
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.tool.server.SearchServersTool;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.lang.reflect.Constructor;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.support.ToolCallbacks;
+import org.springframework.ai.tool.ToolCallback;
 
 class McpContrastApplicationToolRegistrationTest {
-
-  private static final Path APPLICATION_SOURCE =
-      Path.of("src/main/java/com/contrast/labs/ai/mcp/contrast/McpContrastApplication.java");
 
   @Test
   void toolsList_should_describe_public_searchServers_contract_without_wire_spellings() {
@@ -57,12 +54,40 @@ class McpContrastApplicationToolRegistrationTest {
   }
 
   @Test
-  void toolsBean_should_explicitly_register_searchServersTool() throws IOException {
-    var source = Files.readString(APPLICATION_SOURCE, StandardCharsets.UTF_8);
+  void toolsBean_should_explicitly_register_searchServersTool() throws Exception {
+    var toolsMethod =
+        Arrays.stream(McpContrastApplication.class.getDeclaredMethods())
+            .filter(method -> method.getName().equals("tools"))
+            .findFirst()
+            .orElseThrow();
+    var tools =
+        Arrays.stream(toolsMethod.getParameterTypes())
+            .map(McpContrastApplicationToolRegistrationTest::instantiateTool)
+            .toArray();
 
-    assertThat(source)
-        .contains(
-            "SearchServersTool searchServersTool",
-            "searchAttacksTool,\n            searchServersTool,");
+    @SuppressWarnings("unchecked")
+    var callbacks = (List<ToolCallback>) toolsMethod.invoke(new McpContrastApplication(), tools);
+
+    assertThat(callbacks)
+        .extracting(callback -> callback.getToolDefinition().name())
+        .contains("search_servers");
+  }
+
+  private static Object instantiateTool(Class<?> toolType) {
+    try {
+      Constructor<?> constructor =
+          Arrays.stream(toolType.getDeclaredConstructors())
+              .max(
+                  (left, right) ->
+                      Integer.compare(left.getParameterCount(), right.getParameterCount()))
+              .orElseThrow();
+      constructor.setAccessible(true);
+      var dependencies =
+          Arrays.stream(constructor.getParameterTypes()).map(type -> mock(type)).toArray();
+      return constructor.newInstance(dependencies);
+    } catch (ReflectiveOperationException exception) {
+      throw new IllegalStateException(
+          "Could not instantiate " + toolType.getSimpleName(), exception);
+    }
   }
 }

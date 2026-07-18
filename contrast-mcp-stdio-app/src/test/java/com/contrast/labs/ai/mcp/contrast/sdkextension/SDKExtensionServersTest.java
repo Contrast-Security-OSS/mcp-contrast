@@ -29,6 +29,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServerFilterBo
 import com.contrastsecurity.http.HttpMethod;
 import com.contrastsecurity.http.MediaType;
 import com.contrastsecurity.sdk.ContrastSDK;
+import com.google.gson.JsonSyntaxException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -148,6 +149,52 @@ class SDKExtensionServersTest {
   }
 
   @Test
+  void getServersFiltered_should_normalize_teamServer_empty_tag_response() throws Exception {
+    stubResponse(
+        """
+        {"success":false,"messages":[],"count":0,"servers":[]}
+        """);
+    var body = ServerFilterBody.builder().tags(List.of("missing-tag")).build();
+
+    var response = sdkExtension.getServersFiltered("org-123", body, 50, 0, "-lastActivity", false);
+
+    assertThat(response.isSuccess()).isTrue();
+    assertThat(response.getServers()).isEmpty();
+    assertThat(response.getCount()).isZero();
+  }
+
+  @Test
+  void getServersFiltered_should_reject_unsuccessful_empty_tag_response_with_error_message()
+      throws Exception {
+    stubResponse(
+        """
+        {"success":false,"messages":["downstream failure"],"count":0,"servers":[]}
+        """);
+    var body = ServerFilterBody.builder().tags(List.of("missing-tag")).build();
+
+    assertThatThrownBy(
+            () -> sdkExtension.getServersFiltered("org-123", body, 50, 0, "-lastActivity", false))
+        .isInstanceOf(IOException.class)
+        .hasMessage("Invalid server response envelope");
+  }
+
+  @Test
+  void getServersFiltered_should_reject_unsuccessful_empty_response_without_tag_filter()
+      throws Exception {
+    stubResponse(
+        """
+        {"success":false,"messages":[],"count":0,"servers":[]}
+        """);
+
+    assertThatThrownBy(
+            () ->
+                sdkExtension.getServersFiltered(
+                    "org-123", filterBody(), 50, 0, "-lastActivity", false))
+        .isInstanceOf(IOException.class)
+        .hasMessage("Invalid server response envelope");
+  }
+
+  @Test
   void getServersFiltered_should_reject_unsuccessful_or_null_envelopes() throws Exception {
     when(sdk.makeRequestWithBody(any(), anyString(), anyString(), any()))
         .thenReturn(stream("{\"success\":false,\"messages\":[\"secret\"]}"), stream("null"));
@@ -174,7 +221,7 @@ class SDKExtensionServersTest {
             () ->
                 sdkExtension.getServersFiltered(
                     "org-123", filterBody(), 50, 0, "-lastActivity", false))
-        .isInstanceOf(RuntimeException.class);
+        .isInstanceOf(JsonSyntaxException.class);
   }
 
   private void stubResponse(String json) throws Exception {

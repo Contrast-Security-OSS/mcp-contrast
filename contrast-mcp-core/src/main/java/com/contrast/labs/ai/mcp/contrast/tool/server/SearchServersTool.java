@@ -17,13 +17,13 @@ package com.contrast.labs.ai.mcp.contrast.tool.server;
 
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.result.ServerSummary;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServersResponseEnvelope;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.server.params.ServerFilterParams;
-import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
@@ -80,7 +80,7 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
               required = false)
           String logLevels,
       @ToolParam(description = "Comma-separated exact server tags", required = false) String tags,
-      @ToolParam(description = "Comma-separated application UUIDs", required = false)
+      @ToolParam(description = "Comma-separated application IDs", required = false)
           String applicationIds,
       @ToolParam(
               description =
@@ -152,20 +152,16 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
   protected ExecutionResult<ServerSummary> doExecute(
       PaginationParams pagination, ServerFilterParams params, WarningCollector collector)
       throws Exception {
+    var filterBody = params.toServerFilterBody();
     var response =
         contrastApiClient.searchServers(
-            params.toServerFilterBody(),
+            filterBody,
             pagination.limit(),
             pagination.offset(),
             params.getSort(),
             params.isIncludeApplications());
 
-    if (response == null
-        || !response.isSuccess()
-        || response.getServers() == null
-        || response.getCount() == null) {
-      throw new IOException("Invalid server response envelope");
-    }
+    ServersResponseEnvelope.validateAndNormalize(response, filterBody);
 
     var summaries =
         response.getServers().stream()

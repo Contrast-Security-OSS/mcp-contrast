@@ -17,6 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Locale;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -134,5 +135,24 @@ class StringSpecTest {
 
     assertThat(result).isNull();
     assertThat(ctx.isValid()).isTrue();
+  }
+
+  @Test
+  void toUpperCase_should_use_locale_independent_enum_normalization() {
+    var originalLocale = Locale.getDefault();
+    try {
+      Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+
+      var result =
+          ctx.stringParam("online", "quickFilter")
+              .toUpperCase()
+              .allowedValues(Set.of("ONLINE"))
+              .get();
+
+      assertThat(result).isEqualTo("ONLINE");
+      assertThat(ctx.isValid()).isTrue();
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
   }
 }

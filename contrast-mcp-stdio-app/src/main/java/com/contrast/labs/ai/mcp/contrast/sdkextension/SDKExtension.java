@@ -30,6 +30,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservatio
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServerFilterBody;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServersResponse;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServersResponseEnvelope;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants;
 import com.contrastsecurity.exceptions.UnauthorizedException;
@@ -369,17 +370,8 @@ public class SDKExtension {
                 HttpMethod.POST, builder.toURIString(), gson.toJson(filterBody), MediaType.JSON);
         Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
       var response = gson.fromJson(reader, ServersResponse.class);
-      validateServersResponse(response);
+      ServersResponseEnvelope.validateAndNormalize(response, filterBody);
       return response;
-    }
-  }
-
-  private static void validateServersResponse(ServersResponse response) throws IOException {
-    if (response == null
-        || !response.isSuccess()
-        || response.getServers() == null
-        || response.getCount() == null) {
-      throw new IOException("Invalid server response envelope");
     }
   }
 

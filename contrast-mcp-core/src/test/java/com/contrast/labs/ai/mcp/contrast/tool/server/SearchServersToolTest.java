@@ -203,13 +203,35 @@ class SearchServersToolTest {
     when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
         .thenReturn(response);
 
-    var result = allServers(1, null);
+    var result =
+        tool.searchServers(1, 50, null, null, null, null, "blue", null, null, null, null, null);
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors())
         .singleElement()
         .satisfies(error -> assertThat(error).startsWith("An internal error occurred (ref: "));
     assertThat(result.toString()).doesNotContain("sensitive downstream failure");
+  }
+
+  @Test
+  void searchServers_should_return_empty_success_for_teamServer_zero_match_tag_envelope()
+      throws Exception {
+    var response = response(0L);
+    response.setSuccess(false);
+    response.setMessages(List.of());
+    when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
+        .thenReturn(response);
+
+    var result =
+        tool.searchServers(
+            1, 50, null, null, null, null, "missing-tag", null, null, null, null, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.items()).isEmpty();
+    assertThat(result.totalItems()).isZero();
+    assertThat(result.errors()).isEmpty();
+    assertThat(result.warnings())
+        .containsExactly("No results found matching the specified criteria.");
   }
 
   @Test

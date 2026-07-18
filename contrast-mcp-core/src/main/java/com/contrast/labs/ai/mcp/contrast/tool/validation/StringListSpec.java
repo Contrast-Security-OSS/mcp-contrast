@@ -17,6 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.validation;
 
 import com.contrast.labs.ai.mcp.contrast.tool.base.FilterHelper;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -101,7 +102,7 @@ public class StringListSpec {
 
     // Apply uppercase conversion if requested
     if (convertToUpperCase) {
-      parsed = parsed.stream().map(String::toUpperCase).toList();
+      parsed = parsed.stream().map(value -> value.toUpperCase(Locale.ROOT)).toList();
     }
 
     if (allowedValues != null) {
