@@ -54,6 +54,8 @@ public class ServerFilterParams extends BaseToolParams {
       Arrays.stream(ServerQuickFilterType.values())
           .map(Enum::name)
           .collect(Collectors.toUnmodifiableSet());
+  // Unlike environments and quick filters, the SDK exposes no enum for agent log levels, so this
+  // allow-list is maintained by hand and must track the levels TeamServer/agents actually accept.
   public static final Set<String> VALID_LOG_LEVELS =
       Set.of("ERROR", "WARN", "INFO", "DEBUG", "TRACE");
 
@@ -116,6 +118,9 @@ public class ServerFilterParams extends BaseToolParams {
 
   /** Converts public parameters to the TeamServer wire request. */
   public ServerFilterBody toServerFilterBody() {
+    // The field renames below are TeamServer's server-filter wire spellings: keyword -> q,
+    // applicationIds -> applicationsIds, environments -> serverEnvironments. Keeping the
+    // translation here isolates those wire names from the public MCP contract.
     return ServerFilterBody.builder()
         .applicationsIds(applicationIds)
         .logLevels(logLevels)

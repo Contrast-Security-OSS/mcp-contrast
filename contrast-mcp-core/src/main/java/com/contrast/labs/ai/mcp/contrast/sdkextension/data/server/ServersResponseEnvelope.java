@@ -54,6 +54,9 @@ public final class ServersResponseEnvelope {
 
   private static boolean isKnownEmptyTagResponse(
       ServersResponse response, ServerFilterBody filterBody) {
+    // Matches the exact shape TeamServer's tag prefilter returns for a zero-match tag: a tag was
+    // requested, no servers, count 0, and no error messages. Requiring all four keeps a genuine
+    // failure (which carries messages or a nonzero count) from being masked as an empty result.
     return filterBody != null
         && filterBody.getTags() != null
         && !filterBody.getTags().isEmpty()

@@ -64,6 +64,11 @@ import lombok.extern.slf4j.Slf4j;
 public class SDKExtension {
 
   private static final int DEFAULT_ATTACKS_LIMIT = 1000;
+  // TeamServer's server-filter endpoint resolves "expand" with an if/else-if chain, so it honors
+  // exactly one value: "applications" for full app identities or "num_apps" for counts only, never
+  // both. These are hardcoded lowercase tokens rather than ServerExpandValue.toString(): that
+  // toString lowercases the enum name with the JVM default locale, so a Turkish/Azerbaijani locale
+  // would corrupt the token into a dotless-i variant and break applications expansion.
   private static final String SERVER_EXPAND_APPLICATIONS = "applications";
   private static final String SERVER_EXPAND_NUM_APPS = "num_apps";
 
@@ -345,8 +350,11 @@ public class SDKExtension {
     var expand = includeApplications ? SERVER_EXPAND_APPLICATIONS : SERVER_EXPAND_NUM_APPS;
     var response = requestServers(organizationId, filterBody, limit, offset, sort, expand);
 
+    // TeamServer returns count=0 for any page whose offset is past the end of the result set,
+    // rather than the true match total, so an over-paged request would otherwise look empty. Only
+    // a later page (offset > 0) can hit this; an empty first page is a genuine zero-match result.
+    // Recover the real total with a minimal limit=1/offset=0 request (expand omitted, count only).
     if (offset > 0 && response.getServers().isEmpty() && response.getCount() == 0) {
-      // TeamServer reports count=0 for empty later pages, so recover the total from page one.
       var firstPage = requestServers(organizationId, filterBody, 1, 0, sort, null);
       response.setCount(firstPage.getCount());
     }
@@ -364,6 +372,8 @@ public class SDKExtension {
     var builder =
         new URIBuilder()
             .appendPathSegments("ng", organizationId, "servers", "filter")
+            // Inventory is scoped to active servers; archived servers are never surfaced and there
+            // is no MCP parameter to opt them in.
             .appendQueryParam("includeArchived", "false")
             .appendQueryParam("limit", String.valueOf(limit))
             .appendQueryParam("offset", String.valueOf(offset))

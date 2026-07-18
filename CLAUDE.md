@@ -186,6 +186,11 @@ When creating or modifying MCP tools:
 - No fully-qualified class names - use imports
 - `isEmpty()` not `size() > 0` for collections
 
+**Comments (WHY for external-system quirks):**
+- When code works around a TeamServer/SDK oddity, a magic sentinel, or other non-obvious external behavior, add a comment stating the concrete behavior and why the workaround exists. That reason lives in another system and cannot be recovered from this codebase alone.
+- Cite the source when known, such as the class/method, the sentinel constant, or a filed ticket (e.g. `TS-43252` for a TeamServer defect).
+- Do not comment self-evident code. Reserve this for reasoning the code cannot express on its own.
+
 **Checkstyle:** 18 rules enforced at `error` severity by Gradle Checkstyle tasks via `make check`. The full list lives in `checkstyle.xml`. Highlights:
 - **Imports:** `AvoidStarImport`, `UnusedImports`, `RedundantImport`, `RegexpSinglelineJava` (no FQCN — use imports)
 - **Numbers:** `MagicNumber` — no raw numeric literals; use named constants (HTTP status codes and -1/0/1/2/100 are ignored). **Before writing any numeric literal**, check `ValidationConstants` first — it has `DEFAULT_PAGE_SIZE`, `MAX_PAGE_SIZE`, `API_MAX_PAGE_SIZE`, `DEFAULT_LIBRARY_OBS_PAGE_SIZE`, `MIN_PAGE`, `DEFAULT_PAGE`. If no existing constant fits, declare `private static final int MY_CONSTANT = <value>` in the same class. `UpperEll` (`1L` not `1l`).

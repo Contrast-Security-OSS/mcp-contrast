@@ -43,6 +43,9 @@ public record ServerSummary(
     List<ServerApplicationSummary> applications,
     String lastActivityAt) {
 
+  // TeamServer emits the literal "NA" (ServerService.NO_VERSION_AVAILABLE) for latest_agent_version
+  // when it cannot determine the newest agent for a server's language. Treat it as unknown, not a
+  // real version, so agentOutOfDate resolves to null instead of a misleading true/false.
   private static final String UNKNOWN_LATEST_VERSION = "NA";
 
   /** Maps a TeamServer wire DTO to the public MCP contract. */
@@ -57,6 +60,13 @@ public record ServerSummary(
     long applicationCount =
         Optional.ofNullable(server.getApplicationCount()).orElse((long) wireApplications.size());
 
+    // Protect/Assess null semantics, verified against TeamServer's ServerResourceFactory.
+    // TeamServer fills `defend` only for Protect-entitled orgs, then a post-build step overwrites
+    // it from the first visible application's effective instrumentation config. A non-null
+    // protectEnabled is therefore effective state that may reflect one app, not a server-wide
+    // aggregate; null means unknown/unavailable. Never coerce null to false: that would answer
+    // "is Protect on?" with a confident, wrong "no". `defend` stays a nullable Boolean for this
+    // reason, while `assess`/`assessPending` are primitive because TeamServer always projects them.
     return new ServerSummary(
         Optional.ofNullable(server.getServerId()).orElse(0L),
         server.getName(),

@@ -53,8 +53,9 @@ public class ServerDetail {
   private Boolean defend;
 
   // Intentionally not mapped to the MCP contract: TeamServer's server-filter projection
-  // (ServerJpaDao) selects defend into this slot, so it mirrors defend rather than the real
-  // pending-restart flag. Do not expose it unless TeamServer fixes the projection.
+  // (ServerJpaDao.findServersByFilters) selects defend into this slot, so it deterministically
+  // mirrors defend rather than the real pending-restart flag. Filed as TS-43252 (previously
+  // reported in TS-20210, never fixed). Do not expose it until that projection defect is fixed.
   private Boolean defendPending;
 
   private String logLevel;
