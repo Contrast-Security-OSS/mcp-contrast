@@ -52,7 +52,6 @@ class ServerSummaryTest {
     assertThat(summary.serverId()).isEqualTo(42L);
     assertThat(summary.name()).isEqualTo("prod-1");
     assertThat(summary.protectEnabled()).isNull();
-    assertThat(summary.protectPending()).isNull();
     assertThat(summary.agentOutOfDate()).isNull();
     assertThat(summary.assessEnabled()).isTrue();
     assertThat(summary.assessPending()).isFalse();
@@ -95,7 +94,6 @@ class ServerSummaryTest {
     assertThat(summary.assessEnabled()).isFalse();
     assertThat(summary.assessPending()).isTrue();
     assertThat(summary.protectEnabled()).isTrue();
-    assertThat(summary.protectPending()).isFalse();
     assertThat(summary.agentOutOfDate()).isTrue();
     assertThat(summary.applicationCount()).isEqualTo(1L);
     assertThat(summary.applications())

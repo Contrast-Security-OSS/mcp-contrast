@@ -39,8 +39,6 @@ public record ServerSummary(
     boolean assessEnabled,
     boolean assessPending,
     Boolean protectEnabled,
-    // TeamServer ServerJpaDao's filter projection mirrors defend into this pending-state slot.
-    Boolean protectPending,
     String logLevel,
     List<String> tags,
     long applicationCount,
@@ -78,7 +76,6 @@ public record ServerSummary(
         server.isAssess(),
         server.isAssessPending(),
         server.getDefend(),
-        server.getDefendPending(),
         server.getLogLevel(),
         Optional.ofNullable(server.getTags()).orElse(List.of()),
         applicationCount,
