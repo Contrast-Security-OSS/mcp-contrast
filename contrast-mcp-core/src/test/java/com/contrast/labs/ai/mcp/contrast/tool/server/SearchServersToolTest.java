@@ -197,7 +197,17 @@ class SearchServersToolTest {
         tool.searchServers(1, 10, null, null, "INVALID", null, null, null, null, null, null);
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).singleElement().asString().contains("Invalid quickFilter");
+    assertThat(result.errors())
+        .singleElement()
+        .asString()
+        .contains(
+            "Invalid quickFilter: 'INVALID'",
+            "ALL",
+            "ONLINE",
+            "OFFLINE",
+            "PROTECTED",
+            "UNPROTECTED",
+            "OUT_OF_DATE");
     verifyNoInteractions(contrastApiClient);
   }
 

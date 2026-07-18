@@ -16,9 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.result;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServerDetail;
-import java.time.Instant;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
+import com.contrast.labs.ai.mcp.contrast.tool.base.FilterHelper;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.util.StringUtils;
@@ -46,8 +44,6 @@ public record ServerSummary(
     String lastActivityAt) {
 
   private static final String UNKNOWN_LATEST_VERSION = "NA";
-  private static final DateTimeFormatter TIMESTAMP_FORMATTER =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSxxx");
 
   /** Maps a TeamServer wire DTO to the public MCP contract. */
   public static ServerSummary fromServer(ServerDetail server, boolean includeApplications) {
@@ -80,7 +76,8 @@ public record ServerSummary(
         Optional.ofNullable(server.getTags()).orElse(List.of()),
         applicationCount,
         applications,
-        formatTimestamp(server.getLastActivity()));
+        // The server contract retains backend millisecond precision for activity sorting.
+        FilterHelper.formatTimestampWithMillis(server.getLastActivity()));
   }
 
   private static Boolean mapOutOfDate(ServerDetail server) {
@@ -89,13 +86,6 @@ public record ServerSummary(
       return null;
     }
     return server.isOutOfDate();
-  }
-
-  private static String formatTimestamp(Long epochMillis) {
-    if (epochMillis == null) {
-      return null;
-    }
-    return Instant.ofEpochMilli(epochMillis).atZone(ZoneOffset.UTC).format(TIMESTAMP_FORMATTER);
   }
 
   /** Application identity returned only when includeApplications is requested. */

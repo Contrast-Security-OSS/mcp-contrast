@@ -90,7 +90,14 @@ public interface ContrastApiClient {
   AttacksResponse searchAttacks(AttacksFilterBody filters, int limit, int offset, String sort)
       throws Exception;
 
-  /** Returns a validated server response with known TeamServer empty-result quirks normalized. */
+  /**
+   * Returns a validated server response with known TeamServer empty-result quirks normalized.
+   *
+   * <p>This method is intentionally implemented by each transport adapter. External implementers
+   * must add their transport implementation before upgrading to the core version that introduces
+   * {@code search_servers}; a default implementation would defer an integration error until
+   * runtime.
+   */
   ServersResponse searchServers(
       ServerFilterBody filters, int limit, int offset, String sort, boolean includeApplications)
       throws Exception;

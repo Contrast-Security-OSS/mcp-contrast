@@ -29,7 +29,9 @@ public final class ServersResponseEnvelope {
    *
    * <p>TeamServer's tag prefilter is the only server-filter path that returns before registering
    * success. All other empty filters pass through the normal query path and register success. Keep
-   * this normalization tag-scoped so genuine failures with an empty envelope remain failures.
+   * this normalization tag-scoped so genuine failures with an empty envelope remain failures. A
+   * message-less failure with an empty tag-filter envelope is indistinguishable from this known
+   * TeamServer response and is therefore normalized as empty.
    */
   public static void validateAndNormalize(ServersResponse response, ServerFilterBody filterBody)
       throws IOException {

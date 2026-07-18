@@ -34,12 +34,17 @@ import org.springframework.util.StringUtils;
 @Getter
 public class ServerFilterParams extends BaseToolParams {
 
+  private static final String LAST_ACTIVITY_SORT_FIELD = "lastActivity";
   private static final Map<String, String> SORT_FIELDS =
       Map.of(
-          "name", "serverName",
-          "environment", "environment",
-          "lastActivity", "lastActivity",
-          "agentVersion", "version");
+          "name",
+          "serverName",
+          "environment",
+          "environment",
+          LAST_ACTIVITY_SORT_FIELD,
+          LAST_ACTIVITY_SORT_FIELD,
+          "agentVersion",
+          "version");
 
   public static final Set<String> VALID_ENVIRONMENTS =
       Arrays.stream(ServerEnvironment.values())
@@ -51,10 +56,9 @@ public class ServerFilterParams extends BaseToolParams {
           .collect(Collectors.toUnmodifiableSet());
   public static final Set<String> VALID_LOG_LEVELS =
       Set.of("ERROR", "WARN", "INFO", "DEBUG", "TRACE");
-  public static final Set<String> VALID_SORT_FIELDS = Set.copyOf(SORT_FIELDS.keySet());
 
   private static final String DEFAULT_QUICK_FILTER = ServerQuickFilterType.ALL.name();
-  private static final String DEFAULT_SORT = "-" + SORT_FIELDS.get("lastActivity");
+  private static final String DEFAULT_SORT = "-" + LAST_ACTIVITY_SORT_FIELD;
 
   private String keyword;
   private List<String> environments;

@@ -80,6 +80,17 @@ class FilterHelperTest {
   }
 
   @Test
+  void formatTimestampWithMillis_should_use_utc_and_retain_millisecond_precision() {
+    var epochMillis = 1712345678123L;
+
+    var result = FilterHelper.formatTimestampWithMillis(epochMillis);
+
+    assertThat(result).isEqualTo("2024-04-05T19:34:38.123+00:00");
+    assertThat(ZonedDateTime.parse(result).toInstant().toEpochMilli()).isEqualTo(epochMillis);
+    assertThat(FilterHelper.formatTimestampWithMillis(null)).isNull();
+  }
+
+  @Test
   void testFormatTimestamp_EpochZero() {
     // Given: Epoch zero (Jan 1, 1970 00:00:00 UTC)
     long epochMillis = 0L;

@@ -51,8 +51,10 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
           reflect the first visible application's effective configuration. Protect
           pending-restart state is not available from this endpoint (assessPending is accurate);
           do not infer it from other fields. agentOutOfDate=null means the latest
-          agent version could not be determined. Counts and applications are EAC-scoped; servers
-          without applications require the corresponding organization access.
+          agent version could not be determined. Counts and applications are EAC-scoped.
+
+          Unless includeApplications=true, applications is null (not an empty list) and only
+          applicationCount is populated.
 
           Examples: quickFilter="ONLINE" to inspect Protect state; quickFilter="UNPROTECTED" with
           environments="PRODUCTION"; environments="QA" with includeApplications=true.

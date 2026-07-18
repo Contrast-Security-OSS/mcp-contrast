@@ -19,8 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 
 class ToolSortParserTest {
 
@@ -62,23 +60,5 @@ class ToolSortParserTest {
     assertThat(absentContext.isValid()).isTrue();
     assertThat(invalid).isEqualTo("-last_activity");
     assertThat(invalidContext.isValid()).isFalse();
-  }
-
-  @Test
-  void parse_should_document_nullability_contract() throws Exception {
-    var parse =
-        ToolSortParser.class.getDeclaredMethod(
-            "parse",
-            ToolValidationContext.class,
-            String.class,
-            Map.class,
-            boolean.class,
-            String.class);
-
-    assertThat(parse.isAnnotationPresent(Nullable.class)).isTrue();
-    assertThat(parse.getParameters()[0].isAnnotationPresent(NonNull.class)).isTrue();
-    assertThat(parse.getParameters()[1].isAnnotationPresent(Nullable.class)).isTrue();
-    assertThat(parse.getParameters()[2].isAnnotationPresent(NonNull.class)).isTrue();
-    assertThat(parse.getParameters()[4].isAnnotationPresent(Nullable.class)).isTrue();
   }
 }

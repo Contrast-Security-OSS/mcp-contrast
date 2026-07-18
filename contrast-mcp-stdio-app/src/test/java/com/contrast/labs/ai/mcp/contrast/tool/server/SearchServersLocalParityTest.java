@@ -104,6 +104,7 @@ class SearchServersLocalParityTest {
               assertThat(item.protectEnabled()).isNull();
               assertThat(item.agentOutOfDate()).isNull();
               assertThat(item.tags()).containsExactly("blue");
+              assertThat(item.applications()).isNull();
             });
     assertThat(result.totalItems()).isEqualTo(3);
     assertThat(filterCaptor.getValue().getQuickFilter()).isEqualTo("ONLINE");

@@ -22,6 +22,7 @@ import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import org.springframework.lang.Nullable;
@@ -62,7 +63,7 @@ public class AttackFilterParams extends BaseToolParams {
 
   private static final Map<String, String> SORT_FIELDS =
       VALID_SORT_FIELDS.stream()
-          .collect(Collectors.toUnmodifiableMap(field -> field, field -> field));
+          .collect(Collectors.toUnmodifiableMap(Function.identity(), Function.identity()));
 
   private String quickFilter;
   private List<String> statusFilters;

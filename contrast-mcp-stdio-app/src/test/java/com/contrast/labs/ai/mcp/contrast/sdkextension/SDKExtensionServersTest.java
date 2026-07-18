@@ -295,7 +295,8 @@ class SDKExtensionServersTest {
                 sdkExtension.getServersFiltered(
                     "org-123", filterBody(), 50, 0, "-lastActivity", false))
         .isInstanceOf(IOException.class)
-        .hasMessage("Malformed server response envelope");
+        .hasMessage("Malformed server response envelope")
+        .hasMessageNotContaining("secret");
     assertThatThrownBy(
             () ->
                 sdkExtension.getServersFiltered(
