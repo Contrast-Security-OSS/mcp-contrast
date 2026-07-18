@@ -80,7 +80,9 @@ class ServerSummaryTest {
                 "status": "ONLINE",
                 "language": "JAVA",
                 "agent_version": "5.0.0",
-                "latest_agent_version": "5.1.0"
+                "latest_agent_version": "5.1.0",
+                "out_of_date": false,
+                "logLevel": "INFO"
               }]
             }
             """);
@@ -97,6 +99,8 @@ class ServerSummaryTest {
     assertThat(summary.language()).isEqualTo("JAVA");
     assertThat(summary.agentVersion()).isEqualTo("5.0.0");
     assertThat(summary.latestAgentVersion()).isEqualTo("5.1.0");
+    assertThat(summary.agentOutOfDate()).isFalse();
+    assertThat(summary.logLevel()).isEqualTo("INFO");
     assertThat(summary.lastActivityAt()).isNull();
   }
 

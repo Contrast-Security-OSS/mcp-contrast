@@ -24,11 +24,11 @@ import com.contrastsecurity.http.ServerFilterForm.ServerQuickFilterType;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import org.springframework.lang.Nullable;
-import org.springframework.util.StringUtils;
 
 /** Validated public parameters and wire translation for server searches. */
 @Getter
@@ -58,7 +58,8 @@ public class ServerFilterParams extends BaseToolParams {
       Set.of("ERROR", "WARN", "INFO", "DEBUG", "TRACE");
 
   private static final String DEFAULT_QUICK_FILTER = ServerQuickFilterType.ALL.name();
-  private static final String DEFAULT_SORT = "-" + LAST_ACTIVITY_SORT_FIELD;
+  private static final String DEFAULT_SORT =
+      "-" + Objects.requireNonNull(SORT_FIELDS.get(LAST_ACTIVITY_SORT_FIELD));
 
   private String keyword;
   private List<String> environments;
@@ -95,11 +96,9 @@ public class ServerFilterParams extends BaseToolParams {
     params.quickFilter =
         ctx.stringParam(quickFilter, "quickFilter")
             .toUpperCase()
+            .defaultToQuietly(DEFAULT_QUICK_FILTER)
             .allowedValues(VALID_QUICK_FILTERS)
             .get();
-    if (!StringUtils.hasText(quickFilter)) {
-      params.quickFilter = DEFAULT_QUICK_FILTER;
-    }
     params.logLevels =
         ctx.stringListParam(logLevels, "logLevels")
             .toUpperCase()

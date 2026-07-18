@@ -54,7 +54,7 @@ public final class ToolSortParser {
     var trimmedSort = sort.trim();
     var parts = Arrays.stream(trimmedSort.split(",", -1)).map(String::trim).toList();
     if (parts.size() != 2) {
-      context.errorIf(true, sortError(trimmedSort, fields));
+      context.addError(sortError(trimmedSort, fields));
       return defaultSort;
     }
 
@@ -65,11 +65,11 @@ public final class ToolSortParser {
             .findFirst();
     var direction = parts.get(1).toUpperCase(Locale.ROOT);
     if (property.isEmpty() || !VALID_DIRECTIONS.contains(direction)) {
-      context.errorIf(true, sortError(trimmedSort, fields));
+      context.addError(sortError(trimmedSort, fields));
       return defaultSort;
     }
 
-    var wireProperty = fields.get(property.orElseThrow());
+    var wireProperty = fields.get(property.get());
     return "DESC".equals(direction) ? "-" + wireProperty : wireProperty;
   }
 

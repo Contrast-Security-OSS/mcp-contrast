@@ -65,6 +65,18 @@ public class StringSpec {
   }
 
   /**
+   * Sets a default value without adding a warning when the default is used.
+   *
+   * @param val the default value
+   * @return this for fluent chaining
+   */
+  public StringSpec defaultToQuietly(String val) {
+    this.defaultValue = val;
+    this.defaultReason = null;
+    return this;
+  }
+
+  /**
    * Sets allowed values. If value is not in set, adds an error.
    *
    * @param values set of valid values
@@ -106,7 +118,9 @@ public class StringSpec {
     String result = StringUtils.hasText(value) ? value.trim() : null;
 
     if (result == null && defaultValue != null) {
-      ctx.addWarning(defaultReason);
+      if (defaultReason != null) {
+        ctx.addWarning(defaultReason);
+      }
       result = defaultValue;
     }
 

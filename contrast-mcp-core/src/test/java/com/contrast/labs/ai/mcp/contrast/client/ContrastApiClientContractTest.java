@@ -18,6 +18,7 @@ package com.contrast.labs.ai.mcp.contrast.client;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServerFilterBody;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServersResponse;
 import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
@@ -79,18 +80,16 @@ class ContrastApiClientContractTest {
   }
 
   @Test
-  void contrastApiClient_should_expose_transport_neutral_server_search() throws Exception {
-    var method =
-        ContrastApiClient.class.getDeclaredMethod(
-            "searchServers",
-            ServerFilterBody.class,
-            int.class,
-            int.class,
-            String.class,
-            boolean.class);
-
-    assertThat(method.getReturnType().getSimpleName()).isEqualTo("ServersResponse");
-    assertThat(method.getParameterTypes())
-        .containsExactly(ServerFilterBody.class, int.class, int.class, String.class, boolean.class);
+  void contrastApiClient_should_expose_transport_neutral_server_search() {
+    assertThat(ContrastApiClient.class.getDeclaredMethods())
+        .filteredOn(method -> method.getName().equals("searchServers"))
+        .singleElement()
+        .satisfies(
+            method -> {
+              assertThat(method.getReturnType()).isEqualTo(ServersResponse.class);
+              assertThat(method.getParameterTypes())
+                  .containsExactly(
+                      ServerFilterBody.class, int.class, int.class, String.class, boolean.class);
+            });
   }
 }

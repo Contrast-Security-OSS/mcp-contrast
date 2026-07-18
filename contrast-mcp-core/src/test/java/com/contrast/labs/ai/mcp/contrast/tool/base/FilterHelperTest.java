@@ -91,6 +91,14 @@ class FilterHelperTest {
   }
 
   @Test
+  void formatTimestampWithMillis_should_render_zero_and_negative_epoch_values() {
+    assertThat(FilterHelper.formatTimestampWithMillis(0L))
+        .isEqualTo("1970-01-01T00:00:00.000+00:00");
+    assertThat(FilterHelper.formatTimestampWithMillis(-1L))
+        .isEqualTo("1969-12-31T23:59:59.999+00:00");
+  }
+
+  @Test
   void testFormatTimestamp_EpochZero() {
     // Given: Epoch zero (Jan 1, 1970 00:00:00 UTC)
     long epochMillis = 0L;

@@ -81,6 +81,14 @@ class StringSpecTest {
   }
 
   @Test
+  void get_should_apply_quiet_default_without_warning() {
+    var result = ctx.stringParam(null, "quickFilter").defaultToQuietly("ALL").get();
+
+    assertThat(result).isEqualTo("ALL");
+    assertThat(ctx.warnings()).isEmpty();
+  }
+
+  @Test
   void get_should_add_error_when_required_and_null() {
     var result = ctx.stringParam(null, "appId").required().get();
 

@@ -34,8 +34,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 import org.mockito.ArgumentCaptor;
 
 class SDKExtensionServersTest {
@@ -72,19 +75,25 @@ class SDKExtensionServersTest {
   }
 
   @Test
-  void getServersFiltered_should_request_only_applications_expand_when_applications_requested()
-      throws Exception {
-    stubResponse(emptySuccess());
+  @ResourceLock(Resources.LOCALE)
+  void getServersFiltered_should_request_locale_independent_applications_expand() throws Exception {
+    var originalLocale = Locale.getDefault();
+    try {
+      Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+      stubResponse(emptySuccess());
 
-    sdkExtension.getServersFiltered("org-123", filterBody(), 25, 0, "serverName", true);
+      sdkExtension.getServersFiltered("org-123", filterBody(), 25, 0, "serverName", true);
 
-    var urlCaptor = ArgumentCaptor.forClass(String.class);
-    verify(sdk)
-        .makeRequestWithBody(
-            eq(HttpMethod.POST), urlCaptor.capture(), anyString(), eq(MediaType.JSON));
-    assertThat(urlCaptor.getValue())
-        .contains("expand=applications", "limit=25", "sort=serverName")
-        .doesNotContain("num_apps");
+      var urlCaptor = ArgumentCaptor.forClass(String.class);
+      verify(sdk)
+          .makeRequestWithBody(
+              eq(HttpMethod.POST), urlCaptor.capture(), anyString(), eq(MediaType.JSON));
+      assertThat(urlCaptor.getValue())
+          .contains("expand=applications", "limit=25", "sort=serverName")
+          .doesNotContain("appl%C4%B1cat%C4%B1ons", "num_apps");
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
   }
 
   @Test

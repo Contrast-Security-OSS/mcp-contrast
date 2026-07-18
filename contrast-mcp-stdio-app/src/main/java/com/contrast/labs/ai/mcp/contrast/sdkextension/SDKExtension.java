@@ -37,7 +37,6 @@ import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.http.HttpMethod;
 import com.contrastsecurity.http.LibraryFilterForm;
 import com.contrastsecurity.http.MediaType;
-import com.contrastsecurity.http.ServerFilterForm.ServerExpandValue;
 import com.contrastsecurity.http.TraceFilterForm.TraceExpandValue;
 import com.contrastsecurity.http.UrlBuilder;
 import com.contrastsecurity.models.RouteCoverageBySessionIDAndMetadataRequest;
@@ -65,6 +64,8 @@ import lombok.extern.slf4j.Slf4j;
 public class SDKExtension {
 
   private static final int DEFAULT_ATTACKS_LIMIT = 1000;
+  private static final String SERVER_EXPAND_APPLICATIONS = "applications";
+  private static final String SERVER_EXPAND_NUM_APPS = "num_apps";
 
   private final ContrastSDK contrastSDK;
   private final UrlBuilder urlBuilder;
@@ -341,10 +342,7 @@ public class SDKExtension {
       String sort,
       boolean includeApplications)
       throws UnauthorizedException, IOException {
-    var expand =
-        includeApplications
-            ? ServerExpandValue.APPLICATIONS.toString()
-            : ServerExpandValue.NUM_APPS.toString();
+    var expand = includeApplications ? SERVER_EXPAND_APPLICATIONS : SERVER_EXPAND_NUM_APPS;
     var response = requestServers(organizationId, filterBody, limit, offset, sort, expand);
 
     if (offset > 0 && response.getServers().isEmpty() && response.getCount() == 0) {
