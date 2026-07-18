@@ -22,6 +22,8 @@ import java.util.Locale;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 
 class StringListSpecTest {
 
@@ -133,6 +135,7 @@ class StringListSpecTest {
   }
 
   @Test
+  @ResourceLock(Resources.LOCALE)
   void toUpperCase_should_use_locale_independent_enum_normalization() {
     var originalLocale = Locale.getDefault();
     try {
@@ -152,6 +155,7 @@ class StringListSpecTest {
   }
 
   @Test
+  @ResourceLock(Resources.LOCALE)
   void allowedValues_should_use_locale_independent_case_insensitive_matching() {
     var originalLocale = Locale.getDefault();
     try {

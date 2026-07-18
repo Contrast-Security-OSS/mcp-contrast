@@ -21,6 +21,8 @@ import java.util.Locale;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 
 class StringSpecTest {
 
@@ -138,6 +140,7 @@ class StringSpecTest {
   }
 
   @Test
+  @ResourceLock(Resources.LOCALE)
   void toUpperCase_should_use_locale_independent_enum_normalization() {
     var originalLocale = Locale.getDefault();
     try {

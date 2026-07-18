@@ -48,9 +48,12 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
           ONLINE/OFFLINE use TeamServer's activity threshold (typically about 50 minutes).
           OUT_OF_DATE means older than the newest agent TeamServer can serve for that language.
           protectEnabled=null means unknown or unavailable; non-null Assess/Protect state may
-          reflect the first visible application's effective configuration. agentOutOfDate=null
-          means the latest agent version could not be determined. Counts and applications are
-          EAC-scoped; servers without applications require the corresponding organization access.
+          reflect the first visible application's effective configuration. protectPending is
+          unreliable for this endpoint: TeamServer's server-filter projection mirrors
+          protectEnabled into it, so treat it as reflecting protectEnabled rather than a true
+          pending-restart state; assessPending is accurate. agentOutOfDate=null means the latest
+          agent version could not be determined. Counts and applications are EAC-scoped; servers
+          without applications require the corresponding organization access.
 
           Examples: quickFilter="ONLINE" to inspect Protect state; quickFilter="UNPROTECTED" with
           environments="PRODUCTION"; environments="QA" with includeApplications=true.

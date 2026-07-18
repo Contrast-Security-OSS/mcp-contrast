@@ -104,6 +104,26 @@ class ServerSummaryTest {
   }
 
   @Test
+  void fromServer_should_return_unknown_outOfDate_when_latest_agent_version_is_absent() {
+    var response =
+        parse(
+            """
+            {
+              "success": true,
+              "count": 1,
+              "servers": [{
+                "server_id": 8,
+                "out_of_date": false
+              }]
+            }
+            """);
+
+    var summary = ServerSummary.fromServer(response.getServers().getFirst(), false);
+
+    assertThat(summary.agentOutOfDate()).isNull();
+  }
+
+  @Test
   void fromServer_should_fall_back_to_application_list_size_when_count_is_absent() {
     var response =
         parse(

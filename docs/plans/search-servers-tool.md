@@ -83,7 +83,7 @@ public record ServerSummary(
     boolean assessEnabled,     // primitive on wire; may reflect first visible app's effective config (see below)
     boolean assessPending,     // pending = change takes effect on agent restart
     Boolean protectEnabled,    // null = unknown/unavailable — NEVER coerced to false (see semantics below)
-    Boolean protectPending,
+    Boolean protectPending,    // unreliable: server-filter projection mirrors protectEnabled, not true pending state
     String logLevel,
     List<String> tags,
     long applicationCount,     // EAC-visible, non-archived apps only
@@ -95,6 +95,7 @@ public record ServerSummary(
 
 Contract decisions:
 - **`defend` → `protect`** rename (customer-facing product term), preserving nullability. Semantics (verified in `ServerResourceFactory`): the entitlement-gated `setDefendField` populates `defend` from the server model only for Protect-entitled orgs, but a post-build step then selects the server's first visible application (sorted by app ID) and, when instrumentation state exists, overwrites `defend` from that app's effective configuration (`setProtectStatusFromInstrumentationState`, lines 248-253); `assess` is likewise overwritten when the config source is `EFFECTIVE_CONFIG` (line 270). Contract wording therefore: `protectEnabled=null` means unknown/unavailable; a non-null value is the effective state TeamServer returned, which may reflect the first visible application's effective configuration rather than a server-wide aggregate. Same caveat documented for `assessEnabled`. The mapper must never turn null into false — that would corrupt the central customer question. A wire fixture pins this post-build overwrite path.
+- **`protectPending` endpoint caveat**: TeamServer's `ServerJpaDao` server-filter projection selects `defend` into both the `defend` and `defendPending` slots. Consequently, `protectPending` mirrors `protectEnabled` for this endpoint and is not a reliable pending-restart flag. `assessPending` is projected correctly and remains accurate. The field stays in the response for compatibility, but callers must interpret it using this caveat.
 - **Single ISO-8601 timestamp** (`lastActivityAt`), no raw-millis duplicates (test convenience must not shape the interface; ITs parse the ISO string). `firstActivity`/`lastStartup` deferred to a future `get_server`.
 - Errors vs empty: `success=false`, null envelope, or malformed JSON → error response with request ref, never an empty success (an agent must not conclude "no servers" from a failure). Valid empty result → success + standard no-results warning. HTTP 400/401/403/404/429/5xx → sanitized messages, no TeamServer bodies echoed.
 

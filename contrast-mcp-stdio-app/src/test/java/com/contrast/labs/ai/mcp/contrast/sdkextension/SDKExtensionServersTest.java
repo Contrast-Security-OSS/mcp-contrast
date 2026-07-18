@@ -149,6 +149,40 @@ class SDKExtensionServersTest {
   }
 
   @Test
+  void getServersFiltered_should_not_issue_fallback_when_empty_page_has_nonzero_count()
+      throws Exception {
+    stubResponse(
+        """
+        {"success":true,"count":7,"servers":[]}
+        """);
+
+    var response =
+        sdkExtension.getServersFiltered("org-123", filterBody(), 50, 100, "-lastActivity", false);
+
+    assertThat(response.getServers()).isEmpty();
+    assertThat(response.getCount()).isEqualTo(7L);
+    verify(sdk)
+        .makeRequestWithBody(eq(HttpMethod.POST), anyString(), anyString(), eq(MediaType.JSON));
+  }
+
+  @Test
+  void getServersFiltered_should_not_issue_fallback_when_later_page_has_servers() throws Exception {
+    stubResponse(
+        """
+        {"success":true,"count":0,"servers":[{"server_id":1,"name":"server-1"}]}
+        """);
+
+    var response =
+        sdkExtension.getServersFiltered("org-123", filterBody(), 50, 100, "-lastActivity", false);
+
+    assertThat(response.getServers()).hasSize(1);
+    assertThat(response.getServers().getFirst().getServerId()).isEqualTo(1L);
+    assertThat(response.getCount()).isZero();
+    verify(sdk)
+        .makeRequestWithBody(eq(HttpMethod.POST), anyString(), anyString(), eq(MediaType.JSON));
+  }
+
+  @Test
   void getServersFiltered_should_normalize_teamServer_empty_tag_response() throws Exception {
     stubResponse(
         """
