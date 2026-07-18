@@ -28,14 +28,13 @@ public final class ServersResponseEnvelope {
    * Validates a server-filter response without treating downstream failures as empty results.
    *
    * <p>TeamServer's tag prefilter is the only server-filter path that returns before registering
-   * success. All other empty filters, including the "None" application sentinel, pass through the
-   * normal query path and register success. Keep this normalization tag-scoped so genuine failures
-   * with an empty envelope remain failures.
+   * success. All other empty filters pass through the normal query path and register success. Keep
+   * this normalization tag-scoped so genuine failures with an empty envelope remain failures.
    */
   public static void validateAndNormalize(ServersResponse response, ServerFilterBody filterBody)
       throws IOException {
     if (response == null || response.getServers() == null || response.getCount() == null) {
-      throw new IOException("Invalid server response envelope");
+      throw new IOException("Malformed server response envelope");
     }
 
     if (response.isSuccess()) {
@@ -48,7 +47,7 @@ public final class ServersResponseEnvelope {
       return;
     }
 
-    throw new IOException("Invalid server response envelope");
+    throw new IOException("Unsuccessful server response envelope");
   }
 
   private static boolean isKnownEmptyTagResponse(

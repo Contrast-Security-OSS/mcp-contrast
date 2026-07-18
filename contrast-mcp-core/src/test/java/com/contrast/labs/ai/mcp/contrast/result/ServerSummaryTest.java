@@ -57,8 +57,47 @@ class ServerSummaryTest {
     assertThat(summary.assessPending()).isFalse();
     assertThat(summary.applicationCount()).isZero();
     assertThat(summary.applications()).isNull();
+    assertThat(summary.lastActivityAt()).isEqualTo("2024-04-05T19:34:38.123+00:00");
     assertThat(OffsetDateTime.parse(summary.lastActivityAt()).toInstant().toEpochMilli())
         .isEqualTo(1712345678123L);
+  }
+
+  @Test
+  void fromServer_should_map_wire_identity_and_version_fields() {
+    var response =
+        parse(
+            """
+            {
+              "success": true,
+              "count": 1,
+              "servers": [{
+                "server_id": 11,
+                "name": "prod-11",
+                "hostname": "host-11.example.test",
+                "path": "/opt/contrast/server-11",
+                "type": "TOMCAT",
+                "environment": "PRODUCTION",
+                "status": "ONLINE",
+                "language": "JAVA",
+                "agent_version": "5.0.0",
+                "latest_agent_version": "5.1.0"
+              }]
+            }
+            """);
+
+    var summary = ServerSummary.fromServer(response.getServers().getFirst(), false);
+
+    assertThat(summary.serverId()).isEqualTo(11L);
+    assertThat(summary.name()).isEqualTo("prod-11");
+    assertThat(summary.hostname()).isEqualTo("host-11.example.test");
+    assertThat(summary.path()).isEqualTo("/opt/contrast/server-11");
+    assertThat(summary.serverType()).isEqualTo("TOMCAT");
+    assertThat(summary.environment()).isEqualTo("PRODUCTION");
+    assertThat(summary.status()).isEqualTo("ONLINE");
+    assertThat(summary.language()).isEqualTo("JAVA");
+    assertThat(summary.agentVersion()).isEqualTo("5.0.0");
+    assertThat(summary.latestAgentVersion()).isEqualTo("5.1.0");
+    assertThat(summary.lastActivityAt()).isNull();
   }
 
   @Test

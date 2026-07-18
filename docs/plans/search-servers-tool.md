@@ -17,10 +17,10 @@ Servers are the deployment/coverage backbone of Contrast: every agent instance r
 4. "What servers is app X running on?" → `applicationIds=<appId>` (also matches parent app IDs of merged apps; subject to EAC).
 5. "Which servers went dark / are stale?" → `quickFilter=OFFLINE, sort=lastActivity,ASC`.
 6. "What's deployed in QA?" → `environments=QA, includeApplications=true`.
-7. "Do we have servers with no applications?" → `withoutApplications=true`.
-8. "Which servers still log at DEBUG?" → `logLevels=DEBUG`.
+7. "Which servers still log at DEBUG?" → `logLevels=DEBUG`.
 
-All eight verified against actual TeamServer filter/DAO semantics (scenarios 6 and 7 required design corrections found in review — see §5.8/§5.9).
+All seven verified against actual TeamServer filter/DAO semantics (scenario 6 required a
+design correction found in review — see §5.8).
 
 ## 3. Data source: TeamServer POST filter endpoint via SDKExtension (not the stock SDK)
 
@@ -33,7 +33,8 @@ All eight verified against actual TeamServer filter/DAO semantics (scenarios 6 a
 - Precedent: vulnerability and attack search already use POST filter bodies via `SDKExtension`.
 - The public v4 API has no server endpoints; ng is the only server surface.
 
-Wire spellings (`applicationsIds`, `q`, `defend`, `-property` sort, `"None"` sentinel) stay behind the `ContrastApiClient` seam; the MCP contract never exposes them.
+Wire spellings (`applicationsIds`, `q`, `defend`, `-property` sort) stay behind the
+`ContrastApiClient` seam; the MCP contract never exposes them.
 
 ## 4. Tool specification
 
@@ -51,8 +52,7 @@ Wire spellings (`applicationsIds`, `q`, `defend`, `-property` sort, `"None"` sen
 | `quickFilter` | String | `quickFilter` | uppercase; ALL, ONLINE, OFFLINE, PROTECTED, UNPROTECTED, OUT_OF_DATE; silent default ALL |
 | `logLevels` | String, comma-sep | `logLevels` | uppercase; ERROR, WARN, INFO, DEBUG, TRACE (exact TeamServer allowlist) |
 | `tags` | String, comma-sep | `tags` | exact values |
-| `applicationIds` | String, comma-sep | `applicationsIds` | app UUIDs; mutually exclusive with `withoutApplications` |
-| `withoutApplications` | Boolean | `applicationsIds=["None"]` | servers hosting no applications; adapter translates the case-sensitive wire sentinel |
+| `applicationIds` | String, comma-sep | `applicationsIds` | app UUIDs |
 | `agentVersions` | String, comma-sep | `agentVersions` | exact match |
 | `includeApplications` | Boolean | expand | default false; false → `expand=num_apps`; true → `expand=applications` ONLY (TeamServer's expand branches are if/else-if — requesting both returns only the count; `setApplications` populates both list and count) |
 | `sort` | String | `sort` | `property,DIRECTION`; properties `name`→serverName, `environment`, `lastActivity`, `agentVersion`→version; ASC/DESC (DESC → `-` prefix); default `lastActivity,DESC`; errors list valid options |
@@ -112,8 +112,7 @@ States: EAC scoping (results limited to servers/apps visible to the credentials)
 6. No UI links, no filter echo — Codex: AGREE.
 7. Detail fields (syslog, sampling, config-source/locked, license) deferred to future `get_server` — Codex: AGREE. Assess fields stay as primitives, with the documented caveat that `assessEnabled` may reflect the first visible application's effective configuration (Codex withdrew omission as a blocker once documented).
 8. Scenario 6 fix: `includeApplications=true` sends `expand=applications` only (both list and count populated).
-9. Scenario 7 fix: `withoutApplications` boolean; adapter sends case-sensitive `"None"` sentinel.
-10. Silent ALL default — no warning spam on unfiltered calls.
+9. Silent ALL default — no warning spam on unfiltered calls.
 
 ## 6. Entity relationships (agent chaining)
 
@@ -135,7 +134,7 @@ States: EAC scoping (results limited to servers/apps visible to the credentials)
 
 contrast-mcp-core:
 - `tool/server/SearchServersTool.java` (@Service, PaginatedTool subclass, @Tool method + no-ToolContext overload)
-- `tool/server/params/ServerFilterParams.java` (BaseToolParams, ToolValidationContext, mutual-exclusion validation, sort parse/translate, `toServerFilterBody()`)
+- `tool/server/params/ServerFilterParams.java` (BaseToolParams, ToolValidationContext, sort parse/translate, `toServerFilterBody()`)
 - `result/ServerSummary.java`
 - `sdkextension/data/server/{ServerFilterBody, ServersResponse, ServerDetail}.java` (Gson wire DTOs incl. `count`, nullable Booleans)
 - `client/ContrastApiClient.java`: `searchServers(ServerFilterBody, int limit, int offset, String sort, boolean includeApplications)`
@@ -148,13 +147,13 @@ contrast-mcp-stdio-app:
 Cross-repo delivery: adding the `ContrastApiClient` method requires the hosted MCP adapter (aiml-hosted-mcp-server) to implement it before upgrading its core dependency, plus its own registration. Explicit coordination step, not an afterthought.
 
 Tests (converged plan):
-- Unit: filter-body capture tests (incl. translated sort, expand selection, `"None"` translation, mutual exclusion), validation errors → `verifyNoInteractions`, pageSize cap, envelope-failure → error (not empty success), 400/401/403/404/429/5xx sanitized + no-secret-leak, null Protect / unknown-latest mapping (never coerced), count-fallback behavior, wire fixture tests with omitted nullable Protect fields AND with the post-build first-app overwrite shape (regression for instrumentation-state-derived assess/protect values)
+- Unit: filter-body capture tests (incl. translated sort and expand selection), validation errors → `verifyNoInteractions`, pageSize cap, envelope-failure → error (not empty success), 400/401/403/404/429/5xx sanitized + no-secret-leak, null Protect / unknown-latest mapping (never coerced), count-fallback behavior, wire fixture tests with omitted nullable Protect fields AND with the post-build first-app overwrite shape (regression for instrumentation-state-derived assess/protect values)
 - IT: `allSatisfy` per filter dimension, boolean-algebra (OR within, AND across), sort sweep ASC/DESC per property with non-vacuous data preconditions (`isSortedAccordingTo` over ≥2 distinct values), pagination disjointness by serverId + count consistency across pages, empty page>1 totalItems correctness, error paths asserting full message shape incl. valid options, EAC-scoped expectations, seeded-data preconditions failing loudly with `.as(...)`
 - `SearchServersLocalParityTest`; tool registration/schema check (`tools/list`)
 
 ## 9. Review provenance
 
-Codex (independent reviewer) verdict: AGREE-WITH-CHANGES, then CONVERGED after one exchange. All blocking findings adopted after source verification (expand if/else-if, `"None"` sentinel, nullable defend, count=0 on empty pages, log-level allowlist, PARTIALLY_PROTECTED entitlement risk, first-visible-app overwrite of assess/protect — Codex sustained this with line citations and Claude's pushback was withdrawn on verification). Codex accepted keeping `quickFilter` (suite consistency over `condition`). Assess stays primitive with a documented first-app caveat. No open disagreements.
+Codex (independent reviewer) verdict: AGREE-WITH-CHANGES, then CONVERGED after one exchange. All blocking findings adopted after source verification (expand if/else-if, nullable defend, count=0 on empty pages, log-level allowlist, PARTIALLY_PROTECTED entitlement risk, first-visible-app overwrite of assess/protect — Codex sustained this with line citations and Claude's pushback was withdrawn on verification). Codex accepted keeping `quickFilter` (suite consistency over `condition`). Assess stays primitive with a documented first-app caveat. No open disagreements.
 
 Full critique: /tmp/orca/search-servers-critique/critique.md
 Convergence exchange: /tmp/orca/search-servers-critique/claude-convergence.md

@@ -17,14 +17,13 @@ package com.contrast.labs.ai.mcp.contrast.tool.attack.params;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksFilterBody;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
+import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolSortParser;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Getter;
-import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
@@ -61,7 +60,9 @@ public class AttackFilterParams extends BaseToolParams {
   public static final Set<String> VALID_SORT_FIELDS =
       Set.of("sourceIP", "status", "startTime", "endTime", "type");
 
-  private static final Set<String> VALID_SORT_DIRECTIONS = Set.of("ASC", "DESC");
+  private static final Map<String, String> SORT_FIELDS =
+      VALID_SORT_FIELDS.stream()
+          .collect(Collectors.toUnmodifiableMap(field -> field, field -> field));
 
   private String quickFilter;
   private List<String> statusFilters;
@@ -134,45 +135,13 @@ public class AttackFilterParams extends BaseToolParams {
     params.includeBotBlockers = includeBotBlockers;
     params.includeIpBlacklist = includeIpBlacklist;
 
-    params.sort = parseSort(ctx, sort);
+    params.sort = ToolSortParser.parse(ctx, sort, SORT_FIELDS, true, null);
 
     // Parse rules (comma-separated list of rule IDs)
     params.rules = ctx.stringListParam(rules, "rules").get();
 
     params.setValidationResult(ctx);
     return params;
-  }
-
-  private static @Nullable String parseSort(
-      @NonNull ToolValidationContext ctx, @Nullable String sort) {
-    if (!StringUtils.hasText(sort)) {
-      return null;
-    }
-
-    var trimmedSort = sort.trim();
-    var parts = Arrays.stream(trimmedSort.split(",", -1)).map(String::trim).toList();
-    if (parts.size() != 2) {
-      ctx.errorIf(true, sortError(trimmedSort));
-      return null;
-    }
-
-    var property = parts.getFirst();
-    var direction = parts.get(1).toUpperCase(Locale.ROOT);
-    var valid = VALID_SORT_FIELDS.contains(property) && VALID_SORT_DIRECTIONS.contains(direction);
-    if (!valid) {
-      ctx.errorIf(true, sortError(trimmedSort));
-      return null;
-    }
-    return "DESC".equals(direction) ? "-" + property : property;
-  }
-
-  private static String sortError(String sort) {
-    return String.format(
-        "Invalid sort: '%s'. Expected format: property,DIRECTION. Valid properties: %s. Valid"
-            + " directions: %s.",
-        sort,
-        VALID_SORT_FIELDS.stream().sorted().collect(Collectors.joining(", ")),
-        VALID_SORT_DIRECTIONS.stream().sorted().collect(Collectors.joining(", ")));
   }
 
   /**

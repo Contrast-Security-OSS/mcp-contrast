@@ -17,7 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.result;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServerDetail;
 import java.time.Instant;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
@@ -95,9 +95,7 @@ public record ServerSummary(
     if (epochMillis == null) {
       return null;
     }
-    return Instant.ofEpochMilli(epochMillis)
-        .atZone(ZoneId.systemDefault())
-        .format(TIMESTAMP_FORMATTER);
+    return Instant.ofEpochMilli(epochMillis).atZone(ZoneOffset.UTC).format(TIMESTAMP_FORMATTER);
   }
 
   /** Application identity returned only when includeApplications is requested. */

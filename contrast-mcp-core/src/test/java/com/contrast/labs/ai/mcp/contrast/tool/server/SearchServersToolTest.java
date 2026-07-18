@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
@@ -162,6 +163,42 @@ class SearchServersToolTest {
         .contains("Requested pageSize 250 exceeds maximum 100, capped to 100");
     verify(contrastApiClient, never())
         .searchServers(any(), eq(250), anyInt(), anyString(), anyBoolean());
+  }
+
+  @Test
+  void searchServers_should_accept_maximum_page_size_without_cap_warning() throws Exception {
+    when(contrastApiClient.searchServers(any(), eq(100), eq(0), anyString(), eq(false)))
+        .thenReturn(response(1L, server(1L, "server-1")));
+
+    var result = allServers(1, 100);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.pageSize()).isEqualTo(100);
+    assertThat(result.warnings()).noneMatch(warning -> warning.contains("pageSize"));
+    verify(contrastApiClient).searchServers(any(), eq(100), eq(0), anyString(), eq(false));
+  }
+
+  @Test
+  void searchServers_should_replace_nonpositive_page_size_with_default_and_warn() throws Exception {
+    when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
+        .thenReturn(response(1L, server(1L, "server-1")));
+
+    var result = allServers(1, 0);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.pageSize()).isEqualTo(50);
+    assertThat(result.warnings()).contains("Invalid pageSize 0, using default 50");
+    verify(contrastApiClient).searchServers(any(), eq(50), eq(0), anyString(), eq(false));
+  }
+
+  @Test
+  void searchServers_should_not_call_client_when_filters_are_invalid() {
+    var result =
+        tool.searchServers(1, 10, null, null, "INVALID", null, null, null, null, null, null);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).singleElement().asString().contains("Invalid quickFilter");
+    verifyNoInteractions(contrastApiClient);
   }
 
   @Test

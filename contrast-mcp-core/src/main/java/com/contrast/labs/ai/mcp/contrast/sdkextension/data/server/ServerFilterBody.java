@@ -23,6 +23,7 @@ import lombok.Value;
 @Value
 @Builder
 public class ServerFilterBody {
+  // TeamServer's POST filter contract intentionally uses this plural-plural wire spelling.
   List<String> applicationsIds;
   List<String> logLevels;
   List<String> tags;

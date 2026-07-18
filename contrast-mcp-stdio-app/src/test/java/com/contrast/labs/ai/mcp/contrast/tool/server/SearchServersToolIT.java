@@ -396,11 +396,15 @@ class SearchServersToolIT {
                         "Invalid quickFilter: 'PARTIALLY_PROTECTED'",
                         "ALL",
                         "ONLINE",
+                        "OFFLINE",
+                        "PROTECTED",
+                        "UNPROTECTED",
                         "OUT_OF_DATE"))
         .anySatisfy(
             error ->
                 assertThat(error)
-                    .contains("Invalid logLevels: 'VERBOSE'", "ERROR", "WARN", "TRACE"));
+                    .contains(
+                        "Invalid logLevels: 'VERBOSE'", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"));
     assertThat(response.errors()).noneMatch(error -> error.contains("Contrast API error"));
   }
 

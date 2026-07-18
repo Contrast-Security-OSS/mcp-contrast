@@ -348,6 +348,7 @@ public class SDKExtension {
     var response = requestServers(organizationId, filterBody, limit, offset, sort, expand);
 
     if (offset > 0 && response.getServers().isEmpty() && response.getCount() == 0) {
+      // TeamServer reports count=0 for empty later pages, so recover the total from page one.
       var firstPage = requestServers(organizationId, filterBody, 1, 0, sort, null);
       response.setCount(firstPage.getCount());
     }

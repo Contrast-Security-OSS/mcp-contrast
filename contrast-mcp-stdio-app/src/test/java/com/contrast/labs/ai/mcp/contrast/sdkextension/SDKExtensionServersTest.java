@@ -208,7 +208,7 @@ class SDKExtensionServersTest {
     assertThatThrownBy(
             () -> sdkExtension.getServersFiltered("org-123", body, 50, 0, "-lastActivity", false))
         .isInstanceOf(IOException.class)
-        .hasMessage("Invalid server response envelope");
+        .hasMessage("Unsuccessful server response envelope");
   }
 
   @Test
@@ -223,7 +223,7 @@ class SDKExtensionServersTest {
     assertThatThrownBy(
             () -> sdkExtension.getServersFiltered("org-123", body, 50, 0, "-lastActivity", false))
         .isInstanceOf(IOException.class)
-        .hasMessage("Invalid server response envelope");
+        .hasMessage("Unsuccessful server response envelope");
   }
 
   @Test
@@ -238,7 +238,7 @@ class SDKExtensionServersTest {
     assertThatThrownBy(
             () -> sdkExtension.getServersFiltered("org-123", body, 50, 0, "-lastActivity", false))
         .isInstanceOf(IOException.class)
-        .hasMessage("Invalid server response envelope");
+        .hasMessage("Unsuccessful server response envelope");
   }
 
   @Test
@@ -267,7 +267,7 @@ class SDKExtensionServersTest {
                 sdkExtension.getServersFiltered(
                     "org-123", filterBody(), 50, 0, "-lastActivity", false))
         .isInstanceOf(IOException.class)
-        .hasMessage("Invalid server response envelope");
+        .hasMessage("Unsuccessful server response envelope");
   }
 
   @Test
@@ -282,7 +282,7 @@ class SDKExtensionServersTest {
     assertThatThrownBy(
             () -> sdkExtension.getServersFiltered("org-123", body, 50, 0, "-lastActivity", false))
         .isInstanceOf(IOException.class)
-        .hasMessage("Invalid server response envelope");
+        .hasMessage("Unsuccessful server response envelope");
   }
 
   @Test
@@ -295,13 +295,13 @@ class SDKExtensionServersTest {
                 sdkExtension.getServersFiltered(
                     "org-123", filterBody(), 50, 0, "-lastActivity", false))
         .isInstanceOf(IOException.class)
-        .hasMessage("Invalid server response envelope");
+        .hasMessage("Malformed server response envelope");
     assertThatThrownBy(
             () ->
                 sdkExtension.getServersFiltered(
                     "org-123", filterBody(), 50, 0, "-lastActivity", false))
         .isInstanceOf(IOException.class)
-        .hasMessage("Invalid server response envelope");
+        .hasMessage("Malformed server response envelope");
   }
 
   @Test

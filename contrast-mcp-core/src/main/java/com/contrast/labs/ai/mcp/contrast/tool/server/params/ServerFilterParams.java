@@ -17,17 +17,16 @@ package com.contrast.labs.ai.mcp.contrast.tool.server.params;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServerFilterBody;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
+import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolSortParser;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 import com.contrastsecurity.http.ServerEnvironment;
 import com.contrastsecurity.http.ServerFilterForm.ServerQuickFilterType;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Getter;
-import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
@@ -55,8 +54,7 @@ public class ServerFilterParams extends BaseToolParams {
   public static final Set<String> VALID_SORT_FIELDS = Set.copyOf(SORT_FIELDS.keySet());
 
   private static final String DEFAULT_QUICK_FILTER = ServerQuickFilterType.ALL.name();
-  private static final String DEFAULT_SORT = "-lastActivity";
-  private static final Set<String> VALID_SORT_DIRECTIONS = Set.of("ASC", "DESC");
+  private static final String DEFAULT_SORT = "-" + SORT_FIELDS.get("lastActivity");
 
   private String keyword;
   private List<String> environments;
@@ -107,47 +105,10 @@ public class ServerFilterParams extends BaseToolParams {
     params.applicationIds = ctx.stringListParam(applicationIds, "applicationIds").get();
     params.agentVersions = ctx.stringListParam(agentVersions, "agentVersions").get();
     params.includeApplications = Boolean.TRUE.equals(includeApplications);
-    params.sort = parseSort(ctx, sort);
+    params.sort = ToolSortParser.parse(ctx, sort, SORT_FIELDS, false, DEFAULT_SORT);
 
     params.setValidationResult(ctx);
     return params;
-  }
-
-  // TODO: Share sort parsing with AttackFilterParams while preserving its case-sensitive contract.
-  private static String parseSort(@NonNull ToolValidationContext ctx, @Nullable String sort) {
-    if (!StringUtils.hasText(sort)) {
-      return DEFAULT_SORT;
-    }
-
-    var trimmedSort = sort.trim();
-    var parts = Arrays.stream(trimmedSort.split(",", -1)).map(String::trim).toList();
-    if (parts.size() != 2) {
-      ctx.errorIf(true, sortError(trimmedSort));
-      return DEFAULT_SORT;
-    }
-
-    var property =
-        SORT_FIELDS.keySet().stream()
-            .filter(validProperty -> validProperty.equalsIgnoreCase(parts.getFirst()))
-            .findFirst();
-    var direction = parts.get(1).toUpperCase(Locale.ROOT);
-    var valid = property.isPresent() && VALID_SORT_DIRECTIONS.contains(direction);
-    if (!valid) {
-      ctx.errorIf(true, sortError(trimmedSort));
-      return DEFAULT_SORT;
-    }
-
-    var wireProperty = SORT_FIELDS.get(property.orElseThrow());
-    return "DESC".equals(direction) ? "-" + wireProperty : wireProperty;
-  }
-
-  private static String sortError(String sort) {
-    return String.format(
-        "Invalid sort: '%s'. Expected format: property,DIRECTION. Valid properties: %s. Valid"
-            + " directions: %s.",
-        sort,
-        VALID_SORT_FIELDS.stream().sorted().collect(Collectors.joining(", ")),
-        VALID_SORT_DIRECTIONS.stream().sorted().collect(Collectors.joining(", ")));
   }
 
   /** Converts public parameters to the TeamServer wire request. */

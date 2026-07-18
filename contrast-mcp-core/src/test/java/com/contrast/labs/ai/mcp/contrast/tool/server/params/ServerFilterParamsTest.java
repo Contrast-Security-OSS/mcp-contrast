@@ -100,6 +100,7 @@ class ServerFilterParamsTest {
 
     assertThat(params.isValid()).isFalse();
     assertThat(params.errors())
+        .hasSize(3)
         .anySatisfy(
             error ->
                 assertThat(error)
@@ -107,9 +108,18 @@ class ServerFilterParamsTest {
         .anySatisfy(
             error ->
                 assertThat(error)
-                    .contains("Invalid quickFilter", "ONLINE", "OFFLINE", "OUT_OF_DATE"))
+                    .contains(
+                        "Invalid quickFilter",
+                        "ALL",
+                        "ONLINE",
+                        "OFFLINE",
+                        "PROTECTED",
+                        "UNPROTECTED",
+                        "OUT_OF_DATE"))
         .anySatisfy(
-            error -> assertThat(error).contains("Invalid logLevels", "ERROR", "WARN", "TRACE"));
+            error ->
+                assertThat(error)
+                    .contains("Invalid logLevels", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"));
   }
 
   private static Stream<Arguments> sortTranslations() {
