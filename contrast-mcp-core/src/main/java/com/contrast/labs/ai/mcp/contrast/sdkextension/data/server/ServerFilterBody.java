@@ -28,8 +28,6 @@ public class ServerFilterBody {
   List<String> tags;
   List<String> agentVersions;
   List<String> serverEnvironments;
-
-  @Builder.Default String q = "";
-
-  @Builder.Default String quickFilter = "ALL";
+  String q;
+  String quickFilter;
 }

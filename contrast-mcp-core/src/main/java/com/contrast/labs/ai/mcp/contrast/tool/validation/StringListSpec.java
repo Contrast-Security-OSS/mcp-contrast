@@ -109,13 +109,13 @@ public class StringListSpec {
       // Build lowercase -> canonical mapping for case-insensitive matching
       var canonicalMap = new java.util.HashMap<String, String>();
       for (String allowed : allowedValues) {
-        canonicalMap.put(allowed.toLowerCase(), allowed);
+        canonicalMap.put(allowed.toLowerCase(Locale.ROOT), allowed);
       }
 
       // Validate and normalize each item
       var normalized = new java.util.ArrayList<String>();
       for (String item : parsed) {
-        String canonical = canonicalMap.get(item.toLowerCase());
+        String canonical = canonicalMap.get(item.toLowerCase(Locale.ROOT));
         if (canonical != null) {
           normalized.add(canonical);
         } else {

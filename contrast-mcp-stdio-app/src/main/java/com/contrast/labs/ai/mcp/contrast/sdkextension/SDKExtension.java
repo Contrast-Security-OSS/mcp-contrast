@@ -327,7 +327,11 @@ public class SDKExtension {
     }
   }
 
-  /** Retrieves a filtered page of EAC-visible servers through the current POST endpoint. */
+  /**
+   * Retrieves a filtered page of EAC-visible servers through the current POST endpoint.
+   *
+   * @return a validated response with known TeamServer empty-result quirks normalized
+   */
   public ServersResponse getServersFiltered(
       String organizationId,
       ServerFilterBody filterBody,

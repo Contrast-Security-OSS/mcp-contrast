@@ -16,8 +16,10 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.server;
 
 import java.io.IOException;
+import lombok.extern.slf4j.Slf4j;
 
 /** Validates server-filter envelopes and normalizes TeamServer's empty-tag response quirk. */
+@Slf4j
 public final class ServersResponseEnvelope {
 
   private ServersResponseEnvelope() {}
@@ -25,9 +27,10 @@ public final class ServersResponseEnvelope {
   /**
    * Validates a server-filter response without treating downstream failures as empty results.
    *
-   * <p>TeamServer's tag prefilter returns before registering success when no visible server has a
-   * requested tag. That one path has a non-null empty server list, count zero, no messages, and
-   * success=false. Normalize only that response shape when the request actually included tags.
+   * <p>TeamServer's tag prefilter is the only server-filter path that returns before registering
+   * success. All other empty filters, including the "None" application sentinel, pass through the
+   * normal query path and register success. Keep this normalization tag-scoped so genuine failures
+   * with an empty envelope remain failures.
    */
   public static void validateAndNormalize(ServersResponse response, ServerFilterBody filterBody)
       throws IOException {
@@ -40,6 +43,7 @@ public final class ServersResponseEnvelope {
     }
 
     if (isKnownEmptyTagResponse(response, filterBody)) {
+      log.atWarn().setMessage("Normalizing known TeamServer empty tag-filter response").log();
       response.setSuccess(true);
       return;
     }

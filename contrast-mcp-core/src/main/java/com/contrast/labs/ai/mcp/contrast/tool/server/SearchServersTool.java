@@ -17,7 +17,6 @@ package com.contrast.labs.ai.mcp.contrast.tool.server;
 
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.result.ServerSummary;
-import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServersResponseEnvelope;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
@@ -161,12 +160,11 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
             params.getSort(),
             params.isIncludeApplications());
 
-    ServersResponseEnvelope.validateAndNormalize(response, filterBody);
-
     var summaries =
         response.getServers().stream()
             .map(server -> ServerSummary.fromServer(server, params.isIncludeApplications()))
             .toList();
-    return ExecutionResult.of(summaries, Math.toIntExact(response.getCount()));
+    var totalItems = (int) Math.min(response.getCount(), Integer.MAX_VALUE);
+    return ExecutionResult.of(summaries, totalItems);
   }
 }

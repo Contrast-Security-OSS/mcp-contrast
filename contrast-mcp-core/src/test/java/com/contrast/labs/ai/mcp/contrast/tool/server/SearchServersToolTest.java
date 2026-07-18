@@ -181,44 +181,8 @@ class SearchServersToolTest {
   }
 
   @Test
-  void searchServers_should_return_error_with_request_ref_for_null_envelope() throws Exception {
-    when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
-        .thenReturn(null);
-
-    var result = allServers(1, null);
-
-    assertThat(result.isSuccess()).isFalse();
-    assertThat(result.items()).isEmpty();
-    assertThat(result.errors())
-        .singleElement()
-        .satisfies(error -> assertThat(error).startsWith("An internal error occurred (ref: "));
-  }
-
-  @Test
-  void searchServers_should_return_error_with_request_ref_for_unsuccessful_envelope()
-      throws Exception {
+  void searchServers_should_use_normalized_empty_tag_response_from_client() throws Exception {
     var response = response(0L);
-    response.setSuccess(false);
-    response.setMessages(List.of("sensitive downstream failure"));
-    when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
-        .thenReturn(response);
-
-    var result =
-        tool.searchServers(1, 50, null, null, null, null, "blue", null, null, null, null, null);
-
-    assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors())
-        .singleElement()
-        .satisfies(error -> assertThat(error).startsWith("An internal error occurred (ref: "));
-    assertThat(result.toString()).doesNotContain("sensitive downstream failure");
-  }
-
-  @Test
-  void searchServers_should_return_empty_success_for_teamServer_zero_match_tag_envelope()
-      throws Exception {
-    var response = response(0L);
-    response.setSuccess(false);
-    response.setMessages(List.of());
     when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
         .thenReturn(response);
 
@@ -232,6 +196,17 @@ class SearchServersToolTest {
     assertThat(result.errors()).isEmpty();
     assertThat(result.warnings())
         .containsExactly("No results found matching the specified criteria.");
+  }
+
+  @Test
+  void searchServers_should_clamp_oversized_total_to_integer_maximum() throws Exception {
+    when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
+        .thenReturn(response(Long.MAX_VALUE, server(1L, "server-1")));
+
+    var result = allServers(1, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.totalItems()).isEqualTo(Integer.MAX_VALUE);
   }
 
   @Test

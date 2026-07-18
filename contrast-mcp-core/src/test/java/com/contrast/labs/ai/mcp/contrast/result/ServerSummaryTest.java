@@ -103,6 +103,32 @@ class ServerSummaryTest {
             new ServerSummary.ServerApplicationSummary("app-first-visible", "checkout", "JAVA"));
   }
 
+  @Test
+  void fromServer_should_fall_back_to_application_list_size_when_count_is_absent() {
+    var response =
+        parse(
+            """
+            {
+              "success": true,
+              "count": 1,
+              "servers": [{
+                "server_id": 8,
+                "applications": [
+                  {"app_id": "app-a", "name": "checkout", "language": "JAVA"},
+                  {"app_id": "app-b", "name": "catalog", "language": "JAVA"}
+                ]
+              }]
+            }
+            """);
+
+    var summary = ServerSummary.fromServer(response.getServers().getFirst(), true);
+
+    assertThat(summary.applicationCount()).isEqualTo(2L);
+    assertThat(summary.applications())
+        .extracting(ServerSummary.ServerApplicationSummary::appId)
+        .containsExactly("app-a", "app-b");
+  }
+
   private ServersResponse parse(String json) {
     return gson.fromJson(json, ServersResponse.class);
   }

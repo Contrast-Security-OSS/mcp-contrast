@@ -90,6 +90,7 @@ public interface ContrastApiClient {
   AttacksResponse searchAttacks(AttacksFilterBody filters, int limit, int offset, String sort)
       throws Exception;
 
+  /** Returns a validated server response with known TeamServer empty-result quirks normalized. */
   ServersResponse searchServers(
       ServerFilterBody filters, int limit, int offset, String sort, boolean includeApplications)
       throws Exception;

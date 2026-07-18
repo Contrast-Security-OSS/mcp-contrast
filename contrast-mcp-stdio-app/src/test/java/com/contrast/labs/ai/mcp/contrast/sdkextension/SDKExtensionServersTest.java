@@ -164,6 +164,36 @@ class SDKExtensionServersTest {
   }
 
   @Test
+  void getServersFiltered_should_reject_unsuccessful_tag_response_with_nonzero_count()
+      throws Exception {
+    stubResponse(
+        """
+        {"success":false,"messages":[],"count":1,"servers":[]}
+        """);
+    var body = ServerFilterBody.builder().tags(List.of("missing-tag")).build();
+
+    assertThatThrownBy(
+            () -> sdkExtension.getServersFiltered("org-123", body, 50, 0, "-lastActivity", false))
+        .isInstanceOf(IOException.class)
+        .hasMessage("Invalid server response envelope");
+  }
+
+  @Test
+  void getServersFiltered_should_reject_unsuccessful_tag_response_with_nonempty_servers()
+      throws Exception {
+    stubResponse(
+        """
+        {"success":false,"messages":[],"count":0,"servers":[{"server_id":1}]}
+        """);
+    var body = ServerFilterBody.builder().tags(List.of("missing-tag")).build();
+
+    assertThatThrownBy(
+            () -> sdkExtension.getServersFiltered("org-123", body, 50, 0, "-lastActivity", false))
+        .isInstanceOf(IOException.class)
+        .hasMessage("Invalid server response envelope");
+  }
+
+  @Test
   void getServersFiltered_should_reject_unsuccessful_empty_tag_response_with_error_message()
       throws Exception {
     stubResponse(
@@ -176,6 +206,19 @@ class SDKExtensionServersTest {
             () -> sdkExtension.getServersFiltered("org-123", body, 50, 0, "-lastActivity", false))
         .isInstanceOf(IOException.class)
         .hasMessage("Invalid server response envelope");
+  }
+
+  @Test
+  void getServersFiltered_should_accept_successful_empty_withoutApplications_response()
+      throws Exception {
+    stubResponse(emptySuccess());
+    var body = ServerFilterBody.builder().applicationsIds(List.of("None")).build();
+
+    var response = sdkExtension.getServersFiltered("org-123", body, 50, 0, "-lastActivity", false);
+
+    assertThat(response.isSuccess()).isTrue();
+    assertThat(response.getServers()).isEmpty();
+    assertThat(response.getCount()).isZero();
   }
 
   @Test

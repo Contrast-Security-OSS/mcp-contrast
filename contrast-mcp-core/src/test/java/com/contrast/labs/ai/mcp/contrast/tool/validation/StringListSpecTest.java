@@ -150,4 +150,19 @@ class StringListSpecTest {
       Locale.setDefault(originalLocale);
     }
   }
+
+  @Test
+  void allowedValues_should_use_locale_independent_case_insensitive_matching() {
+    var originalLocale = Locale.getDefault();
+    try {
+      Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+
+      var result = ctx.stringListParam("title", "values").allowedValues(Set.of("TITLE")).get();
+
+      assertThat(result).containsExactly("TITLE");
+      assertThat(ctx.isValid()).isTrue();
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
 }

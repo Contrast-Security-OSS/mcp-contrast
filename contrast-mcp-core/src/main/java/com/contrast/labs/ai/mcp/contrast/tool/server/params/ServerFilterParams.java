@@ -18,6 +18,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.server.params;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServerFilterBody;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
+import com.contrastsecurity.http.ServerEnvironment;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -33,24 +34,27 @@ import org.springframework.util.StringUtils;
 @Getter
 public class ServerFilterParams extends BaseToolParams {
 
-  public static final Set<String> VALID_ENVIRONMENTS = Set.of("DEVELOPMENT", "QA", "PRODUCTION");
-  public static final Set<String> VALID_QUICK_FILTERS =
-      Set.of("ALL", "ONLINE", "OFFLINE", "PROTECTED", "UNPROTECTED", "OUT_OF_DATE");
-  public static final Set<String> VALID_LOG_LEVELS =
-      Set.of("ERROR", "WARN", "INFO", "DEBUG", "TRACE");
-  public static final Set<String> VALID_SORT_FIELDS =
-      Set.of("name", "environment", "lastActivity", "agentVersion");
-
-  private static final String DEFAULT_QUICK_FILTER = "ALL";
-  private static final String DEFAULT_SORT = "-lastActivity";
-  private static final String NO_APPLICATIONS_SENTINEL = "None";
-  private static final Set<String> VALID_SORT_DIRECTIONS = Set.of("ASC", "DESC");
   private static final Map<String, String> SORT_FIELDS =
       Map.of(
           "name", "serverName",
           "environment", "environment",
           "lastActivity", "lastActivity",
           "agentVersion", "version");
+
+  public static final Set<String> VALID_ENVIRONMENTS =
+      Arrays.stream(ServerEnvironment.values())
+          .map(Enum::name)
+          .collect(Collectors.toUnmodifiableSet());
+  public static final Set<String> VALID_QUICK_FILTERS =
+      Set.of("ALL", "ONLINE", "OFFLINE", "PROTECTED", "UNPROTECTED", "OUT_OF_DATE");
+  public static final Set<String> VALID_LOG_LEVELS =
+      Set.of("ERROR", "WARN", "INFO", "DEBUG", "TRACE");
+  public static final Set<String> VALID_SORT_FIELDS = Set.copyOf(SORT_FIELDS.keySet());
+
+  private static final String DEFAULT_QUICK_FILTER = "ALL";
+  private static final String DEFAULT_SORT = "-lastActivity";
+  private static final String NO_APPLICATIONS_SENTINEL = "None";
+  private static final Set<String> VALID_SORT_DIRECTIONS = Set.of("ASC", "DESC");
 
   private String keyword;
   private List<String> environments;
@@ -129,15 +133,18 @@ public class ServerFilterParams extends BaseToolParams {
       return DEFAULT_SORT;
     }
 
-    var property = parts.getFirst();
+    var property =
+        SORT_FIELDS.keySet().stream()
+            .filter(validProperty -> validProperty.equalsIgnoreCase(parts.getFirst()))
+            .findFirst();
     var direction = parts.get(1).toUpperCase(Locale.ROOT);
-    var valid = SORT_FIELDS.containsKey(property) && VALID_SORT_DIRECTIONS.contains(direction);
+    var valid = property.isPresent() && VALID_SORT_DIRECTIONS.contains(direction);
     if (!valid) {
       ctx.errorIf(true, sortError(trimmedSort));
       return DEFAULT_SORT;
     }
 
-    var wireProperty = SORT_FIELDS.get(property);
+    var wireProperty = SORT_FIELDS.get(property.orElseThrow());
     return "DESC".equals(direction) ? "-" + wireProperty : wireProperty;
   }
 

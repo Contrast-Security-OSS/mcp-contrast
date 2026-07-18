@@ -143,11 +143,13 @@ class ServerFilterParamsTest {
         Arguments.of("lastActivity,ASC", "lastActivity"),
         Arguments.of("lastActivity,DESC", "-lastActivity"),
         Arguments.of("agentVersion,ASC", "version"),
-        Arguments.of(" agentVersion , desc ", "-version"));
+        Arguments.of(" agentVersion , desc ", "-version"),
+        Arguments.of("NAME,asc", "serverName"),
+        Arguments.of("LaStAcTiViTy,dEsC", "-lastActivity"));
   }
 
   private static Stream<String> invalidSorts() {
-    return Stream.of("name", "-name", "name,DOWN", "name,DESC,environment", "NAME,ASC");
+    return Stream.of("name", "-name", "name,DOWN", "name,DESC,environment", "unknown,ASC");
   }
 
   private static ServerFilterParams params(
