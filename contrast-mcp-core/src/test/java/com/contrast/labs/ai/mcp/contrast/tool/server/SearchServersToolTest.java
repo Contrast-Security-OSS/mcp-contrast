@@ -24,7 +24,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
@@ -84,7 +83,6 @@ class SearchServersToolTest {
             "info",
             "blue",
             "app-a",
-            false,
             "5.0.0",
             true,
             "agentVersion,DESC");
@@ -129,7 +127,7 @@ class SearchServersToolTest {
 
     var result =
         tool.searchServers(
-            1, 10, null, null, null, null, null, null, null, null, null, null, toolContext);
+            1, 10, null, null, null, null, null, null, null, null, null, toolContext);
     Method method =
         SearchServersTool.class.getDeclaredMethod(
             "searchServers",
@@ -141,7 +139,6 @@ class SearchServersToolTest {
             String.class,
             String.class,
             String.class,
-            Boolean.class,
             String.class,
             Boolean.class,
             String.class,
@@ -150,19 +147,6 @@ class SearchServersToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(capturedContext.get()).isSameAs(toolContext);
     assertThat(method.getAnnotation(Tool.class).name()).isEqualTo("search_servers");
-  }
-
-  @Test
-  void searchServers_should_reject_mutually_exclusive_filters_without_calling_client() {
-    var result =
-        tool.searchServers(1, 10, null, null, null, null, null, "app-a", true, null, null, null);
-
-    assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors())
-        .containsExactly(
-            "applicationIds and withoutApplications are mutually exclusive: choose application"
-                + " IDs or servers without applications, not both");
-    verifyNoInteractions(contrastApiClient);
   }
 
   @Test
@@ -188,8 +172,7 @@ class SearchServersToolTest {
         .thenReturn(response);
 
     var result =
-        tool.searchServers(
-            1, 50, null, null, null, null, "missing-tag", null, null, null, null, null);
+        tool.searchServers(1, 50, null, null, null, null, "missing-tag", null, null, null, null);
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
@@ -258,8 +241,7 @@ class SearchServersToolTest {
   }
 
   private PaginatedToolResponse<ServerSummary> allServers(Integer page, Integer pageSize) {
-    return tool.searchServers(
-        page, pageSize, null, null, null, null, null, null, null, null, null, null);
+    return tool.searchServers(page, pageSize, null, null, null, null, null, null, null, null, null);
   }
 
   private static ServersResponse response(long count, ServerDetail... servers) {

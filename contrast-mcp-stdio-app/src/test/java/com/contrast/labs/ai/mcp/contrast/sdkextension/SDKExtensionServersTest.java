@@ -88,12 +88,11 @@ class SDKExtensionServersTest {
   }
 
   @Test
-  void getServersFiltered_should_serialize_wire_spellings_and_case_sensitive_none_sentinel()
-      throws Exception {
+  void getServersFiltered_should_serialize_wire_spellings() throws Exception {
     stubResponse(emptySuccess());
     var body =
         ServerFilterBody.builder()
-            .applicationsIds(List.of("None"))
+            .applicationsIds(List.of("app-a"))
             .serverEnvironments(List.of("PRODUCTION"))
             .q("checkout")
             .quickFilter("UNPROTECTED")
@@ -107,7 +106,7 @@ class SDKExtensionServersTest {
             eq(HttpMethod.POST), anyString(), bodyCaptor.capture(), eq(MediaType.JSON));
     assertThat(bodyCaptor.getValue())
         .contains(
-            "\"applicationsIds\":[\"None\"]",
+            "\"applicationsIds\":[\"app-a\"]",
             "\"serverEnvironments\":[\"PRODUCTION\"]",
             "\"q\":\"checkout\"",
             "\"quickFilter\":\"UNPROTECTED\"")
@@ -243,10 +242,10 @@ class SDKExtensionServersTest {
   }
 
   @Test
-  void getServersFiltered_should_accept_successful_empty_withoutApplications_response()
+  void getServersFiltered_should_accept_successful_empty_applicationIds_response()
       throws Exception {
     stubResponse(emptySuccess());
-    var body = ServerFilterBody.builder().applicationsIds(List.of("None")).build();
+    var body = ServerFilterBody.builder().applicationsIds(List.of("app-a")).build();
 
     var response = sdkExtension.getServersFiltered("org-123", body, 50, 0, "-lastActivity", false);
 

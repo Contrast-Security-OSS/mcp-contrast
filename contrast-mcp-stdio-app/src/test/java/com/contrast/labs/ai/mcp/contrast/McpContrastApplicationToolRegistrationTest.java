@@ -46,10 +46,10 @@ class McpContrastApplicationToolRegistrationTest {
                       "environments",
                       "quickFilter",
                       "applicationIds",
-                      "withoutApplications",
                       "includeApplications",
                       "sort")
-                  .doesNotContain("applicationsIds", "\"q\"", "defend", "num_apps");
+                  .doesNotContain(
+                      "withoutApplications", "applicationsIds", "\"q\"", "defend", "num_apps");
             });
   }
 

@@ -27,14 +27,13 @@ class ServerFilterParamsTest {
 
   @Test
   void of_should_apply_silent_defaults_when_optional_values_are_absent() {
-    var params = params(null, null, null, null, null, null, null, null, null, null);
+    var params = params(null, null, null, null, null, null, null, null, null);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.warnings()).isEmpty();
     assertThat(params.getQuickFilter()).isEqualTo("ALL");
     assertThat(params.getSort()).isEqualTo("-lastActivity");
     assertThat(params.isIncludeApplications()).isFalse();
-    assertThat(params.isWithoutApplications()).isFalse();
   }
 
   @Test
@@ -47,7 +46,6 @@ class ServerFilterParamsTest {
             "debug, warn",
             "blue, critical",
             "app-a, app-b",
-            false,
             "1.2.3, 2.0.0",
             true,
             "name,ASC");
@@ -65,29 +63,10 @@ class ServerFilterParamsTest {
     assertThat(params.getSort()).isEqualTo("serverName");
   }
 
-  @Test
-  void toServerFilterBody_should_translate_withoutApplications_to_case_sensitive_wire_sentinel() {
-    var params = params(null, null, null, null, null, null, true, null, null, null);
-
-    assertThat(params.isValid()).isTrue();
-    assertThat(params.toServerFilterBody().getApplicationsIds()).containsExactly("None");
-  }
-
-  @Test
-  void of_should_reject_applicationIds_with_withoutApplications() {
-    var params = params(null, null, null, null, null, "app-a", true, null, null, null);
-
-    assertThat(params.isValid()).isFalse();
-    assertThat(params.errors())
-        .containsExactly(
-            "applicationIds and withoutApplications are mutually exclusive: choose application"
-                + " IDs or servers without applications, not both");
-  }
-
   @ParameterizedTest
   @MethodSource("sortTranslations")
   void of_should_translate_public_sort_to_wire_sort(String publicSort, String wireSort) {
-    var params = params(null, null, null, null, null, null, null, null, null, publicSort);
+    var params = params(null, null, null, null, null, null, null, null, publicSort);
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.getSort()).isEqualTo(wireSort);
@@ -96,7 +75,7 @@ class ServerFilterParamsTest {
   @ParameterizedTest
   @MethodSource("invalidSorts")
   void of_should_reject_invalid_sort_with_all_valid_options(String sort) {
-    var params = params(null, null, null, null, null, null, null, null, null, sort);
+    var params = params(null, null, null, null, null, null, null, null, sort);
 
     assertThat(params.isValid()).isFalse();
     assertThat(params.errors())
@@ -117,8 +96,7 @@ class ServerFilterParamsTest {
   @Test
   void of_should_reject_invalid_enum_filters_with_valid_values() {
     var params =
-        params(
-            null, "INVALID", "PARTIALLY_PROTECTED", "VERBOSE", null, null, null, null, null, null);
+        params(null, "INVALID", "PARTIALLY_PROTECTED", "VERBOSE", null, null, null, null, null);
 
     assertThat(params.isValid()).isFalse();
     assertThat(params.errors())
@@ -159,7 +137,6 @@ class ServerFilterParamsTest {
       String logLevels,
       String tags,
       String applicationIds,
-      Boolean withoutApplications,
       String agentVersions,
       Boolean includeApplications,
       String sort) {
@@ -170,7 +147,6 @@ class ServerFilterParamsTest {
         logLevels,
         tags,
         applicationIds,
-        withoutApplications,
         agentVersions,
         includeApplications,
         sort);

@@ -86,7 +86,6 @@ class SearchServersLocalParityTest {
             "INFO",
             "blue",
             null,
-            false,
             "5.0.0",
             false,
             "agentVersion,DESC");

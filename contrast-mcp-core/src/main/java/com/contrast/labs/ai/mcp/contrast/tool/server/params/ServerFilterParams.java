@@ -56,7 +56,6 @@ public class ServerFilterParams extends BaseToolParams {
 
   private static final String DEFAULT_QUICK_FILTER = ServerQuickFilterType.ALL.name();
   private static final String DEFAULT_SORT = "-lastActivity";
-  private static final String NO_APPLICATIONS_SENTINEL = "None";
   private static final Set<String> VALID_SORT_DIRECTIONS = Set.of("ASC", "DESC");
 
   private String keyword;
@@ -65,7 +64,6 @@ public class ServerFilterParams extends BaseToolParams {
   private List<String> logLevels;
   private List<String> tags;
   private List<String> applicationIds;
-  private boolean withoutApplications;
   private List<String> agentVersions;
   private boolean includeApplications;
   @Nullable private String sort;
@@ -80,7 +78,6 @@ public class ServerFilterParams extends BaseToolParams {
       String logLevels,
       String tags,
       String applicationIds,
-      Boolean withoutApplications,
       String agentVersions,
       Boolean includeApplications,
       String sort) {
@@ -108,17 +105,9 @@ public class ServerFilterParams extends BaseToolParams {
             .get();
     params.tags = ctx.stringListParam(tags, "tags").get();
     params.applicationIds = ctx.stringListParam(applicationIds, "applicationIds").get();
-    params.withoutApplications = Boolean.TRUE.equals(withoutApplications);
     params.agentVersions = ctx.stringListParam(agentVersions, "agentVersions").get();
     params.includeApplications = Boolean.TRUE.equals(includeApplications);
     params.sort = parseSort(ctx, sort);
-
-    ctx.mutuallyExclusive(
-        params.applicationIds != null && !params.applicationIds.isEmpty(),
-        "applicationIds",
-        params.withoutApplications,
-        "withoutApplications",
-        "choose application IDs or servers without applications, not both");
 
     params.setValidationResult(ctx);
     return params;
@@ -163,10 +152,8 @@ public class ServerFilterParams extends BaseToolParams {
 
   /** Converts public parameters to the TeamServer wire request. */
   public ServerFilterBody toServerFilterBody() {
-    var wireApplicationIds =
-        withoutApplications ? List.of(NO_APPLICATIONS_SENTINEL) : applicationIds;
     return ServerFilterBody.builder()
-        .applicationsIds(wireApplicationIds)
+        .applicationsIds(applicationIds)
         .logLevels(logLevels)
         .tags(tags)
         .agentVersions(agentVersions)

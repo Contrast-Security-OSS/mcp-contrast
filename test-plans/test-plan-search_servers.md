@@ -10,7 +10,6 @@ sorting, application expansion, and safe empty/error behavior against a live Tea
 * Credentials can view at least two servers.
 * Prefer data spanning multiple environments, statuses, agent versions, and applications.
 * Tag tests require at least one visible tagged server.
-* `withoutApplications=true` requires the organization permission and matching seeded data.
 
 ## Test Cases
 
@@ -21,10 +20,9 @@ statuses, non-negative application counts, and pagination metadata consistent wi
 
 ### 2. Filter dimensions
 
-Exercise `quickFilter`, `environments`, `logLevels`, `tags`, `applicationIds`,
-`withoutApplications`, `agentVersions`, and `keyword`. Verify every returned item satisfies each
-requested filter. For comma-separated values, verify OR within a parameter and AND across
-different parameters.
+Exercise `quickFilter`, `environments`, `logLevels`, `tags`, `applicationIds`, `agentVersions`, and
+`keyword`. Verify every returned item satisfies each requested filter. For comma-separated values,
+verify OR within a parameter and AND across different parameters.
 
 ### 3. Application expansion
 
@@ -48,8 +46,8 @@ total count.
 ### 6. Empty and validation behavior
 
 Search for a guaranteed-missing exact tag and verify success, an empty item list, zero total, and
-the standard no-results warning. Verify invalid enum values, mutually exclusive application
-filters, and malformed sorts return validation errors without exposing downstream details.
+the standard no-results warning. Verify invalid enum values and malformed sorts return validation
+errors without exposing downstream details.
 
 ### 7. Nullable coverage fields
 

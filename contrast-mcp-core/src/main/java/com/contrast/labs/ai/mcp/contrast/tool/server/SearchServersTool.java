@@ -83,11 +83,6 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
       @ToolParam(description = "Comma-separated exact server tags", required = false) String tags,
       @ToolParam(description = "Comma-separated application IDs", required = false)
           String applicationIds,
-      @ToolParam(
-              description =
-                  "Only servers with no applications; mutually exclusive with applicationIds",
-              required = false)
-          Boolean withoutApplications,
       @ToolParam(description = "Comma-separated exact agent versions", required = false)
           String agentVersions,
       @ToolParam(
@@ -115,7 +110,6 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
                 logLevels,
                 tags,
                 applicationIds,
-                withoutApplications,
                 agentVersions,
                 includeApplications,
                 sort),
@@ -131,7 +125,6 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
       String logLevels,
       String tags,
       String applicationIds,
-      Boolean withoutApplications,
       String agentVersions,
       Boolean includeApplications,
       String sort) {
@@ -144,7 +137,6 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
         logLevels,
         tags,
         applicationIds,
-        withoutApplications,
         agentVersions,
         includeApplications,
         sort,

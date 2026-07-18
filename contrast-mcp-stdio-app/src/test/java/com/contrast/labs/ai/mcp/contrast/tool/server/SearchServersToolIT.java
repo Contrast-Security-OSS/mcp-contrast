@@ -68,8 +68,7 @@ class SearchServersToolIT {
 
   @Test
   void searchServers_should_filter_by_quickFilter() {
-    var response =
-        search(1, FULL_PAGE, null, null, "ONLINE", null, null, null, null, null, false, null);
+    var response = search(1, FULL_PAGE, null, null, "ONLINE", null, null, null, null, false, null);
 
     assertSuccess(response);
     assertThat(response.items())
@@ -82,7 +81,7 @@ class SearchServersToolIT {
   void searchServers_should_filter_by_environment() {
     var environment = requiredValue(ServerSummary::environment, "server environment");
     var response =
-        search(1, FULL_PAGE, null, environment, null, null, null, null, null, null, false, null);
+        search(1, FULL_PAGE, null, environment, null, null, null, null, null, false, null);
 
     assertSuccess(response);
     assertThat(response.items())
@@ -94,8 +93,7 @@ class SearchServersToolIT {
   @Test
   void searchServers_should_filter_by_logLevel() {
     var logLevel = requiredValue(ServerSummary::logLevel, "server log level");
-    var response =
-        search(1, FULL_PAGE, null, null, null, logLevel, null, null, null, null, false, null);
+    var response = search(1, FULL_PAGE, null, null, null, logLevel, null, null, null, false, null);
 
     assertSuccess(response);
     assertThat(response.items())
@@ -113,7 +111,7 @@ class SearchServersToolIT {
             .orElseThrow(
                 () ->
                     new AssertionError("requires a seeded server tag — see INTEGRATION_TESTS.md"));
-    var response = search(1, FULL_PAGE, null, null, null, null, tag, null, null, null, false, null);
+    var response = search(1, FULL_PAGE, null, null, null, null, tag, null, null, false, null);
 
     assertSuccess(response);
     assertThat(response.items())
@@ -135,8 +133,7 @@ class SearchServersToolIT {
                 () ->
                     new AssertionError(
                         "requires a seeded server application — see INTEGRATION_TESTS.md"));
-    var response =
-        search(1, FULL_PAGE, null, null, null, null, null, appId, false, null, true, null);
+    var response = search(1, FULL_PAGE, null, null, null, null, null, appId, null, true, null);
 
     assertSuccess(response);
     assertThat(response.items())
@@ -153,7 +150,7 @@ class SearchServersToolIT {
   void searchServers_should_filter_by_agentVersion() {
     var agentVersion = requiredValue(ServerSummary::agentVersion, "server agent version");
     var response =
-        search(1, FULL_PAGE, null, null, null, null, null, null, null, agentVersion, false, null);
+        search(1, FULL_PAGE, null, null, null, null, null, null, agentVersion, false, null);
 
     assertSuccess(response);
     assertThat(response.items())
@@ -166,8 +163,7 @@ class SearchServersToolIT {
   void searchServers_should_filter_by_keyword_using_seeded_server_name() {
     var seeded = seededServers().getFirst();
     var keyword = seeded.name();
-    var response =
-        search(1, FULL_PAGE, keyword, null, null, null, null, null, null, null, false, null);
+    var response = search(1, FULL_PAGE, keyword, null, null, null, null, null, null, false, null);
 
     assertSuccess(response);
     assertThat(response.items())
@@ -183,25 +179,11 @@ class SearchServersToolIT {
   }
 
   @Test
-  void searchServers_should_find_servers_without_applications() {
-    var response =
-        search(1, FULL_PAGE, null, null, null, null, null, null, true, null, false, null);
-
-    assertSuccess(response);
-    assertThat(response.items())
-        .as(
-            "requires EAC access and seeded servers without applications — see"
-                + " INTEGRATION_TESTS.md")
-        .isNotEmpty()
-        .allSatisfy(server -> assertThat(server.applicationCount()).isZero());
-  }
-
-  @Test
   void searchServers_should_include_applications_only_when_requested() {
-    var withoutApplications = allServers(1, FULL_PAGE, false);
+    var withoutExpansion = allServers(1, FULL_PAGE, false);
     var withApplications = allServers(1, FULL_PAGE, true);
 
-    assertSuccess(withoutApplications);
+    assertSuccess(withoutExpansion);
     assertSuccess(withApplications);
     assertThat(withApplications.items())
         .as("requires EAC-visible seeded servers — see INTEGRATION_TESTS.md")
@@ -216,7 +198,7 @@ class SearchServersToolIT {
     assertThat(withApplications.items())
         .as("requires at least one seeded server application — see INTEGRATION_TESTS.md")
         .anySatisfy(server -> assertThat(server.applications()).isNotEmpty());
-    assertThat(withoutApplications.items())
+    assertThat(withoutExpansion.items())
         .isNotEmpty()
         .allSatisfy(server -> assertThat(server.applications()).isNull());
   }
@@ -239,7 +221,6 @@ class SearchServersToolIT {
             FULL_PAGE,
             null,
             String.join(",", environments),
-            null,
             null,
             null,
             null,
@@ -277,7 +258,6 @@ class SearchServersToolIT {
             seed.logLevel(),
             null,
             null,
-            null,
             seed.agentVersion(),
             false,
             null);
@@ -302,7 +282,6 @@ class SearchServersToolIT {
         search(
             1,
             FULL_PAGE,
-            null,
             null,
             null,
             null,
@@ -368,7 +347,7 @@ class SearchServersToolIT {
   @Test
   void searchServers_should_return_full_validation_message_for_invalid_sort() {
     var response =
-        search(1, FULL_PAGE, null, null, null, null, null, null, null, null, false, "invalid,DOWN");
+        search(1, FULL_PAGE, null, null, null, null, null, null, null, false, "invalid,DOWN");
 
     assertThat(response.isSuccess()).isFalse();
     assertThat(response.errors())
@@ -398,7 +377,6 @@ class SearchServersToolIT {
             "STAGING",
             "PARTIALLY_PROTECTED",
             "VERBOSE",
-            null,
             null,
             null,
             null,
@@ -449,7 +427,7 @@ class SearchServersToolIT {
   private PaginatedToolResponse<ServerSummary> allServers(
       Integer page, Integer pageSize, Boolean includeApplications) {
     return search(
-        page, pageSize, null, null, null, null, null, null, null, null, includeApplications, null);
+        page, pageSize, null, null, null, null, null, null, null, includeApplications, null);
   }
 
   private PaginatedToolResponse<ServerSummary> search(
@@ -461,7 +439,6 @@ class SearchServersToolIT {
       String logLevels,
       String tags,
       String applicationIds,
-      Boolean withoutApplications,
       String agentVersions,
       Boolean includeApplications,
       String sort) {
@@ -474,7 +451,6 @@ class SearchServersToolIT {
         logLevels,
         tags,
         applicationIds,
-        withoutApplications,
         agentVersions,
         includeApplications,
         sort);
@@ -535,7 +511,6 @@ class SearchServersToolIT {
         search(
             lastPageNumber,
             FULL_PAGE,
-            null,
             null,
             null,
             null,
