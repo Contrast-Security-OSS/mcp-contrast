@@ -30,6 +30,8 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetada
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServerFilterBody;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServersResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
 import com.contrastsecurity.exceptions.HttpResponseException;
 import com.contrastsecurity.exceptions.UnauthorizedException;
@@ -167,6 +169,15 @@ public class SdkApiClient implements ContrastApiClient {
     return sdkExtensionFactory
         .getSDKExtension()
         .getAttacks(localOrganization(), filters, limit, offset, sort);
+  }
+
+  @Override
+  public ServersResponse searchServers(
+      ServerFilterBody filters, int limit, int offset, String sort, boolean includeApplications)
+      throws Exception {
+    return sdkExtensionFactory
+        .getSDKExtension()
+        .getServersFiltered(localOrganization(), filters, limit, offset, sort, includeApplications);
   }
 
   @Override

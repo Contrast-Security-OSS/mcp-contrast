@@ -27,6 +27,8 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetada
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServerFilterBody;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServersResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
 import com.contrastsecurity.http.TraceFilterForm.TraceExpandValue;
 import com.contrastsecurity.models.EventSummaryResponse;
@@ -86,6 +88,10 @@ public interface ContrastApiClient {
   CveData getApplicationsByCve(String cveId) throws Exception;
 
   AttacksResponse searchAttacks(AttacksFilterBody filters, int limit, int offset, String sort)
+      throws Exception;
+
+  ServersResponse searchServers(
+      ServerFilterBody filters, int limit, int offset, String sort, boolean includeApplications)
       throws Exception;
 
   ProtectData getProtectRules(String appId) throws Exception;

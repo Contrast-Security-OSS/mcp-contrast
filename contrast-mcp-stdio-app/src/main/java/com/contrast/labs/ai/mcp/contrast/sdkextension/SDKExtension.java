@@ -28,6 +28,8 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Applicati
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservationsResponse;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServerFilterBody;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServersResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants;
 import com.contrastsecurity.exceptions.UnauthorizedException;
@@ -321,6 +323,63 @@ public class SDKExtension {
                 HttpMethod.POST, url, gson.toJson(requestBody), MediaType.JSON);
         Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
       return gson.fromJson(reader, ApplicationsResponse.class);
+    }
+  }
+
+  /** Retrieves a filtered page of EAC-visible servers through the current POST endpoint. */
+  public ServersResponse getServersFiltered(
+      String organizationId,
+      ServerFilterBody filterBody,
+      int limit,
+      int offset,
+      String sort,
+      boolean includeApplications)
+      throws UnauthorizedException, IOException {
+    var expand = includeApplications ? "applications" : "num_apps";
+    var response = requestServers(organizationId, filterBody, limit, offset, sort, expand);
+
+    if (offset > 0 && response.getServers().isEmpty() && response.getCount() == 0) {
+      var firstPage = requestServers(organizationId, filterBody, 1, 0, sort, null);
+      response.setCount(firstPage.getCount());
+    }
+    return response;
+  }
+
+  private ServersResponse requestServers(
+      String organizationId,
+      ServerFilterBody filterBody,
+      int limit,
+      int offset,
+      String sort,
+      String expand)
+      throws UnauthorizedException, IOException {
+    var builder =
+        new URIBuilder()
+            .appendPathSegments("ng", organizationId, "servers", "filter")
+            .appendQueryParam("includeArchived", "false")
+            .appendQueryParam("limit", String.valueOf(limit))
+            .appendQueryParam("offset", String.valueOf(offset))
+            .appendQueryParam("sort", sort);
+    if (expand != null) {
+      builder.appendQueryParam("expand", expand);
+    }
+
+    try (InputStream is =
+            contrastSDK.makeRequestWithBody(
+                HttpMethod.POST, builder.toURIString(), gson.toJson(filterBody), MediaType.JSON);
+        Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+      var response = gson.fromJson(reader, ServersResponse.class);
+      validateServersResponse(response);
+      return response;
+    }
+  }
+
+  private static void validateServersResponse(ServersResponse response) throws IOException {
+    if (response == null
+        || !response.isSuccess()
+        || response.getServers() == null
+        || response.getCount() == null) {
+      throw new IOException("Invalid server response envelope");
     }
   }
 

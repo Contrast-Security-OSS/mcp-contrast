@@ -26,6 +26,7 @@ import com.contrast.labs.ai.mcp.contrast.tool.library.ListApplicationLibrariesTo
 import com.contrast.labs.ai.mcp.contrast.tool.library.ListApplicationsByCveTool;
 import com.contrast.labs.ai.mcp.contrast.tool.sast.GetSastProjectTool;
 import com.contrast.labs.ai.mcp.contrast.tool.sast.GetSastResultsTool;
+import com.contrast.labs.ai.mcp.contrast.tool.server.SearchServersTool;
 import com.contrast.labs.ai.mcp.contrast.tool.vulnerability.GetVulnerabilityTool;
 import com.contrast.labs.ai.mcp.contrast.tool.vulnerability.ListVulnerabilityTypesTool;
 import com.contrast.labs.ai.mcp.contrast.tool.vulnerability.SearchAppVulnerabilitiesTool;
@@ -80,6 +81,8 @@ public class McpContrastApplication {
       // ADR tools
       GetProtectRulesTool getProtectRulesTool,
       SearchAttacksTool searchAttacksTool,
+      // Server tools
+      SearchServersTool searchServersTool,
       // SAST tools
       GetSastProjectTool getSastProjectTool,
       GetSastResultsTool getSastResultsTool,
@@ -98,6 +101,7 @@ public class McpContrastApplication {
             getSessionMetadataTool,
             getProtectRulesTool,
             searchAttacksTool,
+            searchServersTool,
             getSastProjectTool,
             getSastResultsTool,
             listApplicationLibrariesTool,
