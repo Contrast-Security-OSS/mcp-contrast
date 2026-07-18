@@ -21,9 +21,13 @@ import java.util.Locale;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.parallel.Resources;
 
+// Locale.setDefault changes JVM-global state. Isolate this class because unannotated tests that
+// only read the default locale do not participate in locale resource locks.
+@Isolated("Mutates the JVM-wide default locale")
 class StringSpecTest {
 
   private ToolValidationContext ctx;
