@@ -37,7 +37,7 @@ class ServerSummaryTest {
               "servers": [{
                 "server_id": 42,
                 "name": "prod-1",
-                "latest_agent_version": "NO VERSION AVAILABLE",
+                "latest_agent_version": "NA",
                 "out_of_date": true,
                 "assess": true,
                 "assessPending": false,
@@ -127,6 +127,30 @@ class ServerSummaryTest {
     assertThat(summary.applications())
         .extracting(ServerSummary.ServerApplicationSummary::appId)
         .containsExactly("app-a", "app-b");
+  }
+
+  @Test
+  void fromServer_should_prefer_application_count_over_application_list_size() {
+    var response =
+        parse(
+            """
+            {
+              "success": true,
+              "count": 1,
+              "servers": [{
+                "server_id": 9,
+                "num_apps": 3,
+                "applications": [
+                  {"app_id": "app-a", "name": "checkout", "language": "JAVA"}
+                ]
+              }]
+            }
+            """);
+
+    var summary = ServerSummary.fromServer(response.getServers().getFirst(), false);
+
+    assertThat(summary.applicationCount()).isEqualTo(3L);
+    assertThat(summary.applications()).isNull();
   }
 
   private ServersResponse parse(String json) {

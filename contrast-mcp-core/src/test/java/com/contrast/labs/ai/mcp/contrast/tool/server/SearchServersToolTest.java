@@ -181,7 +181,8 @@ class SearchServersToolTest {
   }
 
   @Test
-  void searchServers_should_use_normalized_empty_tag_response_from_client() throws Exception {
+  void searchServers_should_return_standard_warning_for_valid_empty_tag_filter_result()
+      throws Exception {
     var response = response(0L);
     when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
         .thenReturn(response);

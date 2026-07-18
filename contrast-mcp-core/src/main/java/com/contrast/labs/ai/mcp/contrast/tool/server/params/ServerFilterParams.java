@@ -19,6 +19,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServerFilterBo
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseToolParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ToolValidationContext;
 import com.contrastsecurity.http.ServerEnvironment;
+import com.contrastsecurity.http.ServerFilterForm.ServerQuickFilterType;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -46,12 +47,14 @@ public class ServerFilterParams extends BaseToolParams {
           .map(Enum::name)
           .collect(Collectors.toUnmodifiableSet());
   public static final Set<String> VALID_QUICK_FILTERS =
-      Set.of("ALL", "ONLINE", "OFFLINE", "PROTECTED", "UNPROTECTED", "OUT_OF_DATE");
+      Arrays.stream(ServerQuickFilterType.values())
+          .map(Enum::name)
+          .collect(Collectors.toUnmodifiableSet());
   public static final Set<String> VALID_LOG_LEVELS =
       Set.of("ERROR", "WARN", "INFO", "DEBUG", "TRACE");
   public static final Set<String> VALID_SORT_FIELDS = Set.copyOf(SORT_FIELDS.keySet());
 
-  private static final String DEFAULT_QUICK_FILTER = "ALL";
+  private static final String DEFAULT_QUICK_FILTER = ServerQuickFilterType.ALL.name();
   private static final String DEFAULT_SORT = "-lastActivity";
   private static final String NO_APPLICATIONS_SENTINEL = "None";
   private static final Set<String> VALID_SORT_DIRECTIONS = Set.of("ASC", "DESC");
@@ -95,7 +98,7 @@ public class ServerFilterParams extends BaseToolParams {
             .toUpperCase()
             .allowedValues(VALID_QUICK_FILTERS)
             .get();
-    if (params.quickFilter == null && !StringUtils.hasText(quickFilter)) {
+    if (!StringUtils.hasText(quickFilter)) {
       params.quickFilter = DEFAULT_QUICK_FILTER;
     }
     params.logLevels =
@@ -121,6 +124,7 @@ public class ServerFilterParams extends BaseToolParams {
     return params;
   }
 
+  // TODO: Share sort parsing with AttackFilterParams while preserving its case-sensitive contract.
   private static String parseSort(@NonNull ToolValidationContext ctx, @Nullable String sort) {
     if (!StringUtils.hasText(sort)) {
       return DEFAULT_SORT;

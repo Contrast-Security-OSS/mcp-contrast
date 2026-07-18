@@ -37,6 +37,7 @@ import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.http.HttpMethod;
 import com.contrastsecurity.http.LibraryFilterForm;
 import com.contrastsecurity.http.MediaType;
+import com.contrastsecurity.http.ServerFilterForm.ServerExpandValue;
 import com.contrastsecurity.http.TraceFilterForm.TraceExpandValue;
 import com.contrastsecurity.http.UrlBuilder;
 import com.contrastsecurity.models.RouteCoverageBySessionIDAndMetadataRequest;
@@ -340,7 +341,10 @@ public class SDKExtension {
       String sort,
       boolean includeApplications)
       throws UnauthorizedException, IOException {
-    var expand = includeApplications ? "applications" : "num_apps";
+    var expand =
+        includeApplications
+            ? ServerExpandValue.APPLICATIONS.toString()
+            : ServerExpandValue.NUM_APPS.toString();
     var response = requestServers(organizationId, filterBody, limit, offset, sort, expand);
 
     if (offset > 0 && response.getServers().isEmpty() && response.getCount() == 0) {

@@ -64,7 +64,7 @@ class SearchServersLocalParityTest {
     var server = new ServerDetail();
     server.setServerId(42L);
     server.setName("prod-1");
-    server.setLatestAgentVersion("NO VERSION AVAILABLE");
+    server.setLatestAgentVersion("NA");
     server.setDefend(null);
     server.setApplicationCount(0L);
     server.setTags(List.of("blue"));

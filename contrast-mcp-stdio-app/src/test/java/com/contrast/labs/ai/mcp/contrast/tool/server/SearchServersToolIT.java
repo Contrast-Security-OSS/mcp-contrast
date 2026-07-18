@@ -206,7 +206,16 @@ class SearchServersToolIT {
     assertThat(withApplications.items())
         .as("requires EAC-visible seeded servers — see INTEGRATION_TESTS.md")
         .isNotEmpty()
-        .allSatisfy(server -> assertThat(server.applications()).isNotNull());
+        .allSatisfy(
+            server -> {
+              assertThat(server.applications()).isNotNull();
+              assertThat((long) server.applications().size())
+                  .as("expanded application count for server %s", server.serverId())
+                  .isEqualTo(server.applicationCount());
+            });
+    assertThat(withApplications.items())
+        .as("requires at least one seeded server application — see INTEGRATION_TESTS.md")
+        .anySatisfy(server -> assertThat(server.applications()).isNotEmpty());
     assertThat(withoutApplications.items())
         .isNotEmpty()
         .allSatisfy(server -> assertThat(server.applications()).isNull());

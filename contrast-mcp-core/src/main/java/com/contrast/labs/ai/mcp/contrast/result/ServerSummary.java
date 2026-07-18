@@ -46,7 +46,7 @@ public record ServerSummary(
     List<ServerApplicationSummary> applications,
     String lastActivityAt) {
 
-  private static final String UNKNOWN_LATEST_VERSION = "NO VERSION AVAILABLE";
+  private static final String UNKNOWN_LATEST_VERSION = "NA";
   private static final DateTimeFormatter TIMESTAMP_FORMATTER =
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSxxx");
 

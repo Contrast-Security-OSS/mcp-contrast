@@ -96,7 +96,9 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
       @ToolParam(
               description =
                   "Sort as property,DIRECTION. Properties: name, environment, lastActivity,"
-                      + " agentVersion. Directions: ASC, DESC. Default: lastActivity,DESC",
+                      + " agentVersion. Directions: ASC, DESC. agentVersion uses backend lexical"
+                      + " string ordering, not semantic version ordering. Default:"
+                      + " lastActivity,DESC",
               required = false)
           String sort,
       ToolContext toolContext) {

@@ -238,6 +238,21 @@ class SDKExtensionServersTest {
   }
 
   @Test
+  void getServersFiltered_should_reject_unsuccessful_response_for_empty_tag_filter()
+      throws Exception {
+    stubResponse(
+        """
+        {"success":false,"messages":[],"count":0,"servers":[]}
+        """);
+    var body = ServerFilterBody.builder().tags(List.of()).build();
+
+    assertThatThrownBy(
+            () -> sdkExtension.getServersFiltered("org-123", body, 50, 0, "-lastActivity", false))
+        .isInstanceOf(IOException.class)
+        .hasMessage("Invalid server response envelope");
+  }
+
+  @Test
   void getServersFiltered_should_reject_unsuccessful_or_null_envelopes() throws Exception {
     when(sdk.makeRequestWithBody(any(), anyString(), anyString(), any()))
         .thenReturn(stream("{\"success\":false,\"messages\":[\"secret\"]}"), stream("null"));
