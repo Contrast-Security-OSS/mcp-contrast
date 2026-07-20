@@ -66,6 +66,15 @@ public abstract class AbstractIntegrationTest<T> {
    */
   protected abstract T performDiscovery() throws Exception;
 
+  /**
+   * Version of this test's {@link #performDiscovery()} logic/invariants. Bump in a subclass
+   * whenever discovery changes in a way that must invalidate disk-cached TestData written by an
+   * earlier version, so a warm pre-change cache entry cannot defeat the new discovery invariants.
+   */
+  protected int discoveryVersion() {
+    return 1;
+  }
+
   /** Logs important details about the discovered test data. */
   protected abstract void logTestDataDetails(T data);
 
@@ -174,7 +183,7 @@ public abstract class AbstractIntegrationTest<T> {
   }
 
   private String cacheKey() {
-    return testDisplayName().replaceAll("\\s+", "");
+    return testDisplayName().replaceAll("\\s+", "") + "-v" + discoveryVersion();
   }
 
   /**
