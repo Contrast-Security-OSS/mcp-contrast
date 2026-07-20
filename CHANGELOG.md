@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-07-20
+
 ### Breaking Changes
 
 **CVE score accessors now use `Double`**: The published `contrast-mcp-core` `Cve` model changed `getScore()` and `setScore()` from primitive `double` to nullable `Double` so unavailable scores can be represented accurately. Consumers compiled against the previous signature must recompile.
@@ -30,6 +32,27 @@ environment, application, tag, and Protect coverage with pagination and sorting.
 **Spring Boot 4.1.0 and Spring AI 1.1.7 baseline**: Upgraded the build and stdio
 runtime baseline from Spring Boot 3.5.7/Spring AI 1.1.4 to Spring Boot 4.1.0/Spring
 AI 1.1.7. This also moves the managed Spring Framework line to 7.0.8.
+
+## [2.0.1] - 2026-06-05
+
+### Bug Fixes
+
+**Duplicate servers in `list_applications_by_cve`**: The `servers` array could list
+the same server more than once because of a TeamServer API bug (TS-42992). Servers are
+now deduplicated by ID before the response is built.
+
+**`search_attacks` sort syntax was inconsistent**: The sort parameter now uses the same
+`property,DIRECTION` convention as every other tool, replacing the one-off `-property`
+descending syntax. Invalid sort input returns a clear error listing the expected format.
+
+### Improvements
+
+**CVE ID input is normalized**: `list_applications_by_cve` now trims whitespace and
+uppercases the CVE ID, so values such as `cve-2021-44228` are accepted.
+
+**Timestamp parameter validation**: The core validation framework now validates ISO
+timestamp and epoch-millisecond inputs and rejects reversed time ranges before they
+reach downstream APIs.
 
 ## [2.0.0] - 2026-06-01
 
