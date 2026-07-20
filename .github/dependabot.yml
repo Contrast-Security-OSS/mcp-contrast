@@ -4,6 +4,17 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      dev-dependencies:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        dependency-type: development
+      production-dependencies:
+        applies-to: version-updates
+        patterns:
+          - "*"
+        dependency-type: production
     cooldown:
       default-days: 7
 
@@ -28,3 +39,14 @@ updates:
           - '*'
       exclude:
           - react
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      docker-dependencies:
+        patterns:
+          - "*"
+    cooldown:
+      default-days: 7
