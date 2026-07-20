@@ -50,6 +50,7 @@ subprojects {
         options.encoding = 'UTF-8'
         options.release = 21
         options.compilerArgs.add('-parameters')
+        options.compilerArgs.addAll(['-Xlint:deprecation', '-Xlint:removal'])
     }
 
     tasks.withType(Test).configureEach {

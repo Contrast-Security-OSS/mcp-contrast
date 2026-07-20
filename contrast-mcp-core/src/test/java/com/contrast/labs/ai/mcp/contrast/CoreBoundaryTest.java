@@ -58,6 +58,7 @@ class CoreBoundaryTest {
           sourcePath(
               "com/contrast/labs/ai/mcp/contrast/tool/library/" + "ListApplicationsByCveTool.java"),
           sourcePath("com/contrast/labs/ai/mcp/contrast/tool/sast/GetSastProjectTool.java"),
+          sourcePath("com/contrast/labs/ai/mcp/contrast/tool/server/SearchServersTool.java"),
           sourcePath(
               "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/GetVulnerabilityTool.java"),
           sourcePath(

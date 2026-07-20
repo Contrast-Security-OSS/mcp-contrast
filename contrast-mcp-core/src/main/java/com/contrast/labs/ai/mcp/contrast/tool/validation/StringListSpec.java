@@ -17,6 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.validation;
 
 import com.contrast.labs.ai.mcp.contrast.tool.base.FilterHelper;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -101,20 +102,20 @@ public class StringListSpec {
 
     // Apply uppercase conversion if requested
     if (convertToUpperCase) {
-      parsed = parsed.stream().map(String::toUpperCase).toList();
+      parsed = parsed.stream().map(value -> value.toUpperCase(Locale.ROOT)).toList();
     }
 
     if (allowedValues != null) {
       // Build lowercase -> canonical mapping for case-insensitive matching
       var canonicalMap = new java.util.HashMap<String, String>();
       for (String allowed : allowedValues) {
-        canonicalMap.put(allowed.toLowerCase(), allowed);
+        canonicalMap.put(allowed.toLowerCase(Locale.ROOT), allowed);
       }
 
       // Validate and normalize each item
       var normalized = new java.util.ArrayList<String>();
       for (String item : parsed) {
-        String canonical = canonicalMap.get(item.toLowerCase());
+        String canonical = canonicalMap.get(item.toLowerCase(Locale.ROOT));
         if (canonical != null) {
           normalized.add(canonical);
         } else {

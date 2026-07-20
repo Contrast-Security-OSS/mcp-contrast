@@ -17,6 +17,8 @@ package com.contrast.labs.ai.mcp.contrast.client;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServerFilterBody;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServersResponse;
 import java.io.IOException;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
@@ -75,5 +77,19 @@ class ContrastApiClientContractTest {
     assertThat(FORBIDDEN_RAW_SARIF_TOKENS)
         .as("raw SARIF retrieval must stay local-only and off the shared client boundary")
         .allSatisfy(token -> assertThat(source).doesNotContain(token));
+  }
+
+  @Test
+  void contrastApiClient_should_expose_transport_neutral_server_search() {
+    assertThat(ContrastApiClient.class.getDeclaredMethods())
+        .filteredOn(method -> method.getName().equals("searchServers"))
+        .singleElement()
+        .satisfies(
+            method -> {
+              assertThat(method.getReturnType()).isEqualTo(ServersResponse.class);
+              assertThat(method.getParameterTypes())
+                  .containsExactly(
+                      ServerFilterBody.class, int.class, int.class, String.class, boolean.class);
+            });
   }
 }

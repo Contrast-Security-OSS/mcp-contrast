@@ -13,10 +13,11 @@ dependencies {
     implementation "com.google.guava:guava:${guavaVersion}"
     implementation "com.contrastsecurity:contrast-sdk-java:${contrastSdkVersion}"
     implementation "commons-validator:commons-validator:${commonsValidatorVersion}"
+    implementation 'org.springframework.boot:spring-boot-jackson2'
     implementation 'org.springframework.ai:spring-ai-starter-mcp-server'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation "org.mockito:mockito-inline:${mockitoInlineVersion}"
+    testImplementation 'org.mockito:mockito-core'
 }
 
 bootJar {

@@ -19,6 +19,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      SBOM_DIR: build/release-sboms
     permissions:
       contents: write
       id-token: write
@@ -158,6 +160,34 @@ jobs:
           ./gradlew clean :contrast-mcp-stdio-app:bootJar -x test --no-daemon
           test -f "contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar"
 
+      # Syft version is intentionally left unset. The download action is
+      # SHA-pinned above, so its baked-in default Syft version is already
+      # deterministic, and the action SHA-verifies the downloaded binary
+      # against anchore's signed checksums. Bumping the pinned action (via
+      # Dependabot) carries the Syft version forward with it; an explicit
+      # syft-version input is not tracked by Dependabot and could silently
+      # go stale.
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+
+      # Scan the packaged JAR here in both formats for ecosystem interoperability.
+      - name: Generate release jar SBOMs
+        run: |
+          mkdir -p "$SBOM_DIR"
+          syft scan file:contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar \
+            -o "cyclonedx-json=$SBOM_DIR/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json" \
+            -o "spdx-json=$SBOM_DIR/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json"
+          for sbom in \
+            "$SBOM_DIR/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json" \
+            "$SBOM_DIR/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json"; do
+            test -s "$sbom"
+            jq empty "$sbom"
+          done
+          jq -e '(.components // []) | length > 0' \
+            "$SBOM_DIR/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json"
+          jq -e '(.packages // []) | length > 1' \
+            "$SBOM_DIR/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json"
+
       - name: Verify tracked worktree is clean before publishing
         run: |
           git diff --quiet
@@ -195,6 +225,18 @@ jobs:
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
         with:
           subject-path: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
+
+      - name: Attest release jar CycloneDX SBOM
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
+          sbom-path: ${{ env.SBOM_DIR }}/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json
+
+      - name: Attest release jar SPDX SBOM
+        uses: actions/attest-sbom@c604332985a26aa8cf1bdc465b92731239ec6b9e # v4.1.0
+        with:
+          subject-path: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
+          sbom-path: ${{ env.SBOM_DIR }}/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json
 
       - name: Create the trust keys folder
         shell: sh
@@ -252,6 +294,27 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # This relies on the single-platform load above; inspect keeps the scan bound to the local image.
+      # Scan the loaded image here so both formats describe the exact image that will be pushed.
+      # A separate repository produces the registry-bound image SBOM; these copies are release assets only.
+      - name: Generate release Docker image SBOMs
+        run: |
+          mkdir -p "$SBOM_DIR"
+          docker image inspect "contrast/mcp-contrast:${{ steps.versions.outputs.release }}" >/dev/null
+          syft scan docker:contrast/mcp-contrast:${{ steps.versions.outputs.release }} \
+            -o "cyclonedx-json=$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json" \
+            -o "spdx-json=$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json"
+          for sbom in \
+            "$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json" \
+            "$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json"; do
+            test -s "$sbom"
+            jq empty "$sbom"
+          done
+          jq -e '(.components // []) | length > 0' \
+            "$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json"
+          jq -e '(.packages // []) | length > 1' \
+            "$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json"
+
       - name: Push and sign Docker image with DCT
         env:
           DOCKER_CONTENT_TRUST: 1
@@ -270,7 +333,13 @@ jobs:
           name: Release ${{ steps.versions.outputs.tag }}
           draft: false
           prerelease: false
-          files: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
+          fail_on_unmatched_files: true
+          files: |
+            contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
+            ${{ env.SBOM_DIR }}/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.cdx.json
+            ${{ env.SBOM_DIR }}/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json
+            ${{ env.SBOM_DIR }}/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json
+            ${{ env.SBOM_DIR }}/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -12,6 +12,11 @@ This is an MCP (Model Context Protocol) server for Contrast Security that enable
 
 Branch naming: `AIML-<ticket-id>-<short-description>` (e.g., `AIML-391-add-medium-low-note-counts`)
 
+## PR Requirements
+
+PR Titles should be in the form: `<Jira Issue Id> <Title>` 
+For example: `AIML-573 Generate and attach release SBOMs`
+
 ## Required Plugins
 
 The workflows below use the **pr-tools** plugin (`/pr-tools:*` commands). If those skills aren't available, ask permission, then have the user run:
@@ -81,6 +86,7 @@ tool/
 ├── application/    # Application tools (search_applications, get_session_metadata)
 ├── library/        # Library tools (list_application_libraries, list_applications_by_cve)
 ├── attack/         # Attack tools (search_attacks, get_protect_rules)
+├── server/         # Server tools (search_servers)
 ├── sast/           # SAST tools (get_sast_project, get_scan_results)
 └── coverage/       # Coverage tools (get_route_coverage)
 ```
@@ -112,7 +118,7 @@ Required environment variables/arguments:
 
 ### Technology Stack
 
-- **Framework**: Spring Boot 3.* with Spring AI 1.*
+- **Framework**: Spring Boot 4.* with Spring AI 1.*
 - **MCP Integration**: Spring AI MCP Server starter
 - **Contrast Integration**: Contrast SDK Java 3.*
 - **Testing**: JUnit 5
@@ -184,6 +190,11 @@ When creating or modifying MCP tools:
 - Guard clauses over nested ifs
 - No fully-qualified class names - use imports
 - `isEmpty()` not `size() > 0` for collections
+
+**Comments (WHY for external-system quirks):**
+- When code works around a TeamServer/SDK oddity, a magic sentinel, or other non-obvious external behavior, add a comment stating the concrete behavior and why the workaround exists. That reason lives in another system and cannot be recovered from this codebase alone.
+- Cite the source when known, such as the class/method, the sentinel constant, or a filed ticket (e.g. `TS-43252` for a TeamServer defect).
+- Do not comment self-evident code. Reserve this for reasoning the code cannot express on its own.
 
 **Checkstyle:** 18 rules enforced at `error` severity by Gradle Checkstyle tasks via `make check`. The full list lives in `checkstyle.xml`. Highlights:
 - **Imports:** `AvoidStarImport`, `UnusedImports`, `RedundantImport`, `RegexpSinglelineJava` (no FQCN — use imports)
