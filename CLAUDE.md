@@ -112,7 +112,7 @@ Required environment variables/arguments:
 
 ### Technology Stack
 
-- **Framework**: Spring Boot 3.* with Spring AI 1.*
+- **Framework**: Spring Boot 4.* with Spring AI 1.*
 - **MCP Integration**: Spring AI MCP Server starter
 - **Contrast Integration**: Contrast SDK Java 3.*
 - **Testing**: JUnit 5

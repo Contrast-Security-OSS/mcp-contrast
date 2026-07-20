@@ -1,5 +1,7 @@
 .git
+.beads
 .gradle
+.gradle-sandbox
 .env*
 **/.gradle
 **/build

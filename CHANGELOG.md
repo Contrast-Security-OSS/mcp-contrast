@@ -20,6 +20,12 @@ the correct total, exercised, and discovered route counts and coverage percentag
 
 **Richer CVE scoring details**: `list_applications_by_cve` responses now include nested `cvssv2` and `cvssv3` metrics plus a preferred `severity`. CVSS v3 scores remain available through `score`; v2-only CVEs omit `score` instead of reporting `0.0`. A null `score` is also omitted from `get_protect_rules` CVE output.
 
+### Security
+
+**Spring Boot 4.1.0 and Spring AI 1.1.7 baseline**: Upgraded the build and stdio
+runtime baseline from Spring Boot 3.5.7/Spring AI 1.1.4 to Spring Boot 4.1.0/Spring
+AI 1.1.7. This also moves the managed Spring Framework line to 7.0.8.
+
 ## [2.0.0] - 2026-06-01
 
 ### Breaking Changes
