@@ -15,16 +15,16 @@ jobs:
 
     steps:
     - name: Harden the runner (Audit all outbound calls)
-      uses: step-security/harden-runner@a5ad31d6a139d249332a2605b85202e8c0b78450 # v2.19.1
+      uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
       with:
         egress-policy: audit
 
-    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
     - name: Validate Gradle wrapper
-      uses: gradle/actions/wrapper-validation@11d4d83c63a6ce61b32d8a9c4faddbdb04fe9917 # v6
+      uses: gradle/actions/wrapper-validation@6550634d3eb14a20275549de1588a83267023d42 # v6
 
     - name: Set up JDK 21
-      uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+      uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
       with:
         java-version: '21'
         distribution: 'temurin'
