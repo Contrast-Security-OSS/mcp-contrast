@@ -577,6 +577,10 @@ Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root (created lazily)
 
 Run the harness-engineering playbooks against this repo on demand via `/harness-review` (broad diagnostic) and `/improve-harness` (one bounded change-and-verify loop). The corpus is pinned and kept read-only. See `docs/agents/harness.md`.
 
+### Pre-release MCP test
+
+`/test-mcp-server` runs an exploratory test of the freshly built server against the `.env.integration-test` org (in-depth by default, `smoke` for a fast pass). Run it before a release or when explicitly asked — never as part of routine feature development. See `.claude/skills/test-mcp-server/`.
+
 
 
 @SECURITY.md

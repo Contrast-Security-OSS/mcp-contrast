@@ -50,16 +50,12 @@ results-*.md
 plans/
 docs/brainstorms/
 
-# Test plan validation results
-test-plan-results/
-
 # MCP local config
 .mcp.json
 
 ### Claude Code ###
 .claude/settings.local.json
 .claude/worktrees/
-test-plans-archive/
 .tldr/
 .tldrignore
 
