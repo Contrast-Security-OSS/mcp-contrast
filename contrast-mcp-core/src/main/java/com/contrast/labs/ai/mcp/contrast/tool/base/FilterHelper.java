@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
@@ -37,6 +38,10 @@ import org.springframework.util.StringUtils;
 public class FilterHelper {
   private static final long MIN_EPOCH_MILLIS = 0L;
   private static final long MAX_EPOCH_MILLIS = 253402300799999L;
+  private static final DateTimeFormatter TIMESTAMP_FORMATTER =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssxxx");
+  private static final DateTimeFormatter TIMESTAMP_WITH_MILLIS_FORMATTER =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSxxx");
 
   /** Result of parsing with optional validation message for AI feedback */
   public static class ParseResult<T> {
@@ -243,7 +248,25 @@ public class FilterHelper {
     }
     // Use lowercase 'xxx' pattern which always outputs numeric offsets, never "Z"
     // Uppercase 'XXX' would output "Z" for UTC, but lowercase 'xxx' guarantees numeric format
-    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssxxx");
-    return Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).format(formatter);
+    return Instant.ofEpochMilli(epochMillis)
+        .atZone(ZoneId.systemDefault())
+        .format(TIMESTAMP_FORMATTER);
+  }
+
+  /**
+   * Formats epoch milliseconds as a deterministic UTC ISO 8601 timestamp while retaining
+   * millisecond precision. Use this for public contracts whose backend value is meaningful at
+   * sub-second precision.
+   *
+   * @param epochMillis Epoch timestamp in milliseconds
+   * @return ISO 8601 timestamp with milliseconds and a numeric UTC offset, or null for null input
+   */
+  public static String formatTimestampWithMillis(Long epochMillis) {
+    if (epochMillis == null) {
+      return null;
+    }
+    return Instant.ofEpochMilli(epochMillis)
+        .atZone(ZoneOffset.UTC)
+        .format(TIMESTAMP_WITH_MILLIS_FORMATTER);
   }
 }

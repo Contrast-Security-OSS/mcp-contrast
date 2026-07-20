@@ -12,6 +12,7 @@ TEST_TOOL=search_vulnerabilities
 |------|-------------|
 | search_applications | Search and filter applications |
 | search_attacks | Search attack events with filters |
+| search_servers | Search server inventory, agent health, and Protect coverage |
 | search_vulnerabilities | Search vulnerabilities (org-level) |
 | search_app_vulnerabilities | Search vulnerabilities (app-level) |
 | get_vulnerability | Get single vulnerability details |

@@ -81,6 +81,7 @@ tool/
 ├── application/    # Application tools (search_applications, get_session_metadata)
 ├── library/        # Library tools (list_application_libraries, list_applications_by_cve)
 ├── attack/         # Attack tools (search_attacks, get_protect_rules)
+├── server/         # Server tools (search_servers)
 ├── sast/           # SAST tools (get_sast_project, get_scan_results)
 └── coverage/       # Coverage tools (get_route_coverage)
 ```
@@ -184,6 +185,11 @@ When creating or modifying MCP tools:
 - Guard clauses over nested ifs
 - No fully-qualified class names - use imports
 - `isEmpty()` not `size() > 0` for collections
+
+**Comments (WHY for external-system quirks):**
+- When code works around a TeamServer/SDK oddity, a magic sentinel, or other non-obvious external behavior, add a comment stating the concrete behavior and why the workaround exists. That reason lives in another system and cannot be recovered from this codebase alone.
+- Cite the source when known, such as the class/method, the sentinel constant, or a filed ticket (e.g. `TS-43252` for a TeamServer defect).
+- Do not comment self-evident code. Reserve this for reasoning the code cannot express on its own.
 
 **Checkstyle:** 18 rules enforced at `error` severity by Gradle Checkstyle tasks via `make check`. The full list lives in `checkstyle.xml`. Highlights:
 - **Imports:** `AvoidStarImport`, `UnusedImports`, `RedundantImport`, `RegexpSinglelineJava` (no FQCN — use imports)

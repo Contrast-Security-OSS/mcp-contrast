@@ -151,6 +151,7 @@ com.contrast.labs.ai.mcp.contrast.tool/
 ├── application/           # Application tools
 ├── library/               # Library (SCA) tools
 ├── attack/                # Attack detection tools
+├── server/                # Server inventory and agent health tools
 ├── sast/                  # SAST scan tools
 └── coverage/              # Route coverage tools
 ```

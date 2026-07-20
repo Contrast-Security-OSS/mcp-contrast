@@ -18,10 +18,17 @@ package com.contrast.labs.ai.mcp.contrast.tool.validation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 
+// Locale.setDefault changes JVM-global state. Isolate this class because unannotated tests that
+// only read the default locale do not participate in locale resource locks.
+@Isolated("Mutates the JVM-wide default locale")
 class StringListSpecTest {
 
   private ToolValidationContext ctx;
@@ -129,5 +136,41 @@ class StringListSpecTest {
         ctx.stringListParam(null, "items").defaultTo(List.of("a", "b"), "Using default").get();
 
     assertThat(result).isUnmodifiable();
+  }
+
+  @Test
+  @ResourceLock(Resources.LOCALE)
+  void toUpperCase_should_use_locale_independent_enum_normalization() {
+    var originalLocale = Locale.getDefault();
+    try {
+      Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+
+      var result =
+          ctx.stringListParam("info", "logLevels")
+              .toUpperCase()
+              .allowedValues(Set.of("INFO"))
+              .get();
+
+      assertThat(result).containsExactly("INFO");
+      assertThat(ctx.isValid()).isTrue();
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
+  }
+
+  @Test
+  @ResourceLock(Resources.LOCALE)
+  void allowedValues_should_use_locale_independent_case_insensitive_matching() {
+    var originalLocale = Locale.getDefault();
+    try {
+      Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+
+      var result = ctx.stringListParam("title", "values").allowedValues(Set.of("TITLE")).get();
+
+      assertThat(result).containsExactly("TITLE");
+      assertThat(ctx.isValid()).isTrue();
+    } finally {
+      Locale.setDefault(originalLocale);
+    }
   }
 }

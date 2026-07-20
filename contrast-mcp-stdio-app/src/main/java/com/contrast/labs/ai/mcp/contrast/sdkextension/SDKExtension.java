@@ -28,6 +28,9 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Applicati
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservationsResponse;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServerFilterBody;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServersResponse;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServersResponseEnvelope;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants;
 import com.contrastsecurity.exceptions.UnauthorizedException;
@@ -61,6 +64,13 @@ import lombok.extern.slf4j.Slf4j;
 public class SDKExtension {
 
   private static final int DEFAULT_ATTACKS_LIMIT = 1000;
+  // TeamServer's server-filter endpoint resolves "expand" with an if/else-if chain, so it honors
+  // exactly one value: "applications" for full app identities or "num_apps" for counts only, never
+  // both. These are hardcoded lowercase tokens rather than ServerExpandValue.toString(): that
+  // toString lowercases the enum name with the JVM default locale, so a Turkish/Azerbaijani locale
+  // would corrupt the token into a dotless-i variant and break applications expansion.
+  private static final String SERVER_EXPAND_APPLICATIONS = "applications";
+  private static final String SERVER_EXPAND_NUM_APPS = "num_apps";
 
   private final ContrastSDK contrastSDK;
   private final UrlBuilder urlBuilder;
@@ -321,6 +331,64 @@ public class SDKExtension {
                 HttpMethod.POST, url, gson.toJson(requestBody), MediaType.JSON);
         Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
       return gson.fromJson(reader, ApplicationsResponse.class);
+    }
+  }
+
+  /**
+   * Retrieves a filtered page of EAC-visible servers through the current POST endpoint.
+   *
+   * @return a validated response with known TeamServer empty-result quirks normalized
+   */
+  public ServersResponse getServersFiltered(
+      String organizationId,
+      ServerFilterBody filterBody,
+      int limit,
+      int offset,
+      String sort,
+      boolean includeApplications)
+      throws UnauthorizedException, IOException {
+    var expand = includeApplications ? SERVER_EXPAND_APPLICATIONS : SERVER_EXPAND_NUM_APPS;
+    var response = requestServers(organizationId, filterBody, limit, offset, sort, expand);
+
+    // TeamServer returns count=0 for any page whose offset is past the end of the result set,
+    // rather than the true match total, so an over-paged request would otherwise look empty. Only
+    // a later page (offset > 0) can hit this; an empty first page is a genuine zero-match result.
+    // Recover the real total with a minimal limit=1/offset=0 request (expand omitted, count only).
+    if (offset > 0 && response.getServers().isEmpty() && response.getCount() == 0) {
+      var firstPage = requestServers(organizationId, filterBody, 1, 0, sort, null);
+      response.setCount(firstPage.getCount());
+    }
+    return response;
+  }
+
+  private ServersResponse requestServers(
+      String organizationId,
+      ServerFilterBody filterBody,
+      int limit,
+      int offset,
+      String sort,
+      String expand)
+      throws UnauthorizedException, IOException {
+    var builder =
+        new URIBuilder()
+            .appendPathSegments("ng", organizationId, "servers", "filter")
+            // Inventory is scoped to active servers; archived servers are never surfaced and there
+            // is no MCP parameter to opt them in.
+            .appendQueryParam("includeArchived", "false")
+            .appendQueryParam("limit", String.valueOf(limit))
+            .appendQueryParam("offset", String.valueOf(offset))
+            .appendQueryParam("sort", sort);
+    if (expand != null) {
+      builder.appendQueryParam("expand", expand);
+    }
+
+    try (InputStream is =
+            contrastSDK.makeRequestWithBody(
+                HttpMethod.POST, builder.toURIString(), gson.toJson(filterBody), MediaType.JSON);
+        Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+      var response = gson.fromJson(reader, ServersResponse.class);
+      ServersResponseEnvelope.validateAndNormalize(response, filterBody);
+      return response;
     }
   }
 
