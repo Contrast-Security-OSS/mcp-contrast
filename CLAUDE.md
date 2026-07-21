@@ -160,7 +160,7 @@ EOF
 
 1. **Tool-per-Class**: Each MCP tool is a standalone `@Service` class with `@Tool` annotation, extending `PaginatedTool`, `SingleTool`, or `CursorPaginatedTool`
 2. **@Tool Annotation**: Methods annotated with `@Tool(name = "snake_case_name")` are exposed to AI agents
-3. **Params Pattern**: Each tool has an associated `*Params` class extending `ToolValidationContext` for validation
+3. **Params Pattern**: Each tool has an associated `*Params` class extending `BaseToolParams` for validation
 4. **Template Method**: Base classes enforce consistent pipeline (validation → execution → response building)
 5. **SDK Extension Pattern**: Enhanced data models extend base SDK classes with AI-friendly representations
 6. **Hint Generation**: Rule-based system provides contextual security guidance
