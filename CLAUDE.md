@@ -87,7 +87,7 @@ tool/
 ├── library/        # Library tools (list_application_libraries, list_applications_by_cve)
 ├── attack/         # Attack tools (search_attacks, get_protect_rules)
 ├── server/         # Server tools (search_servers)
-├── sast/           # SAST tools (get_sast_project, get_scan_results)
+├── sast/           # SAST tools (get_scan_project, get_scan_results)
 └── coverage/       # Coverage tools (get_route_coverage)
 ```
 
@@ -158,9 +158,9 @@ EOF
 
 ### Development Patterns
 
-1. **Tool-per-Class**: Each MCP tool is a standalone `@Service` class with `@Tool` annotation, extending `BaseMcpTool` or `BaseGetTool`
+1. **Tool-per-Class**: Each MCP tool is a standalone `@Service` class with `@Tool` annotation, extending `PaginatedTool`, `SingleTool`, or `CursorPaginatedTool`
 2. **@Tool Annotation**: Methods annotated with `@Tool(name = "snake_case_name")` are exposed to AI agents
-3. **Params Pattern**: Each tool has an associated `*Params` class extending `ToolValidationContext` for validation
+3. **Params Pattern**: Each tool has an associated `*Params` class extending `BaseToolParams` for validation
 4. **Template Method**: Base classes enforce consistent pipeline (validation → execution → response building)
 5. **SDK Extension Pattern**: Enhanced data models extend base SDK classes with AI-friendly representations
 6. **Hint Generation**: Rule-based system provides contextual security guidance

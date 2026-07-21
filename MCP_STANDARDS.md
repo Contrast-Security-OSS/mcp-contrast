@@ -175,7 +175,7 @@ com.contrast.labs.ai.mcp.contrast.tool/
 
 ### Parameter Classes (Params Pattern)
 
-Each tool has an associated `*Params` class extending `ToolValidationContext`:
+Each tool has an associated `*Params` class extending `BaseToolParams` and validating input through a `ToolValidationContext` used by composition:
 - Validates and parses input parameters
 - Collects errors and warnings via fluent API
 - Converts to SDK filter objects (e.g., `toTraceFilterForm()`)
@@ -187,11 +187,13 @@ return executePipeline(page, pageSize,
     () -> VulnerabilityFilterParams.of(severities, statuses, ...));
 
 // Params class
-public class VulnerabilityFilterParams extends ToolValidationContext {
+public class VulnerabilityFilterParams extends BaseToolParams {
   public static VulnerabilityFilterParams of(String severities, ...) {
     var params = new VulnerabilityFilterParams();
-    params.severities = params.enumSetParam(severities, RuleSeverity.class, "severities").get();
-    // ... more fluent validation
+    var ctx = new ToolValidationContext(); // composition, not inheritance
+    params.severities = ctx.enumSetParam(severities, RuleSeverity.class, "severities").get();
+    // ... more fluent validation on ctx
+    params.setValidationResult(ctx); // transfer errors/warnings
     return params;
   }
 }
@@ -207,7 +209,7 @@ Each tool requires corresponding test classes:
 
 1. Create tool class in appropriate domain package (e.g., `tool/vulnerability/`)
 2. Extend `PaginatedTool`, `CursorPaginatedTool`, or `SingleTool` with appropriate type parameters
-3. Create corresponding `*Params` class extending `ToolValidationContext`
+3. Create corresponding `*Params` class extending `BaseToolParams`
 4. Implement `doExecute()` with tool-specific logic
 5. Add `@Tool` annotation with snake_case name following naming standards
 6. **Register the tool explicitly in the appropriate application** (see Tool Registration below)
