@@ -175,7 +175,7 @@ com.contrast.labs.ai.mcp.contrast.tool/
 
 ### Parameter Classes (Params Pattern)
 
-Each tool has an associated `*Params` class extending `ToolValidationContext`:
+Each tool has an associated `*Params` class extending `BaseToolParams` and validating input through a `ToolValidationContext` used by composition:
 - Validates and parses input parameters
 - Collects errors and warnings via fluent API
 - Converts to SDK filter objects (e.g., `toTraceFilterForm()`)
@@ -187,11 +187,13 @@ return executePipeline(page, pageSize,
     () -> VulnerabilityFilterParams.of(severities, statuses, ...));
 
 // Params class
-public class VulnerabilityFilterParams extends ToolValidationContext {
+public class VulnerabilityFilterParams extends BaseToolParams {
   public static VulnerabilityFilterParams of(String severities, ...) {
     var params = new VulnerabilityFilterParams();
-    params.severities = params.enumSetParam(severities, RuleSeverity.class, "severities").get();
-    // ... more fluent validation
+    var ctx = new ToolValidationContext(); // composition, not inheritance
+    params.severities = ctx.enumSetParam(severities, RuleSeverity.class, "severities").get();
+    // ... more fluent validation on ctx
+    params.setValidationResult(ctx); // transfer errors/warnings
     return params;
   }
 }
