@@ -57,7 +57,8 @@ test-plan-results/
 .mcp.json
 
 ### Claude Code ###
-.claude/
+.claude/settings.local.json
+.claude/worktrees/
 test-plans-archive/
 .tldr/
 .tldrignore
