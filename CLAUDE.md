@@ -573,6 +573,10 @@ Canonical triage labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready
 
 Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root (created lazily). See `docs/agents/domain.md`.
 
+### Harness engineering
+
+Run the harness-engineering playbooks against this repo on demand via `/harness-review` (broad diagnostic) and `/improve-harness` (one bounded change-and-verify loop). The corpus is pinned and kept read-only. See `docs/agents/harness.md`.
+
 
 
 @SECURITY.md
