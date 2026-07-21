@@ -209,7 +209,7 @@ Each tool requires corresponding test classes:
 
 1. Create tool class in appropriate domain package (e.g., `tool/vulnerability/`)
 2. Extend `PaginatedTool`, `CursorPaginatedTool`, or `SingleTool` with appropriate type parameters
-3. Create corresponding `*Params` class extending `ToolValidationContext`
+3. Create corresponding `*Params` class extending `BaseToolParams`
 4. Implement `doExecute()` with tool-specific logic
 5. Add `@Tool` annotation with snake_case name following naming standards
 6. **Register the tool explicitly in the appropriate application** (see Tool Registration below)
