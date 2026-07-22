@@ -15,9 +15,6 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.validation;
 
-import java.util.List;
-import java.util.Set;
-
 /** Shared validation constants for MCP tools. */
 public final class ValidationConstants {
 
@@ -38,21 +35,6 @@ public final class ValidationConstants {
 
   /** Minimum page number (1-indexed). */
   public static final int MIN_PAGE = 1;
-
-  /** Valid vulnerability status values. */
-  public static final Set<String> VALID_VULN_STATUSES =
-      Set.of(
-          "Reported",
-          "Suspicious",
-          "Confirmed",
-          "NotAProblem",
-          "Remediated",
-          "Fixed",
-          "AutoRemediated");
-
-  /** Default vulnerability statuses (actionable only, excludes Fixed/Remediated). */
-  public static final List<String> DEFAULT_VULN_STATUSES =
-      List.of("Reported", "Suspicious", "Confirmed");
 
   private ValidationConstants() {}
 }
