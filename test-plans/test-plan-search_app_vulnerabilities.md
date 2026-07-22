@@ -25,7 +25,7 @@ The new tool adds:
 | `page` | Integer | No | 1 | Page number (1-based) |
 | `pageSize` | Integer | No | 50 | Items per page (max 100) |
 | `severities` | String | No | null | Comma-separated: CRITICAL,HIGH,MEDIUM,LOW,NOTE |
-| `statuses` | String | No | smart defaults | Comma-separated: Reported,Suspicious,Confirmed,Remediated,Fixed |
+| `statuses` | String | No | smart defaults | Comma-separated: Reported,Suspicious,Confirmed,NotAProblem,Remediated,Fixed,AutoRemediated |
 | `vulnTypes` | String | No | null | Comma-separated vulnerability types |
 | `environments` | String | No | null | Comma-separated: DEVELOPMENT,QA,PRODUCTION |
 | `lastSeenAfter` | String | No | null | ISO date or epoch timestamp |
@@ -54,7 +54,7 @@ VulnLight {
     String type,                  // Vulnerability type
     String vulnID,                // Unique identifier (UUID)
     String severity,              // CRITICAL, HIGH, MEDIUM, LOW, NOTE
-    String status,                // Reported, Suspicious, Confirmed, Remediated, Fixed
+    String status,                // Reported, Suspicious, Confirmed, NotAProblem, Remediated, Fixed, AutoRemediated
     List<SessionMetadata> sessionMetadata,  // Session context
     String lastSeenAt,            // ISO-8601 timestamp
     String firstSeenAt,           // ISO-8601 timestamp (nullable)

@@ -19,7 +19,7 @@ This test plan provides comprehensive testing guidance for the `search_vulnerabi
 | `page` | Integer | No | 1 | Page number (1-based) |
 | `pageSize` | Integer | No | 50 | Items per page (max 100) |
 | `severities` | String | No | null | Comma-separated: CRITICAL,HIGH,MEDIUM,LOW,NOTE |
-| `statuses` | String | No | smart defaults | Comma-separated: Reported,Suspicious,Confirmed,Remediated,Fixed |
+| `statuses` | String | No | smart defaults | Comma-separated: Reported,Suspicious,Confirmed,NotAProblem,Remediated,Fixed,AutoRemediated |
 | `vulnTypes` | String | No | null | Comma-separated vulnerability types (e.g., sql-injection,xss-reflected) |
 | `environments` | String | No | null | Comma-separated: DEVELOPMENT,QA,PRODUCTION |
 | `lastSeenAfter` | String | No | null | ISO date (YYYY-MM-DD) or epoch timestamp |
@@ -49,7 +49,7 @@ VulnLight {
     String appName,               // Application display name
     List<SessionMetadata> sessionMetadata,  // Session context
     String lastSeenAt,            // ISO-8601 timestamp
-    String status,                // Reported, Suspicious, Confirmed, Remediated, Fixed
+    String status,                // Reported, Suspicious, Confirmed, NotAProblem, Remediated, Fixed, AutoRemediated
     String firstSeenAt,           // ISO-8601 timestamp (nullable)
     String closedAt,              // ISO-8601 timestamp (nullable)
     List<String> environments,    // Historical environments (DEVELOPMENT, QA, PRODUCTION)
@@ -61,7 +61,7 @@ VulnLight {
 
 | Behavior | Description |
 |----------|-------------|
-| **Smart Defaults** | When `statuses` is omitted, uses Reported,Suspicious,Confirmed (excludes Fixed,Remediated) |
+| **Smart Defaults** | When `statuses` is omitted, uses Reported,Suspicious,Confirmed (excludes NotAProblem,Remediated,Fixed,AutoRemediated) |
 | **Date Filtering** | Filters on `lastTimeSeen`, NOT discovery date |
 | **Severity Validation** | Invalid severities cause HARD FAILURE (error, no results) |
 | **Status Validation** | Invalid statuses cause HARD FAILURE (error, no results) |
@@ -281,8 +281,10 @@ VulnLight {
 1. Call with `statuses="Reported"`
 2. Call with `statuses="Suspicious"`
 3. Call with `statuses="Confirmed"`
-4. Call with `statuses="Remediated"`
-5. Call with `statuses="Fixed"`
+4. Call with `statuses="NotAProblem"`
+5. Call with `statuses="Remediated"`
+6. Call with `statuses="Fixed"`
+7. Call with `statuses="AutoRemediated"`
 
 **Expected Results:**
 - Returns only vulnerabilities matching the specified status
@@ -316,8 +318,8 @@ VulnLight {
 
 **Expected Results:**
 - Uses smart defaults: Reported, Suspicious, Confirmed
-- **Excludes** Fixed and Remediated
-- Warning in `message`: "Showing actionable vulnerabilities only (excluding Fixed and Remediated)..."
+- **Excludes** NotAProblem, Remediated, Fixed, and AutoRemediated
+- Warning in `message`: "Showing actionable vulnerabilities only (excluding NotAProblem, Remediated, Fixed, AutoRemediated). To see all statuses, specify statuses parameter explicitly."
 - Only actionable vulnerabilities returned
 
 ---
@@ -339,19 +341,21 @@ VulnLight {
 
 ---
 
-### Test Case 3.5: Explicitly Include Fixed/Remediated
+### Test Case 3.5: Explicitly Include Non-Default Statuses
 
-**Objective:** Verify Fixed/Remediated can be explicitly included.
+**Objective:** Verify non-default statuses can be explicitly included.
 
 **Test Steps:**
-1. Call with `statuses="Remediated"`
-2. Call with `statuses="Fixed"`
-3. Call with `statuses="Reported,Suspicious,Confirmed,Remediated,Fixed"`
+1. Call with `statuses="NotAProblem"`
+2. Call with `statuses="Remediated"`
+3. Call with `statuses="Fixed"`
+4. Call with `statuses="AutoRemediated"`
+5. Call with `statuses="Reported,Suspicious,Confirmed,NotAProblem,Remediated,Fixed,AutoRemediated"`
 
 **Expected Results:**
 - Returns vulnerabilities in specified statuses
 - No smart defaults warning (explicit filter provided)
-- Fixed/Remediated vulnerabilities included
+- NotAProblem/Remediated/Fixed/AutoRemediated vulnerabilities included
 
 ---
 
@@ -869,7 +873,7 @@ VulnLight {
   - `severity`: one of CRITICAL, HIGH, MEDIUM, LOW, NOTE
   - `appID`: string (UUID format)
   - `appName`: string (application name)
-  - `status`: one of Reported, Suspicious, Confirmed, Remediated, Fixed
+  - `status`: one of Reported, Suspicious, Confirmed, NotAProblem, Remediated, Fixed, AutoRemediated
   - `sessionMetadata`: array (may be empty)
   - `lastSeenAt`: ISO timestamp
   - `firstSeenAt`: ISO timestamp or null

@@ -18,6 +18,8 @@ the correct total, exercised, and discovered route counts and coverage percentag
 
 ### Improvements
 
+- search_vulnerabilities / search_app_vulnerabilities now advertise all 7 valid statuses (adds NotAProblem, AutoRemediated, previously accepted but undocumented); default-exclusion warning text updated. (AIML-1158)
+
 **New `search_servers` tool**: Search the EAC-visible server inventory by agent health,
 environment, application, tag, and Protect coverage with pagination and sorting.
 
