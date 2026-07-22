@@ -12,6 +12,17 @@ This project uses the **Gradle Release** GitHub Actions workflow. Release versio
 - Access to trigger GitHub Actions workflows
 - A green `main` branch
 
+## Pre-release Testing
+
+Before you cut a release, exercise the shipped tools against a live org. From a
+Claude Code session on the release branch, run `/test-mcp-server`. It builds the
+stdio jar fresh, wires that exact artifact into a separate headless Claude
+instance, and has that instance test every tool it discovers using credentials
+from `.env.integration-test`. Pass `smoke` for a fast is-it-alive pass or run it
+plain for in-depth exploratory testing. The run is read-only and prints a report
+for you to read. Treat it as a judgement aid, not an automatic gate. See
+`.claude/skills/test-mcp-server/` for details.
+
 ## Release Steps
 
 1. Ensure all desired changes are merged to `main`.
