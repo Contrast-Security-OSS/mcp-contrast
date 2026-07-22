@@ -10,7 +10,7 @@ The `search_vulnerabilities` tool is an **organization-level** search that queri
 **Supported parameters:**
 - `page`, `pageSize` - Pagination
 - `severities` - CRITICAL, HIGH, MEDIUM, LOW, NOTE
-- `statuses` - Reported, Suspicious, Confirmed, Remediated, Fixed
+- `statuses` - Reported, Suspicious, Confirmed, NotAProblem, Remediated, Fixed, AutoRemediated
 - `vulnTypes` - sql-injection, cmd-injection, path-traversal, etc.
 - `environments` - DEVELOPMENT, QA, PRODUCTION
 - `lastSeenAfter`, `lastSeenBefore` - Date filters
@@ -171,15 +171,15 @@ use contrast mcp to search for vulnerabilities across the organization with stat
 
 ---
 
-### Test 11: Include Fixed and Remediated statuses
-**Purpose:** Verify that Fixed and Remediated statuses can be explicitly included.
+### Test 11: Include all statuses
+**Purpose:** Verify that all non-default statuses can be explicitly included.
 
 **Prompt:**
 ```
-use contrast mcp to search for vulnerabilities across the organization with status Reported, Suspicious, Confirmed, Remediated, or Fixed
+use contrast mcp to search for vulnerabilities across the organization with status Reported, Suspicious, Confirmed, NotAProblem, Remediated, Fixed, or AutoRemediated
 ```
 
-**Expected Result:** All vulnerabilities regardless of status (no warning about excluding Fixed/Remediated)
+**Expected Result:** All vulnerabilities regardless of status (no warning about excluding NotAProblem, Remediated, Fixed, AutoRemediated)
 
 ---
 
@@ -543,7 +543,7 @@ use contrast mcp to search for vulnerabilities across the organization with seve
 use contrast mcp to search for all vulnerabilities across the organization
 ```
 
-**Expected Result:** Many vulnerabilities returned (~9947) with warning about excluding Fixed/Remediated
+**Expected Result:** Many vulnerabilities returned (~9947) with warning about excluding NotAProblem, Remediated, Fixed, AutoRemediated
 - Default statuses: Reported, Suspicious, Confirmed
 
 ---

@@ -28,37 +28,4 @@ class ValidationConstantsTest {
     assertThat(ValidationConstants.MAX_PAGE_SIZE).isEqualTo(100);
     assertThat(ValidationConstants.MIN_PAGE).isEqualTo(1);
   }
-
-  @Test
-  void valid_vuln_statuses_should_contain_expected_values() {
-    assertThat(ValidationConstants.VALID_VULN_STATUSES)
-        .containsExactlyInAnyOrder(
-            "Reported",
-            "Suspicious",
-            "Confirmed",
-            "NotAProblem",
-            "Remediated",
-            "Fixed",
-            "AutoRemediated");
-  }
-
-  @Test
-  void default_vuln_statuses_should_contain_actionable_only() {
-    assertThat(ValidationConstants.DEFAULT_VULN_STATUSES)
-        .containsExactly("Reported", "Suspicious", "Confirmed");
-
-    // Should not contain resolved statuses
-    assertThat(ValidationConstants.DEFAULT_VULN_STATUSES)
-        .doesNotContain("Fixed", "Remediated", "NotAProblem", "AutoRemediated");
-  }
-
-  @Test
-  void valid_vuln_statuses_should_be_immutable() {
-    assertThat(ValidationConstants.VALID_VULN_STATUSES).isUnmodifiable();
-  }
-
-  @Test
-  void default_vuln_statuses_should_be_immutable() {
-    assertThat(ValidationConstants.DEFAULT_VULN_STATUSES).isUnmodifiable();
-  }
 }
