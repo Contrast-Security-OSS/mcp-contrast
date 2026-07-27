@@ -27,10 +27,10 @@ allprojects {
 // Enforced per-module coverage floors, set just below the measured baseline so they
 // block regression without failing on adoption. Raise them as coverage improves;
 // never lower one to make a build pass. Measured 2026-07-26 under AIML-501:
-// core LINE 97.6% BRANCH 89.1%, stdio-app LINE 90.3% BRANCH 83.7% (post-exclusion).
+// core LINE 97.6% BRANCH 89.1%, stdio-app LINE 97.8% BRANCH 96.2% (post-exclusion).
 ext.coverageMinimums = [
     'contrast-mcp-core'     : [line: 0.97, branch: 0.89],
-    'contrast-mcp-stdio-app': [line: 0.90, branch: 0.83],
+    'contrast-mcp-stdio-app': [line: 0.97, branch: 0.96],
 ]
 
 // Line coverage required of each changed src/main/java file. Above the module floors on
