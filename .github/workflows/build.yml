@@ -20,6 +20,10 @@ jobs:
         egress-policy: audit
 
     - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      with:
+        # Depth 1 fetches neither the PR base commit nor the merge base, which the
+        # changed-file coverage step needs.
+        fetch-depth: 0
     - name: Validate Gradle wrapper
       uses: gradle/actions/wrapper-validation@6550634d3eb14a20275549de1588a83267023d42 # v6
 
@@ -31,6 +35,15 @@ jobs:
         cache: gradle
     - name: Run checks, tests, coverage, and build
       run: ./gradlew spotlessCheck checkstyleMain checkstyleTest test jacocoTestCoverageVerification :contrast-mcp-stdio-app:bootJar --no-daemon
+
+    # Pull requests only. With no base the task falls back to the working tree, which is
+    # clean on a fresh checkout and would pass vacuously.
+    - name: Verify changed-file coverage
+      if: github.event_name == 'pull_request'
+      run: >-
+        ./gradlew jacocoChangedFileCoverageVerification
+        -PjacocoChangedBase=${{ github.event.pull_request.base.sha }}
+        --no-daemon
 
     # Runs even when the coverage floor fails, since that is exactly when the
     # numbers and the HTML report are needed to diagnose the failure. coverageSummary

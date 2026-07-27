@@ -175,10 +175,7 @@ class JacocoChangedFileCoverageTest {
         .formatted(packageName, fileName, missedLines, coveredLines);
   }
 
-  /**
-   * JaCoCo emits a DOCTYPE, which trips XML parsers configured to reject the declaration outright.
-   * The fixture carries one so the parser configuration is exercised rather than assumed.
-   */
+  /** Carries the DOCTYPE JaCoCo emits, so the parser configuration is exercised not assumed. */
   private File report(String... packages) throws IOException {
     Path file = tempDir.resolve("jacocoTestReport.xml");
     Files.writeString(

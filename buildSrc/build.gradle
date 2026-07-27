@@ -2,8 +2,7 @@ plugins {
     id 'java-library'
 }
 
-// buildSrc is a separate build, so it does not inherit settings.gradle's
-// dependencyResolutionManagement block and must declare its own repository.
+// buildSrc does not inherit settings.gradle's dependencyResolutionManagement block.
 repositories {
     mavenCentral()
 }
@@ -14,9 +13,8 @@ java {
     }
 }
 
-// buildSrc is its own build rooted at buildSrc/, so Gradle does not apply the repository's
-// gradle.properties to it. Load that file directly rather than duplicating the pins here,
-// so there stays one source of truth for versions as repo policy requires. See SECURITY.md.
+// Gradle does not apply the repository's gradle.properties to buildSrc. Load it directly
+// rather than duplicating the pins, keeping one source of truth. See SECURITY.md.
 def rootProperties = new Properties()
 rootProject.file('../gradle.properties').withInputStream { rootProperties.load(it) }
 

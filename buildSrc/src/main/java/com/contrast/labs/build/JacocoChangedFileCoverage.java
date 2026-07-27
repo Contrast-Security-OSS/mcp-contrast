@@ -22,8 +22,7 @@ import org.xml.sax.SAXException;
  * Reads per-file line coverage out of a JaCoCo XML report and reports which of a given set of
  * changed source files fall below a minimum ratio.
  *
- * <p>Deliberately free of Gradle types so the arithmetic and the XML parsing can be unit tested
- * without a build.
+ * <p>Free of Gradle types so it can be unit tested without a build.
  */
 public final class JacocoChangedFileCoverage {
 
@@ -40,10 +39,7 @@ public final class JacocoChangedFileCoverage {
       return missedLines + coveredLines;
     }
 
-    /**
-     * A file with no countable lines is treated as fully covered, so an interface or a constants
-     * holder cannot fail the gate for having nothing to execute.
-     */
+    /** No countable lines counts as fully covered, so an interface cannot fail the gate. */
     public BigDecimal coveredRatio() {
       if (totalLines() == 0) {
         return BigDecimal.ONE;
@@ -72,10 +68,8 @@ public final class JacocoChangedFileCoverage {
 
   /**
    * Matches each changed file against the report by its path relative to {@code sourceRoot}, which
-   * is how JaCoCo names source files (package directory plus file name).
-   *
-   * <p>A missing or empty report means nothing was measured, so every file is skipped rather than
-   * failed. Callers that need a report to exist must assert that themselves.
+   * is how JaCoCo names source files. A missing report means nothing was measured, so every file
+   * is skipped rather than failed.
    */
   public static Result analyze(File sourceRoot, List<File> changedFiles, File reportFile) {
     if (!reportFile.isFile() || reportFile.length() == 0L) {
@@ -150,9 +144,9 @@ public final class JacocoChangedFileCoverage {
   }
 
   private static org.w3c.dom.Document parse(File reportFile) {
-    // JaCoCo's XML declares a DOCTYPE, so the declaration has to be allowed. Every form of
-    // external resolution and entity expansion stays off, matching coverageSummary in the
-    // root build.gradle. The input is our own build output, not anything user supplied.
+    // JaCoCo's XML declares a DOCTYPE, so the declaration has to be allowed. External
+    // resolution and entity expansion stay off, matching coverageSummary in the root
+    // build.gradle.
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     try {
       factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);

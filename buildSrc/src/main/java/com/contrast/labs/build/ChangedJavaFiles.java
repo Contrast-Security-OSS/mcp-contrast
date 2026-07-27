@@ -16,9 +16,8 @@ import java.util.Set;
 /**
  * Finds the Java files a changed-file verification task should inspect, by asking git.
  *
- * <p>With no base ref the working tree is used, which is what a developer running the task by hand
- * wants. With a base ref the comparison is a three-dot range against a head, which is what the
- * pre-push hook wants so the gate covers exactly the commits being pushed.
+ * <p>With no base ref the working tree is used. With a base ref the comparison is a three-dot
+ * range, so the gate covers exactly the commits being pushed or reviewed.
  */
 public final class ChangedJavaFiles {
 
