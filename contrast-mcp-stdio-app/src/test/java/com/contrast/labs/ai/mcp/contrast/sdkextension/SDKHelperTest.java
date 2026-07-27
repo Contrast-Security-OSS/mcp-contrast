@@ -564,41 +564,19 @@ class SDKHelperTest {
   }
 
   @Test
-  void getSDK_should_build_an_sdk_when_a_proxy_host_and_port_are_supplied() {
-    when(environment.getProperty("spring.ai.mcp.server.version", "unknown")).thenReturn("1.0.0");
-
-    var sdk =
-        SDKHelper.getSDK(
-            "example.com", "apiKey", "serviceKey", "user", "proxy.internal", "8080", "https");
-
-    assertThat(sdk.getRestApiURL()).isEqualTo("https://example.com/Contrast/api");
+  void resolveProxyPort_should_parse_an_explicit_port() {
+    assertThat(SDKHelper.resolveProxyPort("8080")).isEqualTo(8080);
   }
 
   @Test
-  void getSDK_should_default_the_proxy_port_when_only_a_proxy_host_is_supplied() {
-    when(environment.getProperty("spring.ai.mcp.server.version", "unknown")).thenReturn("1.0.0");
-
-    var sdk =
-        SDKHelper.getSDK(
-            "example.com", "apiKey", "serviceKey", "user", "proxy.internal", "  ", "https");
-
-    assertThat(sdk.getRestApiURL()).isEqualTo("https://example.com/Contrast/api");
+  void resolveProxyPort_should_default_a_blank_port_to_http() {
+    assertThat(SDKHelper.resolveProxyPort("  ")).isEqualTo(80);
+    assertThat(SDKHelper.resolveProxyPort(null)).isEqualTo(80);
   }
 
   @Test
-  void getSDK_should_reject_a_proxy_port_that_is_not_a_number() {
-    when(environment.getProperty("spring.ai.mcp.server.version", "unknown")).thenReturn("1.0.0");
-
-    assertThatThrownBy(
-            () ->
-                SDKHelper.getSDK(
-                    "example.com",
-                    "apiKey",
-                    "serviceKey",
-                    "user",
-                    "proxy.internal",
-                    "http",
-                    "https"))
+  void resolveProxyPort_should_reject_a_port_that_is_not_a_number() {
+    assertThatThrownBy(() -> SDKHelper.resolveProxyPort("http"))
         .isInstanceOf(NumberFormatException.class);
   }
 
