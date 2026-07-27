@@ -35,10 +35,13 @@ ext.coverageMinimums = [
     'contrast-mcp-stdio-app': [line: 0.95, branch: 0.94],
 ]
 
+ext.coverageStandardMinimum =
+    providers.gradleProperty('coverageStandardMinimum').get().toBigDecimal()
+
 // Line coverage required of each changed src/main/java file. Above the module floors on
 // purpose: the floors stop a module regressing overall, this holds new code to the standard
 // the modules are meant to reach. Matches aiml-services.
-ext.changedFileCoverageMinimum = 0.85
+ext.changedFileCoverageMinimum = rootProject.ext.coverageStandardMinimum
 
 // Spring Boot bootstrap: main() plus bean wiring, whose behaviour belongs to container
 // startup rather than to unit tests. Excluded from both the report and the enforced floor
@@ -103,15 +106,11 @@ ext.jacocoBundleCounterTotals = { File reportFile ->
     }
 }
 
-// aiml-services set its JaCoCo minimum to 0.0 and enforced the real figure only outside the repo
-// (AIML-1170). Nothing else here reads the floors back, so assert them.
-ext.documentedCoverageFloor = 0.85
-
 tasks.register('verifyCoverageMinimums') {
     group = 'verification'
     description = 'Fails when an enforced coverage floor has been weakened below the documented minimum.'
 
-    def documentedFloor = rootProject.ext.documentedCoverageFloor as BigDecimal
+    def documentedFloor = rootProject.ext.coverageStandardMinimum as BigDecimal
     def declaredModuleMinimums = rootProject.ext.coverageMinimums
     def declaredChangedFileMinimum = rootProject.ext.changedFileCoverageMinimum
     def moduleNames = subprojects.collect { it.name }
@@ -145,7 +144,7 @@ tasks.register('verifyCoverageMinimums') {
                     System.lineSeparator() +
                     problems.collect { "* ${it}" }.join(System.lineSeparator()) +
                     System.lineSeparator() +
-                    "Raise the floor back, or change documentedCoverageFloor deliberately and say why in review.")
+                    "Raise the floor back, or change coverageStandardMinimum deliberately and say why in review.")
         }
     }
 }

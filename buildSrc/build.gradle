@@ -37,7 +37,7 @@ rootProject.file('../gradle.properties').withInputStream { rootProperties.load(i
 
 // Properties returns null for a missing key, which Groovy would carry into a dependency
 // coordinate and fail later as ":null" instead of here.
-def requiredVersion = { String key ->
+def requiredRootProperty = { String key ->
     def value = rootProperties.getProperty(key)
     if (value == null || value.isBlank()) {
         throw new GradleException("${key} is missing from the root gradle.properties.")
@@ -46,11 +46,11 @@ def requiredVersion = { String key ->
 }
 
 dependencies {
-    testImplementation "org.junit.jupiter:junit-jupiter:${requiredVersion('junitVersion')}"
-    testImplementation "org.assertj:assertj-core:${requiredVersion('assertjVersion')}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${requiredRootProperty('junitVersion')}"
+    testImplementation "org.assertj:assertj-core:${requiredRootProperty('assertjVersion')}"
     // Pinned rather than left to resolve transitively, so the soak policy can audit it. JUnit 6
     // versions the platform and Jupiter artifacts together.
-    testRuntimeOnly "org.junit.platform:junit-platform-launcher:${requiredVersion('junitVersion')}"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:${requiredRootProperty('junitVersion')}"
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -64,7 +64,7 @@ tasks.named('test') {
 }
 
 jacoco {
-    toolVersion = requiredVersion('jacocoVersion')
+    toolVersion = requiredRootProperty('jacocoVersion')
 }
 
 tasks.named('jacocoTestReport') {
@@ -77,6 +77,7 @@ tasks.named('jacocoTestReport') {
 
 // The changed-file gate only looks at each module's src/main/java, so it cannot measure the
 // code that implements it. Hence a floor here.
+def coverageStandardMinimum = new BigDecimal(requiredRootProperty('coverageStandardMinimum'))
 tasks.named('jacocoTestCoverageVerification') {
     dependsOn tasks.named('jacocoTestReport')
     violationRules {
@@ -85,12 +86,12 @@ tasks.named('jacocoTestCoverageVerification') {
             limit {
                 counter = 'LINE'
                 value = 'COVEREDRATIO'
-                minimum = 0.85
+                minimum = coverageStandardMinimum
             }
             limit {
                 counter = 'BRANCH'
                 value = 'COVEREDRATIO'
-                minimum = 0.80
+                minimum = coverageStandardMinimum
             }
         }
     }
@@ -98,7 +99,7 @@ tasks.named('jacocoTestCoverageVerification') {
 
 spotless {
     java {
-        googleJavaFormat(requiredVersion('googleJavaFormatVersion'))
+        googleJavaFormat(requiredRootProperty('googleJavaFormatVersion'))
             .reflowLongStrings()
             .reorderImports(true)
             .formatJavadoc(true)
@@ -106,7 +107,7 @@ spotless {
 }
 
 checkstyle {
-    toolVersion = requiredVersion('checkstyleVersion')
+    toolVersion = requiredRootProperty('checkstyleVersion')
     configFile = rootProject.file('../checkstyle.xml')
     configProperties = [
         'checkstyle.suppressions.file': rootProject.file('../checkstyle-suppressions.xml').absolutePath
