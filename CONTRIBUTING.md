@@ -38,6 +38,8 @@ JaCoCo measures coverage on every `test` run and writes HTML and XML reports to 
 
 Per-module floors live in `ext.coverageMinimums` in the root `build.gradle` and are enforced by `jacocoTestCoverageVerification`, which `check` depends on. They are set just below the measured baseline so they block regression rather than blocking adoption. Raise a floor as coverage improves. Never lower one to make a build pass. CI runs the same verification and uploads the reports as a build artifact.
 
+Changed files face a separate per-file floor: any changed `src/main/java` file must reach 85% line coverage. This catches an undertested file that the aggregate module percentage could otherwise absorb. CI enforces the rule on every pull request, and `make coverage-changed` runs the same check locally. `make install-hooks` installs an optional pre-push hook that runs it before you push. See `scripts/git-hooks/README.md` for detail.
+
 ## Consuming `contrast-mcp-core` Locally
 
 Downstream projects can validate unpublished shared-code changes by using a Gradle composite build that substitutes the published `contrast-mcp-core` artifact with a local checkout:

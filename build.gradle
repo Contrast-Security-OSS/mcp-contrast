@@ -1,3 +1,5 @@
+import com.contrast.labs.build.ChangedJavaFiles
+import com.contrast.labs.build.JacocoChangedFileCoverage
 import org.gradle.api.plugins.quality.Checkstyle
 
 plugins {
@@ -22,14 +24,29 @@ allprojects {
     version = rootProject.version
 }
 
-// Enforced per-module coverage floors, set just below the measured baseline so they
-// block regression without failing on adoption. Raise them as coverage improves;
-// never lower one to make a build pass. Baseline measured 2026-07-26 under AIML-501:
-// core LINE 92.2% BRANCH 82.5%, stdio-app LINE 75.3% BRANCH 69.2% (post-exclusion).
+// Enforced per-module coverage floors. Raise them as coverage improves; never lower one to make
+// a build pass. Measured 2026-07-27 under AIML-501: core LINE 97.6% BRANCH 89.1% (622/698
+// branches), stdio-app LINE 97.8% BRANCH 96.2% (100/104 branches), post-exclusion.
+//
+// Deliberately below those numbers to retain headroom. Flush against 622/698, one further
+// uncovered branch gives 0.88984 and reddens main on an unrelated PR.
 ext.coverageMinimums = [
-    'contrast-mcp-core'     : [line: 0.90, branch: 0.80],
-    'contrast-mcp-stdio-app': [line: 0.72, branch: 0.65],
+    'contrast-mcp-core'     : [line: 0.95, branch: 0.87],
+    'contrast-mcp-stdio-app': [line: 0.95, branch: 0.94],
 ]
+
+ext.coverageStandardMinimum =
+    providers.gradleProperty('coverageStandardMinimum').get().toBigDecimal()
+
+// A checked-in invariant, deliberately independent of Gradle project properties. The configured
+// standard may come from -P, ORG_GRADLE_PROJECT_*, or a user-level gradle.properties, so it cannot
+// safely verify itself against itself.
+ext.documentedCoverageMinimum = new BigDecimal('0.85')
+
+// Line coverage required of each changed src/main/java file. This is a separate per-file
+// constraint: the aggregate module floors can stay green while an individual changed file has
+// little or no coverage. Matches aiml-services.
+ext.changedFileCoverageMinimum = rootProject.ext.coverageStandardMinimum
 
 // Spring Boot bootstrap: main() plus bean wiring, whose behaviour belongs to container
 // startup rather than to unit tests. Excluded from both the report and the enforced floor
@@ -56,6 +73,94 @@ ext.positiveIntProperty = { String propertyName, int defaultValue ->
     } catch (NumberFormatException ex) {
         throw new GradleException("${propertyName} must be a positive integer, but was ${rawValue}", ex)
     }
+}
+
+// Shared so jacocoTestCoverageVerification and coverageSummary fail the same way on an
+// undeclared module.
+ext.requireCoverageMinimums = { String moduleName ->
+    def floors = rootProject.ext.coverageMinimums[moduleName]
+    if (floors == null) {
+        throw new GradleException(
+            "No coverage minimums declared for ${moduleName}. Add an entry to coverageMinimums in the root build.gradle.")
+    }
+    floors
+}
+
+ext.enforcedCoverageCounters = ['LINE', 'BRANCH']
+
+// JaCoCo's XML declares a DOCTYPE, which XmlSlurper rejects by default. Allow the declaration
+// but leave every DTD and entity fetch off, and restore the JAXP limits that bound internal
+// entity expansion.
+ext.jacocoXmlParser = {
+    def parser = new XmlSlurper()
+    parser.setFeature('http://apache.org/xml/features/disallow-doctype-decl', false)
+    parser.setFeature('http://apache.org/xml/features/nonvalidating/load-external-dtd', false)
+    parser.setFeature('http://xml.org/sax/features/external-general-entities', false)
+    parser.setFeature('http://xml.org/sax/features/external-parameter-entities', false)
+    parser.setFeature('http://xml.org/sax/features/validation', false)
+    parser.setFeature('http://javax.xml.XMLConstants/feature/secure-processing', true)
+    parser
+}
+
+// Counter type -> (missed + covered). JaCoCo omits a counter entirely when the bundle holds no
+// positions of that kind, so an absent key means none to measure.
+ext.jacocoBundleCounterTotals = { File reportFile ->
+    def root = rootProject.ext.jacocoXmlParser().parse(reportFile)
+    root.counter.collectEntries {
+        [(it.@type.toString()): it.@missed.toInteger() + it.@covered.toInteger()]
+    }
+}
+
+tasks.register('verifyCoverageMinimums') {
+    group = 'verification'
+    description = 'Fails when an enforced coverage floor has been weakened below the documented minimum.'
+
+    def documentedFloor = rootProject.ext.documentedCoverageMinimum as BigDecimal
+    def declaredCoverageStandard = rootProject.ext.coverageStandardMinimum as BigDecimal
+    def declaredModuleMinimums = rootProject.ext.coverageMinimums
+    def declaredChangedFileMinimum = rootProject.ext.changedFileCoverageMinimum
+    def moduleNames = subprojects.collect { it.name }
+
+    doLast {
+        def problems = []
+
+        if (declaredCoverageStandard < documentedFloor) {
+            problems << "coverageStandardMinimum is ${declaredCoverageStandard}, below the documented ${documentedFloor}"
+        }
+
+        if ((declaredChangedFileMinimum as BigDecimal) < documentedFloor) {
+            problems << "changedFileCoverageMinimum is ${declaredChangedFileMinimum}, below the documented ${documentedFloor}"
+        }
+
+        moduleNames.each { moduleName ->
+            def floors = declaredModuleMinimums[moduleName]
+            if (floors == null) {
+                problems << "no coverage minimums declared for ${moduleName}"
+                return
+            }
+            ['line', 'branch'].each { counter ->
+                def declared = floors[counter]
+                if (declared == null) {
+                    problems << "${moduleName} declares no ${counter} floor"
+                } else if ((declared as BigDecimal) < documentedFloor) {
+                    problems << "${moduleName} ${counter} floor is ${declared}, below the documented ${documentedFloor}"
+                }
+            }
+        }
+
+        if (!problems.isEmpty()) {
+            throw new GradleException(
+                "Coverage floors have been weakened below the documented standard of ${documentedFloor}:" +
+                    System.lineSeparator() +
+                    problems.collect { "* ${it}" }.join(System.lineSeparator()) +
+                    System.lineSeparator() +
+                    "Raise the floor back, or change documentedCoverageMinimum deliberately and say why in review.")
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('verifyCoverageMinimums')
 }
 
 subprojects {
@@ -101,6 +206,7 @@ subprojects {
     def coverageClassDirs = sourceSets.main.output.classesDirs.asFileTree.matching {
         exclude rootProject.ext.coverageExcludedClassFiles
     }
+    def coverageReportXml = layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml')
 
     tasks.named('jacocoTestReport') {
         dependsOn tasks.named('test')
@@ -115,12 +221,15 @@ subprojects {
 
     tasks.named('jacocoTestCoverageVerification') {
         dependsOn tasks.named('jacocoTestReport')
-        def minimums = rootProject.ext.coverageMinimums[project.name]
-        if (minimums == null) {
-            throw new GradleException(
-                "No coverage minimums declared for ${project.name}. Add an entry to coverageMinimums in the root build.gradle.")
-        }
+        // Also on root `check`, but CI invokes this task by name rather than through `check`.
+        dependsOn rootProject.tasks.named('verifyCoverageMinimums')
+        def minimums = rootProject.ext.requireCoverageMinimums(project.name)
         classDirectories.setFrom(coverageClassDirs)
+
+        // Captured at configuration time; doFirst below runs at execution time.
+        def moduleName = project.name
+        def counterTotals = rootProject.ext.jacocoBundleCounterTotals
+        def enforcedCounters = rootProject.ext.enforcedCoverageCounters
 
         // Gradle's JacocoReportBase registers onlyIf("Any of the execution data files
         // exists"), so a module with no .exec file SKIPs verification and the build still
@@ -132,11 +241,26 @@ subprojects {
         doFirst {
             if (executionData.files.every { !it.exists() }) {
                 throw new GradleException(
-                    "No JaCoCo execution data for ${project.name}; coverage was not measured. Run the test task before verifying.")
+                    "No JaCoCo execution data for ${moduleName}; coverage was not measured. Run the test task before verifying.")
             }
             if (classDirectories.asFileTree.empty) {
                 throw new GradleException(
-                    "No class files to measure for ${project.name}; check coverageExcludedClassFiles in the root build.gradle.")
+                    "No class files to measure for ${moduleName}; check coverageExcludedClassFiles in the root build.gradle.")
+            }
+
+            // Same NaN hole as above, but per counter rather than for the bundle: a module
+            // with no branches at all would satisfy its BRANCH floor while LINE kept enforcing.
+            def report = coverageReportXml.get().asFile
+            if (!report.exists()) {
+                throw new GradleException(
+                    "No JaCoCo XML report at ${report} for ${moduleName}. Run jacocoTestReport before verifying.")
+            }
+            def totals = counterTotals(report)
+            enforcedCounters.each { counter ->
+                if (!totals[counter]) {
+                    throw new GradleException(
+                        "JaCoCo counted no ${counter} positions for ${moduleName}, so its ${counter} floor enforced nothing. Drop that floor deliberately if the module genuinely has none.")
+                }
             }
         }
 
@@ -159,6 +283,114 @@ subprojects {
 
     tasks.named('check') {
         dependsOn tasks.named('jacocoTestCoverageVerification')
+    }
+
+    // Not wired into `check`: with no base ref it measures the working tree, which is clean
+    // in CI and would pass vacuously. Runs from CI, the pre-push hook, and
+    // `make coverage-changed`. Property names match aiml-services.
+    def changedRefProperty = { List<String> propertyNames ->
+        providers.provider {
+            def supplied = propertyNames.collect {
+                [name: it, provider: providers.gradleProperty(it)]
+            }.findAll {
+                it.provider.isPresent()
+            }
+            supplied.each {
+                if (it.provider.get().isBlank()) {
+                    throw new GradleException(
+                        "${it.name} was supplied but blank; omit it for working-tree mode or provide a git ref.")
+                }
+            }
+            supplied.isEmpty() ? '' : supplied.first().provider.get()
+        }
+    }
+    def changedBase = changedRefProperty(['jacocoChangedBase', 'staticAnalysisChangedBase'])
+    def changedHead = changedRefProperty(['staticAnalysisChangedHead', 'jacocoChangedHead'])
+    def mainSourceRoot = project.file('src/main/java')
+    def repoRoot = rootProject.projectDir
+    // Memoized: dependsOn, input snapshotting and doLast each resolve this, and every resolution
+    // shells out to git.
+    def changedFilesHolder = []
+    def changedMainFiles = providers.provider {
+        if (changedFilesHolder.isEmpty()) {
+            changedFilesHolder.add(ChangedJavaFiles.forSourceSet(
+                repoRoot, mainSourceRoot, changedBase.get(), changedHead.get()))
+        }
+        changedFilesHolder.first()
+    }
+    def changedFileMinimum = rootProject.ext.changedFileCoverageMinimum as BigDecimal
+    def changedFileMinimumPercent = (changedFileMinimum * 100).stripTrailingZeros().toPlainString()
+    def excludedSourcePaths =
+        JacocoChangedFileCoverage.excludedSourcePaths(rootProject.ext.coverageExcludedClassFiles)
+    def projectDirFile = project.projectDir
+    def projectPathName = project.path
+
+    tasks.register('jacocoChangedFileCoverageVerification') {
+        group = 'verification'
+        description = "Fails when a changed src/main/java file has less than " +
+            "${changedFileMinimumPercent}% line coverage."
+
+        // Generating the report costs a full test run, so only ask for it when there is
+        // something to measure.
+        dependsOn providers.provider { changedMainFiles.get().isEmpty() ? [] : ['jacocoTestReport'] }
+        inputs.files(providers.provider { changedMainFiles.get().present() })
+        inputs.file(coverageReportXml).optional()
+
+        doLast {
+            def changed = changedMainFiles.get()
+
+            if (changed.isEmpty()) {
+                logger.quiet(
+                    "Changed-file JaCoCo line coverage checked 0 file(s) in ${projectPathName}; " +
+                        "no changed src/main/java files were found.")
+                return
+            }
+
+            // The report describes the working tree, so a path the tree no longer holds cannot be
+            // measured. Failing beats dropping it and reporting a pass.
+            if (!changed.absentFromWorkingTree().isEmpty()) {
+                def missing = changed.absentFromWorkingTree()
+                    .collect { projectDirFile.toPath().relativize(it.toPath()).toString() }
+                    .join(', ')
+                throw new GradleException(
+                    "Changed Java file(s) named by the diff are absent from the working tree, so " +
+                        "no coverage could be attributed to them in ${projectPathName}: ${missing}")
+            }
+
+            def result = JacocoChangedFileCoverage.analyze(
+                mainSourceRoot,
+                changed.present(),
+                coverageReportXml.get().asFile,
+                excludedSourcePaths)
+
+            // Logged before the failure checks so it still reaches a reviewer on a failing run.
+            // QUIET, not LIFECYCLE: the pre-push hook passes -q, which suppresses LIFECYCLE.
+            if (!result.unmeasurableFiles().isEmpty()) {
+                def unmeasurable = result.unmeasurableFiles()
+                    .collect { projectDirFile.toPath().relativize(it.toPath()).toString() }
+                    .join(', ')
+                logger.quiet(
+                    "JaCoCo counted no lines in these changed file(s), so they pass without a " +
+                        "coverage ratio in ${projectPathName}: ${unmeasurable}")
+            }
+
+            // Absent from the report and not excluded on purpose: asked to judge, unable to.
+            def unreported = JacocoChangedFileCoverage.unreportedMessage(projectDirFile, result)
+            if (unreported) {
+                throw new GradleException(unreported)
+            }
+
+            def message = JacocoChangedFileCoverage.failureMessage(
+                projectDirFile, result, changedFileMinimum)
+            if (message) {
+                throw new GradleException(message)
+            }
+
+            logger.quiet(
+                "Changed-file JaCoCo line coverage passed for ${changed.present().size()} file(s) " +
+                    "in ${projectPathName}: ${result.checkedFiles().size()} measured, " +
+                    "${result.unmeasurableFiles().size()} with no countable lines.")
+        }
     }
 
     spotless {
@@ -213,28 +445,18 @@ tasks.register('coverageSummary') {
     // UP-TO-DATE and the whole suite re-runs just to print a table. This task reads
     // reports that a previous task or invocation already wrote; when nothing has written
     // one it says so per module rather than generating it.
-    mustRunAfter subprojects.collect { ":${it.name}:jacocoTestReport" }
-    mustRunAfter subprojects.collect { ":${it.name}:jacocoTestCoverageVerification" }
+    mustRunAfter subprojects.collectMany {
+        [":${it.name}:jacocoTestReport", ":${it.name}:jacocoTestCoverageVerification"]
+    }
 
     def reports = subprojects.collectEntries {
         [(it.name): it.layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml')]
     }
-    def minimums = rootProject.ext.coverageMinimums
+    def requireMinimums = rootProject.ext.requireCoverageMinimums
+    def newParser = rootProject.ext.jacocoXmlParser
 
     doLast {
-        // JaCoCo's XML declares a DOCTYPE, which XmlSlurper rejects by default. Allow the
-        // declaration but keep every entity and DTD fetch switched off, so the parser never
-        // resolves anything external. Input here is our own build output, not user data.
-        def parser = new XmlSlurper()
-        parser.setFeature('http://apache.org/xml/features/disallow-doctype-decl', false)
-        parser.setFeature('http://apache.org/xml/features/nonvalidating/load-external-dtd', false)
-        parser.setFeature('http://xml.org/sax/features/external-general-entities', false)
-        parser.setFeature('http://xml.org/sax/features/external-parameter-entities', false)
-        parser.setFeature('http://xml.org/sax/features/validation', false)
-        // Permitting the DOCTYPE leaves internal entity expansion in play, so restore the
-        // JAXP limits that bound it. Defence in depth: the input is regenerated build
-        // output, not anything an attacker supplies.
-        parser.setFeature('http://javax.xml.XMLConstants/feature/secure-processing', true)
+        def parser = newParser()
 
         // Emitted as a Markdown table so the same output is readable in a terminal and
         // renders as a table when CI appends it to GITHUB_STEP_SUMMARY.
@@ -266,18 +488,68 @@ tasks.register('coverageSummary') {
                     : String.format('%.1f%% (floor %.1f%%)', actual * 100, floor * 100)
             }
             // jacocoTestCoverageVerification throws for an undeclared module, but this task
-            // does not depend on it, so a new subproject reaches here first. Fail with the
-            // same actionable message rather than an NPE on floors.line.
-            def floors = minimums[moduleName]
-            if (floors == null) {
-                throw new GradleException(
-                    "No coverage minimums declared for ${moduleName}. Add an entry to coverageMinimums in the root build.gradle.")
-            }
+            // does not depend on it, so a new subproject reaches here first.
+            def floors = requireMinimums(moduleName)
             println "| ${moduleName} " +
                 "| ${cell(ratio('LINE') as BigDecimal, floors.line as BigDecimal)} " +
                 "| ${cell(ratio('BRANCH') as BigDecimal, floors.branch as BigDecimal)} |"
         }
         println ''
+    }
+}
+
+tasks.register('installGitHooks') {
+    group = 'help'
+    description = 'Installs the repository git hooks into the active git hooks directory.'
+
+    def hookSourceDir = rootProject.file('scripts/git-hooks')
+    def rootProjectDir = rootProject.projectDir
+    // Not hard-coded as `.git/hooks`: in a linked worktree `.git` is a file, and core.hooksPath
+    // can move the directory entirely.
+    def hooksPath = providers.exec {
+        commandLine 'git', '-C', rootProjectDir.absolutePath, 'rev-parse', '--git-path', 'hooks'
+    }.standardOutput.asText.map { it.trim() }
+
+    doLast {
+        // rev-parse returns a repo-relative path for a normal checkout, absolute for a worktree.
+        def resolved = hooksPath.get()
+        def hooksDir = new File(resolved).absolute ? new File(resolved) : new File(rootProjectDir, resolved)
+        if (!hooksDir.isDirectory() && !hooksDir.mkdirs()) {
+            throw new GradleException("Could not create the git hooks directory ${hooksDir}.")
+        }
+
+        // File by file, not a Copy task: declaring the hooks directory as an output would put
+        // other tools' hooks in scope for Gradle's stale-output cleanup.
+        def sources = (hookSourceDir.listFiles() ?: new File[0])
+            .findAll { it.isFile() && !it.name.endsWith('.md') }
+            .sort { it.name }
+        if (sources.isEmpty()) {
+            throw new GradleException("No hooks to install in ${hookSourceDir}.")
+        }
+
+        def timestamp = java.time.LocalDateTime.now()
+            .format(java.time.format.DateTimeFormatter.ofPattern('yyyyMMdd-HHmmss'))
+        sources.each { source ->
+            def target = new File(hooksDir, source.name)
+            // Only one script can own a hook name, and beads installs its own pre-push here.
+            if (target.isFile() && target.bytes != source.bytes) {
+                def backup = new File(hooksDir, "${source.name}.bak-${timestamp}")
+                backup.bytes = target.bytes
+                logger.warn(
+                    "Replaced an existing ${source.name} hook. The previous one is saved as " +
+                        "${backup.name}; if another tool owns that hook, merge the two by hand.")
+            }
+            target.bytes = source.bytes
+            // Git silently ignores a hook it cannot execute, and runs it as the invoking user.
+            target.setReadable(false, false)
+            target.setWritable(false, false)
+            target.setExecutable(false, false)
+            target.setReadable(true, true)
+            target.setWritable(true, true)
+            target.setExecutable(true, true)
+        }
+        logger.lifecycle(
+            "Installed ${sources.size()} git hook(s) into ${hooksDir}: ${sources.collect { it.name }.join(', ')}")
     }
 }
 

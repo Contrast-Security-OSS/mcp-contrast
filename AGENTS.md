@@ -74,11 +74,17 @@ This repository uses the Gradle wrapper and Java 21. Do not use Maven commands o
 ./gradlew :contrast-mcp-stdio-app:bootJar
 ./gradlew :contrast-mcp-core:publishToMavenLocal :contrast-mcp-core:verifyCorePublicationMetadata
 make coverage
+make coverage-changed
+make buildsrc-check
+make test-coverage
+make install-hooks
 make check-test
 make verify
 ```
 
-**Coverage floors:** JaCoCo measures coverage on every `test` run. Per-module floors live in `ext.coverageMinimums` in the root `build.gradle` and are enforced by `jacocoTestCoverageVerification`, which `check` and `make check-test` both run, so a coverage regression fails the build. Raise a floor as coverage improves. Never lower one to make a build pass, and treat additions to `coverageExcludedClassFiles` like a checkstyle suppression.
+**Coverage floors:** JaCoCo measures coverage on every `test` run. Per-module floors live in `ext.coverageMinimums` in the root `build.gradle` and are enforced by `jacocoTestCoverageVerification`, which `check` and `make check-test` both run, so a coverage regression fails the build. Raise a floor as coverage improves. Never lower one to make a build pass, and treat additions to `coverageExcludedClassFiles` like a checkstyle suppression. `buildSrc` is a separate Gradle build, so root `./gradlew check` does not test the coverage gate's own implementation; use `make buildsrc-check`, which is also included in `make check-test`.
+
+**Changed-file coverage:** `ext.changedFileCoverageMinimum` (85%) sets a separate floor, enforced per changed `src/main/java` file rather than per module. Three paths enforce it: CI on pull requests (any base branch, so stacked PRs are gated too), the optional pre-push hook installed by `make install-hooks` (bypass with `SKIP_COVERAGE_HOOK=1`), and `make coverage-changed` locally (accepts `BASE=<ref>`). The hook warns but still runs when dirty source, build, or resource files could change JaCoCo output; pull-request CI is authoritative because it tests a clean checkout. Unrelated changes such as Markdown files do not warn. For the first push of a new stacked branch, set `COVERAGE_BASE_REF=origin/<parent>`. It is not part of `check` or `make check-test`. Without a base ref to diff against it would measure the working tree, which is clean on a fresh checkout and would pass without checking anything.
 
 **Module split:**
 - `contrast-mcp-core` is the transport-neutral shared library published as `com.contrast.labs.ai.mcp:contrast-mcp-core`.
