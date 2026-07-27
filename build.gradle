@@ -31,11 +31,18 @@ ext.coverageMinimums = [
     'contrast-mcp-stdio-app': [line: 0.72, branch: 0.65],
 ]
 
-// Spring Boot bootstrap: main() plus bean wiring, exercised at runtime rather than
-// by unit tests. Excluded from both the report and the enforced floor so it does not
-// distort them. Keep this list minimal — everything else stays measured.
+// Spring Boot bootstrap: main() plus bean wiring, whose behaviour belongs to container
+// startup rather than to unit tests. Excluded from both the report and the enforced floor
+// so it does not distort them. The class is partially covered today by
+// McpContrastApplicationToolRegistrationTest, so this is a statement about what the floor
+// should hold us to, not a claim that unit tests never reach it.
+// Excluding a class lowers the effective gate, so treat additions here like a checkstyle
+// suppression and get them reviewed. Keep this list minimal — everything else stays measured.
 ext.coverageExcludedClassFiles = [
     'com/contrast/labs/ai/mcp/contrast/McpContrastApplication.class',
+    // Inner and anonymous classes compile to their own class files. Without this they
+    // would stay measured while the outer class is excluded. No such classes exist today.
+    'com/contrast/labs/ai/mcp/contrast/McpContrastApplication$*.class',
 ]
 
 ext.positiveIntProperty = { String propertyName, int defaultValue ->
@@ -114,6 +121,25 @@ subprojects {
                 "No coverage minimums declared for ${project.name}. Add an entry to coverageMinimums in the root build.gradle.")
         }
         classDirectories.setFrom(coverageClassDirs)
+
+        // Gradle's JacocoReportBase registers onlyIf("Any of the execution data files
+        // exists"), so a module with no .exec file SKIPs verification and the build still
+        // goes green. JaCoCo's Limit.check separately returns no violation when a counter
+        // total is zero, because the ratio is NaN. Either state means the floor below
+        // enforced nothing. Override the skip and assert both preconditions instead, so a
+        // module that declares floors can never pass without actually measuring something.
+        setOnlyIf { true }
+        doFirst {
+            if (executionData.files.every { !it.exists() }) {
+                throw new GradleException(
+                    "No JaCoCo execution data for ${project.name}; coverage was not measured. Run the test task before verifying.")
+            }
+            if (classDirectories.asFileTree.empty) {
+                throw new GradleException(
+                    "No class files to measure for ${project.name}; check coverageExcludedClassFiles in the root build.gradle.")
+            }
+        }
+
         violationRules {
             rule {
                 element = 'BUNDLE'
@@ -180,7 +206,15 @@ subprojects {
 tasks.register('coverageSummary') {
     group = 'verification'
     description = 'Prints per-module JaCoCo coverage against the enforced floors.'
-    dependsOn subprojects.collect { ":${it.name}:jacocoTestReport" }
+
+    // Ordering only, deliberately not dependsOn. As a dependency this drags `test` back
+    // into the graph, and :contrast-mcp-stdio-app:bootBuildInfo rewrites
+    // build-info.properties on every invocation, so the app's test task is never
+    // UP-TO-DATE and the whole suite re-runs just to print a table. This task reads
+    // reports that a previous task or invocation already wrote; when nothing has written
+    // one it says so per module rather than generating it.
+    mustRunAfter subprojects.collect { ":${it.name}:jacocoTestReport" }
+    mustRunAfter subprojects.collect { ":${it.name}:jacocoTestCoverageVerification" }
 
     def reports = subprojects.collectEntries {
         [(it.name): it.layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml')]
@@ -197,6 +231,10 @@ tasks.register('coverageSummary') {
         parser.setFeature('http://xml.org/sax/features/external-general-entities', false)
         parser.setFeature('http://xml.org/sax/features/external-parameter-entities', false)
         parser.setFeature('http://xml.org/sax/features/validation', false)
+        // Permitting the DOCTYPE leaves internal entity expansion in play, so restore the
+        // JAXP limits that bound it. Defence in depth: the input is regenerated build
+        // output, not anything an attacker supplies.
+        parser.setFeature('http://javax.xml.XMLConstants/feature/secure-processing', true)
 
         // Emitted as a Markdown table so the same output is readable in a terminal and
         // renders as a table when CI appends it to GITHUB_STEP_SUMMARY.
@@ -209,7 +247,7 @@ tasks.register('coverageSummary') {
         reports.each { moduleName, reportFile ->
             def file = reportFile.get().asFile
             if (!file.exists()) {
-                println "| ${moduleName} | no report found | no report found |"
+                println "| ${moduleName} | no report — run jacocoTestReport | no report — run jacocoTestReport |"
                 return
             }
             def root = parser.parse(file)
@@ -225,9 +263,16 @@ tasks.register('coverageSummary') {
             def cell = { BigDecimal actual, BigDecimal floor ->
                 actual == null
                     ? 'n/a'
-                    : String.format('%.1f%% (floor %.0f%%)', actual * 100, floor * 100)
+                    : String.format('%.1f%% (floor %.1f%%)', actual * 100, floor * 100)
             }
+            // jacocoTestCoverageVerification throws for an undeclared module, but this task
+            // does not depend on it, so a new subproject reaches here first. Fail with the
+            // same actionable message rather than an NPE on floors.line.
             def floors = minimums[moduleName]
+            if (floors == null) {
+                throw new GradleException(
+                    "No coverage minimums declared for ${moduleName}. Add an entry to coverageMinimums in the root build.gradle.")
+            }
             println "| ${moduleName} " +
                 "| ${cell(ratio('LINE') as BigDecimal, floors.line as BigDecimal)} " +
                 "| ${cell(ratio('BRANCH') as BigDecimal, floors.branch as BigDecimal)} |"

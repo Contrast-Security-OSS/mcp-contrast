@@ -46,6 +46,7 @@ make clean       # Clean build artifacts
 # Verbose output when debugging failures
 make test VERBOSE=1
 make check VERBOSE=1
+make coverage VERBOSE=1
 ```
 
 **After a compilation failure**, stale `.class` files may remain and cause confusing follow-up failures. Always run `make clean && make test` to recover before continuing.

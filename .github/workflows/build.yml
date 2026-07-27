@@ -33,7 +33,9 @@ jobs:
       run: ./gradlew spotlessCheck checkstyleMain checkstyleTest test jacocoTestCoverageVerification :contrast-mcp-stdio-app:bootJar --no-daemon
 
     # Runs even when the coverage floor fails, since that is exactly when the
-    # numbers and the HTML report are needed to diagnose the failure.
+    # numbers and the HTML report are needed to diagnose the failure. coverageSummary
+    # only reads the reports the step above wrote, so this does not re-run the tests;
+    # if that step failed before producing them, the table says so per module.
     - name: Publish coverage summary
       if: always()
       run: ./gradlew --quiet coverageSummary --no-daemon >> "$GITHUB_STEP_SUMMARY"
@@ -47,3 +49,5 @@ jobs:
           **/build/reports/jacoco/test/html/**
           **/build/reports/jacoco/test/jacocoTestReport.xml
         if-no-files-found: warn
+        # Diagnostic output for a failed run, not a durable artifact.
+        retention-days: 7
