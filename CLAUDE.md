@@ -43,6 +43,7 @@ make format      # Auto-format code with Spotless (also runs automatically via m
 make build       # Build the project
 make clean       # Clean build artifacts
 
+make test-coverage                 # Unit tests plus coverage floors in one gradle invocation
 make coverage-changed              # Changed src/main/java files must meet the changed-file floor
 make coverage-changed BASE=origin/main   # Compare against a ref instead of the working tree
 make buildsrc-check                # Static analysis, tests and coverage for buildSrc

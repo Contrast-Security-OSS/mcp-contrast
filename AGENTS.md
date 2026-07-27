@@ -75,6 +75,7 @@ This repository uses the Gradle wrapper and Java 21. Do not use Maven commands o
 ./gradlew :contrast-mcp-core:publishToMavenLocal :contrast-mcp-core:verifyCorePublicationMetadata
 make coverage
 make coverage-changed
+make test-coverage
 make install-hooks
 make check-test
 make verify

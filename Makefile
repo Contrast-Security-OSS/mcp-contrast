@@ -1,6 +1,6 @@
 GRADLE ?= ./gradlew
 
-.PHONY: help build test test-verbose check check-verbose check-test buildsrc-check buildsrc-check-verbose coverage coverage-verbose coverage-changed coverage-changed-verbose install-hooks format clean verify verify-verbose
+.PHONY: help build test test-verbose check check-verbose check-test buildsrc-check buildsrc-check-verbose coverage coverage-verbose coverage-changed coverage-changed-verbose test-coverage test-coverage-verbose install-hooks format clean verify verify-verbose
 
 help: ## Display available make targets
 	@awk 'BEGIN {FS=":.*##"; printf "\nUsage: make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_\-]+:.*##/ {printf "  %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -122,13 +122,34 @@ coverage-changed-quiet:
 coverage-changed-verbose: ## Run changed-file coverage with verbose output
 	@VERBOSE=1 $(MAKE) coverage-changed
 
+# One invocation on purpose. bootBuildInfo rewrites build-info.properties every run, so the
+# app's test task is never UP-TO-DATE and separate `make test` + `make coverage` runs it twice.
+test-coverage: ## Run unit tests and verify coverage floors in one invocation
+	@if [ -n "$$VERBOSE" ]; then \
+		$(GRADLE) --continue test jacocoTestCoverageVerification coverageSummary; \
+	else \
+		$(MAKE) test-coverage-quiet; \
+	fi
+
+# Held exit code as in coverage-quiet: the summary is wanted precisely when a floor breaks.
+test-coverage-quiet:
+	@. ./hack/run_silent.sh && print_main_header "Running Tests and Coverage"
+	@. ./hack/run_silent.sh && print_header "mcp-contrast" "Unit tests + coverage floors"
+	@status=0; \
+	. ./hack/run_silent.sh && run_silent_with_test_count "Tests passed, coverage floors met" \
+		"$(GRADLE) test jacocoTestCoverageVerification" "gradle" || status=$$?; \
+	$(GRADLE) --quiet coverageSummary; \
+	exit $$status
+
+test-coverage-verbose: ## Run tests and coverage with verbose output
+	@VERBOSE=1 $(MAKE) test-coverage
+
 ## Combined targets
 
 check-test: ## Run all checks, tests, and coverage
 	@$(MAKE) check
 	@$(MAKE) buildsrc-check
-	@$(MAKE) test
-	@$(MAKE) coverage
+	@$(MAKE) test-coverage
 
 ## Other targets
 
