@@ -213,6 +213,15 @@ class JacocoChangedFileCoverageTest {
   }
 
   @Test
+  void failuresBelow_should_not_round_a_ratio_just_under_the_minimum_up_to_a_pass() {
+    FileCoverage justUnder = new FileCoverage(tempDir.resolve("JustUnder.java").toFile(), 152, 861);
+    Result result = new Result(List.of(justUnder), List.of(), List.of());
+
+    assertThat(justUnder.coveredRatio()).isEqualByComparingTo("0.8500");
+    assertThat(result.failuresBelow(EIGHTY_FIVE_PERCENT)).containsExactly(justUnder);
+  }
+
+  @Test
   void failureMessage_should_name_each_failing_file_with_its_percentage() throws IOException {
     Path failing = sourceFile("com/example/Failing.java");
     File report = report(reportPackage("com/example", "Failing.java", 6, 4));

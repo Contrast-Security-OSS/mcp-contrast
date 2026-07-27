@@ -64,6 +64,12 @@ public final class JacocoChangedFileCoverage {
     public BigDecimal coveredPercent() {
       return coveredRatio().multiply(ONE_HUNDRED).setScale(PERCENT_SCALE, RoundingMode.HALF_UP);
     }
+
+    public boolean isBelow(BigDecimal minimumRatio) {
+      BigDecimal covered = BigDecimal.valueOf(coveredLines);
+      BigDecimal required = minimumRatio.multiply(BigDecimal.valueOf(totalLines()));
+      return covered.compareTo(required) < 0;
+    }
   }
 
   /**
@@ -77,9 +83,7 @@ public final class JacocoChangedFileCoverage {
       List<FileCoverage> checkedFiles, List<File> unmeasurableFiles, List<File> unreportedFiles) {
 
     public List<FileCoverage> failuresBelow(BigDecimal minimumRatio) {
-      return checkedFiles.stream()
-          .filter(it -> it.coveredRatio().compareTo(minimumRatio) < 0)
-          .toList();
+      return checkedFiles.stream().filter(it -> it.isBelow(minimumRatio)).toList();
     }
   }
 
