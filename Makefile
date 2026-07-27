@@ -1,6 +1,6 @@
 GRADLE ?= ./gradlew
 
-.PHONY: help build test test-verbose check check-verbose check-test coverage coverage-verbose format clean verify verify-verbose
+.PHONY: help build test test-verbose check check-verbose check-test coverage coverage-verbose coverage-changed coverage-changed-verbose install-hooks format clean verify verify-verbose
 
 help: ## Display available make targets
 	@awk 'BEGIN {FS=":.*##"; printf "\nUsage: make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_\-]+:.*##/ {printf "  %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -86,6 +86,24 @@ coverage-quiet:
 coverage-verbose: ## Run coverage with verbose output
 	@VERBOSE=1 $(MAKE) coverage
 
+# Measures the working tree by default. Pass BASE to compare against a ref instead, which is
+# what the pre-push hook does: make coverage-changed BASE=origin/main
+coverage-changed: ## Check changed src/main/java files meet the changed-file coverage minimum
+	@if [ -n "$$VERBOSE" ]; then \
+		$(GRADLE) jacocoChangedFileCoverageVerification $(if $(BASE),-PjacocoChangedBase=$(BASE)); \
+	else \
+		$(MAKE) coverage-changed-quiet; \
+	fi
+
+coverage-changed-quiet:
+	@. ./hack/run_silent.sh && print_main_header "Checking Changed-File Coverage"
+	@. ./hack/run_silent.sh && print_header "mcp-contrast" "Changed-file coverage"
+	@. ./hack/run_silent.sh && run_with_quiet "Changed-file coverage met" \
+		"$(GRADLE) jacocoChangedFileCoverageVerification $(if $(BASE),-PjacocoChangedBase=$(BASE))"
+
+coverage-changed-verbose: ## Run changed-file coverage with verbose output
+	@VERBOSE=1 $(MAKE) coverage-changed
+
 ## Combined targets
 
 check-test: ## Run all checks, tests, and coverage
@@ -94,6 +112,13 @@ check-test: ## Run all checks, tests, and coverage
 	@$(MAKE) coverage
 
 ## Other targets
+
+install-hooks: ## Install the repository git hooks into .git/hooks
+	@if [ -n "$$VERBOSE" ]; then \
+		$(GRADLE) installGitHooks; \
+	else \
+		. ./hack/run_silent.sh && run_silent "Installing git hooks" "$(GRADLE) installGitHooks"; \
+	fi
 
 format: ## Auto-format code with Spotless
 	@if [ -n "$$VERBOSE" ]; then \

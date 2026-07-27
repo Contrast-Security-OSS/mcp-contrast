@@ -1,3 +1,5 @@
+import com.contrast.labs.build.ChangedJavaFiles
+import com.contrast.labs.build.JacocoChangedFileCoverage
 import org.gradle.api.plugins.quality.Checkstyle
 
 plugins {
@@ -30,6 +32,13 @@ ext.coverageMinimums = [
     'contrast-mcp-core'     : [line: 0.90, branch: 0.80],
     'contrast-mcp-stdio-app': [line: 0.72, branch: 0.65],
 ]
+
+// Line coverage required of each changed src/main/java file, checked by
+// jacocoChangedFileCoverageVerification. Set above the module floors on purpose: the floors
+// stop a module regressing overall, while this holds new and modified code to the standard
+// the modules are meant to reach, so a large well-covered module cannot absorb an untested
+// change without the average moving. Matches the 85% used by the sibling aiml-services repo.
+ext.changedFileCoverageMinimum = 0.85
 
 // Spring Boot bootstrap: main() plus bean wiring, whose behaviour belongs to container
 // startup rather than to unit tests. Excluded from both the report and the enforced floor
@@ -161,6 +170,67 @@ subprojects {
         dependsOn tasks.named('jacocoTestCoverageVerification')
     }
 
+    // Changed-file coverage gate, ported from aiml-services. Deliberately not wired into
+    // `check`: it shells out to git on every run and only means something relative to a base
+    // ref, so it runs from the pre-push hook and `make coverage-changed` instead. The base
+    // comes from -PjacocoChangedBase, then -PstaticAnalysisChangedBase, and falls back to the
+    // working tree when neither is set. -PstaticAnalysisChangedHead pairs with an explicit
+    // base so a multi-ref push analyses the right commit for each ref.
+    def changedBase = providers.gradleProperty('jacocoChangedBase')
+        .orElse(providers.gradleProperty('staticAnalysisChangedBase'))
+        .orElse('')
+    def changedHead = providers.gradleProperty('staticAnalysisChangedHead').orElse('')
+    def mainSourceRoot = project.file('src/main/java')
+    def repoRoot = rootProject.projectDir
+    def changedMainFiles = providers.provider {
+        ChangedJavaFiles.forSourceSet(repoRoot, mainSourceRoot, changedBase.get(), changedHead.get())
+    }
+    def coverageReportXml = layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml')
+    def changedFileMinimum = rootProject.ext.changedFileCoverageMinimum as BigDecimal
+    def changedFileMinimumPercent = (changedFileMinimum * 100).stripTrailingZeros().toPlainString()
+    def projectDirFile = project.projectDir
+    def projectPathName = project.path
+
+    tasks.register('jacocoChangedFileCoverageVerification') {
+        group = 'verification'
+        description = "Fails when a changed src/main/java file has less than " +
+            "${changedFileMinimumPercent}% line coverage."
+
+        // Generating the report costs a full test run, so only ask for it when this task has
+        // something to measure.
+        dependsOn providers.provider { changedMainFiles.get().isEmpty() ? [] : ['jacocoTestReport'] }
+        inputs.files(changedMainFiles)
+        inputs.file(coverageReportXml).optional()
+        onlyIf { !changedMainFiles.get().isEmpty() }
+
+        doLast {
+            def result = JacocoChangedFileCoverage.analyze(
+                mainSourceRoot, changedMainFiles.get(), coverageReportXml.get().asFile)
+
+            // A changed file absent from the report cannot be judged. Today that means a
+            // class listed in coverageExcludedClassFiles. Name them so an unexpected skip is
+            // visible rather than reading as a pass.
+            if (!result.skippedFiles().isEmpty()) {
+                def skipped = result.skippedFiles()
+                    .collect { projectDirFile.toPath().relativize(it.toPath()).toString() }
+                    .join(', ')
+                logger.lifecycle(
+                    "Skipped changed Java file(s) without JaCoCo line data in ${projectPathName}: ${skipped}")
+            }
+
+            def message = JacocoChangedFileCoverage.failureMessage(
+                projectDirFile, result, changedFileMinimum)
+            if (message) {
+                throw new GradleException(message)
+            }
+
+            if (!result.checkedFiles().isEmpty()) {
+                logger.lifecycle(
+                    "Changed-file JaCoCo line coverage passed for ${result.checkedFiles().size()} file(s) in ${projectPathName}.")
+            }
+        }
+    }
+
     spotless {
         java {
             googleJavaFormat(googleJavaFormatVersion)
@@ -278,6 +348,33 @@ tasks.register('coverageSummary') {
                 "| ${cell(ratio('BRANCH') as BigDecimal, floors.branch as BigDecimal)} |"
         }
         println ''
+    }
+}
+
+tasks.register('installGitHooks', Copy) {
+    group = 'help'
+    description = 'Installs the repository git hooks into .git/hooks.'
+
+    from(rootProject.file('scripts/git-hooks')) {
+        exclude '*.md'
+    }
+    into(rootProject.file('.git/hooks'))
+    // Git ignores a hook it cannot execute, and does so silently, so the copy has to set the
+    // bit rather than rely on whatever the checkout left behind.
+    filePermissions {
+        user {
+            read = true
+            write = true
+            execute = true
+        }
+        group {
+            read = true
+            execute = true
+        }
+        other {
+            read = true
+            execute = true
+        }
     }
 }
 

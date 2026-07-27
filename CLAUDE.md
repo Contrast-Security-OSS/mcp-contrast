@@ -43,6 +43,10 @@ make format      # Auto-format code with Spotless (also runs automatically via m
 make build       # Build the project
 make clean       # Clean build artifacts
 
+make coverage-changed              # Changed src/main/java files must meet the changed-file floor
+make coverage-changed BASE=origin/main   # Compare against a ref instead of the working tree
+make install-hooks                 # Install the pre-push hook into .git/hooks
+
 # Verbose output when debugging failures
 make test VERBOSE=1
 make check VERBOSE=1
@@ -57,6 +61,7 @@ make coverage VERBOSE=1
 - **Test (all)**: `source .env.integration-test && ./gradlew test :contrast-mcp-stdio-app:integrationTest`
 - **Static analysis**: `./gradlew spotlessCheck checkstyleMain checkstyleTest`
 - **Coverage**: `./gradlew jacocoTestCoverageVerification coverageSummary`
+- **Changed-file coverage**: `./gradlew jacocoChangedFileCoverageVerification -PjacocoChangedBase=origin/main`
 - **Core publication metadata**: `./gradlew :contrast-mcp-core:verifyCorePublicationMetadata`
 - **Format code**: `./gradlew spotlessApply`
 - **Run locally**: `java -jar contrast-mcp-stdio-app/build/libs/mcp-contrast-*.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
@@ -64,6 +69,8 @@ make coverage VERBOSE=1
 **Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard local verification command for static analysis, unit tests, and coverage.
 
 **Coverage floors:** Per-module minimums live in `ext.coverageMinimums` in the root `build.gradle` and are enforced by `jacocoTestCoverageVerification`, which `check` depends on. Raise a floor as coverage improves; never lower one to make a build pass. `McpContrastApplication` is the only class excluded.
+
+**Changed-file coverage:** `ext.changedFileCoverageMinimum` (85%) in the root `build.gradle` is enforced per changed `src/main/java` file by `jacocoChangedFileCoverageVerification`. The module floors stop a module regressing overall; this holds new and modified code to a higher bar so a well-covered module cannot absorb an untested change. Not wired into `check` — it shells out to git and needs a base ref, so it runs from the pre-push hook and `make coverage-changed`. Install the hook with `make install-hooks`; bypass it for one push with `SKIP_COVERAGE_HOOK=1`. A changed file absent from the JaCoCo report is reported as skipped, not failed, and named in the output. Supporting build logic lives in `buildSrc/` with its own tests. See `scripts/git-hooks/README.md`.
 
 **Integration Tests:** Require Contrast credentials in `.env.integration-test` (copy from `.env.integration-test.template`). See INTEGRATION_TESTS.md for details. Integration tests are intentionally skipped when credentials are not available (e.g., in CI forks or local builds without `.env.integration-test`).
 

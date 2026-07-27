@@ -1,0 +1,127 @@
+#!/bin/bash
+# Pre-push hook to block changed-file coverage failures before review.
+
+set -euo pipefail
+
+readonly ZERO_SHA="0000000000000000000000000000000000000000"
+readonly DEFAULT_BASE_REF="origin/main"
+
+find_changed_base() {
+  local remote_name=$1
+  local local_sha=$2
+  local remote_sha=$3
+
+  # Existing remote branches give us the exact old tip Git is about to update.
+  # Diffing from that SHA keeps the gate scoped to commits included in this push.
+  if [[ "$remote_sha" != "$ZERO_SHA" ]]; then
+    printf "%s\n" "$remote_sha"
+    return
+  fi
+
+  # New remote branches have no remote tip yet. Use the branch upstream first so
+  # stacked topic branches compare against their parent rather than main.
+  if git rev-parse --verify --quiet "@{upstream}" >/dev/null; then
+    git merge-base "$local_sha" "@{upstream}"
+    return
+  fi
+
+  # Fresh branches without an upstream fall back to the target remote's main,
+  # then the conventional origin/main name.
+  if git rev-parse --verify --quiet "$remote_name/main" >/dev/null; then
+    git merge-base "$local_sha" "$remote_name/main"
+    return
+  fi
+
+  git merge-base "$local_sha" "$DEFAULT_BASE_REF"
+}
+
+changed_java_files() {
+  local base_ref=$1
+  local head_ref=$2
+
+  # Only inspect committed files being pushed. Working-tree and untracked files
+  # are intentionally excluded so unrelated WIP cannot block a clean push.
+  git diff --name-only --diff-filter=ACMR "$base_ref...$head_ref" -- "*.java" | sort -u
+}
+
+perform_check() {
+  local msg=$1
+  shift
+
+  printf "%s... " "$msg"
+  if ! output=$("$@" 2>&1); then
+    printf "FAILED\n"
+    printf "\n\n%s\n\n" "$output"
+    exit 1
+  fi
+
+  printf "PASSED\n"
+}
+
+main() {
+  local remote_name=${1:-origin}
+  local local_ref local_sha remote_ref remote_sha
+  local base_ref changed_files
+  local -a local_refs=()
+  local -a local_shas=()
+  local -a remote_refs=()
+  local -a remote_shas=()
+
+  if [[ "${SKIP_COVERAGE_HOOK:-}" == "1" ]]; then
+    printf "SKIP_COVERAGE_HOOK=1 set; skipping changed-file coverage verification.\n" >&2
+    return
+  fi
+
+  # Git sends one line per ref on stdin:
+  #   <local-ref> <local-sha> <remote-ref> <remote-sha>
+  # A zero local SHA means this is a delete-only push, which ships no code.
+  while read -r local_ref local_sha remote_ref remote_sha; do
+    if [[ -z "${local_ref:-}" || "$local_sha" == "$ZERO_SHA" ]]; then
+      continue
+    fi
+    local_refs+=("$local_ref")
+    local_shas+=("$local_sha")
+    remote_refs+=("$remote_ref")
+    remote_shas+=("$remote_sha")
+  done
+
+  # If every stdin row was a deletion, there are no pushed commits to analyze.
+  if (( ${#local_refs[@]} == 0 )); then
+    printf "No pushed commit refs; skipping changed-file coverage verification.\n"
+    return
+  fi
+
+  for index in "${!local_refs[@]}"; do
+    local_ref=${local_refs[$index]}
+    local_sha=${local_shas[$index]}
+    remote_ref=${remote_refs[$index]}
+    remote_sha=${remote_shas[$index]}
+
+    base_ref=$(find_changed_base "$remote_name" "$local_sha" "$remote_sha")
+    changed_files=$(changed_java_files "$base_ref" "$local_sha")
+
+    # Gradle startup dominates this hook, so avoid invoking it for refs that did
+    # not change any Java files.
+    if [[ -z "$changed_files" ]]; then
+      printf "No changed Java files for %s; skipping changed-file coverage verification.\n" "$local_ref"
+      continue
+    fi
+
+    printf "Running changed-file coverage verification for %s -> %s against base %s.\n" \
+      "$local_ref" "$remote_ref" "$base_ref"
+
+    # The Gradle task uses this explicit base/head pair instead of HEAD so a
+    # multi-ref push analyzes the correct pushed commit for each ref.
+    # No percentage here on purpose. changedFileCoverageMinimum in the root build.gradle is
+    # the single source of truth, and the task's failure message quotes it.
+    perform_check \
+      "checking changed Java files for line coverage" \
+      ./gradlew \
+      -q \
+      "-PstaticAnalysisChangedBase=$base_ref" \
+      "-PstaticAnalysisChangedHead=$local_sha" \
+      jacocoChangedFileCoverageVerification
+  done
+}
+
+main "$@"
