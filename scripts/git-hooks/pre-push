@@ -11,11 +11,28 @@ find_changed_base() {
   local local_ref=$2
   local local_sha=$3
   local remote_sha=$4
+  local merge_base
 
   # The old remote tip scopes the gate to commits included in this push.
   if [[ "$remote_sha" != "$ZERO_SHA" ]]; then
     printf "%s\n" "$remote_sha"
     return
+  fi
+
+  # Git does not record the upstream requested by `git push -u` until that push succeeds.
+  # Let the first push of a stacked branch name its parent explicitly.
+  if [[ -n "${COVERAGE_BASE_REF:-}" ]]; then
+    if ! git rev-parse --verify --quiet "$COVERAGE_BASE_REF" >/dev/null; then
+      printf "COVERAGE_BASE_REF=%s does not resolve to a commit.\n" "$COVERAGE_BASE_REF" >&2
+      return 1
+    fi
+    if merge_base=$(git merge-base "$local_sha" "$COVERAGE_BASE_REF"); then
+      printf "%s\n" "$merge_base"
+      return
+    fi
+    printf "COVERAGE_BASE_REF=%s has no common ancestor with %s.\n" \
+      "$COVERAGE_BASE_REF" "$local_ref" >&2
+    return 1
   fi
 
   # No remote tip yet. The pushed ref's own upstream comes first, so a stacked branch
@@ -28,21 +45,27 @@ find_changed_base() {
     upstream_ref=${local_ref#refs/heads/}
   fi
   if git rev-parse --verify --quiet "$upstream_ref@{upstream}" >/dev/null; then
-    git merge-base "$local_sha" "$upstream_ref@{upstream}"
-    return
+    if merge_base=$(git merge-base "$local_sha" "$upstream_ref@{upstream}"); then
+      printf "%s\n" "$merge_base"
+      return
+    fi
   fi
 
   # No upstream either, so fall back to main.
   if git rev-parse --verify --quiet "$remote_name/main" >/dev/null; then
-    git merge-base "$local_sha" "$remote_name/main"
-    return
+    if merge_base=$(git merge-base "$local_sha" "$remote_name/main"); then
+      printf "%s\n" "$merge_base"
+      return
+    fi
   fi
 
   # With the default remote name this ref is the same one already tried above, so verify
   # it rather than letting an unguarded merge-base abort the push under set -e.
   if git rev-parse --verify --quiet "$DEFAULT_BASE_REF" >/dev/null; then
-    git merge-base "$local_sha" "$DEFAULT_BASE_REF"
-    return
+    if merge_base=$(git merge-base "$local_sha" "$DEFAULT_BASE_REF"); then
+      printf "%s\n" "$merge_base"
+      return
+    fi
   fi
 
   printf "Could not determine a comparison base for %s; skipping changed-file coverage verification for that ref.\n" \
@@ -57,7 +80,16 @@ changed_java_files() {
   local head_ref=$2
 
   # Committed files only, so unrelated work in progress cannot block a clean push.
-  git diff --name-only --diff-filter=ACMR "$base_ref...$head_ref" -- "*.java" | sort -u
+  git -c core.quotepath=false diff --name-only --diff-filter=ACMR \
+    "$base_ref...$head_ref" -- "*.java" | sort -u
+}
+
+require_clean_worktree() {
+  if [[ -n "$(git status --porcelain=v1 --untracked-files=all)" ]]; then
+    printf "Changed-file coverage was NOT measured because the working tree differs from the pushed commit.\n" >&2
+    printf "Commit or stash tracked and untracked changes, then push again. To rely on CI instead, set SKIP_COVERAGE_HOOK=1.\n" >&2
+    return 1
+  fi
 }
 
 perform_check() {
@@ -142,6 +174,8 @@ main() {
       printf "No changed Java files for %s; skipping changed-file coverage verification.\n" "$local_ref"
       continue
     fi
+
+    require_clean_worktree
 
     printf "Running changed-file coverage verification for %s -> %s against base %s.\n" \
       "$local_ref" "$remote_ref" "$base_ref"

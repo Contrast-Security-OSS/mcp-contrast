@@ -22,18 +22,26 @@ so. Merge the two by hand if both are wanted.
   `src/main/java` file has less than the line coverage required by
   `changedFileCoverageMinimum` in the root `build.gradle`.
 
-  It compares against the remote ref being pushed when there is one, then the pushed branch's
-  own upstream, then `origin/main`. Taking the upstream first keeps a stacked branch measured
-  against its parent rather than against `main`. When no base resolves it says so and skips that
-  ref rather than blocking the push.
+  It compares against the remote ref being pushed when there is one, then
+  `COVERAGE_BASE_REF` when explicitly set, the pushed branch's own upstream, and finally
+  `origin/main`. Git records the upstream requested by `git push -u` only after the first push
+  succeeds, so name the parent when first pushing a new stacked branch:
+
+  ```shell
+  COVERAGE_BASE_REF=origin/parent-branch git push -u origin my-stacked-branch
+  ```
+
+  When no base with a common ancestor resolves, it says so and skips that ref rather than
+  blocking the push.
 
   It measures only the ref whose commit is the checked-out `HEAD`. Coverage comes from compiling
   and testing the working tree, so no other pushed ref can be scored honestly. Other refs are
   named and reported as not measured, and CI gates them.
 
-  Only committed files in the push are inspected, so unrelated work in progress cannot block a
-  clean push. Refs that change no Java files skip Gradle entirely, since Gradle startup is most
-  of the hook's cost.
+  The hook refuses to run the coverage gate for a Java-changing push when the working tree has
+  tracked or untracked changes. The tests and JaCoCo report describe the files on disk, so a
+  dirty tree could otherwise pass or fail a commit using coverage from different code. Refs that
+  change no Java files skip Gradle entirely, since Gradle startup is most of the hook's cost.
 
   Set `SKIP_COVERAGE_HOOK=1` to bypass the gate for a push.
 
