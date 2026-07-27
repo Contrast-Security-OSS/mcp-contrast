@@ -1,6 +1,6 @@
 GRADLE ?= ./gradlew
 
-.PHONY: help build test test-verbose check check-verbose check-test format clean verify verify-verbose
+.PHONY: help build test test-verbose check check-verbose check-test coverage format clean verify verify-verbose
 
 help: ## Display available make targets
 	@awk 'BEGIN {FS=":.*##"; printf "\nUsage: make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_\-]+:.*##/ {printf "  %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -63,11 +63,19 @@ verify-quiet:
 verify-verbose: ## Run all tests with verbose output
 	@VERBOSE=1 $(MAKE) verify
 
+## Coverage targets
+
+coverage: ## Verify coverage floors and print the summary
+	@. ./hack/run_silent.sh && print_main_header "Checking Coverage"
+	@. ./hack/run_silent.sh && run_with_quiet "Coverage floors met" "$(GRADLE) jacocoTestCoverageVerification"
+	@$(GRADLE) --quiet coverageSummary
+
 ## Combined targets
 
-check-test: ## Run all checks and tests
+check-test: ## Run all checks, tests, and coverage
 	@$(MAKE) check
 	@$(MAKE) test
+	@$(MAKE) coverage
 
 ## Other targets
 

@@ -32,6 +32,12 @@ make verify
 
 Checkstyle rules and suppressions are the same rules used before the Gradle split. Gradle binds `checkstyle.xml` and `checkstyle-suppressions.xml` to each module, and rules remain `error` severity.
 
+## Test Coverage
+
+JaCoCo measures coverage on every `test` run and writes HTML and XML reports to `<module>/build/reports/jacoco/test/`. `make coverage` verifies the floors and prints a summary, and `make check-test` includes it.
+
+Per-module floors live in `ext.coverageMinimums` in the root `build.gradle` and are enforced by `jacocoTestCoverageVerification`, which `check` depends on. They are set just below the measured baseline so they block regression rather than blocking adoption. Raise a floor as coverage improves. Never lower one to make a build pass. CI runs the same verification and uploads the reports as a build artifact.
+
 ## Consuming `contrast-mcp-core` Locally
 
 Downstream projects can validate unpublished shared-code changes by using a Gradle composite build that substitutes the published `contrast-mcp-core` artifact with a local checkout:

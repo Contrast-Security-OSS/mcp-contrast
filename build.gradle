@@ -22,6 +22,22 @@ allprojects {
     version = rootProject.version
 }
 
+// Enforced per-module coverage floors, set just below the measured baseline so they
+// block regression without failing on adoption. Raise them as coverage improves;
+// never lower one to make a build pass. Baseline measured 2026-07-26 under AIML-501:
+// core LINE 92.2% BRANCH 82.5%, stdio-app LINE 75.3% BRANCH 69.2% (post-exclusion).
+ext.coverageMinimums = [
+    'contrast-mcp-core'     : [line: 0.90, branch: 0.80],
+    'contrast-mcp-stdio-app': [line: 0.72, branch: 0.65],
+]
+
+// Spring Boot bootstrap: main() plus bean wiring, exercised at runtime rather than
+// by unit tests. Excluded from both the report and the enforced floor so it does not
+// distort them. Keep this list minimal — everything else stays measured.
+ext.coverageExcludedClassFiles = [
+    'com/contrast/labs/ai/mcp/contrast/McpContrastApplication.class',
+]
+
 ext.positiveIntProperty = { String propertyName, int defaultValue ->
     def rawValue = providers.gradleProperty(propertyName).orElse(defaultValue.toString()).get()
     try {
@@ -39,6 +55,7 @@ subprojects {
     apply plugin: 'java-library'
     apply plugin: 'checkstyle'
     apply plugin: 'com.diffplug.spotless'
+    apply plugin: 'jacoco'
 
     java {
         toolchain {
@@ -61,6 +78,61 @@ subprojects {
         systemProperty 'junit.jupiter.execution.parallel.mode.classes.default', 'concurrent'
         systemProperty 'junit.jupiter.execution.parallel.config.strategy', 'dynamic'
         systemProperty 'junit.jupiter.execution.parallel.config.dynamic.factor', '1'
+    }
+
+    jacoco {
+        toolVersion = jacocoVersion
+    }
+
+    tasks.named('test') {
+        finalizedBy tasks.named('jacocoTestReport')
+    }
+
+    // Applied to the report and the enforced floor alike so both describe the same
+    // set of classes. A BUNDLE-level violation rule measures whatever is in
+    // classDirectories, so filtering here is what actually drops the exclusions.
+    def coverageClassDirs = sourceSets.main.output.classesDirs.asFileTree.matching {
+        exclude rootProject.ext.coverageExcludedClassFiles
+    }
+
+    tasks.named('jacocoTestReport') {
+        dependsOn tasks.named('test')
+        reports {
+            // Gradle enables HTML but not XML. XML is what CI and any external
+            // coverage tooling reads, so both are required here.
+            xml.required = true
+            html.required = true
+        }
+        classDirectories.setFrom(coverageClassDirs)
+    }
+
+    tasks.named('jacocoTestCoverageVerification') {
+        dependsOn tasks.named('jacocoTestReport')
+        def minimums = rootProject.ext.coverageMinimums[project.name]
+        if (minimums == null) {
+            throw new GradleException(
+                "No coverage minimums declared for ${project.name}. Add an entry to coverageMinimums in the root build.gradle.")
+        }
+        classDirectories.setFrom(coverageClassDirs)
+        violationRules {
+            rule {
+                element = 'BUNDLE'
+                limit {
+                    counter = 'LINE'
+                    value = 'COVEREDRATIO'
+                    minimum = minimums.line
+                }
+                limit {
+                    counter = 'BRANCH'
+                    value = 'COVEREDRATIO'
+                    minimum = minimums.branch
+                }
+            }
+        }
+    }
+
+    tasks.named('check') {
+        dependsOn tasks.named('jacocoTestCoverageVerification')
     }
 
     spotless {
@@ -102,6 +174,65 @@ subprojects {
         testImplementation 'org.junit.jupiter:junit-jupiter'
         testImplementation "org.assertj:assertj-core:${assertjVersion}"
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+}
+
+tasks.register('coverageSummary') {
+    group = 'verification'
+    description = 'Prints per-module JaCoCo coverage against the enforced floors.'
+    dependsOn subprojects.collect { ":${it.name}:jacocoTestReport" }
+
+    def reports = subprojects.collectEntries {
+        [(it.name): it.layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml')]
+    }
+    def minimums = rootProject.ext.coverageMinimums
+
+    doLast {
+        // JaCoCo's XML declares a DOCTYPE, which XmlSlurper rejects by default. Allow the
+        // declaration but keep every entity and DTD fetch switched off, so the parser never
+        // resolves anything external. Input here is our own build output, not user data.
+        def parser = new XmlSlurper()
+        parser.setFeature('http://apache.org/xml/features/disallow-doctype-decl', false)
+        parser.setFeature('http://apache.org/xml/features/nonvalidating/load-external-dtd', false)
+        parser.setFeature('http://xml.org/sax/features/external-general-entities', false)
+        parser.setFeature('http://xml.org/sax/features/external-parameter-entities', false)
+        parser.setFeature('http://xml.org/sax/features/validation', false)
+
+        // Emitted as a Markdown table so the same output is readable in a terminal and
+        // renders as a table when CI appends it to GITHUB_STEP_SUMMARY.
+        println ''
+        println '### Coverage'
+        println ''
+        println '| module | line | branch |'
+        println '| --- | --- | --- |'
+
+        reports.each { moduleName, reportFile ->
+            def file = reportFile.get().asFile
+            if (!file.exists()) {
+                println "| ${moduleName} | no report found | no report found |"
+                return
+            }
+            def root = parser.parse(file)
+            def ratio = { String counter ->
+                def node = root.counter.find { it.@type == counter }
+                if (!node || node.isEmpty()) {
+                    return null
+                }
+                def missed = node.@missed.toInteger()
+                def covered = node.@covered.toInteger()
+                (missed + covered) == 0 ? null : covered / (missed + covered)
+            }
+            def cell = { BigDecimal actual, BigDecimal floor ->
+                actual == null
+                    ? 'n/a'
+                    : String.format('%.1f%% (floor %.0f%%)', actual * 100, floor * 100)
+            }
+            def floors = minimums[moduleName]
+            println "| ${moduleName} " +
+                "| ${cell(ratio('LINE') as BigDecimal, floors.line as BigDecimal)} " +
+                "| ${cell(ratio('BRANCH') as BigDecimal, floors.branch as BigDecimal)} |"
+        }
+        println ''
     }
 }
 

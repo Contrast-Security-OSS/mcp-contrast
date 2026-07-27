@@ -36,7 +36,8 @@ Use these make targets for all checks and tests:
 ```bash
 make check       # Auto-format then run static analysis (no need to run make format first)
 make test        # Run unit tests (quiet output)
-make check-test  # Run static analysis and unit tests
+make coverage    # Verify JaCoCo coverage floors and print the summary
+make check-test  # Run static analysis, unit tests, and coverage
 make verify      # Run all tests including integration
 make format      # Auto-format code with Spotless (also runs automatically via make check)
 make build       # Build the project
@@ -54,11 +55,14 @@ make check VERBOSE=1
 - **Test (unit)**: `./gradlew test`
 - **Test (all)**: `source .env.integration-test && ./gradlew test :contrast-mcp-stdio-app:integrationTest`
 - **Static analysis**: `./gradlew spotlessCheck checkstyleMain checkstyleTest`
+- **Coverage**: `./gradlew jacocoTestCoverageVerification coverageSummary`
 - **Core publication metadata**: `./gradlew :contrast-mcp-core:verifyCorePublicationMetadata`
 - **Format code**: `./gradlew spotlessApply`
 - **Run locally**: `java -jar contrast-mcp-stdio-app/build/libs/mcp-contrast-*.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
 
-**Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard local verification command for static analysis and unit tests.
+**Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard local verification command for static analysis, unit tests, and coverage.
+
+**Coverage floors:** Per-module minimums live in `ext.coverageMinimums` in the root `build.gradle` and are enforced by `jacocoTestCoverageVerification`, which `check` depends on. Raise a floor as coverage improves; never lower one to make a build pass. `McpContrastApplication` is the only class excluded.
 
 **Integration Tests:** Require Contrast credentials in `.env.integration-test` (copy from `.env.integration-test.template`). See INTEGRATION_TESTS.md for details. Integration tests are intentionally skipped when credentials are not available (e.g., in CI forks or local builds without `.env.integration-test`).
 
