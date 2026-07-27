@@ -67,6 +67,42 @@ ext.positiveIntProperty = { String propertyName, int defaultValue ->
     }
 }
 
+// Shared so jacocoTestCoverageVerification and coverageSummary fail the same way on an
+// undeclared module.
+ext.requireCoverageMinimums = { String moduleName ->
+    def floors = rootProject.ext.coverageMinimums[moduleName]
+    if (floors == null) {
+        throw new GradleException(
+            "No coverage minimums declared for ${moduleName}. Add an entry to coverageMinimums in the root build.gradle.")
+    }
+    floors
+}
+
+ext.enforcedCoverageCounters = ['LINE', 'BRANCH']
+
+// JaCoCo's XML declares a DOCTYPE, which XmlSlurper rejects by default. Allow the declaration
+// but leave every DTD and entity fetch off, and restore the JAXP limits that bound internal
+// entity expansion.
+ext.jacocoXmlParser = {
+    def parser = new XmlSlurper()
+    parser.setFeature('http://apache.org/xml/features/disallow-doctype-decl', false)
+    parser.setFeature('http://apache.org/xml/features/nonvalidating/load-external-dtd', false)
+    parser.setFeature('http://xml.org/sax/features/external-general-entities', false)
+    parser.setFeature('http://xml.org/sax/features/external-parameter-entities', false)
+    parser.setFeature('http://xml.org/sax/features/validation', false)
+    parser.setFeature('http://javax.xml.XMLConstants/feature/secure-processing', true)
+    parser
+}
+
+// Counter type -> (missed + covered). JaCoCo omits a counter entirely when the bundle holds no
+// positions of that kind, so an absent key means none to measure.
+ext.jacocoBundleCounterTotals = { File reportFile ->
+    def root = rootProject.ext.jacocoXmlParser().parse(reportFile)
+    root.counter.collectEntries {
+        [(it.@type.toString()): it.@missed.toInteger() + it.@covered.toInteger()]
+    }
+}
+
 // aiml-services set its JaCoCo minimum to 0.0 and enforced the real figure only outside the repo
 // (AIML-1170). Nothing else here reads the floors back, so assert them.
 ext.documentedCoverageFloor = 0.85
@@ -161,6 +197,7 @@ subprojects {
     def coverageClassDirs = sourceSets.main.output.classesDirs.asFileTree.matching {
         exclude rootProject.ext.coverageExcludedClassFiles
     }
+    def coverageReportXml = layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml')
 
     tasks.named('jacocoTestReport') {
         dependsOn tasks.named('test')
@@ -177,12 +214,13 @@ subprojects {
         dependsOn tasks.named('jacocoTestReport')
         // Also on root `check`, but CI invokes this task by name rather than through `check`.
         dependsOn rootProject.tasks.named('verifyCoverageMinimums')
-        def minimums = rootProject.ext.coverageMinimums[project.name]
-        if (minimums == null) {
-            throw new GradleException(
-                "No coverage minimums declared for ${project.name}. Add an entry to coverageMinimums in the root build.gradle.")
-        }
+        def minimums = rootProject.ext.requireCoverageMinimums(project.name)
         classDirectories.setFrom(coverageClassDirs)
+
+        // Captured at configuration time; doFirst below runs at execution time.
+        def moduleName = project.name
+        def counterTotals = rootProject.ext.jacocoBundleCounterTotals
+        def enforcedCounters = rootProject.ext.enforcedCoverageCounters
 
         // Gradle's JacocoReportBase registers onlyIf("Any of the execution data files
         // exists"), so a module with no .exec file SKIPs verification and the build still
@@ -194,11 +232,26 @@ subprojects {
         doFirst {
             if (executionData.files.every { !it.exists() }) {
                 throw new GradleException(
-                    "No JaCoCo execution data for ${project.name}; coverage was not measured. Run the test task before verifying.")
+                    "No JaCoCo execution data for ${moduleName}; coverage was not measured. Run the test task before verifying.")
             }
             if (classDirectories.asFileTree.empty) {
                 throw new GradleException(
-                    "No class files to measure for ${project.name}; check coverageExcludedClassFiles in the root build.gradle.")
+                    "No class files to measure for ${moduleName}; check coverageExcludedClassFiles in the root build.gradle.")
+            }
+
+            // Same NaN hole as above, but per counter rather than for the bundle: a module
+            // with no branches at all would satisfy its BRANCH floor while LINE kept enforcing.
+            def report = coverageReportXml.get().asFile
+            if (!report.exists()) {
+                throw new GradleException(
+                    "No JaCoCo XML report at ${report} for ${moduleName}. Run jacocoTestReport before verifying.")
+            }
+            def totals = counterTotals(report)
+            enforcedCounters.each { counter ->
+                if (!totals[counter]) {
+                    throw new GradleException(
+                        "JaCoCo counted no ${counter} positions for ${moduleName}, so its ${counter} floor enforced nothing. Drop that floor deliberately if the module genuinely has none.")
+                }
             }
         }
 
@@ -244,7 +297,6 @@ subprojects {
         }
         changedFilesHolder.first()
     }
-    def coverageReportXml = layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml')
     def changedFileMinimum = rootProject.ext.changedFileCoverageMinimum as BigDecimal
     def changedFileMinimumPercent = (changedFileMinimum * 100).stripTrailingZeros().toPlainString()
     def excludedSourcePaths =
@@ -366,28 +418,18 @@ tasks.register('coverageSummary') {
     // UP-TO-DATE and the whole suite re-runs just to print a table. This task reads
     // reports that a previous task or invocation already wrote; when nothing has written
     // one it says so per module rather than generating it.
-    mustRunAfter subprojects.collect { ":${it.name}:jacocoTestReport" }
-    mustRunAfter subprojects.collect { ":${it.name}:jacocoTestCoverageVerification" }
+    mustRunAfter subprojects.collectMany {
+        [":${it.name}:jacocoTestReport", ":${it.name}:jacocoTestCoverageVerification"]
+    }
 
     def reports = subprojects.collectEntries {
         [(it.name): it.layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml')]
     }
-    def minimums = rootProject.ext.coverageMinimums
+    def requireMinimums = rootProject.ext.requireCoverageMinimums
+    def newParser = rootProject.ext.jacocoXmlParser
 
     doLast {
-        // JaCoCo's XML declares a DOCTYPE, which XmlSlurper rejects by default. Allow the
-        // declaration but keep every entity and DTD fetch switched off, so the parser never
-        // resolves anything external. Input here is our own build output, not user data.
-        def parser = new XmlSlurper()
-        parser.setFeature('http://apache.org/xml/features/disallow-doctype-decl', false)
-        parser.setFeature('http://apache.org/xml/features/nonvalidating/load-external-dtd', false)
-        parser.setFeature('http://xml.org/sax/features/external-general-entities', false)
-        parser.setFeature('http://xml.org/sax/features/external-parameter-entities', false)
-        parser.setFeature('http://xml.org/sax/features/validation', false)
-        // Permitting the DOCTYPE leaves internal entity expansion in play, so restore the
-        // JAXP limits that bound it. Defence in depth: the input is regenerated build
-        // output, not anything an attacker supplies.
-        parser.setFeature('http://javax.xml.XMLConstants/feature/secure-processing', true)
+        def parser = newParser()
 
         // Emitted as a Markdown table so the same output is readable in a terminal and
         // renders as a table when CI appends it to GITHUB_STEP_SUMMARY.
@@ -419,13 +461,8 @@ tasks.register('coverageSummary') {
                     : String.format('%.1f%% (floor %.1f%%)', actual * 100, floor * 100)
             }
             // jacocoTestCoverageVerification throws for an undeclared module, but this task
-            // does not depend on it, so a new subproject reaches here first. Fail with the
-            // same actionable message rather than an NPE on floors.line.
-            def floors = minimums[moduleName]
-            if (floors == null) {
-                throw new GradleException(
-                    "No coverage minimums declared for ${moduleName}. Add an entry to coverageMinimums in the root build.gradle.")
-            }
+            // does not depend on it, so a new subproject reaches here first.
+            def floors = requireMinimums(moduleName)
             println "| ${moduleName} " +
                 "| ${cell(ratio('LINE') as BigDecimal, floors.line as BigDecimal)} " +
                 "| ${cell(ratio('BRANCH') as BigDecimal, floors.branch as BigDecimal)} |"
