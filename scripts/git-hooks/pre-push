@@ -85,9 +85,30 @@ changed_java_files() {
 }
 
 require_clean_worktree() {
-  if [[ -n "$(git status --porcelain=v1 --untracked-files=all)" ]]; then
-    printf "Changed-file coverage was NOT measured because the working tree differs from the pushed commit.\n" >&2
-    printf "Commit or stash tracked and untracked changes, then push again. To rely on CI instead, set SKIP_COVERAGE_HOOK=1.\n" >&2
+  local -a coverage_paths=(
+    "*.java"
+    "*.groovy"
+    "*.kt"
+    "*.gradle"
+    "*.gradle.kts"
+    "gradle.properties"
+    "settings.gradle"
+    "settings.gradle.kts"
+    "gradlew"
+    "gradlew.bat"
+    "gradle/wrapper/**"
+    "gradle/libs.versions.toml"
+    "lombok.config"
+    ":(glob)**/src/main/resources/**"
+    ":(glob)**/src/test/resources/**"
+  )
+
+  if ! git diff --quiet -- "${coverage_paths[@]}" ||
+    ! git diff --cached --quiet -- "${coverage_paths[@]}" ||
+    [[ -n "$(git ls-files --others --exclude-standard -- "${coverage_paths[@]}")" ]]; then
+    printf "Changed-file coverage was NOT measured because coverage-relevant working-tree files differ from the pushed commit.\n" >&2
+    printf "Commit or stash source, build, or resource changes, then push again. Unrelated changes such as Markdown files are allowed.\n" >&2
+    printf "To rely on CI instead, set SKIP_COVERAGE_HOOK=1.\n" >&2
     return 1
   fi
 }
