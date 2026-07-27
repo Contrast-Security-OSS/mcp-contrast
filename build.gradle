@@ -25,10 +25,10 @@ allprojects {
 }
 
 // Enforced per-module coverage floors. Raise them as coverage improves; never lower one to make
-// a build pass. Measured 2026-07-26 under AIML-501: core LINE 97.6% BRANCH 89.1% (622/698
-// branches), stdio-app LINE 97.8% BRANCH 96.2% (100/104 branches), post-exclusion.
+// a build pass. Measured 2026-07-27 under AIML-501: core LINE 97.6% BRANCH 89.1% (622/698
+// branches), stdio-app LINE 96.9% BRANCH 95.2% (99/104 branches), post-exclusion.
 //
-// Deliberately a couple of points under those numbers. Flush against 622/698, one further
+// Deliberately below those numbers to retain headroom. Flush against 622/698, one further
 // uncovered branch gives 0.88984 and reddens main on an unrelated PR.
 ext.coverageMinimums = [
     'contrast-mcp-core'     : [line: 0.95, branch: 0.87],
@@ -38,9 +38,14 @@ ext.coverageMinimums = [
 ext.coverageStandardMinimum =
     providers.gradleProperty('coverageStandardMinimum').get().toBigDecimal()
 
-// Line coverage required of each changed src/main/java file. Above the module floors on
-// purpose: the floors stop a module regressing overall, this holds new code to the standard
-// the modules are meant to reach. Matches aiml-services.
+// A checked-in invariant, deliberately independent of Gradle project properties. The configured
+// standard may come from -P, ORG_GRADLE_PROJECT_*, or a user-level gradle.properties, so it cannot
+// safely verify itself against itself.
+ext.documentedCoverageMinimum = new BigDecimal('0.85')
+
+// Line coverage required of each changed src/main/java file. This is a separate per-file
+// constraint: the aggregate module floors can stay green while an individual changed file has
+// little or no coverage. Matches aiml-services.
 ext.changedFileCoverageMinimum = rootProject.ext.coverageStandardMinimum
 
 // Spring Boot bootstrap: main() plus bean wiring, whose behaviour belongs to container
@@ -110,13 +115,18 @@ tasks.register('verifyCoverageMinimums') {
     group = 'verification'
     description = 'Fails when an enforced coverage floor has been weakened below the documented minimum.'
 
-    def documentedFloor = rootProject.ext.coverageStandardMinimum as BigDecimal
+    def documentedFloor = rootProject.ext.documentedCoverageMinimum as BigDecimal
+    def declaredCoverageStandard = rootProject.ext.coverageStandardMinimum as BigDecimal
     def declaredModuleMinimums = rootProject.ext.coverageMinimums
     def declaredChangedFileMinimum = rootProject.ext.changedFileCoverageMinimum
     def moduleNames = subprojects.collect { it.name }
 
     doLast {
         def problems = []
+
+        if (declaredCoverageStandard < documentedFloor) {
+            problems << "coverageStandardMinimum is ${declaredCoverageStandard}, below the documented ${documentedFloor}"
+        }
 
         if ((declaredChangedFileMinimum as BigDecimal) < documentedFloor) {
             problems << "changedFileCoverageMinimum is ${declaredChangedFileMinimum}, below the documented ${documentedFloor}"
@@ -144,7 +154,7 @@ tasks.register('verifyCoverageMinimums') {
                     System.lineSeparator() +
                     problems.collect { "* ${it}" }.join(System.lineSeparator()) +
                     System.lineSeparator() +
-                    "Raise the floor back, or change coverageStandardMinimum deliberately and say why in review.")
+                    "Raise the floor back, or change documentedCoverageMinimum deliberately and say why in review.")
         }
     }
 }
@@ -278,16 +288,28 @@ subprojects {
     // Not wired into `check`: with no base ref it measures the working tree, which is clean
     // in CI and would pass vacuously. Runs from CI, the pre-push hook, and
     // `make coverage-changed`. Property names match aiml-services.
-    def changedBase = providers.gradleProperty('jacocoChangedBase')
-        .orElse(providers.gradleProperty('staticAnalysisChangedBase'))
-        .orElse('')
-    def changedHead = providers.gradleProperty('staticAnalysisChangedHead')
-        .orElse(providers.gradleProperty('jacocoChangedHead'))
-        .orElse('')
+    def changedRefProperty = { List<String> propertyNames ->
+        providers.provider {
+            def supplied = propertyNames.collect {
+                [name: it, provider: providers.gradleProperty(it)]
+            }.findAll {
+                it.provider.isPresent()
+            }
+            supplied.each {
+                if (it.provider.get().isBlank()) {
+                    throw new GradleException(
+                        "${it.name} was supplied but blank; omit it for working-tree mode or provide a git ref.")
+                }
+            }
+            supplied.isEmpty() ? '' : supplied.first().provider.get()
+        }
+    }
+    def changedBase = changedRefProperty(['jacocoChangedBase', 'staticAnalysisChangedBase'])
+    def changedHead = changedRefProperty(['staticAnalysisChangedHead', 'jacocoChangedHead'])
     def mainSourceRoot = project.file('src/main/java')
     def repoRoot = rootProject.projectDir
-    // Memoized: dependsOn, onlyIf, input snapshotting and doLast each resolve this, and every
-    // resolution shells out to git.
+    // Memoized: dependsOn, input snapshotting and doLast each resolve this, and every resolution
+    // shells out to git.
     def changedFilesHolder = []
     def changedMainFiles = providers.provider {
         if (changedFilesHolder.isEmpty()) {
@@ -313,10 +335,16 @@ subprojects {
         dependsOn providers.provider { changedMainFiles.get().isEmpty() ? [] : ['jacocoTestReport'] }
         inputs.files(providers.provider { changedMainFiles.get().present() })
         inputs.file(coverageReportXml).optional()
-        onlyIf { !changedMainFiles.get().isEmpty() }
 
         doLast {
             def changed = changedMainFiles.get()
+
+            if (changed.isEmpty()) {
+                logger.quiet(
+                    "Changed-file JaCoCo line coverage checked 0 file(s) in ${projectPathName}; " +
+                        "no changed src/main/java files were found.")
+                return
+            }
 
             // The report describes the working tree, so a path the tree no longer holds cannot be
             // measured. Failing beats dropping it and reporting a pass.
@@ -358,10 +386,10 @@ subprojects {
                 throw new GradleException(message)
             }
 
-            if (!result.checkedFiles().isEmpty()) {
-                logger.quiet(
-                    "Changed-file JaCoCo line coverage passed for ${result.checkedFiles().size()} file(s) in ${projectPathName}.")
-            }
+            logger.quiet(
+                "Changed-file JaCoCo line coverage passed for ${changed.present().size()} file(s) " +
+                    "in ${projectPathName}: ${result.checkedFiles().size()} measured, " +
+                    "${result.unmeasurableFiles().size()} with no countable lines.")
         }
     }
 
