@@ -41,8 +41,9 @@ jobs:
     - name: Run buildSrc checks and tests
       run: ./gradlew -p buildSrc check --no-daemon
 
+    # `test` is omitted deliberately: jacocoTestReport already pulls it in.
     - name: Run checks, tests, coverage, and build
-      run: ./gradlew spotlessCheck checkstyleMain checkstyleTest test jacocoTestCoverageVerification :contrast-mcp-stdio-app:bootJar --no-daemon
+      run: ./gradlew spotlessCheck checkstyleMain checkstyleTest jacocoTestCoverageVerification :contrast-mcp-stdio-app:bootJar --no-daemon
 
     # Pull requests only. With no base the task falls back to the working tree, which is
     # clean on a fresh checkout and would pass vacuously.
@@ -59,13 +60,14 @@ jobs:
     # Runs even when the coverage floor fails, since that is exactly when the
     # numbers and the HTML report are needed to diagnose the failure. coverageSummary
     # only reads the reports the step above wrote, so this does not re-run the tests;
-    # if that step failed before producing them, the table says so per module.
+    # if that step failed before producing them, the table says so per module. !cancelled()
+    # rather than always(), so cancelling the workflow actually stops it.
     - name: Publish coverage summary
-      if: always()
+      if: ${{ !cancelled() }}
       run: ./gradlew --quiet coverageSummary --no-daemon >> "$GITHUB_STEP_SUMMARY"
 
     - name: Upload coverage reports
-      if: always()
+      if: ${{ !cancelled() }}
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: jacoco-coverage-reports
