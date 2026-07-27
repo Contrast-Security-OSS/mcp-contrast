@@ -1,6 +1,6 @@
 GRADLE ?= ./gradlew
 
-.PHONY: help build test test-verbose check check-verbose check-test coverage coverage-verbose coverage-changed coverage-changed-verbose install-hooks format clean verify verify-verbose
+.PHONY: help build test test-verbose check check-verbose check-test buildsrc-check buildsrc-check-verbose coverage coverage-verbose coverage-changed coverage-changed-verbose install-hooks format clean verify verify-verbose
 
 help: ## Display available make targets
 	@awk 'BEGIN {FS=":.*##"; printf "\nUsage: make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_\-]+:.*##/ {printf "  %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -28,6 +28,24 @@ check-quiet:
 
 check-verbose: ## Run checks with verbose output
 	@VERBOSE=1 $(MAKE) check
+
+# buildSrc is a separate Gradle build, so `gradlew test` and `gradlew check` in the root
+# build never schedule its tests. The changed-file coverage gate lives here, so it needs
+# its own invocation or nothing verifies it.
+buildsrc-check: ## Run buildSrc static analysis and tests
+	@if [ -n "$$VERBOSE" ]; then \
+		$(GRADLE) -p buildSrc check; \
+	else \
+		$(MAKE) buildsrc-check-quiet; \
+	fi
+
+buildsrc-check-quiet:
+	@. ./hack/run_silent.sh && print_main_header "Checking buildSrc"
+	@. ./hack/run_silent.sh && print_header "buildSrc" "Static analysis + tests"
+	@. ./hack/run_silent.sh && run_with_quiet "buildSrc checks passed" "$(GRADLE) -p buildSrc check"
+
+buildsrc-check-verbose: ## Run buildSrc checks with verbose output
+	@VERBOSE=1 $(MAKE) buildsrc-check
 
 ## Test targets
 
@@ -108,17 +126,16 @@ coverage-changed-verbose: ## Run changed-file coverage with verbose output
 
 check-test: ## Run all checks, tests, and coverage
 	@$(MAKE) check
+	@$(MAKE) buildsrc-check
 	@$(MAKE) test
 	@$(MAKE) coverage
 
 ## Other targets
 
-install-hooks: ## Install the repository git hooks into .git/hooks
-	@if [ -n "$$VERBOSE" ]; then \
-		$(GRADLE) installGitHooks; \
-	else \
-		. ./hack/run_silent.sh && run_silent "Installing git hooks" "$(GRADLE) installGitHooks"; \
-	fi
+# Deliberately not wrapped in run_silent. Installing a hook can displace one another tool owns,
+# and run_silent discards that warning on success.
+install-hooks: ## Install the repository git hooks into the git hooks directory
+	@$(GRADLE) installGitHooks
 
 format: ## Auto-format code with Spotless
 	@if [ -n "$$VERBOSE" ]; then \

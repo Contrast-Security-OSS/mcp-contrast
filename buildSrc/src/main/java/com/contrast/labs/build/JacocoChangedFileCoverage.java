@@ -7,13 +7,17 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -29,21 +33,30 @@ public final class JacocoChangedFileCoverage {
   private static final BigDecimal ONE_HUNDRED = new BigDecimal("100");
   private static final int RATIO_SCALE = 4;
   private static final int PERCENT_SCALE = 2;
+  private static final String CLASS_FILE_SUFFIX = ".class";
+  private static final String SOURCE_FILE_SUFFIX = ".java";
 
   private JacocoChangedFileCoverage() {}
 
   /** Line coverage for a single source file, as counted by JaCoCo. */
   public record FileCoverage(File file, int missedLines, int coveredLines) {
 
+    public FileCoverage {
+      if (missedLines < 0 || coveredLines < 0) {
+        throw new IllegalArgumentException("Line counts cannot be negative: " + file);
+      }
+      // analyze routes files with nothing countable to unmeasurableFiles, so there is no ratio
+      // to invent here.
+      if (missedLines + coveredLines == 0) {
+        throw new IllegalArgumentException("No countable lines to measure: " + file);
+      }
+    }
+
     public int totalLines() {
       return missedLines + coveredLines;
     }
 
-    /** No countable lines counts as fully covered, so an interface cannot fail the gate. */
     public BigDecimal coveredRatio() {
-      if (totalLines() == 0) {
-        return BigDecimal.ONE;
-      }
       return BigDecimal.valueOf(coveredLines)
           .divide(BigDecimal.valueOf(totalLines()), RATIO_SCALE, RoundingMode.HALF_UP);
     }
@@ -56,40 +69,84 @@ public final class JacocoChangedFileCoverage {
   /**
    * Outcome of an analysis run.
    *
-   * @param checkedFiles files the report had line data for
-   * @param skippedFiles files absent from the report, so the gate could say nothing about them
+   * @param checkedFiles files with countable line data, so the minimum applies
+   * @param unmeasurableFiles nothing to measure, either no counted lines or excluded on purpose
+   * @param unreportedFiles absent from the report and not excluded, so never measured
    */
-  public record Result(List<FileCoverage> checkedFiles, List<File> skippedFiles) {
+  public record Result(
+      List<FileCoverage> checkedFiles, List<File> unmeasurableFiles, List<File> unreportedFiles) {
 
     public List<FileCoverage> failuresBelow(BigDecimal minimumRatio) {
-      return checkedFiles.stream().filter(it -> it.coveredRatio().compareTo(minimumRatio) < 0).toList();
+      return checkedFiles.stream()
+          .filter(it -> it.coveredRatio().compareTo(minimumRatio) < 0)
+          .toList();
     }
   }
 
   /**
    * Matches each changed file against the report by its path relative to {@code sourceRoot}, which
-   * is how JaCoCo names source files. A missing report means nothing was measured, so every file
-   * is skipped rather than failed.
+   * is how JaCoCo names source files.
+   *
+   * @param excludedSourcePaths source paths that are absent from the report by design, from {@link
+   *     #excludedSourcePaths}
+   * @throws IllegalStateException when the report is missing or empty, since nothing was measured
+   *     and passing would be the fail-open behaviour AIML-501 set out to avoid
    */
-  public static Result analyze(File sourceRoot, List<File> changedFiles, File reportFile) {
+  public static Result analyze(
+      File sourceRoot, List<File> changedFiles, File reportFile, Set<String> excludedSourcePaths) {
     if (!reportFile.isFile() || reportFile.length() == 0L) {
-      return new Result(List.of(), List.copyOf(changedFiles));
+      throw new IllegalStateException(
+          "No JaCoCo report at "
+              + reportFile
+              + ", so changed-file coverage was never measured. Run jacocoTestReport first.");
     }
 
     Map<String, LineCoverage> coverageBySourcePath = coverageBySourcePath(reportFile);
     List<FileCoverage> checkedFiles = new ArrayList<>();
-    List<File> skippedFiles = new ArrayList<>();
+    List<File> unmeasurableFiles = new ArrayList<>();
+    List<File> unreportedFiles = new ArrayList<>();
 
     for (File file : changedFiles) {
-      LineCoverage coverage = coverageBySourcePath.get(relativePath(sourceRoot, file));
-      if (coverage == null || coverage.totalLines() == 0) {
-        skippedFiles.add(file);
+      String sourcePath = relativePath(sourceRoot, file);
+      LineCoverage coverage = coverageBySourcePath.get(sourcePath);
+      if (coverage == null) {
+        // An excluded class is absent by design. Anything else was never measured.
+        if (excludedSourcePaths.contains(sourcePath)) {
+          unmeasurableFiles.add(file);
+        } else {
+          unreportedFiles.add(file);
+        }
+      } else if (coverage.totalLines() == 0) {
+        // An interface, or a type JaCoCo filtered out entirely via Lombok's @Generated.
+        unmeasurableFiles.add(file);
       } else {
         checkedFiles.add(new FileCoverage(file, coverage.missedLines(), coverage.coveredLines()));
       }
     }
 
-    return new Result(List.copyOf(checkedFiles), List.copyOf(skippedFiles));
+    return new Result(
+        List.copyOf(checkedFiles), List.copyOf(unmeasurableFiles), List.copyOf(unreportedFiles));
+  }
+
+  /**
+   * Maps JaCoCo class-file exclusion patterns onto the source paths they hide, so a deliberate
+   * exclusion is not mistaken for a file the report failed to mention.
+   *
+   * <p>Wildcard and inner-class patterns name no single source file and are ignored, since the
+   * outer class entry already names it.
+   */
+  public static Set<String> excludedSourcePaths(Collection<String> classFilePatterns) {
+    Set<String> sourcePaths = new LinkedHashSet<>();
+    for (String pattern : classFilePatterns) {
+      if (pattern.indexOf('*') >= 0
+          || pattern.indexOf('$') >= 0
+          || !pattern.endsWith(CLASS_FILE_SUFFIX)) {
+        continue;
+      }
+      sourcePaths.add(
+          pattern.substring(0, pattern.length() - CLASS_FILE_SUFFIX.length()) + SOURCE_FILE_SUFFIX);
+    }
+    return Set.copyOf(sourcePaths);
   }
 
   /** Returns a report of the files below the minimum, or an empty string when none are. */
@@ -99,10 +156,12 @@ public final class JacocoChangedFileCoverage {
       return "";
     }
 
-    String minimumPercent =
-        minimumRatio.multiply(ONE_HUNDRED).stripTrailingZeros().toPlainString();
+    String minimumPercent = minimumRatio.multiply(ONE_HUNDRED).stripTrailingZeros().toPlainString();
     StringBuilder message = new StringBuilder();
-    message.append("Changed-file JaCoCo line coverage is below ").append(minimumPercent).append("%:");
+    message
+        .append("Changed-file JaCoCo line coverage is below ")
+        .append(minimumPercent)
+        .append("%:");
     failures.stream()
         .sorted(Comparator.comparing(it -> it.file().getAbsolutePath()))
         .forEach(
@@ -121,6 +180,31 @@ public final class JacocoChangedFileCoverage {
     return message.toString();
   }
 
+  /**
+   * Returns a report of the changed files the JaCoCo report never mentioned, or an empty string
+   * when there are none.
+   */
+  public static String unreportedMessage(File projectDir, Result result) {
+    if (result.unreportedFiles().isEmpty()) {
+      return "";
+    }
+
+    StringBuilder message = new StringBuilder();
+    message.append(
+        "Changed Java file(s) absent from the JaCoCo report, so their coverage could not be "
+            + "measured. Either cover them, or exclude the class deliberately through "
+            + "coverageExcludedClassFiles in the root build.gradle:");
+    result.unreportedFiles().stream()
+        .sorted(Comparator.comparing(File::getAbsolutePath))
+        .forEach(
+            file ->
+                message
+                    .append(System.lineSeparator())
+                    .append("* ")
+                    .append(relativePath(projectDir, file)));
+    return message.toString();
+  }
+
   private static Map<String, LineCoverage> coverageBySourcePath(File reportFile) {
     Element documentElement = parse(reportFile).getDocumentElement();
     NodeList packages = documentElement.getElementsByTagName("package");
@@ -132,18 +216,17 @@ public final class JacocoChangedFileCoverage {
       NodeList sourceFiles = packageElement.getElementsByTagName("sourcefile");
       for (int sourceIndex = 0; sourceIndex < sourceFiles.getLength(); sourceIndex++) {
         Element sourceFileElement = (Element) sourceFiles.item(sourceIndex);
-        LineCoverage lineCoverage = lineCoverage(sourceFileElement);
-        if (lineCoverage == null) {
-          continue;
-        }
         String sourcePath = sourcePath(packageName, sourceFileElement.getAttribute("name"));
+        // Recorded as zero lines rather than omitted: present-with-no-counter is "nothing to
+        // measure", absent is "never measured", and the gate treats them differently.
+        LineCoverage lineCoverage = lineCoverage(sourceFileElement);
         coverage.merge(sourcePath, lineCoverage, LineCoverage::plus);
       }
     }
     return coverage;
   }
 
-  private static org.w3c.dom.Document parse(File reportFile) {
+  private static Document parse(File reportFile) {
     // JaCoCo's XML declares a DOCTYPE, so the declaration has to be allowed. External
     // resolution and entity expansion stay off, matching coverageSummary in the root
     // build.gradle.
@@ -182,7 +265,7 @@ public final class JacocoChangedFileCoverage {
             Integer.parseInt(counter.getAttribute("covered")));
       }
     }
-    return null;
+    return new LineCoverage(0, 0);
   }
 
   private static String relativePath(File baseDir, File file) {
@@ -203,8 +286,7 @@ public final class JacocoChangedFileCoverage {
     }
 
     LineCoverage plus(LineCoverage other) {
-      return new LineCoverage(
-          missedLines + other.missedLines, coveredLines + other.coveredLines);
+      return new LineCoverage(missedLines + other.missedLines, coveredLines + other.coveredLines);
     }
   }
 }

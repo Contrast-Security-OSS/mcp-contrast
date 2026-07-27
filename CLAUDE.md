@@ -45,7 +45,8 @@ make clean       # Clean build artifacts
 
 make coverage-changed              # Changed src/main/java files must meet the changed-file floor
 make coverage-changed BASE=origin/main   # Compare against a ref instead of the working tree
-make install-hooks                 # Install the pre-push hook into .git/hooks
+make buildsrc-check                # Static analysis, tests and coverage for buildSrc
+make install-hooks                 # Install the pre-push hook (backs up any hook it replaces)
 
 # Verbose output when debugging failures
 make test VERBOSE=1
@@ -68,9 +69,11 @@ make coverage VERBOSE=1
 
 **Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard local verification command for static analysis, unit tests, and coverage.
 
-**Coverage floors:** Per-module minimums live in `ext.coverageMinimums` in the root `build.gradle` and are enforced by `jacocoTestCoverageVerification`, which `check` depends on. Raise a floor as coverage improves; never lower one to make a build pass. `McpContrastApplication` is the only class excluded.
+**Coverage floors:** Per-module minimums live in `ext.coverageMinimums` in the root `build.gradle` and are enforced by `jacocoTestCoverageVerification`, which `check` depends on. Floors sit a couple of points under the measured figures on purpose, so one new uncovered branch cannot redden `main`. Raise a floor as coverage improves; never lower one to make a build pass. `verifyCoverageMinimums` fails the build if any floor drops below `ext.documentedCoverageFloor` (85%). `McpContrastApplication` is the only class excluded.
 
-**Changed-file coverage:** `ext.changedFileCoverageMinimum` (85%) is enforced per changed `src/main/java` file by `jacocoChangedFileCoverageVerification`. Runs in CI on pull requests, and from the pre-push hook (`make install-hooks`, bypass with `SKIP_COVERAGE_HOOK=1`). Not wired into `check`, which has no base ref to diff against. A changed file missing from the JaCoCo report is reported as skipped, not failed. Logic lives in `buildSrc/`. See `scripts/git-hooks/README.md`.
+**Changed-file coverage:** `ext.changedFileCoverageMinimum` (85%) is enforced per changed `src/main/java` file by `jacocoChangedFileCoverageVerification`. Runs in CI on every pull request regardless of base branch, so stacked PRs are gated too, plus the pre-push hook (`make install-hooks`, bypass with `SKIP_COVERAGE_HOOK=1`) and `make coverage-changed`. Not wired into `check`, which has no base ref to diff against. Logic lives in `buildSrc/`, which has its own checks via `make buildsrc-check`. See `scripts/git-hooks/README.md`.
+
+The gate fails closed. A changed file absent from the JaCoCo report fails unless it is listed in `ext.coverageExcludedClassFiles`; a missing or empty report fails. A file that is in the report with no `LINE` counter has nothing countable to measure, so it passes and is named in the output. That covers roughly 49 of the 128 `contrast-mcp-core` sources, mostly interfaces and Lombok-only types.
 
 **Integration Tests:** Require Contrast credentials in `.env.integration-test` (copy from `.env.integration-test.template`). See INTEGRATION_TESTS.md for details. Integration tests are intentionally skipped when credentials are not available (e.g., in CI forks or local builds without `.env.integration-test`).
 

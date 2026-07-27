@@ -20,11 +20,13 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksFilterBody;
@@ -44,12 +46,18 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.mockito.ArgumentCaptor;
 import org.slf4j.LoggerFactory;
 
 /**
  * Covers how SDKExtension turns a TeamServer body into a return value: pagination, the debug
  * buffering branch and the null-response defaults. URL construction is covered by SDKExtensionTest.
+ *
+ * <p>SAME_THREAD on the outer class: ApplicationsDebugLogging attaches an appender whose backing
+ * list is a plain ArrayList to the shared SDKExtension logger, and the sibling Applications class
+ * drives the one method that logs. Annotating only the nested class leaves those two concurrent.
  */
+@Execution(ExecutionMode.SAME_THREAD)
 class SDKExtensionResponseHandlingTest {
 
   private ContrastSDK sdk;
@@ -74,9 +82,8 @@ class SDKExtensionResponseHandlingTest {
 
   private List<String> requestedUrls() throws Exception {
     var urls = new ArrayList<String>();
-    var captor = org.mockito.ArgumentCaptor.forClass(String.class);
-    verify(sdk, org.mockito.Mockito.atLeastOnce())
-        .makeRequest(eq(HttpMethod.GET), captor.capture());
+    var captor = ArgumentCaptor.forClass(String.class);
+    verify(sdk, atLeastOnce()).makeRequest(eq(HttpMethod.GET), captor.capture());
     urls.addAll(captor.getAllValues());
     return urls;
   }
@@ -227,21 +234,17 @@ class SDKExtensionResponseHandlingTest {
     }
   }
 
-  /**
-   * The debug branch buffers the whole body so it can be logged. Toggling the level mutates a
-   * process-wide logger, so these cannot run alongside anything else reading it.
-   */
+  /** The debug branch buffers the whole body so it can be logged. */
   @Nested
-  @Execution(ExecutionMode.SAME_THREAD)
   class ApplicationsDebugLogging {
 
-    private ch.qos.logback.classic.Logger logger;
+    private Logger logger;
     private ListAppender<ILoggingEvent> appender;
     private Level originalLevel;
 
     @BeforeEach
     void enableDebug() {
-      logger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(SDKExtension.class);
+      logger = (Logger) LoggerFactory.getLogger(SDKExtension.class);
       originalLevel = logger.getLevel();
       appender = new ListAppender<>();
       appender.start();

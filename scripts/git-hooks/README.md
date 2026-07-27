@@ -8,9 +8,13 @@ Install them with:
 make install-hooks     # or: ./gradlew installGitHooks
 ```
 
-The task copies every file in this directory into `.git/hooks` and marks it executable. It is
-idempotent, but it **overwrites** any hook of the same name that is already installed. Check
-`.git/hooks` first if you keep hooks from another tool there, such as the beads hooks.
+The task copies every file in this directory into the hooks directory git reports for this
+checkout, which is not always `.git/hooks`, and marks each one executable for you only. It is
+idempotent.
+
+Only one script can own a hook name, and this repo also uses the beads hooks. When the task
+replaces a hook whose content differs, it saves the old one as `<name>.bak-<timestamp>` and says
+so. Merge the two by hand if both are wanted.
 
 ## Installed hooks
 
@@ -18,9 +22,14 @@ idempotent, but it **overwrites** any hook of the same name that is already inst
   `src/main/java` file has less than the line coverage required by
   `changedFileCoverageMinimum` in the root `build.gradle`.
 
-  It compares against the remote ref being pushed when there is one, then the branch upstream,
-  then `origin/main`. Using the branch upstream first keeps a stacked branch measured against
-  its parent rather than against `main`.
+  It compares against the remote ref being pushed when there is one, then the pushed branch's
+  own upstream, then `origin/main`. Taking the upstream first keeps a stacked branch measured
+  against its parent rather than against `main`. When no base resolves it says so and skips that
+  ref rather than blocking the push.
+
+  It measures only the ref whose commit is the checked-out `HEAD`. Coverage comes from compiling
+  and testing the working tree, so no other pushed ref can be scored honestly. Other refs are
+  named and reported as not measured, and CI gates them.
 
   Only committed files in the push are inspected, so unrelated work in progress cannot block a
   clean push. Refs that change no Java files skip Gradle entirely, since Gradle startup is most
@@ -42,11 +51,18 @@ Against a specific base, matching what the hook does:
 ./gradlew jacocoChangedFileCoverageVerification -PjacocoChangedBase=origin/main
 ```
 
-## What the gate cannot see
+## What counts as a pass
 
-A changed file missing from the JaCoCo report is reported as skipped rather than failed. Today
-that means a class listed in `coverageExcludedClassFiles` in the root `build.gradle`. The task
-names every skipped file so a silent gap does not read as a pass.
+A changed file missing from the JaCoCo report fails the gate. The one exception is a source path
+listed in `coverageExcludedClassFiles` in the root `build.gradle` (today only
+`McpContrastApplication`). This used to pass silently. It does not anymore.
+
+A changed file that is in the report but has no `LINE` counter passes as "nothing to measure."
+JaCoCo found nothing countable in the file, typically an interface or a type whose members are
+entirely Lombok-generated. This is not rare: roughly 49 of the 128 `contrast-mcp-core` sources
+hit this path today.
+
+A missing or empty JaCoCo report is a hard failure, not a skip.
 
 ## References
 

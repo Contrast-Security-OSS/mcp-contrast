@@ -3,8 +3,9 @@ name: Java CI with Gradle
 on:
   push:
     branches: [ main, master ]
+  # Unfiltered on purpose: stacked PRs target a parent feature branch, and a base filter
+  # would skip them entirely, leaving the changed-file coverage gate unenforced.
   pull_request:
-    branches: [ main, master ]
 
 permissions:
   contents: read
@@ -24,6 +25,8 @@ jobs:
         # Depth 1 fetches neither the PR base commit nor the merge base, which the
         # changed-file coverage step needs.
         fetch-depth: 0
+        # This job runs PR-authored build code and no step pushes.
+        persist-credentials: false
     - name: Validate Gradle wrapper
       uses: gradle/actions/wrapper-validation@6550634d3eb14a20275549de1588a83267023d42 # v6
 
@@ -33,6 +36,11 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
         cache: gradle
+    # buildSrc is a separate build, so the main build never schedules its tests, and the
+    # coverage gate's own logic lives there.
+    - name: Run buildSrc checks and tests
+      run: ./gradlew -p buildSrc check --no-daemon
+
     - name: Run checks, tests, coverage, and build
       run: ./gradlew spotlessCheck checkstyleMain checkstyleTest test jacocoTestCoverageVerification :contrast-mcp-stdio-app:bootJar --no-daemon
 
@@ -40,9 +48,12 @@ jobs:
     # clean on a fresh checkout and would pass vacuously.
     - name: Verify changed-file coverage
       if: github.event_name == 'pull_request'
+      # Via env so no workflow expression is parsed as shell.
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
       run: >-
         ./gradlew jacocoChangedFileCoverageVerification
-        -PjacocoChangedBase=${{ github.event.pull_request.base.sha }}
+        -PjacocoChangedBase="$BASE_SHA"
         --no-daemon
 
     # Runs even when the coverage floor fails, since that is exactly when the

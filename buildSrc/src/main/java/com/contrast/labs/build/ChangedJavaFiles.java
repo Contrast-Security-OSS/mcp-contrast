@@ -1,14 +1,12 @@
 package com.contrast.labs.build;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -22,8 +20,23 @@ import java.util.Set;
 public final class ChangedJavaFiles {
 
   private static final String DEFAULT_HEAD = "HEAD";
+  private static final String JAVA_SUFFIX = ".java";
 
   private ChangedJavaFiles() {}
+
+  /**
+   * The changed Java files, split by whether the working tree still holds them.
+   *
+   * @param present files on disk, so coverage can be attributed to them
+   * @param absentFromWorkingTree paths git named that are not on disk, which coverage generated
+   *     from the working tree cannot describe
+   */
+  public record ChangedFiles(List<File> present, List<File> absentFromWorkingTree) {
+
+    public boolean isEmpty() {
+      return present.isEmpty() && absentFromWorkingTree.isEmpty();
+    }
+  }
 
   /**
    * Returns the changed {@code .java} files that live under {@code sourceSetDir}.
@@ -33,7 +46,8 @@ public final class ChangedJavaFiles {
    * @param base ref to compare from, or null/blank to use the working tree
    * @param head ref to compare to; ignored when {@code base} is null/blank, defaults to HEAD
    */
-  public static List<File> forSourceSet(File rootDir, File sourceSetDir, String base, String head) {
+  public static ChangedFiles forSourceSet(
+      File rootDir, File sourceSetDir, String base, String head) {
     Path sourceSetPath = normalize(sourceSetDir);
     Set<String> paths = new LinkedHashSet<>();
     if (isBlank(base)) {
@@ -43,55 +57,89 @@ public final class ChangedJavaFiles {
       paths.addAll(git(rootDir, rangeArgs(base, isBlank(head) ? DEFAULT_HEAD : head)));
     }
 
-    List<File> changed = new ArrayList<>();
+    List<File> present = new ArrayList<>();
+    List<File> absent = new ArrayList<>();
     for (String path : paths) {
-      if (!path.endsWith(".java")) {
+      if (!path.endsWith(JAVA_SUFFIX)) {
         continue;
       }
       File file = new File(rootDir, path);
-      // A rename or delete can name a path that no longer exists in the working tree.
-      if (!file.isFile() || !normalize(file).startsWith(sourceSetPath)) {
+      if (!normalize(file).startsWith(sourceSetPath)) {
         continue;
       }
-      changed.add(file);
+      // Recorded rather than discarded, so the caller can report a file it could not measure.
+      if (file.isFile()) {
+        present.add(file);
+      } else {
+        absent.add(file);
+      }
     }
-    return List.copyOf(changed);
+    return new ChangedFiles(List.copyOf(present), List.copyOf(absent));
   }
 
   private static List<String> rangeArgs(String base, String head) {
+    // base and head arrive from a Gradle property. --end-of-options stops git reading a
+    // leading-dash value as an option, where --output= would write a file and return no paths.
     return List.of(
-        "diff", "--name-only", "--diff-filter=ACMR", base + "..." + head, "--", "*.java");
+        "diff",
+        "--name-only",
+        "-z",
+        "--diff-filter=ACMR",
+        "--end-of-options",
+        base + "..." + head,
+        "--",
+        "*.java");
   }
 
   private static List<String> workingTreeArgs() {
-    return List.of("diff", "--name-only", "--diff-filter=ACMR", DEFAULT_HEAD, "--", "*.java");
+    return List.of("diff", "--name-only", "-z", "--diff-filter=ACMR", DEFAULT_HEAD, "--", "*.java");
   }
 
   private static List<String> untrackedArgs() {
-    return List.of("ls-files", "--others", "--exclude-standard", "--", "*.java");
+    return List.of("ls-files", "--others", "--exclude-standard", "-z", "--", "*.java");
   }
 
   private static List<String> git(File rootDir, List<String> args) {
-    List<String> command = new ArrayList<>(List.of("git", "-C", rootDir.getAbsolutePath()));
+    // core.quotepath defaults to true, which C-quotes non-ASCII paths as
+    // "src/main/java/Na\303\257ve.java". That fails the .java suffix test, so the file would drop
+    // out of the gate unmeasured. -z then delimits with NUL, which no path can contain.
+    List<String> command =
+        new ArrayList<>(
+            List.of("git", "-c", "core.quotepath=false", "-C", rootDir.getAbsolutePath()));
     command.addAll(args);
 
     Process process;
     try {
-      process = new ProcessBuilder(command).redirectErrorStream(true).start();
+      process = new ProcessBuilder(command).start();
     } catch (IOException e) {
       throw new UncheckedIOException("Failed to run: " + String.join(" ", command), e);
     }
 
-    String output;
-    try (BufferedReader reader =
-        new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-      output = reader.lines().reduce("", (a, b) -> a.isEmpty() ? b : a + "\n" + b);
+    // git writes advice to stderr even on success, so merging the streams would feed that text
+    // into the path list. Drained on its own thread because reading the pipes in sequence can
+    // block on one while git waits on the other.
+    StringBuilder errorOutput = new StringBuilder();
+    Thread errorReader =
+        Thread.ofVirtual()
+            .start(
+                () -> {
+                  try (InputStream errors = process.getErrorStream()) {
+                    errorOutput.append(new String(errors.readAllBytes(), StandardCharsets.UTF_8));
+                  } catch (IOException e) {
+                    errorOutput.append("Failed to read stderr: ").append(e.getMessage());
+                  }
+                });
+
+    byte[] output;
+    try (InputStream stdout = process.getInputStream()) {
+      output = stdout.readAllBytes();
     } catch (IOException e) {
       throw new UncheckedIOException("Failed to read output of: " + String.join(" ", command), e);
     }
 
     int exitCode;
     try {
+      errorReader.join();
       exitCode = process.waitFor();
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
@@ -104,10 +152,20 @@ public final class ChangedJavaFiles {
               + ": "
               + String.join(" ", command)
               + System.lineSeparator()
-              + output.trim());
+              + errorOutput.toString().trim());
     }
 
-    return Arrays.stream(output.split("\n")).map(String::trim).filter(line -> !line.isEmpty()).toList();
+    return nulDelimited(new String(output, StandardCharsets.UTF_8));
+  }
+
+  private static List<String> nulDelimited(String output) {
+    List<String> paths = new ArrayList<>();
+    for (String path : output.split("\0")) {
+      if (!path.isEmpty()) {
+        paths.add(path);
+      }
+    }
+    return paths;
   }
 
   private static Path normalize(File file) {

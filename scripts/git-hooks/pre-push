@@ -8,8 +8,9 @@ readonly DEFAULT_BASE_REF="origin/main"
 
 find_changed_base() {
   local remote_name=$1
-  local local_sha=$2
-  local remote_sha=$3
+  local local_ref=$2
+  local local_sha=$3
+  local remote_sha=$4
 
   # The old remote tip scopes the gate to commits included in this push.
   if [[ "$remote_sha" != "$ZERO_SHA" ]]; then
@@ -17,9 +18,17 @@ find_changed_base() {
     return
   fi
 
-  # No remote tip yet. Upstream first, so a stacked branch compares against its parent.
-  if git rev-parse --verify --quiet "@{upstream}" >/dev/null; then
-    git merge-base "$local_sha" "@{upstream}"
+  # No remote tip yet. The pushed ref's own upstream comes first, so a stacked branch
+  # compares against its parent. A bare @{upstream} always resolves against the
+  # checked-out branch, which is the wrong branch on a multi-ref push, and git only
+  # accepts a branch short name in front of @{upstream} -- refs/heads/<name>@{upstream}
+  # does not resolve even when the branch has an upstream.
+  local upstream_ref=$local_ref
+  if [[ "$local_ref" == refs/heads/* ]]; then
+    upstream_ref=${local_ref#refs/heads/}
+  fi
+  if git rev-parse --verify --quiet "$upstream_ref@{upstream}" >/dev/null; then
+    git merge-base "$local_sha" "$upstream_ref@{upstream}"
     return
   fi
 
@@ -29,7 +38,18 @@ find_changed_base() {
     return
   fi
 
-  git merge-base "$local_sha" "$DEFAULT_BASE_REF"
+  # With the default remote name this ref is the same one already tried above, so verify
+  # it rather than letting an unguarded merge-base abort the push under set -e.
+  if git rev-parse --verify --quiet "$DEFAULT_BASE_REF" >/dev/null; then
+    git merge-base "$local_sha" "$DEFAULT_BASE_REF"
+    return
+  fi
+
+  printf "Could not determine a comparison base for %s; skipping changed-file coverage verification for that ref.\n" \
+    "$local_ref" >&2
+  printf "Tried the old remote tip, %s, %s and %s. Fetch the remote or set an upstream for the branch so the gate has something to diff against.\n" \
+    "$upstream_ref@{upstream}" "$remote_name/main" "$DEFAULT_BASE_REF" >&2
+  return 1
 }
 
 changed_java_files() {
@@ -44,6 +64,7 @@ perform_check() {
   local msg=$1
   shift
 
+  local output
   printf "%s... " "$msg"
   if ! output=$("$@" 2>&1); then
     printf "FAILED\n"
@@ -52,12 +73,18 @@ perform_check() {
   fi
 
   printf "PASSED\n"
+
+  # The gate also reports changed files it could not measure when it passes, so print
+  # the captured output rather than discarding it on the success path.
+  if [[ -n "$output" ]]; then
+    printf "\n%s\n" "$output"
+  fi
 }
 
 main() {
   local remote_name=${1:-origin}
   local local_ref local_sha remote_ref remote_sha
-  local base_ref changed_files
+  local base_ref changed_files head_sha
   local -a local_refs=()
   local -a local_shas=()
   local -a remote_refs=()
@@ -86,13 +113,28 @@ main() {
     return
   fi
 
+  head_sha=$(git rev-parse HEAD)
+
   for index in "${!local_refs[@]}"; do
     local_ref=${local_refs[$index]}
     local_sha=${local_shas[$index]}
     remote_ref=${remote_refs[$index]}
     remote_sha=${remote_shas[$index]}
 
-    base_ref=$(find_changed_base "$remote_name" "$local_sha" "$remote_sha")
+    # The gate reads a JaCoCo report produced by compiling and testing the working tree,
+    # and the changed-file resolver drops any path that is not a file on disk. Both are
+    # tied to the checked-out HEAD, so measuring any other pushed ref would score the
+    # surviving files against different code and silently drop the rest.
+    if [[ "$local_sha" != "$head_sha" ]]; then
+      printf "%s is not the checked-out HEAD, so its changed-file coverage was NOT measured.\n" \
+        "$local_ref" >&2
+      printf "Check that ref out and push it again to gate it locally, or let the pull request check in CI gate it.\n" >&2
+      continue
+    fi
+
+    if ! base_ref=$(find_changed_base "$remote_name" "$local_ref" "$local_sha" "$remote_sha"); then
+      continue
+    fi
     changed_files=$(changed_java_files "$base_ref" "$local_sha")
 
     # Gradle startup dominates this hook, so skip refs with no Java changes.
@@ -104,7 +146,9 @@ main() {
     printf "Running changed-file coverage verification for %s -> %s against base %s.\n" \
       "$local_ref" "$remote_ref" "$base_ref"
 
-    # Explicit base/head instead of HEAD, so a multi-ref push analyzes the right commit.
+    # Explicit base, because the gate has no ref of its own to diff against and the
+    # push-time base differs from the one CI uses. The head is the checked-out HEAD by
+    # the guard above, which is the only commit the working-tree report can describe.
     # No percentage here: changedFileCoverageMinimum in build.gradle is the source of truth.
     perform_check \
       "checking changed Java files for line coverage" \

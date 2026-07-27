@@ -24,13 +24,15 @@ allprojects {
     version = rootProject.version
 }
 
-// Enforced per-module coverage floors, set just below the measured baseline so they
-// block regression without failing on adoption. Raise them as coverage improves;
-// never lower one to make a build pass. Measured 2026-07-26 under AIML-501:
-// core LINE 97.6% BRANCH 89.1%, stdio-app LINE 97.8% BRANCH 96.2% (post-exclusion).
+// Enforced per-module coverage floors. Raise them as coverage improves; never lower one to make
+// a build pass. Measured 2026-07-26 under AIML-501: core LINE 97.6% BRANCH 89.1% (622/698
+// branches), stdio-app LINE 97.8% BRANCH 96.2% (100/104 branches), post-exclusion.
+//
+// Deliberately a couple of points under those numbers. Flush against 622/698, one further
+// uncovered branch gives 0.88984 and reddens main on an unrelated PR.
 ext.coverageMinimums = [
-    'contrast-mcp-core'     : [line: 0.97, branch: 0.89],
-    'contrast-mcp-stdio-app': [line: 0.97, branch: 0.96],
+    'contrast-mcp-core'     : [line: 0.95, branch: 0.87],
+    'contrast-mcp-stdio-app': [line: 0.95, branch: 0.94],
 ]
 
 // Line coverage required of each changed src/main/java file. Above the module floors on
@@ -63,6 +65,57 @@ ext.positiveIntProperty = { String propertyName, int defaultValue ->
     } catch (NumberFormatException ex) {
         throw new GradleException("${propertyName} must be a positive integer, but was ${rawValue}", ex)
     }
+}
+
+// aiml-services set its JaCoCo minimum to 0.0 and enforced the real figure only outside the repo
+// (AIML-1170). Nothing else here reads the floors back, so assert them.
+ext.documentedCoverageFloor = 0.85
+
+tasks.register('verifyCoverageMinimums') {
+    group = 'verification'
+    description = 'Fails when an enforced coverage floor has been weakened below the documented minimum.'
+
+    def documentedFloor = rootProject.ext.documentedCoverageFloor as BigDecimal
+    def declaredModuleMinimums = rootProject.ext.coverageMinimums
+    def declaredChangedFileMinimum = rootProject.ext.changedFileCoverageMinimum
+    def moduleNames = subprojects.collect { it.name }
+
+    doLast {
+        def problems = []
+
+        if ((declaredChangedFileMinimum as BigDecimal) < documentedFloor) {
+            problems << "changedFileCoverageMinimum is ${declaredChangedFileMinimum}, below the documented ${documentedFloor}"
+        }
+
+        moduleNames.each { moduleName ->
+            def floors = declaredModuleMinimums[moduleName]
+            if (floors == null) {
+                problems << "no coverage minimums declared for ${moduleName}"
+                return
+            }
+            ['line', 'branch'].each { counter ->
+                def declared = floors[counter]
+                if (declared == null) {
+                    problems << "${moduleName} declares no ${counter} floor"
+                } else if ((declared as BigDecimal) < documentedFloor) {
+                    problems << "${moduleName} ${counter} floor is ${declared}, below the documented ${documentedFloor}"
+                }
+            }
+        }
+
+        if (!problems.isEmpty()) {
+            throw new GradleException(
+                "Coverage floors have been weakened below the documented standard of ${documentedFloor}:" +
+                    System.lineSeparator() +
+                    problems.collect { "* ${it}" }.join(System.lineSeparator()) +
+                    System.lineSeparator() +
+                    "Raise the floor back, or change documentedCoverageFloor deliberately and say why in review.")
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('verifyCoverageMinimums')
 }
 
 subprojects {
@@ -122,6 +175,8 @@ subprojects {
 
     tasks.named('jacocoTestCoverageVerification') {
         dependsOn tasks.named('jacocoTestReport')
+        // Also on root `check`, but CI invokes this task by name rather than through `check`.
+        dependsOn rootProject.tasks.named('verifyCoverageMinimums')
         def minimums = rootProject.ext.coverageMinimums[project.name]
         if (minimums == null) {
             throw new GradleException(
@@ -174,15 +229,26 @@ subprojects {
     def changedBase = providers.gradleProperty('jacocoChangedBase')
         .orElse(providers.gradleProperty('staticAnalysisChangedBase'))
         .orElse('')
-    def changedHead = providers.gradleProperty('staticAnalysisChangedHead').orElse('')
+    def changedHead = providers.gradleProperty('staticAnalysisChangedHead')
+        .orElse(providers.gradleProperty('jacocoChangedHead'))
+        .orElse('')
     def mainSourceRoot = project.file('src/main/java')
     def repoRoot = rootProject.projectDir
+    // Memoized: dependsOn, onlyIf, input snapshotting and doLast each resolve this, and every
+    // resolution shells out to git.
+    def changedFilesHolder = []
     def changedMainFiles = providers.provider {
-        ChangedJavaFiles.forSourceSet(repoRoot, mainSourceRoot, changedBase.get(), changedHead.get())
+        if (changedFilesHolder.isEmpty()) {
+            changedFilesHolder.add(ChangedJavaFiles.forSourceSet(
+                repoRoot, mainSourceRoot, changedBase.get(), changedHead.get()))
+        }
+        changedFilesHolder.first()
     }
     def coverageReportXml = layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml')
     def changedFileMinimum = rootProject.ext.changedFileCoverageMinimum as BigDecimal
     def changedFileMinimumPercent = (changedFileMinimum * 100).stripTrailingZeros().toPlainString()
+    def excludedSourcePaths =
+        JacocoChangedFileCoverage.excludedSourcePaths(rootProject.ext.coverageExcludedClassFiles)
     def projectDirFile = project.projectDir
     def projectPathName = project.path
 
@@ -194,22 +260,45 @@ subprojects {
         // Generating the report costs a full test run, so only ask for it when there is
         // something to measure.
         dependsOn providers.provider { changedMainFiles.get().isEmpty() ? [] : ['jacocoTestReport'] }
-        inputs.files(changedMainFiles)
+        inputs.files(providers.provider { changedMainFiles.get().present() })
         inputs.file(coverageReportXml).optional()
         onlyIf { !changedMainFiles.get().isEmpty() }
 
         doLast {
-            def result = JacocoChangedFileCoverage.analyze(
-                mainSourceRoot, changedMainFiles.get(), coverageReportXml.get().asFile)
+            def changed = changedMainFiles.get()
 
-            // A file absent from the report cannot be judged, so name it rather than let the
-            // silence read as a pass.
-            if (!result.skippedFiles().isEmpty()) {
-                def skipped = result.skippedFiles()
+            // The report describes the working tree, so a path the tree no longer holds cannot be
+            // measured. Failing beats dropping it and reporting a pass.
+            if (!changed.absentFromWorkingTree().isEmpty()) {
+                def missing = changed.absentFromWorkingTree()
                     .collect { projectDirFile.toPath().relativize(it.toPath()).toString() }
                     .join(', ')
-                logger.lifecycle(
-                    "Skipped changed Java file(s) without JaCoCo line data in ${projectPathName}: ${skipped}")
+                throw new GradleException(
+                    "Changed Java file(s) named by the diff are absent from the working tree, so " +
+                        "no coverage could be attributed to them in ${projectPathName}: ${missing}")
+            }
+
+            def result = JacocoChangedFileCoverage.analyze(
+                mainSourceRoot,
+                changed.present(),
+                coverageReportXml.get().asFile,
+                excludedSourcePaths)
+
+            // Logged before the failure checks so it still reaches a reviewer on a failing run.
+            // QUIET, not LIFECYCLE: the pre-push hook passes -q, which suppresses LIFECYCLE.
+            if (!result.unmeasurableFiles().isEmpty()) {
+                def unmeasurable = result.unmeasurableFiles()
+                    .collect { projectDirFile.toPath().relativize(it.toPath()).toString() }
+                    .join(', ')
+                logger.quiet(
+                    "JaCoCo counted no lines in these changed file(s), so they pass without a " +
+                        "coverage ratio in ${projectPathName}: ${unmeasurable}")
+            }
+
+            // Absent from the report and not excluded on purpose: asked to judge, unable to.
+            def unreported = JacocoChangedFileCoverage.unreportedMessage(projectDirFile, result)
+            if (unreported) {
+                throw new GradleException(unreported)
             }
 
             def message = JacocoChangedFileCoverage.failureMessage(
@@ -219,7 +308,7 @@ subprojects {
             }
 
             if (!result.checkedFiles().isEmpty()) {
-                logger.lifecycle(
+                logger.quiet(
                     "Changed-file JaCoCo line coverage passed for ${result.checkedFiles().size()} file(s) in ${projectPathName}.")
             }
         }
@@ -345,29 +434,58 @@ tasks.register('coverageSummary') {
     }
 }
 
-tasks.register('installGitHooks', Copy) {
+tasks.register('installGitHooks') {
     group = 'help'
-    description = 'Installs the repository git hooks into .git/hooks.'
+    description = 'Installs the repository git hooks into the active git hooks directory.'
 
-    from(rootProject.file('scripts/git-hooks')) {
-        exclude '*.md'
-    }
-    into(rootProject.file('.git/hooks'))
-    // Git silently ignores a hook it cannot execute.
-    filePermissions {
-        user {
-            read = true
-            write = true
-            execute = true
+    def hookSourceDir = rootProject.file('scripts/git-hooks')
+    def rootProjectDir = rootProject.projectDir
+    // Not hard-coded as `.git/hooks`: in a linked worktree `.git` is a file, and core.hooksPath
+    // can move the directory entirely.
+    def hooksPath = providers.exec {
+        commandLine 'git', '-C', rootProjectDir.absolutePath, 'rev-parse', '--git-path', 'hooks'
+    }.standardOutput.asText.map { it.trim() }
+
+    doLast {
+        // rev-parse returns a repo-relative path for a normal checkout, absolute for a worktree.
+        def resolved = hooksPath.get()
+        def hooksDir = new File(resolved).absolute ? new File(resolved) : new File(rootProjectDir, resolved)
+        if (!hooksDir.isDirectory() && !hooksDir.mkdirs()) {
+            throw new GradleException("Could not create the git hooks directory ${hooksDir}.")
         }
-        group {
-            read = true
-            execute = true
+
+        // File by file, not a Copy task: declaring the hooks directory as an output would put
+        // other tools' hooks in scope for Gradle's stale-output cleanup.
+        def sources = (hookSourceDir.listFiles() ?: new File[0])
+            .findAll { it.isFile() && !it.name.endsWith('.md') }
+            .sort { it.name }
+        if (sources.isEmpty()) {
+            throw new GradleException("No hooks to install in ${hookSourceDir}.")
         }
-        other {
-            read = true
-            execute = true
+
+        def timestamp = java.time.LocalDateTime.now()
+            .format(java.time.format.DateTimeFormatter.ofPattern('yyyyMMdd-HHmmss'))
+        sources.each { source ->
+            def target = new File(hooksDir, source.name)
+            // Only one script can own a hook name, and beads installs its own pre-push here.
+            if (target.isFile() && target.bytes != source.bytes) {
+                def backup = new File(hooksDir, "${source.name}.bak-${timestamp}")
+                backup.bytes = target.bytes
+                logger.warn(
+                    "Replaced an existing ${source.name} hook. The previous one is saved as " +
+                        "${backup.name}; if another tool owns that hook, merge the two by hand.")
+            }
+            target.bytes = source.bytes
+            // Git silently ignores a hook it cannot execute, and runs it as the invoking user.
+            target.setReadable(false, false)
+            target.setWritable(false, false)
+            target.setExecutable(false, false)
+            target.setReadable(true, true)
+            target.setWritable(true, true)
+            target.setExecutable(true, true)
         }
+        logger.lifecycle(
+            "Installed ${sources.size()} git hook(s) into ${hooksDir}: ${sources.collect { it.name }.join(', ')}")
     }
 }
 

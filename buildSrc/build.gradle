@@ -1,6 +1,23 @@
+// Spotless cannot come from the plugins block: its version lives in the root properties file,
+// which buildSrc does not inherit.
+buildscript {
+    def pins = new Properties()
+    file('../gradle.properties').withInputStream { pins.load(it) }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.diffplug.spotless:spotless-plugin-gradle:${pins.spotlessGradlePluginVersion}"
+    }
+}
+
 plugins {
     id 'java-library'
+    id 'checkstyle'
+    id 'jacoco'
 }
+
+apply plugin: 'com.diffplug.spotless'
 
 // buildSrc does not inherit settings.gradle's dependencyResolutionManagement block.
 repositories {
@@ -18,12 +35,88 @@ java {
 def rootProperties = new Properties()
 rootProject.file('../gradle.properties').withInputStream { rootProperties.load(it) }
 
+// Properties returns null for a missing key, which Groovy would carry into a dependency
+// coordinate and fail later as ":null" instead of here.
+def requiredVersion = { String key ->
+    def value = rootProperties.getProperty(key)
+    if (value == null || value.isBlank()) {
+        throw new GradleException("${key} is missing from the root gradle.properties.")
+    }
+    return value
+}
+
 dependencies {
-    testImplementation "org.junit.jupiter:junit-jupiter:${rootProperties.junitVersion}"
-    testImplementation "org.assertj:assertj-core:${rootProperties.assertjVersion}"
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation "org.junit.jupiter:junit-jupiter:${requiredVersion('junitVersion')}"
+    testImplementation "org.assertj:assertj-core:${requiredVersion('assertjVersion')}"
+    // Pinned rather than left to resolve transitively, so the soak policy can audit it. JUnit 6
+    // versions the platform and Jupiter artifacts together.
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:${requiredVersion('junitVersion')}"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+    finalizedBy tasks.named('jacocoTestReport')
+}
+
+jacoco {
+    toolVersion = requiredVersion('jacocoVersion')
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+// The changed-file gate only looks at each module's src/main/java, so it cannot measure the
+// code that implements it. Hence a floor here.
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn tasks.named('jacocoTestReport')
+    violationRules {
+        rule {
+            element = 'BUNDLE'
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.85
+            }
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 0.80
+            }
+        }
+    }
+}
+
+spotless {
+    java {
+        googleJavaFormat(requiredVersion('googleJavaFormatVersion'))
+            .reflowLongStrings()
+            .reorderImports(true)
+            .formatJavadoc(true)
+    }
+}
+
+checkstyle {
+    toolVersion = requiredVersion('checkstyleVersion')
+    configFile = rootProject.file('../checkstyle.xml')
+    configProperties = [
+        'checkstyle.suppressions.file': rootProject.file('../checkstyle-suppressions.xml').absolutePath
+    ]
+}
+
+tasks.withType(Checkstyle).configureEach {
+    inputs.file rootProject.file('../checkstyle-suppressions.xml')
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestCoverageVerification')
 }
