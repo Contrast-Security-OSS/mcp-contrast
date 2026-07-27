@@ -26,7 +26,7 @@ allprojects {
 
 // Enforced per-module coverage floors. Raise them as coverage improves; never lower one to make
 // a build pass. Measured 2026-07-27 under AIML-501: core LINE 97.6% BRANCH 89.1% (622/698
-// branches), stdio-app LINE 96.9% BRANCH 95.2% (99/104 branches), post-exclusion.
+// branches), stdio-app LINE 97.8% BRANCH 96.2% (100/104 branches), post-exclusion.
 //
 // Deliberately below those numbers to retain headroom. Flush against 622/698, one further
 // uncovered branch gives 0.88984 and reddens main on an unrelated PR.

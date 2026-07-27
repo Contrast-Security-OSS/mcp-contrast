@@ -564,6 +564,25 @@ class SDKHelperTest {
   }
 
   @Test
+  void getSDK_should_apply_the_configured_http_proxy_to_connections() throws IOException {
+    when(environment.getProperty("spring.ai.mcp.server.version", "unknown")).thenReturn("1.0.0");
+
+    var sdk =
+        SDKHelper.getSDK(
+            "example.contrastsecurity.com",
+            "apiKey",
+            "serviceKey",
+            "user",
+            "proxy.example.com",
+            "8080",
+            "https");
+
+    var connection = sdk.makeConnection("https://example.com", "GET");
+
+    assertThat(connection.usingProxy()).isTrue();
+  }
+
+  @Test
   void resolveProxyPort_should_parse_an_explicit_port() {
     assertThat(SDKHelper.resolveProxyPort("8080")).isEqualTo(8080);
   }
