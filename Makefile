@@ -1,6 +1,6 @@
 GRADLE ?= ./gradlew
 
-.PHONY: help build test test-verbose check check-verbose check-test format clean verify verify-verbose
+.PHONY: help build test test-verbose check check-verbose check-test coverage coverage-verbose format clean verify verify-verbose
 
 help: ## Display available make targets
 	@awk 'BEGIN {FS=":.*##"; printf "\nUsage: make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_\-]+:.*##/ {printf "  %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -63,11 +63,35 @@ verify-quiet:
 verify-verbose: ## Run all tests with verbose output
 	@VERBOSE=1 $(MAKE) verify
 
+## Coverage targets
+
+coverage: ## Verify coverage floors and print the summary
+	@if [ -n "$$VERBOSE" ]; then \
+		$(GRADLE) --continue jacocoTestCoverageVerification coverageSummary; \
+	else \
+		$(MAKE) coverage-quiet; \
+	fi
+
+# The summary runs after verification and regardless of its result, because a breached
+# floor is exactly when the numbers are wanted. The verification exit code is held and
+# re-raised at the end so a failure still fails the target.
+coverage-quiet:
+	@. ./hack/run_silent.sh && print_main_header "Checking Coverage"
+	@. ./hack/run_silent.sh && print_header "mcp-contrast" "Coverage floors"
+	@status=0; \
+	. ./hack/run_silent.sh && run_with_quiet "Coverage floors met" "$(GRADLE) jacocoTestCoverageVerification" || status=$$?; \
+	$(GRADLE) --quiet coverageSummary; \
+	exit $$status
+
+coverage-verbose: ## Run coverage with verbose output
+	@VERBOSE=1 $(MAKE) coverage
+
 ## Combined targets
 
-check-test: ## Run all checks and tests
+check-test: ## Run all checks, tests, and coverage
 	@$(MAKE) check
 	@$(MAKE) test
+	@$(MAKE) coverage
 
 ## Other targets
 

@@ -29,5 +29,25 @@ jobs:
         java-version: '21'
         distribution: 'temurin'
         cache: gradle
-    - name: Run checks, tests, and build
-      run: ./gradlew spotlessCheck checkstyleMain checkstyleTest test :contrast-mcp-stdio-app:bootJar --no-daemon
+    - name: Run checks, tests, coverage, and build
+      run: ./gradlew spotlessCheck checkstyleMain checkstyleTest test jacocoTestCoverageVerification :contrast-mcp-stdio-app:bootJar --no-daemon
+
+    # Runs even when the coverage floor fails, since that is exactly when the
+    # numbers and the HTML report are needed to diagnose the failure. coverageSummary
+    # only reads the reports the step above wrote, so this does not re-run the tests;
+    # if that step failed before producing them, the table says so per module.
+    - name: Publish coverage summary
+      if: always()
+      run: ./gradlew --quiet coverageSummary --no-daemon >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Upload coverage reports
+      if: always()
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: jacoco-coverage-reports
+        path: |
+          **/build/reports/jacoco/test/html/**
+          **/build/reports/jacoco/test/jacocoTestReport.xml
+        if-no-files-found: warn
+        # Diagnostic output for a failed run, not a durable artifact.
+        retention-days: 7

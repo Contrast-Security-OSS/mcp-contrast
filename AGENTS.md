@@ -70,11 +70,15 @@ This repository uses the Gradle wrapper and Java 21. Do not use Maven commands o
 **Common commands:**
 ```bash
 ./gradlew spotlessCheck checkstyleMain checkstyleTest test
+./gradlew jacocoTestCoverageVerification coverageSummary
 ./gradlew :contrast-mcp-stdio-app:bootJar
 ./gradlew :contrast-mcp-core:publishToMavenLocal :contrast-mcp-core:verifyCorePublicationMetadata
+make coverage
 make check-test
 make verify
 ```
+
+**Coverage floors:** JaCoCo measures coverage on every `test` run. Per-module floors live in `ext.coverageMinimums` in the root `build.gradle` and are enforced by `jacocoTestCoverageVerification`, which `check` and `make check-test` both run, so a coverage regression fails the build. Raise a floor as coverage improves. Never lower one to make a build pass, and treat additions to `coverageExcludedClassFiles` like a checkstyle suppression.
 
 **Module split:**
 - `contrast-mcp-core` is the transport-neutral shared library published as `com.contrast.labs.ai.mcp:contrast-mcp-core`.
