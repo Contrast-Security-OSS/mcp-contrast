@@ -46,6 +46,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.LoggerFactory;
 
@@ -234,8 +235,15 @@ class SDKExtensionResponseHandlingTest {
     }
   }
 
-  /** The debug branch buffers the whole body so it can be logged. */
+  /**
+   * The debug branch buffers the whole body so it can be logged.
+   *
+   * <p>SLF4J returns a SubstituteLogger while another thread initializes its backend, which cannot
+   * be cast to Logback's Logger. Isolating only these tests keeps their logger setup outside that
+   * parallel startup window without serializing the rest of this class against the whole suite.
+   */
   @Nested
+  @Isolated("Casts the SLF4J logger to Logback while configuring a shared appender")
   class ApplicationsDebugLogging {
 
     private Logger logger;
