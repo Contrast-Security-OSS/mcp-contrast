@@ -27,9 +27,9 @@ allprojects {
 // Enforced per-module coverage floors, set just below the measured baseline so they
 // block regression without failing on adoption. Raise them as coverage improves;
 // never lower one to make a build pass. Measured 2026-07-26 under AIML-501:
-// core LINE 92.5% BRANCH 82.8%, stdio-app LINE 90.3% BRANCH 83.7% (post-exclusion).
+// core LINE 95.1% BRANCH 84.5%, stdio-app LINE 90.3% BRANCH 83.7% (post-exclusion).
 ext.coverageMinimums = [
-    'contrast-mcp-core'     : [line: 0.92, branch: 0.82],
+    'contrast-mcp-core'     : [line: 0.95, branch: 0.84],
     'contrast-mcp-stdio-app': [line: 0.90, branch: 0.83],
 ]
 
