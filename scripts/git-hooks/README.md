@@ -38,12 +38,12 @@ so. Merge the two by hand if both are wanted.
   and testing the working tree, so no other pushed ref can be scored honestly. Other refs are
   named and reported as not measured, and CI gates them.
 
-  The hook refuses to run the coverage gate for a Java-changing push when coverage-relevant
-  working-tree files differ from the commit: source files, Gradle configuration and wrapper
-  files, Lombok configuration, or main/test resources. The tests and JaCoCo report describe the
-  files on disk, so those changes could otherwise pass or fail a commit using coverage from
-  different code. Unrelated changes such as Markdown files are allowed. Refs that change no Java
-  files skip Gradle entirely, since Gradle startup is most of the hook's cost.
+  When coverage-relevant working-tree files differ from the commit — source files, Gradle
+  configuration and wrapper files, Lombok configuration, or main/test resources — the hook warns
+  and still runs. Its result then describes the current files on disk, while pull-request CI
+  verifies the exact pushed commit from a clean checkout. Unrelated changes such as Markdown
+  files do not produce a warning. Refs that change no Java files skip Gradle entirely, since
+  Gradle startup is most of the hook's cost.
 
   Set `SKIP_COVERAGE_HOOK=1` to bypass the gate for a push.
 

@@ -84,7 +84,7 @@ changed_java_files() {
     "$base_ref...$head_ref" -- "*.java" | sort -u
 }
 
-require_clean_worktree() {
+warn_if_coverage_tree_is_dirty() {
   local -a coverage_paths=(
     "*.java"
     "*.groovy"
@@ -106,10 +106,8 @@ require_clean_worktree() {
   if ! git diff --quiet -- "${coverage_paths[@]}" ||
     ! git diff --cached --quiet -- "${coverage_paths[@]}" ||
     [[ -n "$(git ls-files --others --exclude-standard -- "${coverage_paths[@]}")" ]]; then
-    printf "Changed-file coverage was NOT measured because coverage-relevant working-tree files differ from the pushed commit.\n" >&2
-    printf "Commit or stash source, build, or resource changes, then push again. Unrelated changes such as Markdown files are allowed.\n" >&2
-    printf "To rely on CI instead, set SKIP_COVERAGE_HOOK=1.\n" >&2
-    return 1
+    printf "WARNING: coverage-relevant working-tree files differ from the pushed commit.\n" >&2
+    printf "The local result describes the current source, build, and resource files; pull-request CI will verify the exact pushed commit from a clean checkout.\n" >&2
   fi
 }
 
@@ -196,7 +194,7 @@ main() {
       continue
     fi
 
-    require_clean_worktree
+    warn_if_coverage_tree_is_dirty
 
     printf "Running changed-file coverage verification for %s -> %s against base %s.\n" \
       "$local_ref" "$remote_ref" "$base_ref"
