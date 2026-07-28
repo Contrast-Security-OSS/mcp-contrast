@@ -36,15 +36,23 @@ Use these make targets for all checks and tests:
 ```bash
 make check       # Auto-format then run static analysis (no need to run make format first)
 make test        # Run unit tests (quiet output)
-make check-test  # Run static analysis and unit tests
+make coverage    # Verify JaCoCo coverage floors and print the summary
+make check-test  # Run static analysis, unit tests, and coverage
 make verify      # Run all tests including integration
 make format      # Auto-format code with Spotless (also runs automatically via make check)
 make build       # Build the project
 make clean       # Clean build artifacts
 
+make test-coverage                 # Unit tests plus coverage floors in one gradle invocation
+make coverage-changed              # Changed src/main/java files must meet the changed-file floor
+make coverage-changed BASE=origin/main   # Compare against a ref instead of the working tree
+make buildsrc-check                # Static analysis, tests and coverage for buildSrc
+make install-hooks                 # Install the pre-push hook (backs up any hook it replaces)
+
 # Verbose output when debugging failures
 make test VERBOSE=1
 make check VERBOSE=1
+make coverage VERBOSE=1
 ```
 
 **After a compilation failure**, stale `.class` files may remain and cause confusing follow-up failures. Always run `make clean && make test` to recover before continuing.
@@ -54,11 +62,19 @@ make check VERBOSE=1
 - **Test (unit)**: `./gradlew test`
 - **Test (all)**: `source .env.integration-test && ./gradlew test :contrast-mcp-stdio-app:integrationTest`
 - **Static analysis**: `./gradlew spotlessCheck checkstyleMain checkstyleTest`
+- **Coverage**: `./gradlew jacocoTestCoverageVerification coverageSummary`
+- **Changed-file coverage**: `./gradlew jacocoChangedFileCoverageVerification -PjacocoChangedBase=origin/main`
 - **Core publication metadata**: `./gradlew :contrast-mcp-core:verifyCorePublicationMetadata`
 - **Format code**: `./gradlew spotlessApply`
 - **Run locally**: `java -jar contrast-mcp-stdio-app/build/libs/mcp-contrast-*.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
 
-**Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard local verification command for static analysis and unit tests.
+**Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard local verification command for static analysis, unit tests, and coverage.
+
+**Coverage floors:** Per-module minimums live in `ext.coverageMinimums` in the root `build.gradle` and are enforced by `jacocoTestCoverageVerification`, which `check` depends on. Floors sit a couple of points under the measured figures on purpose, so one new uncovered branch cannot redden `main`. Raise a floor as coverage improves; never lower one to make a build pass. `verifyCoverageMinimums` fails the build if any floor drops below `ext.coverageStandardMinimum` (85%). `McpContrastApplication` is the only class excluded.
+
+**Changed-file coverage:** `ext.changedFileCoverageMinimum` (85%) is enforced per changed `src/main/java` file by `jacocoChangedFileCoverageVerification`. Runs in CI on every pull request regardless of base branch, so stacked PRs are gated too, plus the pre-push hook (`make install-hooks`, bypass with `SKIP_COVERAGE_HOOK=1`) and `make coverage-changed`. The hook warns but still runs when dirty source, build, or resource files could change JaCoCo output; pull-request CI remains authoritative because it tests a clean checkout. Unrelated changes such as Markdown files do not warn. Set `COVERAGE_BASE_REF=origin/<parent>` on the first push of a new stacked branch. Not wired into `check`, which has no base ref to diff against. Logic lives in `buildSrc/`, which has its own checks via `make buildsrc-check`. See `scripts/git-hooks/README.md`.
+
+The gate fails closed. A changed file absent from the JaCoCo report fails unless it is listed in `ext.coverageExcludedClassFiles`; a missing or empty report fails. A file that is in the report with no `LINE` counter has nothing countable to measure, so it passes and is named in the output. That covers roughly 49 of the 128 `contrast-mcp-core` sources, mostly interfaces and Lombok-only types.
 
 **Integration Tests:** Require Contrast credentials in `.env.integration-test` (copy from `.env.integration-test.template`). See INTEGRATION_TESTS.md for details. Integration tests are intentionally skipped when credentials are not available (e.g., in CI forks or local builds without `.env.integration-test`).
 

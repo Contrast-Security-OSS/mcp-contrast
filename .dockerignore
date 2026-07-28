@@ -4,5 +4,6 @@
 .gradle-sandbox
 .env*
 **/.gradle
-**/build
+/build
+/*/build
 **/target
