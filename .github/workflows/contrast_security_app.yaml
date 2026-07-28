@@ -23,7 +23,7 @@ jobs:
           egress-policy: audit
 
       - name: Clone repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run Contrast SCA Fingerprint
         id: fingerprint
         uses: Contrast-Security-OSS/contrast-sca-action@c953b1def9b16036e6aa1775daf9030f40f80de6 # v3.2.6
@@ -54,7 +54,7 @@ jobs:
           egress-policy: audit
 
       - name: Clone repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run Contrast SCA Audit
         uses: Contrast-Security-OSS/contrast-sca-action@c953b1def9b16036e6aa1775daf9030f40f80de6 # v3.2.6
         with:
