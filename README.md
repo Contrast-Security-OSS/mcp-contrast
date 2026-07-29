@@ -73,6 +73,8 @@ Any MCP client that supports Streamable HTTP transport and OAuth 2.0 with PKCE c
 
 Your client discovers the OAuth configuration automatically through the `WWW-Authenticate` response header, which points to the standard `/.well-known/oauth-protected-resource` metadata document. Clients that support Dynamic Client Registration can register at `/oauth2/connect/register` on the Contrast origin.
 
+These OAuth scopes cover identity only, and that is deliberate. The token grants no data permissions of its own. Authorization is decided by the Contrast platform on every request, using the signed-in user's existing role-based access control. This means there is no broadly-scoped token for an agent to hold or leak, and no authorization scope to get wrong at connection time. See [Security and privacy](#security-and-privacy) for the full model.
+
 ### Supported clients
 
 | Client | Status |
@@ -94,7 +96,8 @@ The hosted server changes how access works without changing what you are allowed
 - **OAuth, not API keys.** You sign in through your browser, so there are no long-lived keys to distribute or store on developer machines.
 - **Read-only.** Every hosted tool is read-only. You cannot modify, update, or delete data through the hosted server.
 - **Organization-scoped.** Each session is bound to the single organization you select at sign-in, so there is no organization ID to guess or get wrong.
-- **Your existing permissions apply.** Every request carries your identity to Contrast, which enforces the same role-based access control as the web interface. If you cannot see something in Contrast, your agent cannot see it either.
+- **Your existing permissions apply.** Every request carries your identity to Contrast, which enforces the same role-based access control as the web interface. If you cannot see something in Contrast, your agent cannot see it either. Authorization is a runtime decision made on each request, not a one-time grant encoded in the token, so scoping an agent is the same exercise as scoping its user.
+- **Every tool call is audited.** Contrast records each request with a unique identifier, the tool invoked, the user, the organization, and the outcome, supporting incident reconstruction.
 - **No data storage.** The hosted server stores none of your data, and your token never appears in a tool response.
 
 The shared warning above still applies. Tool results become part of your AI conversation, so follow your organization's policy on what security data can be sent to your chosen AI client and model.
