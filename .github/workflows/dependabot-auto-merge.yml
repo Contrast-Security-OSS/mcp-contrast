@@ -15,6 +15,11 @@ name: Dependabot Auto-Approve and Merge
 # to GITHUB_TOKEN does not trigger further workflow runs, which may stop the post-merge
 # wiz-scan firing on an auto-merged bump. Migration is one create-github-app-token step
 # plus swapping the token references below. Tracked in mcp-vc50.
+#
+# The self-modification guard job below has no upstream counterpart, and does not need
+# one: upstream keeps its action pins in common-github-actions, so a consuming repo's
+# Dependabot cannot alter what runs inside the approving job. Vendoring put the pins and
+# the auto-merge in the same repository, which is what creates the loop the guard closes.
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -23,9 +28,53 @@ permissions:
   contents: read
 
 jobs:
+  # Dependabot proposes minor and patch bumps to this file's own action pins, and a
+  # pull_request run executes the PR branch's copy of this workflow. Without this gate
+  # the proposed action version would run with the write permissions the auto-merge job
+  # holds and could approve and merge itself. Deciding in a separate read-only job,
+  # ahead of every uses: step, means an untrusted action version never executes at all,
+  # rather than merely not being merged. Needs no checkout.
+  guard:
+    # Both conditions, deliberately. github.actor is whoever triggered this run, so it
+    # blocks a human push to a Dependabot branch; pull_request.user.login is the author.
+    # fetch-metadata validates commits[0] only, so author alone would let the job
+    # approve a branch whose tip is human-authored. Neither check replaces the other.
+    if: >-
+      github.actor == 'dependabot[bot]' &&
+      github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      self_modifying: ${{ steps.check.outputs.self_modifying }}
+
+    steps:
+      # Path is spelled out rather than derived, so a rename of this file must update
+      # it here too. gh is preinstalled on the runner, so this needs no action.
+      - name: Check whether the pull request modifies this workflow
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          if gh pr diff --name-only "$PR_URL" \
+            | grep -qx '.github/workflows/dependabot-auto-merge.yml'; then
+            echo "self_modifying=true" >> "$GITHUB_OUTPUT"
+            echo "Modifies the auto-merge workflow itself, needs human review."
+          else
+            echo "self_modifying=false" >> "$GITHUB_OUTPUT"
+          fi
+
   auto-merge:
-    # Dependabot-authored pull requests only. Everything else goes through review.
-    if: github.actor == 'dependabot[bot]'
+    needs: guard
+    # The actor and author checks are repeated from the guard job on purpose. This is
+    # the job that holds write permissions, so it should not depend on needs: guard
+    # surviving a future edit to stay gated.
+    if: >-
+      needs.guard.outputs.self_modifying == 'false' &&
+      github.actor == 'dependabot[bot]' &&
+      github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       # A Dependabot-triggered run gets a read-only GITHUB_TOKEN whatever the repo
