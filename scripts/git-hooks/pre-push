@@ -1,0 +1,216 @@
+#!/bin/bash
+# Pre-push hook to block changed-file coverage failures before review.
+
+set -euo pipefail
+
+readonly ZERO_SHA="0000000000000000000000000000000000000000"
+readonly DEFAULT_BASE_REF="origin/main"
+
+find_changed_base() {
+  local remote_name=$1
+  local local_ref=$2
+  local local_sha=$3
+  local remote_sha=$4
+  local merge_base
+
+  # The old remote tip scopes the gate to commits included in this push.
+  if [[ "$remote_sha" != "$ZERO_SHA" ]]; then
+    printf "%s\n" "$remote_sha"
+    return
+  fi
+
+  # Git does not record the upstream requested by `git push -u` until that push succeeds.
+  # Let the first push of a stacked branch name its parent explicitly.
+  if [[ -n "${COVERAGE_BASE_REF:-}" ]]; then
+    if ! git rev-parse --verify --quiet "$COVERAGE_BASE_REF" >/dev/null; then
+      printf "COVERAGE_BASE_REF=%s does not resolve to a commit.\n" "$COVERAGE_BASE_REF" >&2
+      return 1
+    fi
+    if merge_base=$(git merge-base "$local_sha" "$COVERAGE_BASE_REF"); then
+      printf "%s\n" "$merge_base"
+      return
+    fi
+    printf "COVERAGE_BASE_REF=%s has no common ancestor with %s.\n" \
+      "$COVERAGE_BASE_REF" "$local_ref" >&2
+    return 1
+  fi
+
+  # No remote tip yet. The pushed ref's own upstream comes first, so a stacked branch
+  # compares against its parent. A bare @{upstream} always resolves against the
+  # checked-out branch, which is the wrong branch on a multi-ref push, and git only
+  # accepts a branch short name in front of @{upstream} -- refs/heads/<name>@{upstream}
+  # does not resolve even when the branch has an upstream.
+  local upstream_ref=$local_ref
+  if [[ "$local_ref" == refs/heads/* ]]; then
+    upstream_ref=${local_ref#refs/heads/}
+  fi
+  if git rev-parse --verify --quiet "$upstream_ref@{upstream}" >/dev/null; then
+    if merge_base=$(git merge-base "$local_sha" "$upstream_ref@{upstream}"); then
+      printf "%s\n" "$merge_base"
+      return
+    fi
+  fi
+
+  # No upstream either, so fall back to main.
+  if git rev-parse --verify --quiet "$remote_name/main" >/dev/null; then
+    if merge_base=$(git merge-base "$local_sha" "$remote_name/main"); then
+      printf "%s\n" "$merge_base"
+      return
+    fi
+  fi
+
+  # With the default remote name this ref is the same one already tried above, so verify
+  # it rather than letting an unguarded merge-base abort the push under set -e.
+  if git rev-parse --verify --quiet "$DEFAULT_BASE_REF" >/dev/null; then
+    if merge_base=$(git merge-base "$local_sha" "$DEFAULT_BASE_REF"); then
+      printf "%s\n" "$merge_base"
+      return
+    fi
+  fi
+
+  printf "Could not determine a comparison base for %s; skipping changed-file coverage verification for that ref.\n" \
+    "$local_ref" >&2
+  printf "Tried the old remote tip, %s, %s and %s. Fetch the remote or set an upstream for the branch so the gate has something to diff against.\n" \
+    "$upstream_ref@{upstream}" "$remote_name/main" "$DEFAULT_BASE_REF" >&2
+  return 1
+}
+
+changed_java_files() {
+  local base_ref=$1
+  local head_ref=$2
+
+  # Committed files only, so unrelated work in progress cannot block a clean push.
+  git -c core.quotepath=false diff --name-only --diff-filter=ACMR \
+    "$base_ref...$head_ref" -- "*.java" | sort -u
+}
+
+warn_if_coverage_tree_is_dirty() {
+  local -a coverage_paths=(
+    "*.java"
+    "*.groovy"
+    "*.kt"
+    "*.gradle"
+    "*.gradle.kts"
+    "gradle.properties"
+    "settings.gradle"
+    "settings.gradle.kts"
+    "gradlew"
+    "gradlew.bat"
+    "gradle/wrapper/**"
+    "gradle/libs.versions.toml"
+    "lombok.config"
+    ":(glob)**/src/main/resources/**"
+    ":(glob)**/src/test/resources/**"
+  )
+
+  if ! git diff --quiet -- "${coverage_paths[@]}" ||
+    ! git diff --cached --quiet -- "${coverage_paths[@]}" ||
+    [[ -n "$(git ls-files --others --exclude-standard -- "${coverage_paths[@]}")" ]]; then
+    printf "WARNING: coverage-relevant working-tree files differ from the pushed commit.\n" >&2
+    printf "The local result describes the current source, build, and resource files; pull-request CI will verify the exact pushed commit from a clean checkout.\n" >&2
+  fi
+}
+
+perform_check() {
+  local msg=$1
+  shift
+
+  local output
+  printf "%s... " "$msg"
+  if ! output=$("$@" 2>&1); then
+    printf "FAILED\n"
+    printf "\n\n%s\n\n" "$output"
+    exit 1
+  fi
+
+  printf "PASSED\n"
+
+  # The gate also reports changed files it could not measure when it passes, so print
+  # the captured output rather than discarding it on the success path.
+  if [[ -n "$output" ]]; then
+    printf "\n%s\n" "$output"
+  fi
+}
+
+main() {
+  local remote_name=${1:-origin}
+  local local_ref local_sha remote_ref remote_sha
+  local base_ref changed_files head_sha
+  local -a local_refs=()
+  local -a local_shas=()
+  local -a remote_refs=()
+  local -a remote_shas=()
+
+  if [[ "${SKIP_COVERAGE_HOOK:-}" == "1" ]]; then
+    printf "SKIP_COVERAGE_HOOK=1 set; skipping changed-file coverage verification.\n" >&2
+    return
+  fi
+
+  # Git sends one line per ref on stdin: <local-ref> <local-sha> <remote-ref> <remote-sha>
+  # A zero local SHA is a delete-only push, which ships no code.
+  while read -r local_ref local_sha remote_ref remote_sha; do
+    if [[ -z "${local_ref:-}" || "$local_sha" == "$ZERO_SHA" ]]; then
+      continue
+    fi
+    local_refs+=("$local_ref")
+    local_shas+=("$local_sha")
+    remote_refs+=("$remote_ref")
+    remote_shas+=("$remote_sha")
+  done
+
+  # If every stdin row was a deletion, there are no pushed commits to analyze.
+  if (( ${#local_refs[@]} == 0 )); then
+    printf "No pushed commit refs; skipping changed-file coverage verification.\n"
+    return
+  fi
+
+  head_sha=$(git rev-parse HEAD)
+
+  for index in "${!local_refs[@]}"; do
+    local_ref=${local_refs[$index]}
+    local_sha=${local_shas[$index]}
+    remote_ref=${remote_refs[$index]}
+    remote_sha=${remote_shas[$index]}
+
+    # The gate reads a JaCoCo report produced by compiling and testing the working tree,
+    # and the changed-file resolver drops any path that is not a file on disk. Both are
+    # tied to the checked-out HEAD, so measuring any other pushed ref would score the
+    # surviving files against different code and silently drop the rest.
+    if [[ "$local_sha" != "$head_sha" ]]; then
+      printf "%s is not the checked-out HEAD, so its changed-file coverage was NOT measured.\n" \
+        "$local_ref" >&2
+      printf "Check that ref out and push it again to gate it locally, or let the pull request check in CI gate it.\n" >&2
+      continue
+    fi
+
+    if ! base_ref=$(find_changed_base "$remote_name" "$local_ref" "$local_sha" "$remote_sha"); then
+      continue
+    fi
+    changed_files=$(changed_java_files "$base_ref" "$local_sha")
+
+    # Gradle startup dominates this hook, so skip refs with no Java changes.
+    if [[ -z "$changed_files" ]]; then
+      printf "No changed Java files for %s; skipping changed-file coverage verification.\n" "$local_ref"
+      continue
+    fi
+
+    warn_if_coverage_tree_is_dirty
+
+    printf "Running changed-file coverage verification for %s -> %s against base %s.\n" \
+      "$local_ref" "$remote_ref" "$base_ref"
+
+    # Explicit base, because the gate has no ref of its own to diff against and the
+    # push-time base differs from the one CI uses. The head is the checked-out HEAD by
+    # the guard above, which is the only commit the working-tree report can describe.
+    # No percentage here: changedFileCoverageMinimum in build.gradle is the source of truth.
+    perform_check \
+      "checking changed Java files for line coverage" \
+      ./gradlew \
+      -q \
+      "-PstaticAnalysisChangedBase=$base_ref" \
+      "-PstaticAnalysisChangedHead=$local_sha" \
+      jacocoChangedFileCoverageVerification
+  done
+}
+
+main "$@"

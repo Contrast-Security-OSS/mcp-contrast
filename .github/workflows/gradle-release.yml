@@ -33,7 +33,7 @@ jobs:
           egress-policy: audit
 
       - name: Checkout code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.ref_name }}
           fetch-depth: 0
@@ -57,7 +57,7 @@ jobs:
         uses: gradle/actions/wrapper-validation@6550634d3eb14a20275549de1588a83267023d42 # v4
 
       - name: Set up JDK 21
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -203,7 +203,7 @@ jobs:
 
       - name: Set up JFrog CLI
         id: setup-jfrog-cli
-        uses: jfrog/setup-jfrog-cli@deda456d982fc5e9a7a020b63eb0d2968aedd33e # v5.1.0
+        uses: step-security/setup-jfrog-cli@53aeacb709fce45d0baf69a13ec3342f7e2d71a9 # v5.1.0
         env:
           JF_URL: ${{ vars.CONTRAST_JFROG_URL }}
         with:
@@ -270,7 +270,7 @@ jobs:
 
       - name: Extract metadata for Docker
         id: meta
-        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        uses: step-security/metadata-action@619b5adf759ed62ddd8c6d474364da38ea264eee # v6.1.0
         with:
           images: contrast/mcp-contrast
           tags: |

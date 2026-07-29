@@ -261,10 +261,7 @@ public class SDKHelper {
             .withUserAgentProduct(UserAgentProduct.of(MCP_SERVER_NAME, mcpVersion));
 
     if (StringUtils.hasText(httpProxyHost)) {
-      int port =
-          StringUtils.hasText(httpProxyPort)
-              ? Integer.parseInt(httpProxyPort)
-              : DEFAULT_HTTP_PROXY_PORT;
+      int port = resolveProxyPort(httpProxyPort);
       log.debug("Configuring HTTP proxy: {}:{}", httpProxyHost, port);
 
       var proxy =
@@ -275,6 +272,12 @@ public class SDKHelper {
     }
 
     return builder.build();
+  }
+
+  static int resolveProxyPort(String httpProxyPort) {
+    return StringUtils.hasText(httpProxyPort)
+        ? Integer.parseInt(httpProxyPort)
+        : DEFAULT_HTTP_PROXY_PORT;
   }
 
   /**

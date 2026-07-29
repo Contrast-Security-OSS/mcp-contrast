@@ -12,6 +12,17 @@ This project uses the **Gradle Release** GitHub Actions workflow. Release versio
 - Access to trigger GitHub Actions workflows
 - A green `main` branch
 
+## Pre-release Testing
+
+Before you cut a release, exercise the shipped tools against a live org. From a
+Claude Code session on the release branch, run `/test-mcp-server`. It builds the
+stdio jar fresh, wires that exact artifact into a separate headless Claude
+instance, and has that instance test every tool it discovers using credentials
+from `.env.integration-test`. Pass `smoke` for a fast is-it-alive pass or run it
+plain for in-depth exploratory testing. The run is read-only and prints a report
+for you to read. Treat it as a judgement aid, not an automatic gate. See
+`.claude/skills/test-mcp-server/` for details.
+
 ## Release Steps
 
 1. Ensure all desired changes are merged to `main`.
@@ -84,6 +95,8 @@ test -f contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar
 ```
 
 Then create a GitHub release for the tag and attach `contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar`. Note that these manual instructions do not publish to Artifactory, sign the Docker image, generate SBOMs, or create attestations. Use the workflow whenever possible.
+
+**Coverage gate:** `check` runs `jacocoTestCoverageVerification`, so a release aborts if either module falls below its floor in `ext.coverageMinimums`. Because releases only run from `main`, and the same task and floors already gated the commit in `build.yml`, this should not fire in practice. If it does, run `make coverage` locally for the per-module numbers, or read the `jacoco-coverage-reports` artifact from that commit's build run.
 
 ## Verify the Release
 

@@ -3,8 +3,9 @@ name: Java CI with Gradle
 on:
   push:
     branches: [ main, master ]
+  # Unfiltered on purpose: stacked PRs target a parent feature branch, and a base filter
+  # would skip them entirely, leaving the changed-file coverage gate unenforced.
   pull_request:
-    branches: [ main, master ]
 
 permissions:
   contents: read
@@ -19,15 +20,60 @@ jobs:
       with:
         egress-policy: audit
 
-    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        # Depth 1 fetches neither the PR base commit nor the merge base, which the
+        # changed-file coverage step needs.
+        fetch-depth: 0
+        # This job runs PR-authored build code and no step pushes.
+        persist-credentials: false
     - name: Validate Gradle wrapper
       uses: gradle/actions/wrapper-validation@6550634d3eb14a20275549de1588a83267023d42 # v6
 
     - name: Set up JDK 21
-      uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+      uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
       with:
         java-version: '21'
         distribution: 'temurin'
         cache: gradle
-    - name: Run checks, tests, and build
-      run: ./gradlew spotlessCheck checkstyleMain checkstyleTest test :contrast-mcp-stdio-app:bootJar --no-daemon
+    # buildSrc is a separate build, so the main build never schedules its tests, and the
+    # coverage gate's own logic lives there.
+    - name: Run buildSrc checks and tests
+      run: ./gradlew -p buildSrc check --no-daemon
+
+    # `test` is omitted deliberately: jacocoTestReport already pulls it in.
+    - name: Run checks, tests, coverage, and build
+      run: ./gradlew spotlessCheck checkstyleMain checkstyleTest jacocoTestCoverageVerification :contrast-mcp-stdio-app:bootJar --no-daemon
+
+    # Pull requests only. With no base the task falls back to the working tree, which is
+    # clean on a fresh checkout and would pass vacuously.
+    - name: Verify changed-file coverage
+      if: github.event_name == 'pull_request'
+      # Via env so no workflow expression is parsed as shell.
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      run: >-
+        ./gradlew jacocoChangedFileCoverageVerification
+        -PjacocoChangedBase="$BASE_SHA"
+        --no-daemon
+
+    # Runs even when the coverage floor fails, since that is exactly when the
+    # numbers and the HTML report are needed to diagnose the failure. coverageSummary
+    # only reads the reports the step above wrote, so this does not re-run the tests;
+    # if that step failed before producing them, the table says so per module. !cancelled()
+    # rather than always(), so cancelling the workflow actually stops it.
+    - name: Publish coverage summary
+      if: ${{ !cancelled() }}
+      run: ./gradlew --quiet coverageSummary --no-daemon >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Upload coverage reports
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: jacoco-coverage-reports
+        path: |
+          **/build/reports/jacoco/test/html/**
+          **/build/reports/jacoco/test/jacocoTestReport.xml
+        if-no-files-found: warn
+        # Diagnostic output for a failed run, not a durable artifact.
+        retention-days: 7

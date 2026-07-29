@@ -1,0 +1,164 @@
+// Spotless cannot come from the plugins block: its version lives in the root properties file,
+// which buildSrc does not inherit.
+buildscript {
+    def pins = new Properties()
+    file('../gradle.properties').withInputStream { pins.load(it) }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.diffplug.spotless:spotless-plugin-gradle:${pins.spotlessGradlePluginVersion}"
+    }
+}
+
+plugins {
+    id 'java-library'
+    id 'checkstyle'
+    id 'jacoco'
+}
+
+apply plugin: 'com.diffplug.spotless'
+
+// buildSrc does not inherit settings.gradle's dependencyResolutionManagement block.
+repositories {
+    mavenCentral()
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+// Gradle does not apply the repository's gradle.properties to buildSrc. Load it directly
+// rather than duplicating the pins, keeping one source of truth. See SECURITY.md.
+def rootProperties = new Properties()
+rootProject.file('../gradle.properties').withInputStream { rootProperties.load(it) }
+
+// Properties returns null for a missing key, which Groovy would carry into a dependency
+// coordinate and fail later as ":null" instead of here.
+def requiredRootProperty = { String key ->
+    def value = rootProperties.getProperty(key)
+    if (value == null || value.isBlank()) {
+        throw new GradleException("${key} is missing from the root gradle.properties.")
+    }
+    return value
+}
+
+dependencies {
+    testImplementation "org.junit.jupiter:junit-jupiter:${requiredRootProperty('junitVersion')}"
+    testImplementation "org.assertj:assertj-core:${requiredRootProperty('assertjVersion')}"
+    // Pinned rather than left to resolve transitively, so the soak policy can audit it. JUnit 6
+    // versions the platform and Jupiter artifacts together.
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher:${requiredRootProperty('junitVersion')}"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    finalizedBy tasks.named('jacocoTestReport')
+}
+
+jacoco {
+    toolVersion = requiredRootProperty('jacocoVersion')
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+// The changed-file gate only looks at each module's src/main/java, so it cannot measure the
+// code that implements it. Hence a floor here.
+def coverageStandardMinimum = new BigDecimal(requiredRootProperty('coverageStandardMinimum'))
+def coverageReportXml = layout.buildDirectory.file('reports/jacoco/test/jacocoTestReport.xml')
+def jacocoBundleCounterTotals = { File reportFile ->
+    def parser = new XmlSlurper()
+    parser.setFeature('http://apache.org/xml/features/disallow-doctype-decl', false)
+    parser.setFeature('http://apache.org/xml/features/nonvalidating/load-external-dtd', false)
+    parser.setFeature('http://xml.org/sax/features/external-general-entities', false)
+    parser.setFeature('http://xml.org/sax/features/external-parameter-entities', false)
+    parser.setFeature('http://xml.org/sax/features/validation', false)
+    parser.setFeature('http://javax.xml.XMLConstants/feature/secure-processing', true)
+    parser.parse(reportFile).counter.collectEntries {
+        [(it.@type.toString()): it.@missed.toInteger() + it.@covered.toInteger()]
+    }
+}
+tasks.named('jacocoTestCoverageVerification') {
+    dependsOn tasks.named('jacocoTestReport')
+
+    // JacocoReportBase otherwise skips when no execution data exists, and JaCoCo treats a
+    // missing counter as a non-violation. Either outcome would let the gate implementation pass
+    // without measuring it.
+    setOnlyIf { true }
+    doFirst {
+        if (executionData.files.every { !it.exists() }) {
+            throw new GradleException(
+                'No JaCoCo execution data for buildSrc; coverage was not measured. Run the test task before verifying.')
+        }
+        if (classDirectories.asFileTree.empty) {
+            throw new GradleException('No class files to measure for buildSrc.')
+        }
+
+        def report = coverageReportXml.get().asFile
+        if (!report.exists()) {
+            throw new GradleException(
+                "No JaCoCo XML report at ${report} for buildSrc. Run jacocoTestReport before verifying.")
+        }
+        def totals = jacocoBundleCounterTotals(report)
+        ['LINE', 'BRANCH'].each { counter ->
+            if (!totals[counter]) {
+                throw new GradleException(
+                    "JaCoCo counted no ${counter} positions for buildSrc, so its ${counter} floor enforced nothing.")
+            }
+        }
+    }
+
+    violationRules {
+        rule {
+            element = 'BUNDLE'
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = coverageStandardMinimum
+            }
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = coverageStandardMinimum
+            }
+        }
+    }
+}
+
+spotless {
+    java {
+        googleJavaFormat(requiredRootProperty('googleJavaFormatVersion'))
+            .reflowLongStrings()
+            .reorderImports(true)
+            .formatJavadoc(true)
+    }
+}
+
+checkstyle {
+    toolVersion = requiredRootProperty('checkstyleVersion')
+    configFile = rootProject.file('../checkstyle.xml')
+    configProperties = [
+        'checkstyle.suppressions.file': rootProject.file('../checkstyle-suppressions.xml').absolutePath
+    ]
+}
+
+tasks.withType(Checkstyle).configureEach {
+    inputs.file rootProject.file('../checkstyle-suppressions.xml')
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestCoverageVerification')
+}

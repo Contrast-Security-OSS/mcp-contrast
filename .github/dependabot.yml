@@ -1,20 +1,16 @@
 version: 2
+# Deliberately ungrouped. dependabot/fetch-metadata reports a single update-type
+# for a grouped PR, taken from the highest semver change in the group, so one
+# major bump made every minor and patch bump in that group ineligible for the
+# auto-merge workflow. One PR per bump means each is judged on its own change.
+# open-pull-requests-limit is raised past the default of 5 so ungrouping does not
+# throttle a weekly run to five bumps.
 updates:
   - package-ecosystem: "gradle"
     directory: "/"
     schedule:
       interval: "weekly"
-    groups:
-      dev-dependencies:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        dependency-type: development
-      production-dependencies:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        dependency-type: production
+    open-pull-requests-limit: 15
     cooldown:
       default-days: 7
 
@@ -22,17 +18,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    groups:
-      dev-dependencies:
-          applies-to: version-updates
-          patterns:
-              - '*'
-          dependency-type: development
-      production-dependencies:
-          applies-to: version-updates
-          patterns:
-              - '*'
-          dependency-type: production
+    open-pull-requests-limit: 10
     cooldown:
       default-days: 7
       include:
@@ -44,9 +30,5 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    groups:
-      docker-dependencies:
-        patterns:
-          - "*"
     cooldown:
       default-days: 7
