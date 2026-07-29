@@ -1,0 +1,38 @@
+#!/bin/bash
+# Pre-commit hook: format, test, and check staged Java files.
+# Mirrors the checks that CI runs, catching failures before they leave the machine.
+# Skip with: SKIP_PRECOMMIT=1 git commit
+
+set -euo pipefail
+
+if [[ "${SKIP_PRECOMMIT:-}" == "1" ]]; then
+  exit 0
+fi
+
+if ! git diff --cached --name-only | grep -q '\.java$'; then
+  exit 0
+fi
+
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+echo "Running formatter..."
+if ! ./gradlew spotlessApply 2>&1; then
+  echo ""
+  echo "Commit blocked: formatter failed."
+  exit 1
+fi
+git diff --name-only | grep '\.java$' | xargs -r git add
+
+echo "Running tests..."
+if ! ./gradlew test 2>&1; then
+  echo ""
+  echo "Commit blocked: fix test failures above before committing."
+  exit 1
+fi
+
+echo "Running Checkstyle..."
+if ! ./gradlew checkstyleMain checkstyleTest 2>&1; then
+  echo ""
+  echo "Commit blocked: fix Checkstyle violations above before committing."
+  exit 1
+fi

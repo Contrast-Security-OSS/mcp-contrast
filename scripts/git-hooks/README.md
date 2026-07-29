@@ -18,6 +18,10 @@ so. Merge the two by hand if both are wanted.
 
 ## Installed hooks
 
+* `pre-commit` runs when staged files include `.java`. It applies Spotless formatting
+  (re-staging any reformatted files), runs unit tests, and runs Checkstyle. Skips entirely
+  when no Java files are staged. Set `SKIP_PRECOMMIT=1` to bypass.
+
 * `pre-push` runs `jacocoChangedFileCoverageVerification`, which fails when a changed
   `src/main/java` file has less than the line coverage required by
   `changedFileCoverageMinimum` in the root `build.gradle`.
