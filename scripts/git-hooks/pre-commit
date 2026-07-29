@@ -5,10 +5,6 @@
 
 set -euo pipefail
 
-if [[ "${SKIP_PRECOMMIT:-}" == "1" ]]; then
-  exit 0
-fi
-
 if ! git diff --cached --name-only | grep -q '\.java$'; then
   exit 0
 fi
