@@ -20,7 +20,7 @@ so. Merge the two by hand if both are wanted.
 
 * `pre-commit` runs when staged files include `.java`. It applies Spotless formatting
   (re-staging any reformatted files), runs unit tests, and runs Checkstyle. Skips entirely
-  when no Java files are staged. Use `git commit --no-verify` to bypass.
+  when no Java files are staged.
 
 * `pre-push` runs `jacocoChangedFileCoverageVerification`, which fails when a changed
   `src/main/java` file has less than the line coverage required by
