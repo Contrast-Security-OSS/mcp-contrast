@@ -31,20 +31,20 @@ class PaginatedToolResponseTest {
 
     assertThat(response.items()).containsExactly("item1");
     assertThat(response.errors()).isEmpty();
-    assertThat(response.warnings()).isEmpty();
+    assertThat(response.notices()).isEmpty();
     assertThat(response.isSuccess()).isTrue();
     assertThat(response.durationMs()).isEqualTo(100L);
   }
 
   @Test
-  void success_should_includeWarnings() {
+  void success_should_includeNotices() {
     var response =
         PaginatedToolResponse.success(
             List.of("item1"), 1, 50, 1, false, List.of("Applied default status"), 100L);
 
     assertThat(response.items()).containsExactly("item1");
     assertThat(response.errors()).isEmpty();
-    assertThat(response.warnings()).containsExactly("Applied default status");
+    assertThat(response.notices()).containsExactly("Applied default status");
     assertThat(response.isSuccess()).isTrue();
   }
 
@@ -59,7 +59,7 @@ class PaginatedToolResponseTest {
     assertThat(response.items()).isEmpty();
     assertThat(response.errors())
         .containsExactly("Invalid severity: CRIT", "Invalid status: UNKNOWN");
-    assertThat(response.warnings()).isEmpty();
+    assertThat(response.notices()).isEmpty();
     assertThat(response.isSuccess()).isFalse();
     assertThat(response.totalItems()).isEqualTo(0);
     assertThat(response.durationMs()).isNull();
@@ -73,7 +73,7 @@ class PaginatedToolResponseTest {
 
     assertThat(response.items()).isEmpty();
     assertThat(response.errors()).containsExactly("Page 2 exceeds available pages");
-    assertThat(response.warnings()).isEmpty();
+    assertThat(response.notices()).isEmpty();
     assertThat(response.isSuccess()).isFalse();
     assertThat(response.page()).isEqualTo(2);
     assertThat(response.pageSize()).isEqualTo(25);
@@ -82,12 +82,12 @@ class PaginatedToolResponseTest {
   // ========== empty() factory method tests ==========
 
   @Test
-  void empty_should_createEmptyResponseWithWarning() {
+  void empty_should_createEmptyResponseWithNotice() {
     var response = PaginatedToolResponse.empty(1, 50, "No items found.");
 
     assertThat(response.items()).isEmpty();
     assertThat(response.errors()).isEmpty();
-    assertThat(response.warnings()).containsExactly("No items found.");
+    assertThat(response.notices()).containsExactly("No items found.");
     assertThat(response.isSuccess()).isTrue();
   }
 
@@ -126,10 +126,10 @@ class PaginatedToolResponseTest {
   }
 
   @Test
-  void compactConstructor_should_ensureNonNullLists_whenWarningsNull() {
+  void compactConstructor_should_ensureNonNullLists_whenNoticesNull() {
     var response = new PaginatedToolResponse<>(List.of(), 1, 50, 0, false, List.of(), null, null);
 
-    assertThat(response.warnings()).isNotNull().isEmpty();
+    assertThat(response.notices()).isNotNull().isEmpty();
   }
 
   @Test

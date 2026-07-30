@@ -22,9 +22,9 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Server;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.library.params.ListApplicationsByCveParams;
 import java.time.Duration;
 import java.time.Instant;
@@ -89,7 +89,7 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
   }
 
   @Override
-  protected CveData doExecute(ListApplicationsByCveParams params, WarningCollector collector)
+  protected CveData doExecute(ListApplicationsByCveParams params, NoticeCollector collector)
       throws Exception {
 
     log.debug("Retrieving applications vulnerable to CVE: {}", params.cveId());
@@ -106,7 +106,7 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
     var apps = cveData.getApps() != null ? cveData.getApps() : Collections.<App>emptyList();
 
     if (apps.isEmpty()) {
-      collector.warn(
+      collector.notice(
           "No applications found with this CVE. "
               + "The CVE may not affect any libraries in your organization, "
               + "or the CVE ID may be invalid.");
@@ -149,7 +149,7 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
   }
 
   private void enrichAppsWithClassUsage(
-      List<App> apps, List<Library> vulnerableLibs, WarningCollector collector) {
+      List<App> apps, List<Library> vulnerableLibs, NoticeCollector collector) {
 
     for (App app : apps) {
       collector.tryRun(

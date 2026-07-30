@@ -156,7 +156,7 @@ class SearchApplicationsToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
     assertThat(result.pageSize()).isEqualTo(100);
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .contains(
             "Requested pageSize 1000 exceeds maximum 100, capped to 100",
             "No results found matching the specified criteria.");

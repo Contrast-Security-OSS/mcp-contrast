@@ -18,9 +18,9 @@ package com.contrast.labs.ai.mcp.contrast.tool.attack;
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.tool.attack.params.GetProtectRulesParams;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.ai.chat.model.ToolContext;
@@ -80,7 +80,7 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
   }
 
   @Override
-  protected ProtectData doExecute(GetProtectRulesParams params, WarningCollector collector)
+  protected ProtectData doExecute(GetProtectRulesParams params, NoticeCollector collector)
       throws Exception {
     var protectData = contrastApiClient.getProtectRules(params.appId());
 
@@ -90,7 +90,7 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
 
     var ruleCount = Optional.ofNullable(protectData.getRules()).map(List::size).orElse(0);
     if (ruleCount == 0) {
-      collector.warn("Application has Protect enabled but no rules are configured.");
+      collector.notice("Application has Protect enabled but no rules are configured.");
     }
 
     return protectData;

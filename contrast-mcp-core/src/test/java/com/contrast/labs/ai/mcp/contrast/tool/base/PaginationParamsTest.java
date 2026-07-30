@@ -30,7 +30,7 @@ class PaginationParamsTest {
     assertThat(params.pageSize()).isEqualTo(50);
     assertThat(params.offset()).isEqualTo(0);
     assertThat(params.limit()).isEqualTo(50);
-    assertThat(params.warnings()).isEmpty();
+    assertThat(params.notices()).isEmpty();
     assertThat(params.isValid()).isTrue();
   }
 
@@ -42,7 +42,7 @@ class PaginationParamsTest {
     assertThat(params.pageSize()).isEqualTo(25);
     assertThat(params.offset()).isEqualTo(50); // (3-1) * 25
     assertThat(params.limit()).isEqualTo(25);
-    assertThat(params.warnings()).isEmpty();
+    assertThat(params.notices()).isEmpty();
     assertThat(params.isValid()).isTrue();
   }
 
@@ -54,8 +54,8 @@ class PaginationParamsTest {
     assertThat(params.pageSize()).isEqualTo(50);
     assertThat(params.offset()).isEqualTo(0);
     assertThat(params.isValid()).isTrue(); // Always valid with soft failures
-    assertThat(params.warnings().size()).isEqualTo(1);
-    assertThat(params.warnings().get(0)).contains("Invalid page number -5");
+    assertThat(params.notices().size()).isEqualTo(1);
+    assertThat(params.notices().get(0)).contains("Invalid page number -5");
   }
 
   @Test
@@ -66,8 +66,8 @@ class PaginationParamsTest {
     assertThat(params.pageSize()).isEqualTo(50);
     assertThat(params.offset()).isEqualTo(0);
     assertThat(params.isValid()).isTrue();
-    assertThat(params.warnings().size()).isEqualTo(1);
-    assertThat(params.warnings().get(0)).contains("Invalid page number 0");
+    assertThat(params.notices().size()).isEqualTo(1);
+    assertThat(params.notices().get(0)).contains("Invalid page number 0");
   }
 
   @Test
@@ -78,8 +78,8 @@ class PaginationParamsTest {
     assertThat(params.pageSize()).isEqualTo(50); // Clamped to default 50
     assertThat(params.offset()).isEqualTo(0);
     assertThat(params.isValid()).isTrue();
-    assertThat(params.warnings().size()).isEqualTo(1);
-    assertThat(params.warnings().get(0)).contains("Invalid pageSize -10");
+    assertThat(params.notices().size()).isEqualTo(1);
+    assertThat(params.notices().get(0)).contains("Invalid pageSize -10");
   }
 
   @Test
@@ -90,8 +90,8 @@ class PaginationParamsTest {
     assertThat(params.pageSize()).isEqualTo(50); // Clamped to default 50
     assertThat(params.offset()).isEqualTo(0);
     assertThat(params.isValid()).isTrue();
-    assertThat(params.warnings().size()).isEqualTo(1);
-    assertThat(params.warnings().get(0)).contains("Invalid pageSize 0");
+    assertThat(params.notices().size()).isEqualTo(1);
+    assertThat(params.notices().get(0)).contains("Invalid pageSize 0");
   }
 
   @Test
@@ -102,21 +102,21 @@ class PaginationParamsTest {
     assertThat(params.pageSize()).isEqualTo(100); // Capped to 100
     assertThat(params.offset()).isEqualTo(0);
     assertThat(params.isValid()).isTrue();
-    assertThat(params.warnings().size()).isEqualTo(1);
-    assertThat(params.warnings().get(0)).contains("Requested pageSize 200 exceeds maximum 100");
+    assertThat(params.notices().size()).isEqualTo(1);
+    assertThat(params.notices().get(0)).contains("Requested pageSize 200 exceeds maximum 100");
   }
 
   @Test
-  void testMultipleValidationWarnings() {
+  void testMultipleValidationNotices() {
     var params = PaginationParams.of(-5, 200);
 
     assertThat(params.page()).isEqualTo(1); // Clamped to 1
     assertThat(params.pageSize()).isEqualTo(100); // Capped to 100
     assertThat(params.offset()).isEqualTo(0);
     assertThat(params.isValid()).isTrue();
-    assertThat(params.warnings().size()).isEqualTo(2);
-    assertThat(params.warnings().get(0)).contains("Invalid page number -5");
-    assertThat(params.warnings().get(1)).contains("Requested pageSize 200 exceeds maximum 100");
+    assertThat(params.notices().size()).isEqualTo(2);
+    assertThat(params.notices().get(0)).contains("Invalid page number -5");
+    assertThat(params.notices().get(1)).contains("Requested pageSize 200 exceeds maximum 100");
   }
 
   @Test
@@ -147,27 +147,27 @@ class PaginationParamsTest {
     // Min valid
     var pMin = PaginationParams.of(1, 1);
     assertThat(pMin.pageSize()).isEqualTo(1);
-    assertThat(pMin.warnings()).isEmpty();
+    assertThat(pMin.notices()).isEmpty();
 
     // Max valid
     var pMax = PaginationParams.of(1, 100);
     assertThat(pMax.pageSize()).isEqualTo(100);
-    assertThat(pMax.warnings()).isEmpty();
+    assertThat(pMax.notices()).isEmpty();
 
     // Just over max
     var pOver = PaginationParams.of(1, 101);
     assertThat(pOver.pageSize()).isEqualTo(100);
-    assertThat(pOver.warnings().size()).isEqualTo(1);
+    assertThat(pOver.notices().size()).isEqualTo(1);
   }
 
   @Test
-  void testWarningsAreImmutable() {
+  void testNoticesAreImmutable() {
     var params = PaginationParams.of(-1, 200);
 
     // Should throw UnsupportedOperationException
     assertThatThrownBy(
             () -> {
-              params.warnings().add("This should fail");
+              params.notices().add("This should fail");
             })
         .isInstanceOf(UnsupportedOperationException.class);
   }
@@ -179,8 +179,8 @@ class PaginationParamsTest {
 
     assertThat(params.page()).isEqualTo(1);
     assertThat(params.pageSize()).isEqualTo(50); // Capped to custom max 50
-    assertThat(params.warnings()).hasSize(1);
-    assertThat(params.warnings().get(0)).contains("Requested pageSize 100 exceeds maximum 50");
+    assertThat(params.notices()).hasSize(1);
+    assertThat(params.notices().get(0)).contains("Requested pageSize 100 exceeds maximum 50");
   }
 
   @Test
@@ -190,7 +190,7 @@ class PaginationParamsTest {
 
     assertThat(params.page()).isEqualTo(1);
     assertThat(params.pageSize()).isEqualTo(30);
-    assertThat(params.warnings()).isEmpty();
+    assertThat(params.notices()).isEmpty();
   }
 
   @Test
@@ -200,6 +200,6 @@ class PaginationParamsTest {
 
     assertThat(params.page()).isEqualTo(1);
     assertThat(params.pageSize()).isEqualTo(50);
-    assertThat(params.warnings()).isEmpty();
+    assertThat(params.notices()).isEmpty();
   }
 }

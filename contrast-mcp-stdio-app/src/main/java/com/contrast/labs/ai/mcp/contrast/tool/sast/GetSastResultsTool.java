@@ -16,8 +16,8 @@
 package com.contrast.labs.ai.mcp.contrast.tool.sast;
 
 import com.contrast.labs.ai.mcp.contrast.tool.base.LocalSdkSingleTool;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.sast.params.GetSastResultsParams;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -44,7 +44,7 @@ public class GetSastResultsTool extends LocalSdkSingleTool<GetSastResultsParams,
           """
           DEPRECATED: Takes a scan project name and returns the latest results in SARIF format.
 
-          WARNING: This tool returns raw SARIF JSON which is often very large (megabytes) and
+          NOTICE: This tool returns raw SARIF JSON which is often very large (megabytes) and
           may exceed AI context limits. Consider using future paginated SAST search tools instead.
 
           Returns the complete SARIF 2.1.0 JSON document including:
@@ -69,13 +69,13 @@ public class GetSastResultsTool extends LocalSdkSingleTool<GetSastResultsParams,
   }
 
   @Override
-  protected String doExecute(GetSastResultsParams params, WarningCollector collector)
+  protected String doExecute(GetSastResultsParams params, NoticeCollector collector)
       throws Exception {
     var sdk = getContrastSDK();
     var orgId = getOrgId();
 
-    // Add deprecation warning at start - shown on every call regardless of success/failure
-    collector.warn(
+    // Add deprecation notice at start - shown on every call regardless of success/failure
+    collector.notice(
         "DEPRECATED: This tool returns raw SARIF which may be very large. "
             + "Consider using future paginated SAST search tools for better AI-friendly access.");
 
@@ -95,7 +95,7 @@ public class GetSastResultsTool extends LocalSdkSingleTool<GetSastResultsParams,
 
     // Check if project has any completed scans
     if (project.lastScanId() == null) {
-      collector.warn(
+      collector.notice(
           String.format(
               "No scan results available for project: %s. "
                   + "Project exists but has no completed scans.",
@@ -109,7 +109,7 @@ public class GetSastResultsTool extends LocalSdkSingleTool<GetSastResultsParams,
 
     var scan = scans.get(project.lastScanId());
     if (scan == null) {
-      collector.warn("No scan results available for project: " + params.projectName());
+      collector.notice("No scan results available for project: " + params.projectName());
       return null;
     }
     log.debug("Retrieved scan with id: {}", project.lastScanId());

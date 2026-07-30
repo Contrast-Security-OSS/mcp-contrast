@@ -107,7 +107,7 @@ class ListApplicationLibrariesLocalParityTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
     assertThat(result.totalItems()).isEqualTo(0);
-    assertThat(result.warnings()).anyMatch(w -> w.contains("No libraries found"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("No libraries found"));
   }
 
   @Test
@@ -126,7 +126,7 @@ class ListApplicationLibrariesLocalParityTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("No libraries found"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("No libraries found"));
   }
 
   @Test
@@ -244,7 +244,7 @@ class ListApplicationLibrariesLocalParityTest {
     assertThat(result.items()).hasSize(50);
     assertThat(result.totalItems()).isEqualTo(200);
     assertThat(result.pageSize()).isEqualTo(50); // Response shows effective (capped) amount
-    assertThat(result.warnings()).anyMatch(w -> w.contains("exceeds maximum 50"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("exceeds maximum 50"));
   }
 
   private List<LibraryExtended> createMockLibraries(int count) {

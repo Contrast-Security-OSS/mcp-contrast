@@ -59,7 +59,7 @@ class RouteCoverageParamsTest {
 
     assertThat(params.isValid()).isTrue();
     assertThat(params.errors()).isEmpty();
-    assertThat(params.warnings()).isEmpty();
+    assertThat(params.notices()).isEmpty();
     assertThat(params.appId()).isEqualTo(VALID_APP_ID);
     assertThat(params.sessionMetadataName()).isNull();
     assertThat(params.sessionMetadataValue()).isNull();
@@ -169,7 +169,7 @@ class RouteCoverageParamsTest {
 
     assertThat(params.isValid()).isTrue(); // Valid but with warning
     assertThat(params.errors()).isEmpty();
-    assertThat(params.warnings()).anyMatch(w -> w.contains("useLatestSession takes precedence"));
+    assertThat(params.notices()).anyMatch(w -> w.contains("useLatestSession takes precedence"));
   }
 
   @Test
@@ -178,7 +178,7 @@ class RouteCoverageParamsTest {
         RouteCoverageParams.of(VALID_APP_ID, VALID_METADATA_NAME, VALID_METADATA_VALUE, false);
 
     assertThat(params.isValid()).isTrue();
-    assertThat(params.warnings()).isEmpty();
+    assertThat(params.notices()).isEmpty();
   }
 
   @Test
@@ -187,7 +187,7 @@ class RouteCoverageParamsTest {
         RouteCoverageParams.of(VALID_APP_ID, VALID_METADATA_NAME, VALID_METADATA_VALUE, null);
 
     assertThat(params.isValid()).isTrue();
-    assertThat(params.warnings()).isEmpty();
+    assertThat(params.notices()).isEmpty();
   }
 
   // ========== Multiple validation errors ==========

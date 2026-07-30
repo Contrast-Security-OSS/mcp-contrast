@@ -399,7 +399,7 @@ class SearchApplicationsToolIT extends AbstractIntegrationTest<SearchApplication
   @Test
   void searchApplications_should_default_page_and_pageSize_when_null() {
     // Null page/pageSize must route through PaginationParams defaults — page=1, pageSize=50
-    // — with no clamp warnings. A change to the default contract would surface here.
+    // — with no clamp notices. A change to the default contract would surface here.
     var response = searchApplicationsTool.searchApplications(null, null, null, null, null);
 
     assertThat(response.isSuccess()).as("defaults must not fail validation").isTrue();
@@ -407,8 +407,8 @@ class SearchApplicationsToolIT extends AbstractIntegrationTest<SearchApplication
     assertThat(response.pageSize())
         .as("null pageSize must default to %d", DEFAULT_PAGE_SIZE)
         .isEqualTo(DEFAULT_PAGE_SIZE);
-    assertThat(response.warnings())
-        .as("defaults must not produce pagination-clamp warnings")
+    assertThat(response.notices())
+        .as("defaults must not produce pagination-clamp notices")
         .noneMatch(w -> w.contains("Invalid page"))
         .noneMatch(w -> w.contains("Invalid pageSize"))
         .noneMatch(w -> w.contains("exceeds maximum"));
@@ -421,7 +421,7 @@ class SearchApplicationsToolIT extends AbstractIntegrationTest<SearchApplication
 
     assertThat(response.isSuccess()).as("page=0 must soft-fail and continue").isTrue();
     assertThat(response.page()).as("page=0 must be clamped to 1").isEqualTo(1);
-    assertThat(response.warnings())
+    assertThat(response.notices())
         .as("clamping must emit an 'Invalid page number' warning")
         .anyMatch(w -> w.contains("Invalid page number 0"));
   }
@@ -435,7 +435,7 @@ class SearchApplicationsToolIT extends AbstractIntegrationTest<SearchApplication
     assertThat(response.pageSize())
         .as("pageSize=0 must fall back to default %d", DEFAULT_PAGE_SIZE)
         .isEqualTo(DEFAULT_PAGE_SIZE);
-    assertThat(response.warnings())
+    assertThat(response.notices())
         .as("clamping must emit an 'Invalid pageSize' warning")
         .anyMatch(w -> w.contains("Invalid pageSize 0"));
   }
@@ -451,7 +451,7 @@ class SearchApplicationsToolIT extends AbstractIntegrationTest<SearchApplication
     assertThat(response.pageSize())
         .as("pageSize must be capped to MAX_PAGE_SIZE=%d", MAX_PAGE_SIZE)
         .isEqualTo(MAX_PAGE_SIZE);
-    assertThat(response.warnings())
+    assertThat(response.notices())
         .as("clamping must emit an 'exceeds maximum' warning citing the cap")
         .anyMatch(w -> w.contains("exceeds maximum") && w.contains(String.valueOf(MAX_PAGE_SIZE)));
   }

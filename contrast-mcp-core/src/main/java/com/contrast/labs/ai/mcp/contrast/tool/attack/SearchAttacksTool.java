@@ -19,10 +19,10 @@ import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.result.AttackSummary;
 import com.contrast.labs.ai.mcp.contrast.tool.attack.params.AttackFilterParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
@@ -173,7 +173,7 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
 
   @Override
   protected ExecutionResult<AttackSummary> doExecute(
-      PaginationParams pagination, AttackFilterParams params, WarningCollector collector)
+      PaginationParams pagination, AttackFilterParams params, NoticeCollector collector)
       throws Exception {
 
     var filterBody = params.toAttacksFilterBody();
@@ -182,7 +182,7 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
             filterBody, pagination.limit(), pagination.offset(), params.getSort());
 
     if (attacksResponse == null || attacksResponse.getAttacks() == null) {
-      collector.warn("API returned no attack data. Verify permissions and filters.");
+      collector.notice("API returned no attack data. Verify permissions and filters.");
       return ExecutionResult.empty();
     }
 

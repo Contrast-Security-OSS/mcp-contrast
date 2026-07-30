@@ -159,7 +159,7 @@ class SearchServersToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.pageSize()).isEqualTo(100);
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .contains("Requested pageSize 250 exceeds maximum 100, capped to 100");
     verify(contrastApiClient, never())
         .searchServers(any(), eq(250), anyInt(), anyString(), anyBoolean());
@@ -174,7 +174,7 @@ class SearchServersToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.pageSize()).isEqualTo(100);
-    assertThat(result.warnings()).noneMatch(warning -> warning.contains("pageSize"));
+    assertThat(result.notices()).noneMatch(notice -> notice.contains("pageSize"));
     verify(contrastApiClient).searchServers(any(), eq(100), eq(0), anyString(), eq(false));
   }
 
@@ -187,7 +187,7 @@ class SearchServersToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.pageSize()).isEqualTo(50);
-    assertThat(result.warnings()).contains("Invalid pageSize 0, using default 50");
+    assertThat(result.notices()).contains("Invalid pageSize 0, using default 50");
     verify(contrastApiClient).searchServers(any(), eq(50), eq(0), anyString(), eq(false));
   }
 
@@ -225,7 +225,7 @@ class SearchServersToolTest {
     assertThat(result.items()).isEmpty();
     assertThat(result.totalItems()).isZero();
     assertThat(result.errors()).isEmpty();
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .containsExactly("No results found matching the specified criteria.");
   }
 
@@ -250,7 +250,7 @@ class SearchServersToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
     assertThat(result.totalItems()).isZero();
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .containsExactly("No results found matching the specified criteria.");
   }
 

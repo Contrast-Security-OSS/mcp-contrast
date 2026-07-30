@@ -296,7 +296,7 @@ public class GetRouteCoverageToolIT
     assertThat(response.isSuccess())
         .as("query should succeed — useLatestSession path takes precedence")
         .isTrue();
-    assertThat(response.warnings())
+    assertThat(response.notices())
         .as("must warn that the metadata filter is silently superseded by useLatestSession")
         .contains(MUTUALLY_EXCLUSIVE_FILTERS_WARNING);
   }

@@ -295,7 +295,7 @@ public class GetSessionMetadataToolIT
     assertThat(result.errors())
         .as("unknown appId must not be surfaced as a generic 5xx Contrast API error")
         .noneMatch(e -> e.contains(CONTRAST_API_ERROR));
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .as("error path must not also emit the no-metadata warning")
         .noneMatch(w -> w.contains(NO_METADATA_WARNING_FRAGMENT));
   }

@@ -158,11 +158,11 @@ class GetSastResultsToolIT {
     var response = getSastResultsTool.getScanResults(testProjectName);
 
     assertThat(response.isSuccess())
-        .as("query must succeed before warnings are inspected (single deterministic outcome)")
+        .as("query must succeed before notices are inspected (single deterministic outcome)")
         .isTrue();
     // Assert the verbatim message — substring "DEPRECATED" matches any rewording, including
     // garbage text that happens to contain the token, which would not actually warn AI consumers.
-    assertThat(response.warnings())
+    assertThat(response.notices())
         .as("response must contain the verbatim deprecation warning")
         .contains(DEPRECATION_WARNING);
   }
@@ -223,9 +223,9 @@ class GetSastResultsToolIT {
     assertThat(response.data()).as("notFound must not carry data").isNull();
     assertThat(response.errors()).as("notFound must not surface as an error").isEmpty();
     // Deprecation warning is added before the project lookup, so it must still be emitted on
-    // the notFound path. A regression that short-circuited warnings on null doExecute would
+    // the notFound path. A regression that short-circuited notices on null doExecute would
     // surface here.
-    assertThat(response.warnings())
+    assertThat(response.notices())
         .as("deprecation warning must still be emitted for missing projects")
         .contains(DEPRECATION_WARNING);
   }

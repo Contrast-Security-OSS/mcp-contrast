@@ -19,10 +19,10 @@ import java.util.List;
 
 /**
  * Generic paginated response wrapper for all list-returning MCP tools. Provides consistent
- * pagination metadata, error/warning separation, and timing across all endpoints.
+ * pagination metadata, error/notice separation, and timing across all endpoints.
  *
  * <p>AI agents can use {@link #isSuccess()} to determine if the request succeeded, and examine
- * {@link #errors()} for actionable problems vs {@link #warnings()} for informational messages.
+ * {@link #errors()} for actionable problems vs {@link #notices()} for informational messages.
  *
  * @param <T> The type of items in the paginated response
  * @param items The data for the current page (never null, empty list if no results)
@@ -31,7 +31,8 @@ import java.util.List;
  * @param totalItems Total count across all pages (null if unavailable or expensive to compute)
  * @param hasMorePages true if additional pages exist beyond this page
  * @param errors Validation or execution errors (empty if success) - actionable problems
- * @param warnings Non-fatal warnings (e.g., applied defaults, empty results) - informational
+ * @param notices Informational notices: applied defaults, failed optional enrichments, empty-result
+ *     explanations, interpretation facts
  * @param durationMs Execution duration in milliseconds (null for validation errors)
  */
 public record PaginatedToolResponse<T>(
@@ -41,14 +42,14 @@ public record PaginatedToolResponse<T>(
     Integer totalItems,
     boolean hasMorePages,
     List<String> errors,
-    List<String> warnings,
+    List<String> notices,
     Long durationMs) {
 
   /** Compact constructor ensures non-null, immutable lists. */
   public PaginatedToolResponse {
     items = items != null ? List.copyOf(items) : List.of();
     errors = errors != null ? List.copyOf(errors) : List.of();
-    warnings = warnings != null ? List.copyOf(warnings) : List.of();
+    notices = notices != null ? List.copyOf(notices) : List.of();
   }
 
   /**
@@ -61,14 +62,14 @@ public record PaginatedToolResponse<T>(
   }
 
   /**
-   * Creates a successful response with items and optional warnings.
+   * Creates a successful response with items and optional notices.
    *
    * @param items the response items
    * @param page page number (1-based)
    * @param pageSize items per page
    * @param totalItems total count (null if unavailable)
    * @param hasMorePages true if more pages exist
-   * @param warnings non-fatal warnings
+   * @param notices informational notices
    * @param durationMs execution time in milliseconds
    * @param <T> item type
    * @return successful paginated response
@@ -79,10 +80,10 @@ public record PaginatedToolResponse<T>(
       int pageSize,
       Integer totalItems,
       boolean hasMorePages,
-      List<String> warnings,
+      List<String> notices,
       Long durationMs) {
     return new PaginatedToolResponse<>(
-        items, page, pageSize, totalItems, hasMorePages, List.of(), warnings, durationMs);
+        items, page, pageSize, totalItems, hasMorePages, List.of(), notices, durationMs);
   }
 
   /**
@@ -101,17 +102,17 @@ public record PaginatedToolResponse<T>(
   }
 
   /**
-   * Creates an empty paginated response with a warning message.
+   * Creates an empty paginated response with a notice message.
    *
    * @param page page number (1-based)
    * @param pageSize items per page
-   * @param warningMessage informational message about empty results
+   * @param noticeMessage informational message about empty results
    * @param <T> item type
-   * @return empty response with warning
+   * @return empty response with notice
    */
-  public static <T> PaginatedToolResponse<T> empty(int page, int pageSize, String warningMessage) {
+  public static <T> PaginatedToolResponse<T> empty(int page, int pageSize, String noticeMessage) {
     return new PaginatedToolResponse<>(
-        List.of(), page, pageSize, 0, false, List.of(), List.of(warningMessage), null);
+        List.of(), page, pageSize, 0, false, List.of(), List.of(noticeMessage), null);
   }
 
   /**

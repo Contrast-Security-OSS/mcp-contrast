@@ -55,7 +55,7 @@ public class EnumSetSpec<E extends Enum<E>> {
    * Sets a default value to use when the parameter is null or blank.
    *
    * @param val the default EnumSet value
-   * @param reason explanation for AI feedback (added as warning when default is used)
+   * @param reason explanation for AI feedback (added as a notice when default is used)
    * @return this for fluent chaining
    */
   public EnumSetSpec<E> defaultTo(EnumSet<E> val, String reason) {
@@ -74,7 +74,7 @@ public class EnumSetSpec<E extends Enum<E>> {
 
     if (items == null) {
       if (defaultValue != null) {
-        ctx.addWarning(defaultReason);
+        ctx.addNotice(defaultReason);
         return EnumSet.copyOf(defaultValue);
       }
       return null;

@@ -30,17 +30,17 @@ import org.springframework.util.StringUtils;
  * @param cursor opaque continuation token, or null for the first page
  * @param pageSize validated page size
  * @param limit same as pageSize, for downstream client clarity
- * @param warnings validation warnings
+ * @param notices validation notices
  */
 public record CursorPaginationParams(
-    @Nullable String cursor, int pageSize, int limit, List<String> warnings) {
+    @Nullable String cursor, int pageSize, int limit, List<String> notices) {
 
   private static final String CURSOR_PRESENT = "present";
   private static final String CURSOR_ABSENT = "absent";
 
   public CursorPaginationParams {
     cursor = StringUtils.hasText(cursor) ? cursor : null;
-    warnings = warnings != null ? List.copyOf(warnings) : List.of();
+    notices = notices != null ? List.copyOf(notices) : List.of();
   }
 
   /**
@@ -64,26 +64,26 @@ public record CursorPaginationParams(
    */
   public static CursorPaginationParams of(
       @Nullable String cursor, @Nullable Integer pageSize, int maxPageSize) {
-    List<String> warnings = new ArrayList<>();
+    List<String> notices = new ArrayList<>();
     int defaultSize = Math.min(DEFAULT_PAGE_SIZE, maxPageSize);
     int actualSize = pageSize != null && pageSize > 0 ? pageSize : defaultSize;
 
     if (pageSize != null && pageSize < 1) {
-      warnings.add(String.format("Invalid pageSize %d, using default %d", pageSize, defaultSize));
+      notices.add(String.format("Invalid pageSize %d, using default %d", pageSize, defaultSize));
       actualSize = defaultSize;
     } else if (pageSize != null && pageSize > maxPageSize) {
-      warnings.add(
+      notices.add(
           String.format(
               "Requested pageSize %d exceeds maximum %d, capped to %d",
               pageSize, maxPageSize, maxPageSize));
       actualSize = maxPageSize;
     }
 
-    return new CursorPaginationParams(cursor, actualSize, actualSize, warnings);
+    return new CursorPaginationParams(cursor, actualSize, actualSize, notices);
   }
 
   /**
-   * Cursor pagination uses soft validation only; invalid page sizes are corrected with warnings.
+   * Cursor pagination uses soft validation only; invalid page sizes are corrected with notices.
    *
    * @return true always
    */

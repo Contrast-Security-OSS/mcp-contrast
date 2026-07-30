@@ -34,7 +34,7 @@ class CursorToolResponseTest {
     assertThat(response.nextCursor()).isEqualTo("next-opaque-token");
     assertThat(response.hasMore()).isTrue();
     assertThat(response.errors()).isEmpty();
-    assertThat(response.warnings()).isEmpty();
+    assertThat(response.notices()).isEmpty();
     assertThat(response.durationMs()).isEqualTo(10L);
     assertThat(response.isSuccess()).isTrue();
   }
@@ -61,7 +61,7 @@ class CursorToolResponseTest {
     assertThat(response.nextCursor()).isNull();
     assertThat(response.hasMore()).isFalse();
     assertThat(response.errors()).containsExactly("Invalid cursor");
-    assertThat(response.warnings()).isEmpty();
+    assertThat(response.notices()).isEmpty();
   }
 
   @Test
@@ -85,7 +85,7 @@ class CursorToolResponseTest {
 
     assertThat(componentNames)
         .containsExactly(
-            "items", "pageSize", "nextCursor", "hasMore", "errors", "warnings", "durationMs")
+            "items", "pageSize", "nextCursor", "hasMore", "errors", "notices", "durationMs")
         .doesNotContain("page", "offset", "totalPages", "totalItems", "hasMorePages");
   }
 }

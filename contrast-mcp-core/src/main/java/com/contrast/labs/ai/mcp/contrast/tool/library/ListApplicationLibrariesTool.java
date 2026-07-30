@@ -18,10 +18,10 @@ package com.contrast.labs.ai.mcp.contrast.tool.library;
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.library.params.ListApplicationLibrariesParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants;
 import java.util.List;
@@ -97,9 +97,7 @@ public class ListApplicationLibrariesTool
 
   @Override
   protected ExecutionResult<LibraryExtended> doExecute(
-      PaginationParams pagination,
-      ListApplicationLibrariesParams params,
-      WarningCollector collector)
+      PaginationParams pagination, ListApplicationLibrariesParams params, NoticeCollector collector)
       throws Exception {
 
     log.debug("Retrieving libraries for application: {}", params.appId());
@@ -113,7 +111,7 @@ public class ListApplicationLibrariesTool
 
     if (libraries == null || libraries.isEmpty()) {
       if (pagination.offset() == 0 && total == 0) {
-        collector.warnForEmptyResults(
+        collector.noticeForEmptyResults(
             "No libraries found for this application. "
                 + "The application may not have any third-party dependencies, "
                 + "or library data may not have been collected yet.");

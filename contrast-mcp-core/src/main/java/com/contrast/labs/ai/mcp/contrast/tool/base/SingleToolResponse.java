@@ -19,22 +19,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Response wrapper for non-paginated tools (get_* tools). Separates errors from warnings like
+ * Response wrapper for non-paginated tools (get_* tools). Separates errors from notices like
  * PaginatedToolResponse.
  *
  * @param <T> the type of data in the response
  * @param data the response data (null if not found or error)
  * @param errors validation or execution errors (empty if success)
- * @param warnings non-fatal warnings (e.g., applied defaults)
+ * @param notices Informational notices: applied defaults, failed optional enrichments, empty-result
+ *     explanations, interpretation facts
  * @param found true if the requested item was found, false if not found or error
  */
 public record SingleToolResponse<T>(
-    T data, List<String> errors, List<String> warnings, boolean found) {
+    T data, List<String> errors, List<String> notices, boolean found) {
 
-  /** Compact constructor ensures non-null, immutable error and warning lists. */
+  /** Compact constructor ensures non-null, immutable error and notice lists. */
   public SingleToolResponse {
     errors = errors != null ? List.copyOf(errors) : List.of();
-    warnings = warnings != null ? List.copyOf(warnings) : List.of();
+    notices = notices != null ? List.copyOf(notices) : List.of();
   }
 
   /**
@@ -47,19 +48,19 @@ public record SingleToolResponse<T>(
   }
 
   /**
-   * Creates a successful response with data and warnings.
+   * Creates a successful response with data and notices.
    *
    * @param data the response data
-   * @param warnings non-fatal warnings
+   * @param notices informational notices
    * @param <T> the data type
    * @return successful response
    */
-  public static <T> SingleToolResponse<T> success(T data, List<String> warnings) {
-    return new SingleToolResponse<>(data, List.of(), warnings, true);
+  public static <T> SingleToolResponse<T> success(T data, List<String> notices) {
+    return new SingleToolResponse<>(data, List.of(), notices, true);
   }
 
   /**
-   * Creates a successful response with data and no warnings.
+   * Creates a successful response with data and no notices.
    *
    * @param data the response data
    * @param <T> the data type
@@ -70,17 +71,17 @@ public record SingleToolResponse<T>(
   }
 
   /**
-   * Creates a not-found response. The message is added to warnings to inform the AI.
+   * Creates a not-found response. The message is added to notices to inform the AI.
    *
    * @param message description of what was not found
-   * @param warnings existing warnings to include
+   * @param notices existing notices to include
    * @param <T> the data type
    * @return not-found response with found=false
    */
-  public static <T> SingleToolResponse<T> notFound(String message, List<String> warnings) {
-    var allWarnings = new ArrayList<>(warnings != null ? warnings : List.of());
-    allWarnings.add(message);
-    return new SingleToolResponse<>(null, List.of(), allWarnings, false);
+  public static <T> SingleToolResponse<T> notFound(String message, List<String> notices) {
+    var allNotices = new ArrayList<>(notices != null ? notices : List.of());
+    allNotices.add(message);
+    return new SingleToolResponse<>(null, List.of(), allNotices, false);
   }
 
   /**

@@ -91,7 +91,7 @@ class GetSessionMetadataToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
-    assertThat(result.warnings()).contains("No session metadata found for this application.");
+    assertThat(result.notices()).contains("No session metadata found for this application.");
   }
 
   @Test

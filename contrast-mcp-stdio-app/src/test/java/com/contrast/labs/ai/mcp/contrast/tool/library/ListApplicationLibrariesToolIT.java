@@ -163,7 +163,7 @@ class ListApplicationLibrariesToolIT
   @Test
   void listApplicationLibraries_should_default_page_and_pageSize_when_null() {
     // Null page/pageSize must route through PaginationParams defaults — page=1, pageSize=50 —
-    // with no pagination warnings. A change to the default contract would surface here.
+    // with no pagination notices. A change to the default contract would surface here.
     var result = tool.listApplicationLibraries(null, null, testData.appId);
 
     assertThat(result.isSuccess()).as("defaults must not fail validation").isTrue();
@@ -171,8 +171,8 @@ class ListApplicationLibrariesToolIT
     assertThat(result.pageSize())
         .as("null pageSize must default to %d", DEFAULT_PAGE_SIZE)
         .isEqualTo(DEFAULT_PAGE_SIZE);
-    assertThat(result.warnings())
-        .as("defaults must not produce pagination-clamp warnings")
+    assertThat(result.notices())
+        .as("defaults must not produce pagination-clamp notices")
         .noneMatch(w -> w.contains("Invalid page"))
         .noneMatch(w -> w.contains("Invalid pageSize"))
         .noneMatch(w -> w.contains("exceeds maximum"));
@@ -184,7 +184,7 @@ class ListApplicationLibrariesToolIT
     // payload. The specific HTTP status (403 vs 404) and mapped message are environment-dependent
     // (TeamServer deliberately conflates "unknown" with "forbidden" for enumeration defence), so
     // we assert the tool-contract shape: errors present, no items, no total, no more pages, and
-    // no warnings mixed in with the error.
+    // no notices mixed in with the error.
     var result = tool.listApplicationLibraries(null, null, "invalid-app-id-12345");
 
     assertThat(result.isSuccess())
@@ -197,7 +197,7 @@ class ListApplicationLibrariesToolIT
     assertThat(result.items()).as("error response must carry no items").isEmpty();
     assertThat(result.totalItems()).as("error response must report zero total").isZero();
     assertThat(result.hasMorePages()).as("error response must not claim more pages").isFalse();
-    assertThat(result.warnings()).as("error response must not mix in warnings").isEmpty();
+    assertThat(result.notices()).as("error response must not mix in notices").isEmpty();
   }
 
   @Test
@@ -329,7 +329,7 @@ class ListApplicationLibrariesToolIT
 
     assertThat(result.isSuccess()).as("page=0 must soft-fail and continue").isTrue();
     assertThat(result.page()).as("page=0 must be clamped to 1").isEqualTo(1);
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .as("clamping must emit an 'Invalid page number' warning")
         .anyMatch(w -> w.contains("Invalid page number 0"));
   }
@@ -344,7 +344,7 @@ class ListApplicationLibrariesToolIT
     assertThat(result.pageSize())
         .as("pageSize must be capped to API_MAX_PAGE_SIZE=%d", API_MAX_PAGE_SIZE)
         .isEqualTo(API_MAX_PAGE_SIZE);
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .as("clamping must emit an 'exceeds maximum' warning citing the cap")
         .anyMatch(
             w -> w.contains("exceeds maximum") && w.contains(String.valueOf(API_MAX_PAGE_SIZE)));
@@ -359,7 +359,7 @@ class ListApplicationLibrariesToolIT
     assertThat(result.pageSize())
         .as("pageSize=0 must fall back to default %d", DEFAULT_PAGE_SIZE)
         .isEqualTo(DEFAULT_PAGE_SIZE);
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .as("clamping must emit an 'Invalid pageSize' warning")
         .anyMatch(w -> w.contains("Invalid pageSize 0"));
   }

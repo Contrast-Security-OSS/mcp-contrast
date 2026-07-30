@@ -193,7 +193,7 @@ class GetRouteCoverageToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.found()).isFalse();
-    assertThat(result.warnings()).contains("Session metadata not available for this application");
+    assertThat(result.notices()).contains("Session metadata not available for this application");
     verify(contrastApiClient, never()).getRouteCoverage(any(), any());
   }
 

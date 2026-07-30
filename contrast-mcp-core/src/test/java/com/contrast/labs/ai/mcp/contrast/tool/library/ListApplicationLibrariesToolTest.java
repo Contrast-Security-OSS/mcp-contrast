@@ -121,7 +121,7 @@ class ListApplicationLibrariesToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
     assertThat(result.totalItems()).isEqualTo(0);
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .containsExactly(
             "No libraries found for this application. "
                 + "The application may not have any third-party dependencies, "
@@ -141,7 +141,7 @@ class ListApplicationLibrariesToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
     assertThat(result.totalItems()).isEqualTo(5);
-    assertThat(result.warnings()).isEmpty();
+    assertThat(result.notices()).isEmpty();
   }
 
   @Test
@@ -156,7 +156,7 @@ class ListApplicationLibrariesToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.pageSize()).isEqualTo(50);
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .contains("Requested pageSize 100 exceeds maximum 50, capped to 50");
     verify(contrastApiClient, never()).getLibraryPage(eq(APP_ID), eq(100), anyInt());
   }

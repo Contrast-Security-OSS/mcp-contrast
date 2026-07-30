@@ -56,10 +56,10 @@ class GetSastProjectParamsTest {
   }
 
   @Test
-  void of_should_have_no_warnings_for_valid_input() {
+  void of_should_have_no_notices_for_valid_input() {
     var params = GetSastProjectParams.of("valid-project-name");
 
     assertThat(params.isValid()).isTrue();
-    assertThat(params.warnings()).isEmpty();
+    assertThat(params.notices()).isEmpty();
   }
 }

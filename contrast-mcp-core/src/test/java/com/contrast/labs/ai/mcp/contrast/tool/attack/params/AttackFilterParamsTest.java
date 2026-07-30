@@ -34,7 +34,7 @@ class AttackFilterParamsTest {
     assertThat(params.errors()).isEmpty();
     assertThat(params.getQuickFilter()).isEqualTo("ALL");
     assertThat(params.getIncludeSuppressed()).isFalse();
-    assertThat(params.warnings())
+    assertThat(params.notices())
         .anyMatch(w -> w.contains("No quickFilter applied"))
         .anyMatch(w -> w.contains("Excluding suppressed attacks by default"));
   }
@@ -106,7 +106,7 @@ class AttackFilterParamsTest {
     assertThat(params.getIncludeBotBlockers()).isFalse();
     assertThat(params.getIncludeIpBlacklist()).isTrue();
     // When includeSuppressed is explicitly set, no default warning
-    assertThat(params.warnings()).noneMatch(w -> w.contains("Excluding suppressed"));
+    assertThat(params.notices()).noneMatch(w -> w.contains("Excluding suppressed"));
   }
 
   @Nested

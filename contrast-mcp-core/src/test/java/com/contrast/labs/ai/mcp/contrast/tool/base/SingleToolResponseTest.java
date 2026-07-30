@@ -25,13 +25,13 @@ import org.junit.jupiter.api.Test;
 class SingleToolResponseTest {
 
   @Test
-  void success_should_create_response_with_data_and_warnings() {
-    var warnings = List.of("warning1", "warning2");
+  void success_should_create_response_with_data_and_notices() {
+    var notices = List.of("warning1", "warning2");
 
-    var response = SingleToolResponse.success("data", warnings);
+    var response = SingleToolResponse.success("data", notices);
 
     assertThat(response.data()).isEqualTo("data");
-    assertThat(response.warnings()).containsExactly("warning1", "warning2");
+    assertThat(response.notices()).containsExactly("warning1", "warning2");
     assertThat(response.errors()).isEmpty();
     assertThat(response.found()).isTrue();
     assertThat(response.isSuccess()).isTrue();
@@ -42,38 +42,38 @@ class SingleToolResponseTest {
     var response = SingleToolResponse.success("data");
 
     assertThat(response.data()).isEqualTo("data");
-    assertThat(response.warnings()).isEmpty();
+    assertThat(response.notices()).isEmpty();
     assertThat(response.errors()).isEmpty();
     assertThat(response.found()).isTrue();
     assertThat(response.isSuccess()).isTrue();
   }
 
   @Test
-  void notFound_should_create_response_with_message_in_warnings() {
-    var existingWarnings = List.of("existing");
+  void notFound_should_create_response_with_message_in_notices() {
+    var existingNotices = List.of("existing");
 
-    var response = SingleToolResponse.<String>notFound("Item not found", existingWarnings);
+    var response = SingleToolResponse.<String>notFound("Item not found", existingNotices);
 
     assertThat(response.data()).isNull();
-    assertThat(response.warnings()).containsExactly("existing", "Item not found");
+    assertThat(response.notices()).containsExactly("existing", "Item not found");
     assertThat(response.errors()).isEmpty();
     assertThat(response.found()).isFalse();
     assertThat(response.isSuccess()).isTrue(); // No errors = success
   }
 
   @Test
-  void notFound_should_work_with_empty_warnings() {
+  void notFound_should_work_with_empty_notices() {
     var response = SingleToolResponse.<String>notFound("Not found", List.of());
 
-    assertThat(response.warnings()).containsExactly("Not found");
+    assertThat(response.notices()).containsExactly("Not found");
     assertThat(response.found()).isFalse();
   }
 
   @Test
-  void notFound_should_handle_null_warnings() {
+  void notFound_should_handle_null_notices() {
     var response = SingleToolResponse.<String>notFound("Not found", null);
 
-    assertThat(response.warnings()).containsExactly("Not found");
+    assertThat(response.notices()).containsExactly("Not found");
     assertThat(response.found()).isFalse();
     assertThat(response.isSuccess()).isTrue();
   }
@@ -84,7 +84,7 @@ class SingleToolResponseTest {
 
     assertThat(response.data()).isNull();
     assertThat(response.errors()).containsExactly("Something went wrong");
-    assertThat(response.warnings()).isEmpty();
+    assertThat(response.notices()).isEmpty();
     assertThat(response.found()).isFalse();
     assertThat(response.isSuccess()).isFalse();
   }
@@ -97,7 +97,7 @@ class SingleToolResponseTest {
 
     assertThat(response.data()).isNull();
     assertThat(response.errors()).containsExactly("error1", "error2");
-    assertThat(response.warnings()).isEmpty();
+    assertThat(response.notices()).isEmpty();
     assertThat(response.found()).isFalse();
     assertThat(response.isSuccess()).isFalse();
   }
@@ -107,15 +107,15 @@ class SingleToolResponseTest {
     var response = new SingleToolResponse<>("data", null, List.of("warn"), true);
 
     assertThat(response.errors()).isEmpty();
-    assertThat(response.warnings()).containsExactly("warn");
+    assertThat(response.notices()).containsExactly("warn");
   }
 
   @Test
-  void constructor_should_handle_null_warnings() {
+  void constructor_should_handle_null_notices() {
     var response = new SingleToolResponse<>("data", List.of("err"), null, true);
 
     assertThat(response.errors()).containsExactly("err");
-    assertThat(response.warnings()).isEmpty();
+    assertThat(response.notices()).isEmpty();
   }
 
   @Test
@@ -127,10 +127,10 @@ class SingleToolResponseTest {
   }
 
   @Test
-  void warnings_should_be_immutable() {
+  void notices_should_be_immutable() {
     var response = SingleToolResponse.success("data", List.of("warning"));
 
-    assertThatThrownBy(() -> response.warnings().add("new warning"))
+    assertThatThrownBy(() -> response.notices().add("new warning"))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 
@@ -145,13 +145,13 @@ class SingleToolResponseTest {
   }
 
   @Test
-  void warnings_should_be_defensive_copy() {
-    var mutableWarnings = new ArrayList<>(List.of("warning1"));
-    var response = new SingleToolResponse<>("data", List.of(), mutableWarnings, true);
+  void notices_should_be_defensive_copy() {
+    var mutableNotices = new ArrayList<>(List.of("warning1"));
+    var response = new SingleToolResponse<>("data", List.of(), mutableNotices, true);
 
-    mutableWarnings.add("warning2");
+    mutableNotices.add("warning2");
 
-    assertThat(response.warnings()).containsExactly("warning1");
+    assertThat(response.notices()).containsExactly("warning1");
   }
 
   @Test

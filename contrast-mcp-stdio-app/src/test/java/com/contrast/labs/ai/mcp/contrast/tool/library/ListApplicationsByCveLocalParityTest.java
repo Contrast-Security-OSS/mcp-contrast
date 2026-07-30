@@ -123,7 +123,7 @@ class ListApplicationsByCveLocalParityTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.data()).isNotNull();
     assertThat(result.data().getApps()).isEmpty();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("No applications found"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("No applications found"));
   }
 
   @Test
@@ -138,7 +138,7 @@ class ListApplicationsByCveLocalParityTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.data()).isNotNull();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("No applications found"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("No applications found"));
   }
 
   @Test
@@ -192,7 +192,7 @@ class ListApplicationsByCveLocalParityTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
-    assertThat(result.warnings()).anyMatch(w -> w.toLowerCase().contains("not found"));
+    assertThat(result.notices()).anyMatch(w -> w.toLowerCase().contains("not found"));
   }
 
   @Test
@@ -228,8 +228,8 @@ class ListApplicationsByCveLocalParityTest {
     var result = tool.listApplicationsByCve(TEST_CVE_ID);
 
     assertThat(result.isSuccess()).isTrue();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("(retrieval error)"));
-    assertThat(result.warnings()).noneMatch(w -> w.contains(secretMessage));
+    assertThat(result.notices()).anyMatch(w -> w.contains("(retrieval error)"));
+    assertThat(result.notices()).noneMatch(w -> w.contains(secretMessage));
   }
 
   private CveData createMockCveDataWithApps() {
