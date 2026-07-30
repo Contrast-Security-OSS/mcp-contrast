@@ -50,9 +50,24 @@ class ResponseEnvelopeSerializationTest {
     assertNoticesWireShape(response);
   }
 
+  @Test
+  void responseEnvelopes_should_serialize_empty_notices_arrays() throws Exception {
+    assertEmptyNoticesWireShape(
+        PaginatedToolResponse.success(List.of("item"), 1, 50, 1, false, List.of(), 1L));
+    assertEmptyNoticesWireShape(SingleToolResponse.success("item", List.of()));
+    assertEmptyNoticesWireShape(
+        CursorToolResponse.success(List.of("item"), 50, null, false, List.of(), 1L));
+  }
+
   private void assertNoticesWireShape(Object response) throws Exception {
     var json = objectMapper.writeValueAsString(response);
 
     assertThat(json).contains("\"notices\":[").doesNotContain("\"warnings\"");
+  }
+
+  private void assertEmptyNoticesWireShape(Object response) throws Exception {
+    var json = objectMapper.writeValueAsString(response);
+
+    assertThat(json).contains("\"notices\":[]").doesNotContain("\"warnings\"");
   }
 }
