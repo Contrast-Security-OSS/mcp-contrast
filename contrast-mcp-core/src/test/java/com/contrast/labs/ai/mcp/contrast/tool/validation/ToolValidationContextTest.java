@@ -318,7 +318,7 @@ class ToolValidationContextTest {
   // -- noticeIf tests --
 
   @Test
-  void warnIf_should_add_warning_when_condition_true() {
+  void noticeIf_should_add_notice_when_condition_true() {
     ctx.noticeIf(true, "This is a warning");
 
     assertThat(ctx.isValid()).isTrue();
@@ -326,7 +326,7 @@ class ToolValidationContextTest {
   }
 
   @Test
-  void warnIf_should_not_add_warning_when_condition_false() {
+  void noticeIf_should_not_add_notice_when_condition_false() {
     ctx.noticeIf(false, "This is a warning");
 
     assertThat(ctx.notices()).isEmpty();
