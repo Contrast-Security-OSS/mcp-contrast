@@ -324,19 +324,19 @@ class ListApplicationLibrariesToolIT
 
   @Test
   void listApplicationLibraries_should_clamp_page_below_one() {
-    // PaginationParams treats page < 1 as a soft failure: clamp to 1 and emit a warning.
+    // PaginationParams treats page < 1 as a soft failure: clamp to 1 and emit a notice.
     var result = tool.listApplicationLibraries(0, PAGINATION_PROBE_SIZE, testData.appId);
 
     assertThat(result.isSuccess()).as("page=0 must soft-fail and continue").isTrue();
     assertThat(result.page()).as("page=0 must be clamped to 1").isEqualTo(1);
     assertThat(result.notices())
-        .as("clamping must emit an 'Invalid page number' warning")
+        .as("clamping must emit an 'Invalid page number' notice")
         .anyMatch(w -> w.contains("Invalid page number 0"));
   }
 
   @Test
   void listApplicationLibraries_should_clamp_oversized_pageSize() {
-    // Tool-specific max is API_MAX_PAGE_SIZE (50). Requests above must be capped with a warning.
+    // Tool-specific max is API_MAX_PAGE_SIZE (50). Requests above must be capped with a notice.
     int oversized = API_MAX_PAGE_SIZE * 4;
     var result = tool.listApplicationLibraries(1, oversized, testData.appId);
 
@@ -345,14 +345,14 @@ class ListApplicationLibrariesToolIT
         .as("pageSize must be capped to API_MAX_PAGE_SIZE=%d", API_MAX_PAGE_SIZE)
         .isEqualTo(API_MAX_PAGE_SIZE);
     assertThat(result.notices())
-        .as("clamping must emit an 'exceeds maximum' warning citing the cap")
+        .as("clamping must emit an 'exceeds maximum' notice citing the cap")
         .anyMatch(
             w -> w.contains("exceeds maximum") && w.contains(String.valueOf(API_MAX_PAGE_SIZE)));
   }
 
   @Test
   void listApplicationLibraries_should_clamp_non_positive_pageSize() {
-    // pageSize < 1 must be replaced with DEFAULT_PAGE_SIZE and a warning emitted.
+    // pageSize < 1 must be replaced with DEFAULT_PAGE_SIZE and a notice emitted.
     var result = tool.listApplicationLibraries(1, 0, testData.appId);
 
     assertThat(result.isSuccess()).as("pageSize=0 must soft-fail and continue").isTrue();
@@ -360,7 +360,7 @@ class ListApplicationLibrariesToolIT
         .as("pageSize=0 must fall back to default %d", DEFAULT_PAGE_SIZE)
         .isEqualTo(DEFAULT_PAGE_SIZE);
     assertThat(result.notices())
-        .as("clamping must emit an 'Invalid pageSize' warning")
+        .as("clamping must emit an 'Invalid pageSize' notice")
         .anyMatch(w -> w.contains("Invalid pageSize 0"));
   }
 

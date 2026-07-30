@@ -166,7 +166,7 @@ class SearchServersToolTest {
   }
 
   @Test
-  void searchServers_should_accept_maximum_page_size_without_cap_warning() throws Exception {
+  void searchServers_should_accept_maximum_page_size_without_cap_notice() throws Exception {
     when(contrastApiClient.searchServers(any(), eq(100), eq(0), anyString(), eq(false)))
         .thenReturn(response(1L, server(1L, "server-1")));
 
@@ -212,7 +212,7 @@ class SearchServersToolTest {
   }
 
   @Test
-  void searchServers_should_return_standard_warning_for_valid_empty_tag_filter_result()
+  void searchServers_should_return_standard_notice_for_valid_empty_tag_filter_result()
       throws Exception {
     var response = response(0L);
     when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
@@ -241,7 +241,7 @@ class SearchServersToolTest {
   }
 
   @Test
-  void searchServers_should_return_standard_warning_for_valid_empty_result() throws Exception {
+  void searchServers_should_return_standard_notice_for_valid_empty_result() throws Exception {
     when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
         .thenReturn(response(0L));
 

@@ -9,7 +9,7 @@ To support this, the envelope's informational tier is renamed from `warnings` to
 ## Considered options
 
 - A third `notes` tier beside `errors` and `warnings`. Rejected. Agents behave identically on a warning and a note, and an earlier consolidation had already merged the informational tiers once.
-- Keeping the `warnings` name to avoid a breaking wire change. Rejected while the rename window is open. The field was nearly unused, and it is about to become the primary teaching channel, so the name will never be cheaper to fix than now.
+- Keeping the `warnings` name to avoid a breaking wire change. Rejected while the rename window was open. The field was nearly unused, and the planned point-of-use teaching would make it the primary teaching channel, so the name would never be cheaper to fix.
 - Alternative names `messages` (collides with chat message arrays in LLM contexts), `advisories` (reads as security advisories in an appsec product), `info` (log-level connotation). `notices` fits both teaching notes and degradation reports.
 
 ## Consequences

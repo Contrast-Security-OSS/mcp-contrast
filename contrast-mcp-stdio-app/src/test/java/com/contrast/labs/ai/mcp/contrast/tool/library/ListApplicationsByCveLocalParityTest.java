@@ -215,7 +215,7 @@ class ListApplicationsByCveLocalParityTest {
   }
 
   @Test
-  void listApplicationsByCve_should_not_leak_exception_message_in_warning_when_enrichment_fails()
+  void listApplicationsByCve_should_not_leak_exception_message_in_notice_when_enrichment_fails()
       throws IOException {
     var mockCveData = createMockCveDataWithApps();
     var secretMessage = "secret internal path /api/ng/ORG_ID/APP_ID/libs";

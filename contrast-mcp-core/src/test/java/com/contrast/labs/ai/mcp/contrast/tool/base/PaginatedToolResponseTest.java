@@ -103,7 +103,7 @@ class PaginatedToolResponseTest {
   @Test
   void isSuccess_should_returnTrueWhenNoErrors() {
     var response =
-        PaginatedToolResponse.success(List.of(), 1, 50, 0, false, List.of("warning"), null);
+        PaginatedToolResponse.success(List.of(), 1, 50, 0, false, List.of("notice"), null);
 
     assertThat(response.isSuccess()).isTrue();
   }

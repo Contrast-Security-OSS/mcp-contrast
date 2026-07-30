@@ -101,7 +101,7 @@ class GetSastResultsToolTest {
   }
 
   @Test
-  void getScanResults_should_include_deprecation_warning() throws IOException {
+  void getScanResults_should_include_deprecation_notice() throws IOException {
     var sarifJson = "{\"version\":\"2.1.0\",\"runs\":[]}";
 
     var mockProject =

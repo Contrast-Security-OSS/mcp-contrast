@@ -55,9 +55,9 @@ class ToolValidationContextTest {
 
   @Test
   void notices_should_return_immutable_list() {
-    ctx.noticeIf(true, "A warning");
+    ctx.noticeIf(true, "A notice");
 
-    assertThatThrownBy(() -> ctx.notices().add("new warning"))
+    assertThatThrownBy(() -> ctx.notices().add("new notice"))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 
@@ -319,15 +319,15 @@ class ToolValidationContextTest {
 
   @Test
   void noticeIf_should_add_notice_when_condition_true() {
-    ctx.noticeIf(true, "This is a warning");
+    ctx.noticeIf(true, "This is a notice");
 
     assertThat(ctx.isValid()).isTrue();
-    assertThat(ctx.notices()).containsExactly("This is a warning");
+    assertThat(ctx.notices()).containsExactly("This is a notice");
   }
 
   @Test
   void noticeIf_should_not_add_notice_when_condition_false() {
-    ctx.noticeIf(false, "This is a warning");
+    ctx.noticeIf(false, "This is a notice");
 
     assertThat(ctx.notices()).isEmpty();
   }
@@ -355,7 +355,7 @@ class ToolValidationContextTest {
 
   @Test
   void should_collect_both_errors_and_notices() {
-    ctx.noticeIf(true, "A warning");
+    ctx.noticeIf(true, "A notice");
     ctx.require(null, "appId");
 
     assertThat(ctx.isValid()).isFalse();

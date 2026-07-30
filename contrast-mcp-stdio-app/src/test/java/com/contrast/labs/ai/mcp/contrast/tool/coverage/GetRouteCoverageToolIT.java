@@ -63,10 +63,10 @@ public class GetRouteCoverageToolIT
   private static final String METADATA_NAME_REQUIRED_ERROR =
       "sessionMetadataName is required when sessionMetadataValue is provided";
 
-  // Mutually-exclusive-filter warning emitted by RouteCoverageParams when both useLatestSession and
+  // Mutually-exclusive-filter notice emitted by RouteCoverageParams when both useLatestSession and
   // session metadata filters are supplied together. The tool's contract documents that
   // useLatestSession takes precedence — this test verifies the user is told.
-  private static final String MUTUALLY_EXCLUSIVE_FILTERS_WARNING =
+  private static final String MUTUALLY_EXCLUSIVE_FILTERS_NOTICE =
       "Both useLatestSession and sessionMetadataName provided - "
           + "useLatestSession takes precedence and sessionMetadata filter will be ignored";
 
@@ -282,9 +282,9 @@ public class GetRouteCoverageToolIT
   }
 
   @Test
-  void getRouteCoverage_should_emit_warning_when_both_filters_provided() {
+  void getRouteCoverage_should_emit_notice_when_both_filters_provided() {
     // Tool contract: useLatestSession takes precedence over session metadata. The tool must
-    // surface this precedence to the caller via a warning so silent filter loss is impossible.
+    // surface this precedence to the caller via a notice so silent filter loss is impossible.
     assertThat(testData.hasSessionMetadata)
         .as("requires seeded session metadata on app %s — see INTEGRATION_TESTS.md", testData.appId)
         .isTrue();
@@ -298,7 +298,7 @@ public class GetRouteCoverageToolIT
         .isTrue();
     assertThat(response.notices())
         .as("must warn that the metadata filter is silently superseded by useLatestSession")
-        .contains(MUTUALLY_EXCLUSIVE_FILTERS_WARNING);
+        .contains(MUTUALLY_EXCLUSIVE_FILTERS_NOTICE);
   }
 
   // ========== Successful query tests ==========

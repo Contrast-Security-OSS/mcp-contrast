@@ -160,14 +160,14 @@ class RouteCoverageParamsTest {
     assertThat(params.isUseLatestSession()).isFalse();
   }
 
-  // ========== Mutual exclusivity warning ==========
+  // ========== Mutual exclusivity notice ==========
 
   @Test
   void of_should_warn_when_both_useLatestSession_and_metadata_provided() {
     var params =
         RouteCoverageParams.of(VALID_APP_ID, VALID_METADATA_NAME, VALID_METADATA_VALUE, true);
 
-    assertThat(params.isValid()).isTrue(); // Valid but with warning
+    assertThat(params.isValid()).isTrue(); // Valid but with notice
     assertThat(params.errors()).isEmpty();
     assertThat(params.notices()).anyMatch(w -> w.contains("useLatestSession takes precedence"));
   }

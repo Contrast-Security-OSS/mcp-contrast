@@ -212,7 +212,7 @@ class CursorPaginatedToolTest {
   }
 
   @Test
-  void executePipeline_should_add_empty_results_warning() {
+  void executePipeline_should_add_empty_results_notice() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> CursorExecutionResult.of(List.of(), null, false));
 
@@ -225,7 +225,7 @@ class CursorPaginatedToolTest {
   }
 
   @Test
-  void executePipeline_should_not_add_generic_empty_warning_when_tool_explains_empty_result() {
+  void executePipeline_should_not_add_generic_empty_notice_when_tool_explains_empty_result() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> {
           collector.noticeForEmptyResults("No cursor widgets found.");

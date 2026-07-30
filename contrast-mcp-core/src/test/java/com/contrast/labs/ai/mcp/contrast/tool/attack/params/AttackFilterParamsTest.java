@@ -105,7 +105,7 @@ class AttackFilterParamsTest {
     assertThat(params.getIncludeSuppressed()).isTrue();
     assertThat(params.getIncludeBotBlockers()).isFalse();
     assertThat(params.getIncludeIpBlacklist()).isTrue();
-    // When includeSuppressed is explicitly set, no default warning
+    // When includeSuppressed is explicitly set, no default notice
     assertThat(params.notices()).noneMatch(w -> w.contains("Excluding suppressed"));
   }
 

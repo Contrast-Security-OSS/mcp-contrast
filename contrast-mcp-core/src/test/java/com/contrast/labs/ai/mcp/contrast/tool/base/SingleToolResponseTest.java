@@ -26,12 +26,12 @@ class SingleToolResponseTest {
 
   @Test
   void success_should_create_response_with_data_and_notices() {
-    var notices = List.of("warning1", "warning2");
+    var notices = List.of("notice1", "notice2");
 
     var response = SingleToolResponse.success("data", notices);
 
     assertThat(response.data()).isEqualTo("data");
-    assertThat(response.notices()).containsExactly("warning1", "warning2");
+    assertThat(response.notices()).containsExactly("notice1", "notice2");
     assertThat(response.errors()).isEmpty();
     assertThat(response.found()).isTrue();
     assertThat(response.isSuccess()).isTrue();
@@ -128,9 +128,9 @@ class SingleToolResponseTest {
 
   @Test
   void notices_should_be_immutable() {
-    var response = SingleToolResponse.success("data", List.of("warning"));
+    var response = SingleToolResponse.success("data", List.of("notice"));
 
-    assertThatThrownBy(() -> response.notices().add("new warning"))
+    assertThatThrownBy(() -> response.notices().add("new notice"))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 
@@ -146,17 +146,17 @@ class SingleToolResponseTest {
 
   @Test
   void notices_should_be_defensive_copy() {
-    var mutableNotices = new ArrayList<>(List.of("warning1"));
+    var mutableNotices = new ArrayList<>(List.of("notice1"));
     var response = new SingleToolResponse<>("data", List.of(), mutableNotices, true);
 
-    mutableNotices.add("warning2");
+    mutableNotices.add("notice2");
 
-    assertThat(response.notices()).containsExactly("warning1");
+    assertThat(response.notices()).containsExactly("notice1");
   }
 
   @Test
   void isSuccess_should_return_true_when_no_errors() {
-    var response = new SingleToolResponse<>("data", List.of(), List.of("warning"), true);
+    var response = new SingleToolResponse<>("data", List.of(), List.of("notice"), true);
 
     assertThat(response.isSuccess()).isTrue();
   }
