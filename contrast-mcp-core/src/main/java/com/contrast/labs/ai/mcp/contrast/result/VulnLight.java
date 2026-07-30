@@ -33,8 +33,8 @@ import java.util.List;
  * @param status Current vulnerability status (Reported, Confirmed, Remediated, etc.)
  * @param firstSeenAt ISO-8601 timestamp of first detection
  * @param closedAt ISO-8601 timestamp when closed (null if open)
- * @param environments List of environments where vulnerability was seen (DEVELOPMENT, QA,
- *     PRODUCTION)
+ * @param environments Environments from the latest instance only, may omit environments from
+ *     earlier instances.
  * @param tags User-defined tags applied to this vulnerability
  */
 public record VulnLight(
