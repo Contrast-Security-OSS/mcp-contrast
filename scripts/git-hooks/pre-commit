@@ -17,7 +17,7 @@ if ! ./gradlew spotlessApply 2>&1; then
   echo "Commit blocked: formatter failed."
   exit 1
 fi
-git diff --name-only | grep '\.java$' | xargs -r git add || true
+git diff --name-only '*.java' | xargs -r git add
 
 echo "Running tests..."
 if ! ./gradlew test 2>&1; then
