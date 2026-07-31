@@ -3,9 +3,9 @@
 **Version:** 2.0
 **JIRA:** AIML-238 (naming, v1), AIML-942 (descriptions, envelope, enforcement, v2)
 **Created:** 2025-11-18
-**Updated:** 2026-07-30
+**Updated:** 2026-07-31
 
-Scope note. This document covers the tools in this repository. Other applications that consume `contrast-mcp-core` may layer additional standards of their own. Content specific to any private deployment or internal infrastructure is rejected from this document by policy, and CI enforces a denylist to keep it that way.
+Scope note. This document covers the tools in this repository. Other applications that consume `contrast-mcp-core` may layer additional standards of their own. Content specific to any private deployment or internal infrastructure is rejected from this document by policy.
 
 ---
 
@@ -177,7 +177,7 @@ Each verb shape has a fixed template. Every slot except the lead is optional. Th
 
 ### Transitional clauses
 
-Interpretation prose stays in a description until the notice, rename, or output-schema property that replaces it ships, and it moves in the same change as the code that replaces it. Transitional clauses count against the budget and are tagged in the definition snapshot, so shipping the replacement is how a tool reclaims its headroom.
+Interpretation prose stays in a description until the notice, rename, or output-schema property that replaces it ships, and it moves in the same change as the code that replaces it. Transitional clauses count against the budget and are tied to the change that removes them, so shipping the replacement is how a tool reclaims its headroom.
 
 ### Never in a description
 
@@ -235,7 +235,7 @@ Interpretation facts are delivered where the confusion would occur, not up front
 
 ### Output schema, end state
 
-When the stack gains `outputSchema` support, always-true field facts that a rename cannot carry move onto the schema property's `description`. Notices are unaffected, conditional facts stay point-of-use. The schema then joins the same budget and snapshot discipline, property descriptions only where the name cannot carry the meaning, no auto-generated full-graph schemas, adoption per tool and justified. Nothing load-bearing moves exclusively to the schema until the consuming clients are confirmed to surface it.
+When the stack gains `outputSchema` support, always-true field facts that a rename cannot carry move onto the schema property's `description`. Notices are unaffected, conditional facts stay point-of-use. The schema then joins the same budget discipline, property descriptions only where the name cannot carry the meaning, no auto-generated full-graph schemas, adoption per tool and justified. Nothing load-bearing moves exclusively to the schema until the consuming clients are confirmed to surface it.
 
 ---
 
@@ -251,11 +251,9 @@ The MCP `instructions` string is read once near session start, far from any call
 
 ## Enforcement
 
-The standard is enforced by tests, not by review-time judgment.
+The standard is enforced by budget tests. Until those tests land, reviewers enforce the budgets by counting body words against the templates.
 
-- **Definition snapshots.** A test serializes every tool's name, description, parameter descriptions, and schema to a committed snapshot file. Any change to what agents actually see appears in review as a plain-text diff.
-- **Budget checks.** The same test counts body words per description against the template ceilings and the catalog-total size against a hard cap. Exceeding a ceiling fails the build unless the tool has a named allowlist entry, which is itself a reviewed artifact.
-- **Public-content denylist.** A docs test rejects terms that must never appear in this repository's standards or descriptions, keeping deployment-specific content out by construction.
+- **Budget checks.** A test counts body words per description against the template ceilings and the catalog-total size against a hard cap. The word count is the plain whitespace-delimited count of the description body, parameter descriptions excluded. Exceeding a ceiling fails the build unless the tool has a named allowlist entry, which is itself a reviewed artifact.
 
 ---
 
@@ -411,5 +409,4 @@ For any other application that consumes `contrast-mcp-core`, register tools thro
 - [ ] Misleading response field names renamed rather than documented, when feasible
 
 **Enforcement**
-- [ ] Definition snapshot updated and reviewed
-- [ ] Budget check passes or the exemption is in the reviewed allowlist
+- [ ] Body word count verified against the template ceiling, or the exemption is in the reviewed allowlist
