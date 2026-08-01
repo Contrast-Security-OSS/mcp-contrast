@@ -17,13 +17,12 @@ package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.ai.util.json.JsonParser;
 
 class ResponseEnvelopeSerializationTest {
-
-  private final ObjectMapper objectMapper = new ObjectMapper();
 
   @Test
   void paginatedResponse_should_serialize_notices_without_legacy_warnings_field() throws Exception {
@@ -31,14 +30,14 @@ class ResponseEnvelopeSerializationTest {
         PaginatedToolResponse.success(
             List.of("item"), 1, 50, 1, false, List.of("Applied default"), 1L);
 
-    assertNoticesWireShape(response);
+    assertNoticesWireShape(serialize(response));
   }
 
   @Test
   void singleResponse_should_serialize_notices_without_legacy_warnings_field() throws Exception {
     var response = SingleToolResponse.success("item", List.of("Optional enrichment unavailable"));
 
-    assertNoticesWireShape(response);
+    assertNoticesWireShape(serialize(response));
   }
 
   @Test
@@ -47,27 +46,42 @@ class ResponseEnvelopeSerializationTest {
         CursorToolResponse.success(
             List.of("item"), 50, "next-cursor", true, List.of("Applied default"), 1L);
 
-    assertNoticesWireShape(response);
+    assertNoticesWireShape(serialize(response));
   }
 
   @Test
   void responseEnvelopes_should_serialize_empty_notices_arrays() throws Exception {
     assertEmptyNoticesWireShape(
-        PaginatedToolResponse.success(List.of("item"), 1, 50, 1, false, List.of(), 1L));
-    assertEmptyNoticesWireShape(SingleToolResponse.success("item", List.of()));
+        serialize(PaginatedToolResponse.success(List.of("item"), 1, 50, 1, false, List.of(), 1L)));
+    assertEmptyNoticesWireShape(serialize(SingleToolResponse.success("item", List.of())));
     assertEmptyNoticesWireShape(
-        CursorToolResponse.success(List.of("item"), 50, null, false, List.of(), 1L));
+        serialize(CursorToolResponse.success(List.of("item"), 50, null, false, List.of(), 1L)));
   }
 
-  private void assertNoticesWireShape(Object response) throws Exception {
-    var json = objectMapper.writeValueAsString(response);
-
-    assertThat(json).contains("\"notices\":[").doesNotContain("\"warnings\"");
+  private void assertNoticesWireShape(JsonNode json) {
+    assertThat(json.has("notices")).isTrue();
+    assertThat(json.path("notices").isArray()).isTrue();
+    assertThat(json.has("warnings")).isFalse();
   }
 
-  private void assertEmptyNoticesWireShape(Object response) throws Exception {
-    var json = objectMapper.writeValueAsString(response);
+  private void assertEmptyNoticesWireShape(JsonNode json) {
+    assertNoticesWireShape(json);
+    assertThat(json.path("notices").size()).isZero();
+  }
 
-    assertThat(json).contains("\"notices\":[]").doesNotContain("\"warnings\"");
+  private JsonNode serialize(PaginatedToolResponse<?> response) throws Exception {
+    return parse(JsonParser.toJson(response));
+  }
+
+  private JsonNode serialize(SingleToolResponse<?> response) throws Exception {
+    return parse(JsonParser.toJson(response));
+  }
+
+  private JsonNode serialize(CursorToolResponse<?> response) throws Exception {
+    return parse(JsonParser.toJson(response));
+  }
+
+  private JsonNode parse(String json) throws Exception {
+    return JsonParser.getObjectMapper().readTree(json);
   }
 }
