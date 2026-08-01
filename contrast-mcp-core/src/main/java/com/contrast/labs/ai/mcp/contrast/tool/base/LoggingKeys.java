@@ -22,7 +22,7 @@ import lombok.NoArgsConstructor;
  * String constants for structured log keys used across the codebase.
  *
  * <p>Use these instead of inline string literals when calling {@code addKeyValue(...)} or building
- * a {@code WarningCollector} context map, so the key set stays consistent and renames are
+ * a {@code NoticeCollector} context map, so the key set stays consistent and renames are
  * compiler-enforced.
  */
 @NoArgsConstructor(access = AccessLevel.PRIVATE)

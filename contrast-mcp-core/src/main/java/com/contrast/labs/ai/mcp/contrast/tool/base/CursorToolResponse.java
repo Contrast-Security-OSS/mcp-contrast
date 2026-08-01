@@ -28,7 +28,8 @@ import org.springframework.lang.Nullable;
  * @param nextCursor opaque continuation token, or null when absent
  * @param hasMore true when another page can be fetched
  * @param errors validation or execution errors
- * @param warnings non-fatal warnings
+ * @param notices Informational notices: applied defaults, failed optional enrichments, empty-result
+ *     explanations, interpretation facts
  * @param durationMs execution duration in milliseconds
  */
 public record CursorToolResponse<T>(
@@ -37,13 +38,13 @@ public record CursorToolResponse<T>(
     @Nullable String nextCursor,
     boolean hasMore,
     List<String> errors,
-    List<String> warnings,
+    List<String> notices,
     @Nullable Long durationMs) {
 
   public CursorToolResponse {
     items = items != null ? List.copyOf(items) : List.of();
     errors = errors != null ? List.copyOf(errors) : List.of();
-    warnings = warnings != null ? List.copyOf(warnings) : List.of();
+    notices = notices != null ? List.copyOf(notices) : List.of();
   }
 
   /**
@@ -60,10 +61,10 @@ public record CursorToolResponse<T>(
       int pageSize,
       @Nullable String nextCursor,
       boolean hasMore,
-      List<String> warnings,
+      List<String> notices,
       @Nullable Long durationMs) {
     return new CursorToolResponse<>(
-        items, pageSize, nextCursor, hasMore, List.of(), warnings, durationMs);
+        items, pageSize, nextCursor, hasMore, List.of(), notices, durationMs);
   }
 
   public static <T> CursorToolResponse<T> validationError(int pageSize, List<String> errors) {

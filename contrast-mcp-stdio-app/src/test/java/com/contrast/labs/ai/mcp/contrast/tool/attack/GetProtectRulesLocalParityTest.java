@@ -67,7 +67,7 @@ class GetProtectRulesLocalParityTest {
     assertThat(response.isSuccess()).isTrue();
     assertThat(response.found()).isTrue();
     assertThat(response.errors()).isEmpty();
-    assertThat(response.warnings()).isEmpty();
+    assertThat(response.notices()).isEmpty();
     assertThat(response.data().getRules())
         .extracting(Rule::getName)
         .containsExactly("sql-injection", "xss-reflected");

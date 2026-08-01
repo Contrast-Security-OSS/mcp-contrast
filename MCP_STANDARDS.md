@@ -211,7 +211,7 @@ Required-ness goes on the `@ToolParam(required=...)` flag, never in prose.
 Every tool response wraps in a shared envelope with exactly two message tiers. The distinction is behavioral, an agent acts differently on each.
 
 - **`errors`** mean the call failed or was invalid. Fix the call and retry. `isSuccess()` keys off this list.
-- **`notices`** are informational. Read them while interpreting the result. They carry applied defaults, failed optional enrichments, empty-result explanations, and interpretation facts. (Migration note. The wire field is named `warnings` until the AIML-942 envelope rename ships. New code should target `notices`.)
+- **`notices`** are informational. Read them while interpreting the result. They carry applied defaults, failed optional enrichments, empty-result explanations, and interpretation facts.
 
 Do not add a third tier. A distinction that does not change agent behavior is taxonomy, not signal.
 
@@ -231,7 +231,7 @@ Interpretation facts are delivered where the confusion would occur, not up front
 
 **Conditional quirks** become notices emitted only when the condition occurs on that response. An always-emitted notice is a smell, it belongs in another home.
 
-**Always-true field meaning** is carried by the field name itself. Prefer renaming a misleading field (`httpRequest` that has had sensitive headers stripped becomes `httpRequestRedacted`) over documenting it. A rename costs zero recurring tokens. When a rename is not feasible, the fallback is one clause in the description body, tagged transitional if a rename is planned.
+**Always-true field meaning** is carried by the field name itself. Prefer renaming a misleading field (`hint` containing AI-generated remediation guidance becomes `remediationHint`) over documenting it. A rename costs zero recurring tokens. When a rename is not feasible, the fallback is one clause in the description body, tagged transitional if a rename is planned.
 
 ### Output schema, end state
 
@@ -286,23 +286,23 @@ com.contrast.labs.ai.mcp.contrast.tool/
 **`PaginatedTool<P extends ToolParams, R>`** - For paginated search/list tools:
 - Template method `executePipeline()` handles pagination, validation, exceptions
 - Subclasses implement `doExecute()` returning `ExecutionResult<R>`
-- Returns `PaginatedToolResponse<R>` with items, pagination metadata, errors, warnings
+- Returns `PaginatedToolResponse<R>` with items, pagination metadata, errors, notices
 
 **`SingleTool<P extends ToolParams, R>`** - For single-item get tools:
 - Template method `executePipeline()` handles validation, exceptions
 - Subclasses implement `doExecute()` returning item or null
-- Returns `SingleToolResponse<R>` with item, errors, warnings
+- Returns `SingleToolResponse<R>` with item, errors, notices
 
 **`CursorPaginatedTool<P extends ToolParams, R>`** - For cursor/keyset-backed list tools:
 - Template method `executePipeline()` handles cursor pagination, validation, exceptions
 - Subclasses treat cursor values as opaque continuation tokens
-- Returns `CursorToolResponse<R>` with items, `nextCursor`, `hasMore`, errors, and warnings
+- Returns `CursorToolResponse<R>` with items, `nextCursor`, `hasMore`, errors, and notices
 
 ### Parameter Classes (Params Pattern)
 
 Each tool has an associated `*Params` class extending `BaseToolParams` and validating input through a `ToolValidationContext` used by composition:
 - Validates and parses input parameters
-- Collects errors and warnings via fluent API
+- Collects errors and notices via fluent API
 - Converts to SDK filter objects (e.g., `toTraceFilterForm()`)
 
 Example:
@@ -318,7 +318,7 @@ public class VulnerabilityFilterParams extends BaseToolParams {
     var ctx = new ToolValidationContext(); // composition, not inheritance
     params.severities = ctx.enumSetParam(severities, RuleSeverity.class, "severities").get();
     // ... more fluent validation on ctx
-    params.setValidationResult(ctx); // transfer errors/warnings
+    params.setValidationResult(ctx); // transfer errors/notices
     return params;
   }
 }

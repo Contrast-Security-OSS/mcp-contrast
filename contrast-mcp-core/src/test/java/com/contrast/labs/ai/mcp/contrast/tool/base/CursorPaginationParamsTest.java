@@ -33,7 +33,7 @@ class CursorPaginationParamsTest {
     assertThat(params.pageSize()).isEqualTo(50);
     assertThat(params.limit()).isEqualTo(50);
     assertThat(params.cursorPresence()).isEqualTo("absent");
-    assertThat(params.warnings()).isEmpty();
+    assertThat(params.notices()).isEmpty();
     assertThat(params.isValid()).isTrue();
   }
 
@@ -45,7 +45,7 @@ class CursorPaginationParamsTest {
     assertThat(params.cursorPresence()).isEqualTo("present");
     assertThat(params.pageSize()).isEqualTo(25);
     assertThat(params.limit()).isEqualTo(25);
-    assertThat(params.warnings()).isEmpty();
+    assertThat(params.notices()).isEmpty();
   }
 
   @Test
@@ -61,10 +61,10 @@ class CursorPaginationParamsTest {
     var params = CursorPaginationParams.of(OPAQUE_CURSOR, 0);
 
     assertThat(params.pageSize()).isEqualTo(50);
-    assertThat(params.warnings())
+    assertThat(params.notices())
         .singleElement()
-        .satisfies(warning -> assertThat(warning).contains("Invalid pageSize 0"));
-    assertThat(params.warnings()).noneMatch(warning -> warning.contains(OPAQUE_CURSOR));
+        .satisfies(notice -> assertThat(notice).contains("Invalid pageSize 0"));
+    assertThat(params.notices()).noneMatch(notice -> notice.contains(OPAQUE_CURSOR));
   }
 
   @Test
@@ -72,11 +72,11 @@ class CursorPaginationParamsTest {
     var params = CursorPaginationParams.of(OPAQUE_CURSOR, 200);
 
     assertThat(params.pageSize()).isEqualTo(100);
-    assertThat(params.warnings())
+    assertThat(params.notices())
         .singleElement()
         .satisfies(
-            warning -> assertThat(warning).contains("Requested pageSize 200 exceeds maximum 100"));
-    assertThat(params.warnings()).noneMatch(warning -> warning.contains(OPAQUE_CURSOR));
+            notice -> assertThat(notice).contains("Requested pageSize 200 exceeds maximum 100"));
+    assertThat(params.notices()).noneMatch(notice -> notice.contains(OPAQUE_CURSOR));
   }
 
   @Test
@@ -84,10 +84,10 @@ class CursorPaginationParamsTest {
     var params = CursorPaginationParams.of(OPAQUE_CURSOR, 100, 50);
 
     assertThat(params.pageSize()).isEqualTo(50);
-    assertThat(params.warnings())
+    assertThat(params.notices())
         .singleElement()
         .satisfies(
-            warning -> assertThat(warning).contains("Requested pageSize 100 exceeds maximum 50"));
+            notice -> assertThat(notice).contains("Requested pageSize 100 exceeds maximum 50"));
   }
 
   @Test
@@ -98,15 +98,15 @@ class CursorPaginationParamsTest {
             .toList();
 
     assertThat(componentNames)
-        .containsExactly("cursor", "pageSize", "limit", "warnings")
+        .containsExactly("cursor", "pageSize", "limit", "notices")
         .doesNotContain("page", "offset", "totalPages", "totalItems");
   }
 
   @Test
-  void warnings_should_be_immutable() {
+  void notices_should_be_immutable() {
     var params = CursorPaginationParams.of(null, -1);
 
-    assertThatThrownBy(() -> params.warnings().add("mutated"))
+    assertThatThrownBy(() -> params.notices().add("mutated"))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 }

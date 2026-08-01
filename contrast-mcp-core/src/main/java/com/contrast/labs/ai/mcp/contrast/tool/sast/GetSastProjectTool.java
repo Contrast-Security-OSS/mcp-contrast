@@ -17,9 +17,9 @@ package com.contrast.labs.ai.mcp.contrast.tool.sast;
 
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.result.ScanProject;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.sast.params.GetSastProjectParams;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -71,7 +71,7 @@ public class GetSastProjectTool extends SingleTool<GetSastProjectParams, ScanPro
   }
 
   @Override
-  protected ScanProject doExecute(GetSastProjectParams params, WarningCollector collector)
+  protected ScanProject doExecute(GetSastProjectParams params, NoticeCollector collector)
       throws Exception {
     log.debug("Retrieving scan project details for project: {}", params.projectName());
 

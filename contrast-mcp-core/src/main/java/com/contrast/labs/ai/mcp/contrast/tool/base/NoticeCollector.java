@@ -24,7 +24,7 @@ import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Accumulates warnings during MCP tool execution and encapsulates the try/catch/warn pattern for
+ * Accumulates notices during MCP tool execution and encapsulates the try/catch/notice pattern for
  * optional data fetches.
  *
  * <p>Constructed once per request by the base classes and passed into {@code doExecute}. Tool
@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
  * <p>{@link #snapshot()} is package-private — only base classes call it when building the response.
  */
 @Slf4j
-public final class WarningCollector {
+public final class NoticeCollector {
 
   /** Checked supplier that may throw any exception. */
   @FunctionalInterface
@@ -49,10 +49,10 @@ public final class WarningCollector {
   }
 
   private final Map<String, Object> context;
-  private final List<String> warnings = new ArrayList<>();
-  private boolean emptyResultsWarningRecorded;
+  private final List<String> notices = new ArrayList<>();
+  private boolean emptyResultsNoticeRecorded;
 
-  private WarningCollector(Map<String, Object> context) {
+  private NoticeCollector(Map<String, Object> context) {
     this.context = context;
   }
 
@@ -60,28 +60,28 @@ public final class WarningCollector {
    * Creates a new collector bound to the given log context key/values. The context entries are
    * added to every WARN log emitted by {@link #tryFetch} and {@link #tryRun}.
    */
-  public static WarningCollector forContext(Map<String, Object> context) {
-    return new WarningCollector(context);
+  public static NoticeCollector forContext(Map<String, Object> context) {
+    return new NoticeCollector(context);
   }
 
   /**
    * Executes {@code fetch} and returns the result wrapped in an Optional.
    *
-   * <p>Null return is treated as absent — no warning emitted. Use this when null is a legitimate
+   * <p>Null return is treated as absent — no notice emitted. Use this when null is a legitimate
    * outcome (e.g. optional enrichment that may simply not exist).
    *
    * <p>On exception: logs WARN, records {@code description + " not available (retrieval error)"} as
-   * a warning, returns empty. The {@code (retrieval error)} suffix signals to AI agents that the
+   * a notice, returns empty. The {@code (retrieval error)} suffix signals to AI agents that the
    * data was absent due to a fetch failure (e.g. permission denied, network error), not because the
    * data legitimately does not exist. Exception details are logged server-side but excluded from
-   * the agent-visible warning to avoid leaking internal API information.
+   * the agent-visible notice to avoid leaking internal API information.
    */
   public <T> Optional<T> tryFetch(String description, CheckedSupplier<T> fetch) {
     try {
       return Optional.ofNullable(fetch.get());
     } catch (Exception e) {
       logWarn(description, e);
-      warnings.add(description + retrievalErrorSuffix(e));
+      notices.add(description + retrievalErrorSuffix(e));
       return Optional.empty();
     }
   }
@@ -89,11 +89,11 @@ public final class WarningCollector {
   /**
    * Executes {@code operation}. Returns {@code true} on success, {@code false} if an exception is
    * thrown. On exception: logs WARN, records {@code description + " not available (retrieval
-   * error)"} as a warning.
+   * error)"} as a notice.
    *
    * <p>The {@code (retrieval error)} suffix signals to AI agents that the data was absent due to a
    * fetch failure. Exception details are logged server-side but excluded from the agent-visible
-   * warning to avoid leaking internal API information.
+   * notice to avoid leaking internal API information.
    */
   public boolean tryRun(String description, CheckedRunnable operation) {
     try {
@@ -101,44 +101,44 @@ public final class WarningCollector {
       return true;
     } catch (Exception e) {
       logWarn(description, e);
-      warnings.add(description + retrievalErrorSuffix(e));
+      notices.add(description + retrievalErrorSuffix(e));
       return false;
     }
   }
 
   /**
-   * Appends {@code message} to the warning list. Throws if {@code message} is null; silently skips
+   * Appends {@code message} to the notice list. Throws if {@code message} is null; silently skips
    * blank strings.
    */
-  public void warn(String message) {
-    Objects.requireNonNull(message, "warning message must not be null");
+  public void notice(String message) {
+    Objects.requireNonNull(message, "notice message must not be null");
     if (!message.isBlank()) {
-      warnings.add(message);
+      notices.add(message);
     }
   }
 
   /**
-   * Appends a warning that explains why an otherwise successful result set is empty. Base
-   * pagination classes use this marker to avoid adding their generic empty-result warning on top of
-   * a more specific tool-level explanation.
+   * Appends a notice that explains why an otherwise successful result set is empty. Base pagination
+   * classes use this marker to avoid adding their generic empty-result notice on top of a more
+   * specific tool-level explanation.
    */
-  public void warnForEmptyResults(String message) {
-    warn(message);
+  public void noticeForEmptyResults(String message) {
+    notice(message);
     if (!message.isBlank()) {
-      emptyResultsWarningRecorded = true;
+      emptyResultsNoticeRecorded = true;
     }
   }
 
-  boolean hasEmptyResultsWarning() {
-    return emptyResultsWarningRecorded;
+  boolean hasEmptyResultsNotice() {
+    return emptyResultsNoticeRecorded;
   }
 
   /**
-   * Returns an immutable snapshot of all warnings accumulated so far. Package-private — only base
+   * Returns an immutable snapshot of all notices accumulated so far. Package-private — only base
    * classes call this when building the response.
    */
   List<String> snapshot() {
-    return List.copyOf(warnings);
+    return List.copyOf(notices);
   }
 
   private String retrievalErrorSuffix(Exception e) {

@@ -35,7 +35,7 @@ class IntSpecTest {
 
     assertThat(result).isEqualTo(42);
     assertThat(ctx.isValid()).isTrue();
-    assertThat(ctx.warnings()).isEmpty();
+    assertThat(ctx.notices()).isEmpty();
   }
 
   @Test
@@ -44,7 +44,7 @@ class IntSpecTest {
 
     assertThat(result).isNull();
     assertThat(ctx.isValid()).isTrue();
-    assertThat(ctx.warnings()).isEmpty();
+    assertThat(ctx.notices()).isEmpty();
   }
 
   @Test
@@ -53,7 +53,7 @@ class IntSpecTest {
 
     assertThat(result).isEqualTo(1);
     assertThat(ctx.isValid()).isTrue();
-    assertThat(ctx.warnings()).containsExactly("Using default page");
+    assertThat(ctx.notices()).containsExactly("Using default page");
   }
 
   @Test
@@ -62,7 +62,7 @@ class IntSpecTest {
 
     assertThat(result).isEqualTo(1);
     assertThat(ctx.isValid()).isTrue();
-    assertThat(ctx.warnings()).containsExactly("page clamped from 0 to minimum 1");
+    assertThat(ctx.notices()).containsExactly("page clamped from 0 to minimum 1");
   }
 
   @Test
@@ -71,7 +71,7 @@ class IntSpecTest {
 
     assertThat(result).isEqualTo(100);
     assertThat(ctx.isValid()).isTrue();
-    assertThat(ctx.warnings()).containsExactly("pageSize clamped from 200 to maximum 100");
+    assertThat(ctx.notices()).containsExactly("pageSize clamped from 200 to maximum 100");
   }
 
   @Test
@@ -80,7 +80,7 @@ class IntSpecTest {
 
     assertThat(result).isEqualTo(50);
     assertThat(ctx.isValid()).isTrue();
-    assertThat(ctx.warnings()).isEmpty();
+    assertThat(ctx.notices()).isEmpty();
   }
 
   @Test
@@ -90,7 +90,7 @@ class IntSpecTest {
 
     assertThat(resultMin).isEqualTo(1);
     assertThat(resultMax).isEqualTo(100);
-    assertThat(ctx.warnings()).isEmpty();
+    assertThat(ctx.notices()).isEmpty();
   }
 
   @Test
@@ -98,7 +98,7 @@ class IntSpecTest {
     var result = ctx.intParam(null, "page").defaultTo(1, "Using default page").range(1, 100).get();
 
     assertThat(result).isEqualTo(1);
-    assertThat(ctx.warnings()).containsExactly("Using default page");
+    assertThat(ctx.notices()).containsExactly("Using default page");
   }
 
   @Test
@@ -106,6 +106,6 @@ class IntSpecTest {
     var result = ctx.intParam(-5, "page").range(1, 100).get();
 
     assertThat(result).isEqualTo(1);
-    assertThat(ctx.warnings()).containsExactly("page clamped from -5 to minimum 1");
+    assertThat(ctx.notices()).containsExactly("page clamped from -5 to minimum 1");
   }
 }

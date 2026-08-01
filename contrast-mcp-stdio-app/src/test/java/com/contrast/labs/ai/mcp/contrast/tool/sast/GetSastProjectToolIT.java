@@ -53,8 +53,8 @@ class GetSastProjectToolIT {
   // against any unrelated message that happens to mention the parameter name.
   private static final String PROJECT_NAME_REQUIRED_ERROR = "projectName is required";
 
-  // Warning emitted by SingleTool when doExecute returns null (project not found).
-  private static final String RESOURCE_NOT_FOUND_WARNING = "Resource not found";
+  // Notice emitted by SingleTool when doExecute returns null (project not found).
+  private static final String RESOURCE_NOT_FOUND_NOTICE = "Resource not found";
 
   @BeforeEach
   void requireSeededProjectName() {
@@ -154,9 +154,9 @@ class GetSastProjectToolIT {
     assertThat(response.errors()).as("notFound must produce no errors").isEmpty();
     assertThat(response.found()).as("nonexistent project must not be reported as found").isFalse();
     assertThat(response.data()).as("notFound response must not carry data").isNull();
-    assertThat(response.warnings())
-        .as("notFound path must surface the documented warning")
-        .contains(RESOURCE_NOT_FOUND_WARNING);
+    assertThat(response.notices())
+        .as("notFound path must surface the documented notice")
+        .contains(RESOURCE_NOT_FOUND_NOTICE);
   }
 
   @Test

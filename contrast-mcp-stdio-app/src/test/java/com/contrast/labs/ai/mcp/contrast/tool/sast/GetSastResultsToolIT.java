@@ -39,7 +39,7 @@ import org.springframework.test.context.TestPropertySource;
  * and run via {@code source .env.integration-test && ./gradlew
  * :contrast-mcp-stdio-app:integrationTest}. See INTEGRATION_TESTS.md.
  *
- * <p>The "no completed scans" and "scan id not found" warning paths are covered by {@link
+ * <p>The "no completed scans" and "scan id not found" notice paths are covered by {@link
  * GetSastResultsToolTest} (mocked) — they are not reproducible against a live organisation without
  * dedicated, brittle fixtures.
  */
@@ -57,10 +57,10 @@ class GetSastResultsToolIT {
   @Value("${test.scan.project-name:}")
   private String testProjectName;
 
-  // Verbatim deprecation warning emitted by GetSastResultsTool#doExecute. Pinning to the full
+  // Verbatim deprecation notice emitted by GetSastResultsTool#doExecute. Pinning to the full
   // message catches regressions where the wording drifts (and AI consumers' downstream parsing
   // breaks) far better than a "DEPRECATED" substring match.
-  private static final String DEPRECATION_WARNING =
+  private static final String DEPRECATION_NOTICE =
       "DEPRECATED: This tool returns raw SARIF which may be very large. "
           + "Consider using future paginated SAST search tools for better AI-friendly access.";
 
@@ -154,17 +154,17 @@ class GetSastResultsToolIT {
   }
 
   @Test
-  void getScanResults_should_emit_full_deprecation_warning() {
+  void getScanResults_should_emit_full_deprecation_notice() {
     var response = getSastResultsTool.getScanResults(testProjectName);
 
     assertThat(response.isSuccess())
-        .as("query must succeed before warnings are inspected (single deterministic outcome)")
+        .as("query must succeed before notices are inspected (single deterministic outcome)")
         .isTrue();
     // Assert the verbatim message — substring "DEPRECATED" matches any rewording, including
     // garbage text that happens to contain the token, which would not actually warn AI consumers.
-    assertThat(response.warnings())
-        .as("response must contain the verbatim deprecation warning")
-        .contains(DEPRECATION_WARNING);
+    assertThat(response.notices())
+        .as("response must contain the verbatim deprecation notice")
+        .contains(DEPRECATION_NOTICE);
   }
 
   // ---------- Validation errors ----------
@@ -222,12 +222,12 @@ class GetSastResultsToolIT {
     assertThat(response.found()).as("missing project must report found=false").isFalse();
     assertThat(response.data()).as("notFound must not carry data").isNull();
     assertThat(response.errors()).as("notFound must not surface as an error").isEmpty();
-    // Deprecation warning is added before the project lookup, so it must still be emitted on
-    // the notFound path. A regression that short-circuited warnings on null doExecute would
+    // Deprecation notice is added before the project lookup, so it must still be emitted on
+    // the notFound path. A regression that short-circuited notices on null doExecute would
     // surface here.
-    assertThat(response.warnings())
-        .as("deprecation warning must still be emitted for missing projects")
-        .contains(DEPRECATION_WARNING);
+    assertThat(response.notices())
+        .as("deprecation notice must still be emitted for missing projects")
+        .contains(DEPRECATION_NOTICE);
   }
 
   @Test

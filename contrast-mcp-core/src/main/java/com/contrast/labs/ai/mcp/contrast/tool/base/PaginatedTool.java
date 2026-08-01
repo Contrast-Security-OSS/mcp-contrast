@@ -84,16 +84,16 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
     var requestId = UUID.randomUUID().toString().substring(0, REQUEST_ID_PREFIX_LENGTH);
     long startTime = System.currentTimeMillis();
 
-    // 1. Parse pagination FIRST with tool-specific max (always succeeds with warnings)
+    // 1. Parse pagination FIRST with tool-specific max (always succeeds with notices)
     var pagination = PaginationParams.of(page, pageSize, getMaxPageSize());
 
     // 2. Parse tool-specific params (collects all errors)
     var params = paramsSupplier.get();
 
-    // 3. Collector accumulates warnings from all stages
-    var collector = WarningCollector.forContext(Map.of(LoggingKeys.REQUEST_ID, requestId));
-    pagination.warnings().forEach(collector::warn);
-    params.warnings().forEach(collector::warn);
+    // 3. Collector accumulates notices from all stages
+    var collector = NoticeCollector.forContext(Map.of(LoggingKeys.REQUEST_ID, requestId));
+    pagination.notices().forEach(collector::notice);
+    params.notices().forEach(collector::notice);
 
     // 4. Single validation checkpoint - ALL errors collected
     if (!params.isValid()) {
@@ -102,7 +102,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
           pagination.page(), pagination.pageSize(), params.errors());
     }
 
-    // 5. Execute - doExecute returns intermediate result, can add warnings via collector
+    // 5. Execute - doExecute returns intermediate result, can add notices via collector
     try (var ignored = authenticate(toolContext)) {
       var result = doExecute(pagination, params, collector);
       var duration = System.currentTimeMillis() - startTime;
@@ -138,13 +138,13 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
    *
    * @param pagination validated pagination params
    * @param params validated tool-specific params
-   * @param collector warning accumulator - call {@link WarningCollector#warn}, {@link
-   *     WarningCollector#tryFetch}, or {@link WarningCollector#tryRun} to record warnings
+   * @param collector notice accumulator - call {@link NoticeCollector#notice}, {@link
+   *     NoticeCollector#tryFetch}, or {@link NoticeCollector#tryRun} to record notices
    * @return ExecutionResult with items and optional total count
    * @throws Exception any exception from SDK or processing
    */
   protected abstract ExecutionResult<R> doExecute(
-      PaginationParams pagination, P params, WarningCollector collector) throws Exception;
+      PaginationParams pagination, P params, NoticeCollector collector) throws Exception;
 
   private PaginatedToolResponse<R> handleException(
       Exception e, PaginationParams pagination, String requestId, String userMessage) {
@@ -160,7 +160,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
       HttpResponseException e,
       PaginationParams pagination,
       String requestId,
-      WarningCollector collector) {
+      NoticeCollector collector) {
 
     String errorMessage = mapHttpErrorCode(e.getCode());
 
@@ -184,15 +184,15 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
   private PaginatedToolResponse<R> buildSuccessResponse(
       ExecutionResult<R> result,
       PaginationParams pagination,
-      WarningCollector collector,
+      NoticeCollector collector,
       long duration,
       String requestId) {
 
     if (result.items().isEmpty()
         && result.totalItems() != null
         && result.totalItems() == 0
-        && !collector.hasEmptyResultsWarning()) {
-      collector.warn("No results found matching the specified criteria.");
+        && !collector.hasEmptyResultsNotice()) {
+      collector.notice("No results found matching the specified criteria.");
     }
 
     boolean hasMore = calculateHasMorePages(result, pagination);

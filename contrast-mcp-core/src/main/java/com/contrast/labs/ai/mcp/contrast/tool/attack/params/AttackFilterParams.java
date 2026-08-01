@@ -124,13 +124,13 @@ public class AttackFilterParams extends BaseToolParams {
     // Parse includeSuppressed with smart default
     if (includeSuppressed == null) {
       params.includeSuppressed = false;
-      ctx.warnIf(
-          true,
-          "Excluding suppressed attacks by default. "
-              + "To see all attacks including suppressed, set includeSuppressed=true.");
     } else {
       params.includeSuppressed = includeSuppressed;
     }
+    ctx.noticeIf(
+        includeSuppressed == null,
+        "Excluding suppressed attacks by default. "
+            + "To see all attacks including suppressed, set includeSuppressed=true.");
 
     // Parse other boolean filters (no defaults needed)
     params.includeBotBlockers = includeBotBlockers;

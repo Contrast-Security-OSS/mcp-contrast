@@ -99,7 +99,7 @@ class CursorPaginatedToolTest {
   }
 
   @Test
-  void executePipeline_should_include_page_size_warnings_without_cursor_value() {
+  void executePipeline_should_include_page_size_notices_without_cursor_value() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> CursorExecutionResult.of(List.of("item"), null, false));
 
@@ -107,29 +107,29 @@ class CursorPaginatedToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.pageSize()).isEqualTo(50);
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .singleElement()
-        .satisfies(warning -> assertThat(warning).contains("Invalid pageSize 0"));
-    assertThat(result.warnings()).noneMatch(warning -> warning.contains(OPAQUE_CURSOR));
+        .satisfies(notice -> assertThat(notice).contains("Invalid pageSize 0"));
+    assertThat(result.notices()).noneMatch(notice -> notice.contains(OPAQUE_CURSOR));
   }
 
   @Test
-  void executePipeline_should_preserve_warnings_when_http_response_exception_occurs() {
+  void executePipeline_should_preserve_notices_when_http_response_exception_occurs() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> {
-          collector.warn("Warning added before exception");
+          collector.notice("Notice added before exception");
           throw new HttpResponseException("Expired cursor", "GET", "/api/test", 400, "Bad Request");
         });
 
     var result =
-        tool.executePipeline(OPAQUE_CURSOR, 25, () -> TestParams.withWarning("Initial warning"));
+        tool.executePipeline(OPAQUE_CURSOR, 25, () -> TestParams.withNotice("Initial notice"));
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).containsExactly("API error (HTTP 400)");
     assertThat(result.errors()).noneMatch(error -> error.contains(OPAQUE_CURSOR));
-    assertThat(result.warnings())
-        .containsExactlyInAnyOrder("Initial warning", "Warning added before exception");
-    assertThat(result.warnings()).noneMatch(warning -> warning.contains(OPAQUE_CURSOR));
+    assertThat(result.notices())
+        .containsExactlyInAnyOrder("Initial notice", "Notice added before exception");
+    assertThat(result.notices()).noneMatch(notice -> notice.contains(OPAQUE_CURSOR));
   }
 
   @Test
@@ -212,7 +212,7 @@ class CursorPaginatedToolTest {
   }
 
   @Test
-  void executePipeline_should_add_empty_results_warning() {
+  void executePipeline_should_add_empty_results_notice() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> CursorExecutionResult.of(List.of(), null, false));
 
@@ -220,15 +220,15 @@ class CursorPaginatedToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .containsExactly("No results found matching the specified criteria.");
   }
 
   @Test
-  void executePipeline_should_not_add_generic_empty_warning_when_tool_explains_empty_result() {
+  void executePipeline_should_not_add_generic_empty_notice_when_tool_explains_empty_result() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> {
-          collector.warnForEmptyResults("No cursor widgets found.");
+          collector.noticeForEmptyResults("No cursor widgets found.");
           return CursorExecutionResult.of(List.of(), null, false);
         });
 
@@ -236,7 +236,7 @@ class CursorPaginatedToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
-    assertThat(result.warnings()).containsExactly("No cursor widgets found.");
+    assertThat(result.notices()).containsExactly("No cursor widgets found.");
   }
 
   private static class TestCursorTool extends CursorPaginatedTool<TestParams, String> {
@@ -248,7 +248,7 @@ class CursorPaginatedToolTest {
 
     @Override
     protected CursorExecutionResult<String> doExecute(
-        CursorPaginationParams pagination, TestParams params, WarningCollector collector)
+        CursorPaginationParams pagination, TestParams params, NoticeCollector collector)
         throws Exception {
       if (handler != null) {
         return handler.execute(pagination, params, collector);
@@ -259,12 +259,12 @@ class CursorPaginatedToolTest {
     @FunctionalInterface
     interface DoExecuteHandler {
       CursorExecutionResult<String> execute(
-          CursorPaginationParams pagination, TestParams params, WarningCollector collector)
+          CursorPaginationParams pagination, TestParams params, NoticeCollector collector)
           throws Exception;
     }
   }
 
-  private record TestParams(boolean isValid, List<String> errors, List<String> warnings)
+  private record TestParams(boolean isValid, List<String> errors, List<String> notices)
       implements ToolParams {
 
     static TestParams valid() {
@@ -275,8 +275,8 @@ class CursorPaginatedToolTest {
       return new TestParams(false, List.of(error), List.of());
     }
 
-    static TestParams withWarning(String warning) {
-      return new TestParams(true, List.of(), List.of(warning));
+    static TestParams withNotice(String notice) {
+      return new TestParams(true, List.of(), List.of(notice));
     }
   }
 }

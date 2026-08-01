@@ -67,7 +67,7 @@ class GetProtectRulesToolTest {
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).containsExactly("appId is required");
-    assertThat(result.warnings()).isEmpty();
+    assertThat(result.notices()).isEmpty();
   }
 
   @Test
@@ -76,7 +76,7 @@ class GetProtectRulesToolTest {
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).containsExactly("appId is required");
-    assertThat(result.warnings()).isEmpty();
+    assertThat(result.notices()).isEmpty();
   }
 
   @Test
@@ -88,7 +88,7 @@ class GetProtectRulesToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
-    assertThat(result.warnings()).containsExactly("Resource not found");
+    assertThat(result.notices()).containsExactly("Resource not found");
   }
 
   @Test
@@ -101,7 +101,7 @@ class GetProtectRulesToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.data().getRules()).isEmpty();
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .containsExactly("Application has Protect enabled but no rules are configured.");
   }
 

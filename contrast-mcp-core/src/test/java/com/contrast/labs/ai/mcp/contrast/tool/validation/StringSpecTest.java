@@ -73,7 +73,7 @@ class StringSpecTest {
     var result = ctx.stringParam(null, "status").defaultTo("active", "Using default status").get();
 
     assertThat(result).isEqualTo("active");
-    assertThat(ctx.warnings()).containsExactly("Using default status");
+    assertThat(ctx.notices()).containsExactly("Using default status");
   }
 
   @Test
@@ -81,15 +81,15 @@ class StringSpecTest {
     var result = ctx.stringParam("  ", "status").defaultTo("active", "Using default status").get();
 
     assertThat(result).isEqualTo("active");
-    assertThat(ctx.warnings()).containsExactly("Using default status");
+    assertThat(ctx.notices()).containsExactly("Using default status");
   }
 
   @Test
-  void get_should_apply_quiet_default_without_warning() {
+  void get_should_apply_quiet_default_without_notice() {
     var result = ctx.stringParam(null, "quickFilter").defaultToQuietly("ALL").get();
 
     assertThat(result).isEqualTo("ALL");
-    assertThat(ctx.warnings()).isEmpty();
+    assertThat(ctx.notices()).isEmpty();
   }
 
   @Test

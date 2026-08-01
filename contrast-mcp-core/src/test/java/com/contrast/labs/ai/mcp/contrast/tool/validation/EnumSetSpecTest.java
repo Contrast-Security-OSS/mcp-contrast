@@ -77,7 +77,7 @@ class EnumSetSpecTest {
             .get();
 
     assertThat(result).containsExactlyInAnyOrder(Priority.HIGH, Priority.CRITICAL);
-    assertThat(ctx.warnings()).containsExactly("Using high priorities");
+    assertThat(ctx.notices()).containsExactly("Using high priorities");
   }
 
   @Test

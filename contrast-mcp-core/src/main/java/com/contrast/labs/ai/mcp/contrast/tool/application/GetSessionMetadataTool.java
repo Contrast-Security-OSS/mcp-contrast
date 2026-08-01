@@ -17,9 +17,9 @@ package com.contrast.labs.ai.mcp.contrast.tool.application;
 
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.tool.application.params.GetSessionMetadataParams;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrastsecurity.models.MetadataFilterResponse;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
@@ -68,11 +68,11 @@ public class GetSessionMetadataTool
 
   @Override
   protected MetadataFilterResponse doExecute(
-      GetSessionMetadataParams params, WarningCollector collector) throws Exception {
+      GetSessionMetadataParams params, NoticeCollector collector) throws Exception {
     var response = contrastApiClient.getSessionMetadata(params.appId());
 
     if (response == null) {
-      collector.warn("No session metadata found for this application.");
+      collector.notice("No session metadata found for this application.");
       return null;
     }
 

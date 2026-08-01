@@ -23,10 +23,10 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Applicati
 import com.contrast.labs.ai.mcp.contrast.tool.application.params.ApplicationFilterParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.FilterHelper;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.UnresolvedMetadataFilter;
 import java.util.HashMap;
 import java.util.List;
@@ -101,7 +101,7 @@ public class SearchApplicationsTool
 
   @Override
   protected ExecutionResult<ApplicationData> doExecute(
-      PaginationParams pagination, ApplicationFilterParams params, WarningCollector collector)
+      PaginationParams pagination, ApplicationFilterParams params, NoticeCollector collector)
       throws Exception {
 
     // Resolve metadata field names to IDs if metadata filters provided
@@ -123,7 +123,7 @@ public class SearchApplicationsTool
             pagination.offset());
 
     if (response == null || response.getApplications() == null) {
-      collector.warn("API returned no application data.");
+      collector.notice("API returned no application data.");
       return ExecutionResult.empty();
     }
 

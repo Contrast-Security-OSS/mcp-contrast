@@ -1,11 +1,12 @@
 #!/bin/bash
 # Pre-commit hook: format, test, and check staged Java files.
 # Mirrors the checks that CI runs, catching failures before they leave the machine.
-# Skip with: SKIP_PRECOMMIT=1 git commit
 
 set -euo pipefail
 
-if ! git diff --cached --name-only | grep -q '\.java$'; then
+# --quiet exits 0 when no staged .java changes exist. A grep -q pipe here can
+# exit 141 under pipefail if git diff takes a SIGPIPE, silently skipping the hook.
+if git diff --cached --quiet -- '*.java'; then
   exit 0
 fi
 
@@ -17,7 +18,7 @@ if ! ./gradlew spotlessApply 2>&1; then
   echo "Commit blocked: formatter failed."
   exit 1
 fi
-git diff --name-only | grep '\.java$' | xargs -r git add
+git diff --name-only -z -- '*.java' | xargs -r -0 git add
 
 echo "Running tests..."
 if ! ./gradlew test 2>&1; then

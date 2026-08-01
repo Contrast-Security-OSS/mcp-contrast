@@ -18,10 +18,10 @@ package com.contrast.labs.ai.mcp.contrast.tool.server;
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.result.ServerSummary;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.server.params.ServerFilterParams;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ToolContext;
@@ -147,7 +147,7 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
 
   @Override
   protected ExecutionResult<ServerSummary> doExecute(
-      PaginationParams pagination, ServerFilterParams params, WarningCollector collector)
+      PaginationParams pagination, ServerFilterParams params, NoticeCollector collector)
       throws Exception {
     var filterBody = params.toServerFilterBody();
     var response =
