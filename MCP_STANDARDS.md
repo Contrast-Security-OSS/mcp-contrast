@@ -175,6 +175,15 @@ Each verb shape has a fixed template. Every slot except the lead is optional. Th
 
 **Escape hatch.** A description may exceed its budget only when the overage is use-when/don't-use disambiguation, and the overage must name the sibling it disambiguates against. The enforcement test records the exemption in a reviewed allowlist.
 
+### Repository boundary
+
+Tool descriptions in this public repository must refer only to tools exposed by `mcp-contrast`.
+They must never name hosted-only tools from `aiml-services`, because `mcp-contrast` can be
+deployed independently and those tools may not exist. The hosted `aiml-services` catalog may refer
+to public `mcp-contrast` tools because it deliberately aggregates them. Cross-repo routing that
+would otherwise require a reverse public-to-hosted reference belongs in the hosted server's
+instructions once that channel clears its delivery gate.
+
 ### Transitional clauses
 
 Interpretation prose stays in a description until the notice, rename, or output-schema property that replaces it ships, and it moves in the same change as the code that replaces it. Transitional clauses count against the budget and are tied to the change that removes them, so shipping the replacement is how a tool reclaims its headroom.
@@ -391,6 +400,7 @@ For any other application that consumes `contrast-mcp-core`, register tools thro
 - [ ] Body follows the verb-shape template and is within budget (search/list ≤150 words, get ≤40, update ≤60), or carries a named allowlist exemption for sibling disambiguation
 - [ ] Every fact sits in its one home per the routing table, no body/param duplication
 - [ ] Prerequisite and discovery pointers inline, no "Related tools" footer
+- [ ] References only tools exposed by `mcp-contrast`, never hosted-only `aiml-services` tools
 - [ ] At most three usage examples, combinations preferred
 - [ ] No documented parameter the tool does not accept, no response-field inventory
 - [ ] Transitional clauses tagged and tied to the change that removes them
