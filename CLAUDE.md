@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an MCP (Model Context Protocol) server for Contrast Security that enables AI agents to access and analyze vulnerability data from Contrast's security platform. It serves as a bridge between Contrast Security's API and AI tools like Claude, enabling automated vulnerability remediation and security analysis.
 
+## Git Hooks
+
+**ABSOLUTE RULE: NEVER skip git hooks.** Do not use `--no-verify`, `--no-gpg-sign`, `SKIP_COVERAGE_HOOK=1`, or any other mechanism to bypass pre-commit, pre-push, or any other git hook. No exceptions. No shortcuts. If a hook fails, fix the underlying problem. A skipped hook caused a CI build failure; this rule exists to prevent that from ever happening again. If you skip a hook, you have made an error.
+
 ## Branching Requirements
 
 **All code changes must be made on a feature branch.** Never commit directly to `main`.

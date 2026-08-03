@@ -28,7 +28,7 @@ class ListApplicationLibrariesParamsTest {
     assertThat(params.isValid()).isTrue();
     assertThat(params.appId()).isEqualTo("app-123");
     assertThat(params.errors()).isEmpty();
-    assertThat(params.warnings()).isEmpty();
+    assertThat(params.notices()).isEmpty();
   }
 
   @Test

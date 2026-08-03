@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking Changes
+
+**Response notices and remediation hint renamed**: The published `contrast-mcp-core` response
+envelopes now expose `notices` instead of `warnings`, including the JSON field and the record
+component on `PaginatedToolResponse`, `SingleToolResponse`, and `CursorToolResponse`.
+`WarningCollector` is now `NoticeCollector`, `ToolParams.warnings()` is now
+`ToolParams.notices()`, and `Vulnerability.hint` is now `Vulnerability.remediationHint`.
+Java consumers must recompile and update these API references; JSON consumers must read
+`notices` and `remediationHint`.
+
 ## [2.1.0] - 2026-07-20
 
 ### Breaking Changes

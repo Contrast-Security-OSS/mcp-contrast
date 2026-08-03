@@ -69,8 +69,8 @@ public class GetSessionMetadataToolIT
       "Access denied or resource not found. Verify credentials and that the resource ID is"
           + " correct.";
 
-  // Tool warning emitted when the SDK returns null (no recorded sessions).
-  private static final String NO_METADATA_WARNING_FRAGMENT = "No session metadata found";
+  // Tool notice emitted when the SDK returns null (no recorded sessions).
+  private static final String NO_METADATA_NOTICE_FRAGMENT = "No session metadata found";
 
   // Probe depth for discovering an app with populated session metadata. Bounded to keep
   // discovery fast on orgs with many applications.
@@ -295,8 +295,8 @@ public class GetSessionMetadataToolIT
     assertThat(result.errors())
         .as("unknown appId must not be surfaced as a generic 5xx Contrast API error")
         .noneMatch(e -> e.contains(CONTRAST_API_ERROR));
-    assertThat(result.warnings())
-        .as("error path must not also emit the no-metadata warning")
-        .noneMatch(w -> w.contains(NO_METADATA_WARNING_FRAGMENT));
+    assertThat(result.notices())
+        .as("error path must not also emit the no-metadata notice")
+        .noneMatch(w -> w.contains(NO_METADATA_NOTICE_FRAGMENT));
   }
 }

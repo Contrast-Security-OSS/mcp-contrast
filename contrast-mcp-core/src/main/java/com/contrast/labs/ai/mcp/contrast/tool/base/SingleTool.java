@@ -68,9 +68,9 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
     // 1. Parse tool-specific params (collects all errors)
     var params = paramsSupplier.get();
 
-    // 2. Collector accumulates warnings from all stages
-    var collector = WarningCollector.forContext(Map.of(LoggingKeys.REQUEST_ID, requestId));
-    params.warnings().forEach(collector::warn);
+    // 2. Collector accumulates notices from all stages
+    var collector = NoticeCollector.forContext(Map.of(LoggingKeys.REQUEST_ID, requestId));
+    params.notices().forEach(collector::notice);
 
     // 3. Single validation checkpoint - ALL errors collected
     if (!params.isValid()) {
@@ -117,15 +117,15 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
    * Subclasses implement single-item retrieval logic.
    *
    * @param params validated tool-specific params
-   * @param collector warning accumulator - call {@link WarningCollector#warn}, {@link
-   *     WarningCollector#tryFetch}, or {@link WarningCollector#tryRun} to record warnings
+   * @param collector notice accumulator - call {@link NoticeCollector#notice}, {@link
+   *     NoticeCollector#tryFetch}, or {@link NoticeCollector#tryRun} to record notices
    * @return the item, or null if not found
    * @throws Exception any exception from SDK or processing
    */
-  protected abstract R doExecute(P params, WarningCollector collector) throws Exception;
+  protected abstract R doExecute(P params, NoticeCollector collector) throws Exception;
 
   private SingleToolResponse<R> handleException(
-      Exception e, String requestId, String userMessage, WarningCollector collector) {
+      Exception e, String requestId, String userMessage, NoticeCollector collector) {
     log.atWarn()
         .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
         .addKeyValue(LoggingKeys.EXCEPTION_TYPE, e.getClass().getSimpleName())
@@ -135,7 +135,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
   }
 
   private SingleToolResponse<R> handleHttpResponseException(
-      HttpResponseException e, String requestId, WarningCollector collector) {
+      HttpResponseException e, String requestId, NoticeCollector collector) {
 
     String errorMessage = mapHttpErrorCode(e.getCode());
 

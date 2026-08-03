@@ -35,7 +35,7 @@ import java.util.List;
  *     ctx.require(value, "myField");
  *     params.myField = value;
  *
- *     params.setValidationResult(ctx);  // Transfer errors/warnings
+ *     params.setValidationResult(ctx);  // Transfer errors/notices
  *     return params;
  *   }
  *
@@ -46,7 +46,7 @@ import java.util.List;
 public abstract class BaseToolParams implements ToolParams {
 
   private List<String> errors = List.of();
-  private List<String> warnings = List.of();
+  private List<String> notices = List.of();
 
   @Override
   public boolean isValid() {
@@ -59,18 +59,18 @@ public abstract class BaseToolParams implements ToolParams {
   }
 
   @Override
-  public List<String> warnings() {
-    return warnings;
+  public List<String> notices() {
+    return notices;
   }
 
   /**
    * Transfer validation results from a ToolValidationContext to this params instance. Call this at
    * the end of static factory methods after all validation is complete.
    *
-   * @param ctx the validation context containing errors and warnings
+   * @param ctx the validation context containing errors and notices
    */
   protected void setValidationResult(ToolValidationContext ctx) {
     this.errors = ctx.errors();
-    this.warnings = ctx.warnings();
+    this.notices = ctx.notices();
   }
 }

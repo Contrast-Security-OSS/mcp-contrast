@@ -70,7 +70,7 @@ class StringListSpecTest {
             .get();
 
     assertThat(result).containsExactly("Reported", "Confirmed");
-    assertThat(ctx.warnings()).containsExactly("Using default statuses");
+    assertThat(ctx.notices()).containsExactly("Using default statuses");
   }
 
   @Test

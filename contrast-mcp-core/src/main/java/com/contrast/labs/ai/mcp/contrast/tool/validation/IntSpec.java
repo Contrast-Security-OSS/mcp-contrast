@@ -17,7 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.validation;
 
 /**
  * Fluent validation spec for integer parameters. Supports default values and range clamping with
- * warnings.
+ * notices.
  *
  * <p>Usage:
  *
@@ -48,7 +48,7 @@ public class IntSpec {
    * Sets a default value to use when the parameter is null.
    *
    * @param val the default value
-   * @param reason explanation for AI feedback (added as warning when default is used)
+   * @param reason explanation for AI feedback (added as a notice when default is used)
    * @return this for fluent chaining
    */
   public IntSpec defaultTo(int val, String reason) {
@@ -58,7 +58,7 @@ public class IntSpec {
   }
 
   /**
-   * Sets valid range. Values outside range are clamped with a warning.
+   * Sets valid range. Values outside range are clamped with a notice.
    *
    * @param min minimum value (inclusive)
    * @param max maximum value (inclusive)
@@ -78,7 +78,7 @@ public class IntSpec {
   public Integer get() {
     if (value == null) {
       if (defaultValue != null) {
-        ctx.addWarning(defaultReason);
+        ctx.addNotice(defaultReason);
         return defaultValue;
       }
       return null;
@@ -87,10 +87,10 @@ public class IntSpec {
     int result = value;
 
     if (min != null && value < min) {
-      ctx.addWarning(String.format("%s clamped from %d to minimum %d", name, value, min));
+      ctx.addNotice(String.format("%s clamped from %d to minimum %d", name, value, min));
       result = min;
     } else if (max != null && value > max) {
-      ctx.addWarning(String.format("%s clamped from %d to maximum %d", name, value, max));
+      ctx.addNotice(String.format("%s clamped from %d to maximum %d", name, value, max));
       result = max;
     }
 

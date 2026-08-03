@@ -42,7 +42,7 @@ class SingleToolTest {
     var capturedParams = new AtomicReference<TestParams>();
 
     tool.setDoExecuteHandler(
-        (params, warnings) -> {
+        (params, notices) -> {
           capturedParams.set(params);
           return "result";
         });
@@ -58,7 +58,7 @@ class SingleToolTest {
   @Test
   void executePipeline_should_return_validation_error_when_params_invalid() {
     tool.setDoExecuteHandler(
-        (params, warnings) -> {
+        (params, notices) -> {
           throw new RuntimeException("Should not be called");
         });
 
@@ -71,20 +71,20 @@ class SingleToolTest {
 
   @Test
   void executePipeline_should_return_not_found_when_doExecute_returns_null() {
-    tool.setDoExecuteHandler((params, warnings) -> null);
+    tool.setDoExecuteHandler((params, notices) -> null);
 
     var result = tool.executePipeline(() -> TestParams.valid());
 
     assertThat(result.isSuccess()).isTrue(); // Not found is not an error
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
-    assertThat(result.warnings()).contains("Resource not found");
+    assertThat(result.notices()).contains("Resource not found");
   }
 
   @Test
   void executePipeline_should_return_not_found_for_resource_not_found_exception() {
     tool.setDoExecuteHandler(
-        (params, warnings) -> {
+        (params, notices) -> {
           throw new ResourceNotFoundException(
               "Vuln not found", "GET", "/api/vulns/123", "Not Found");
         });
@@ -94,13 +94,13 @@ class SingleToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("not found"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("not found"));
   }
 
   @Test
   void executePipeline_should_handle_unauthorized_exception() {
     tool.setDoExecuteHandler(
-        (params, warnings) -> {
+        (params, notices) -> {
           throw new UnauthorizedException(
               "Invalid credentials", "GET", "/api/test", 401, "Unauthorized");
         });
@@ -114,7 +114,7 @@ class SingleToolTest {
   @Test
   void executePipeline_should_handle_unauthorized_exception_403() {
     tool.setDoExecuteHandler(
-        (params, warnings) -> {
+        (params, notices) -> {
           throw new UnauthorizedException("Forbidden", "GET", "/api/test", 403, "Forbidden");
         });
 
@@ -130,7 +130,7 @@ class SingleToolTest {
   @Test
   void executePipeline_should_handle_http_response_exception_429() {
     tool.setDoExecuteHandler(
-        (params, warnings) -> {
+        (params, notices) -> {
           throw new HttpResponseException(
               "Rate limited", "GET", "/api/test", 429, "Too Many Requests");
         });
@@ -144,7 +144,7 @@ class SingleToolTest {
   @Test
   void executePipeline_should_handle_http_response_exception_500() {
     tool.setDoExecuteHandler(
-        (params, warnings) -> {
+        (params, notices) -> {
           throw new HttpResponseException(
               "Server error", "GET", "/api/test", 500, "Internal Server Error");
         });
@@ -160,7 +160,7 @@ class SingleToolTest {
   @Test
   void executePipeline_should_handle_generic_exception() {
     tool.setDoExecuteHandler(
-        (params, warnings) -> {
+        (params, notices) -> {
           throw new RuntimeException("Unexpected failure");
         });
 
@@ -175,7 +175,7 @@ class SingleToolTest {
   @Test
   void executePipeline_should_not_expose_exception_message_in_error() {
     tool.setDoExecuteHandler(
-        (params, warnings) -> {
+        (params, notices) -> {
           throw new RuntimeException("sensitive: /api/ng/org-id/traces");
         });
 
@@ -216,61 +216,61 @@ class SingleToolTest {
   }
 
   @Test
-  void executePipeline_should_include_params_warnings() {
-    tool.setDoExecuteHandler((params, warnings) -> "result");
+  void executePipeline_should_include_params_notices() {
+    tool.setDoExecuteHandler((params, notices) -> "result");
 
-    var result = tool.executePipeline(() -> TestParams.withWarning("Deprecated parameter"));
+    var result = tool.executePipeline(() -> TestParams.withNotice("Deprecated parameter"));
 
     assertThat(result.isSuccess()).isTrue();
-    assertThat(result.warnings()).contains("Deprecated parameter");
+    assertThat(result.notices()).contains("Deprecated parameter");
   }
 
   @Test
-  void executePipeline_should_allow_doExecute_to_add_warnings() {
+  void executePipeline_should_allow_doExecute_to_add_notices() {
     tool.setDoExecuteHandler(
         (params, collector) -> {
-          collector.warn("Partial data returned");
+          collector.notice("Partial data returned");
           return "result";
         });
 
     var result = tool.executePipeline(() -> TestParams.valid());
 
     assertThat(result.isSuccess()).isTrue();
-    assertThat(result.warnings()).contains("Partial data returned");
+    assertThat(result.notices()).contains("Partial data returned");
   }
 
   @Test
-  void executePipeline_should_preserve_warnings_when_unauthorized_exception_occurs() {
+  void executePipeline_should_preserve_notices_when_unauthorized_exception_occurs() {
     tool.setDoExecuteHandler(
         (params, collector) -> {
-          collector.warn("Warning added before exception");
+          collector.notice("Notice added before exception");
           throw new UnauthorizedException(
               "Invalid credentials", "GET", "/api/test", 401, "Unauthorized");
         });
 
-    var result = tool.executePipeline(() -> TestParams.withWarning("Initial warning"));
+    var result = tool.executePipeline(() -> TestParams.withNotice("Initial notice"));
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).containsExactly(AUTH_OR_NOT_FOUND_MESSAGE);
-    assertThat(result.warnings())
-        .containsExactlyInAnyOrder("Initial warning", "Warning added before exception");
+    assertThat(result.notices())
+        .containsExactlyInAnyOrder("Initial notice", "Notice added before exception");
   }
 
   @Test
-  void executePipeline_should_preserve_warnings_when_http_response_exception_occurs() {
+  void executePipeline_should_preserve_notices_when_http_response_exception_occurs() {
     tool.setDoExecuteHandler(
         (params, collector) -> {
-          collector.warn("Warning added before exception");
+          collector.notice("Notice added before exception");
           throw new HttpResponseException(
               "Rate limited", "GET", "/api/test", 429, "Too Many Requests");
         });
 
-    var result = tool.executePipeline(() -> TestParams.withWarning("Initial warning"));
+    var result = tool.executePipeline(() -> TestParams.withNotice("Initial notice"));
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).containsExactly("Rate limit exceeded. Retry after a brief pause.");
-    assertThat(result.warnings())
-        .containsExactlyInAnyOrder("Initial warning", "Warning added before exception");
+    assertThat(result.notices())
+        .containsExactlyInAnyOrder("Initial notice", "Notice added before exception");
   }
 
   // Test implementation of SingleTool
@@ -282,7 +282,7 @@ class SingleToolTest {
     }
 
     @Override
-    protected String doExecute(TestParams params, WarningCollector collector) throws Exception {
+    protected String doExecute(TestParams params, NoticeCollector collector) throws Exception {
       if (handler != null) {
         return handler.execute(params, collector);
       }
@@ -291,12 +291,12 @@ class SingleToolTest {
 
     @FunctionalInterface
     interface DoExecuteHandler {
-      String execute(TestParams params, WarningCollector collector) throws Exception;
+      String execute(TestParams params, NoticeCollector collector) throws Exception;
     }
   }
 
   // Test params implementation
-  private record TestParams(boolean isValid, List<String> errors, List<String> warnings)
+  private record TestParams(boolean isValid, List<String> errors, List<String> notices)
       implements ToolParams {
 
     static TestParams valid() {
@@ -307,8 +307,8 @@ class SingleToolTest {
       return new TestParams(false, List.of(error), List.of());
     }
 
-    static TestParams withWarning(String warning) {
-      return new TestParams(true, List.of(), List.of(warning));
+    static TestParams withNotice(String notice) {
+      return new TestParams(true, List.of(), List.of(notice));
     }
   }
 }

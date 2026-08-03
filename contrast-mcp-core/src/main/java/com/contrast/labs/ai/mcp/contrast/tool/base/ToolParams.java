@@ -19,7 +19,7 @@ import java.util.List;
 
 /**
  * Contract for all tool parameter classes. Implementations use ToolValidationContext to collect
- * errors/warnings during validation.
+ * errors/notices during validation.
  */
 public interface ToolParams {
 
@@ -38,10 +38,9 @@ public interface ToolParams {
   List<String> errors();
 
   /**
-   * Non-fatal warnings (e.g., applied defaults, deprecated values). Execution continues with
-   * warnings.
+   * Informational notices (e.g., applied defaults, deprecated values). Execution continues.
    *
-   * @return immutable list of warning messages
+   * @return immutable list of notice messages
    */
-  List<String> warnings();
+  List<String> notices();
 }

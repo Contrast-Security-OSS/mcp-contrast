@@ -293,7 +293,7 @@ class ListApplicationsByCveToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.data()).isSameAs(cveData);
-    assertThat(result.warnings()).anyMatch(w -> w.contains("No applications found"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("No applications found"));
   }
 
   @Test
@@ -362,7 +362,7 @@ class ListApplicationsByCveToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
-    assertThat(result.warnings()).anyMatch(w -> w.toLowerCase().contains("not found"));
+    assertThat(result.notices()).anyMatch(w -> w.toLowerCase().contains("not found"));
   }
 
   @Test
@@ -415,7 +415,7 @@ class ListApplicationsByCveToolTest {
     var result = tool.listApplicationsByCve(CVE_ID, null);
 
     assertThat(result.isSuccess()).isTrue();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("(retrieval error)"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("(retrieval error)"));
     assertThat(result.toString()).doesNotContain(secretMessage);
   }
 

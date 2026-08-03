@@ -23,17 +23,17 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class WarningCollectorTest {
+class NoticeCollectorTest {
 
-  private WarningCollector collector;
+  private NoticeCollector collector;
 
   @BeforeEach
   void setUp() {
-    collector = WarningCollector.forContext(Map.of());
+    collector = NoticeCollector.forContext(Map.of());
   }
 
   @Test
-  void tryFetch_should_return_empty_without_warning_when_supplier_returns_null() {
+  void tryFetch_should_return_empty_without_notice_when_supplier_returns_null() {
     var result = collector.<String>tryFetch("Optional data", () -> null);
 
     assertThat(result).isEmpty();
@@ -49,7 +49,7 @@ class WarningCollectorTest {
   }
 
   @Test
-  void tryFetch_should_return_empty_and_record_warning_when_supplier_throws() {
+  void tryFetch_should_return_empty_and_record_notice_when_supplier_throws() {
     var result =
         collector.<String>tryFetch(
             "Optional data",
@@ -71,7 +71,7 @@ class WarningCollectorTest {
   }
 
   @Test
-  void tryRun_should_return_false_and_record_warning_when_operation_throws() {
+  void tryRun_should_return_false_and_record_notice_when_operation_throws() {
     var success =
         collector.tryRun(
             "Stack trace data",
@@ -85,7 +85,7 @@ class WarningCollectorTest {
   }
 
   @Test
-  void tryFetch_should_indicate_retrieval_error_in_warning_when_supplier_throws() {
+  void tryFetch_should_indicate_retrieval_error_in_notice_when_supplier_throws() {
     collector.<String>tryFetch(
         "HTTP request data",
         () -> {
@@ -97,7 +97,7 @@ class WarningCollectorTest {
   }
 
   @Test
-  void tryRun_should_indicate_retrieval_error_in_warning_when_operation_throws() {
+  void tryRun_should_indicate_retrieval_error_in_notice_when_operation_throws() {
     collector.tryRun(
         "Stack trace data",
         () -> {
@@ -109,35 +109,35 @@ class WarningCollectorTest {
   }
 
   @Test
-  void warn_should_unconditionally_append_warning() {
-    collector.warn("Something happened");
+  void notice_should_unconditionally_append_notice() {
+    collector.notice("Something happened");
 
     assertThat(collector.snapshot()).containsExactly("Something happened");
   }
 
   @Test
-  void warnForEmptyResults_should_append_warning_and_mark_empty_result_explained() {
-    collector.warnForEmptyResults("No domain objects found");
+  void noticeForEmptyResults_should_append_notice_and_mark_empty_result_explained() {
+    collector.noticeForEmptyResults("No domain objects found");
 
     assertThat(collector.snapshot()).containsExactly("No domain objects found");
-    assertThat(collector.hasEmptyResultsWarning()).isTrue();
+    assertThat(collector.hasEmptyResultsNotice()).isTrue();
   }
 
   @Test
-  void warn_should_throw_when_message_is_null() {
-    assertThatThrownBy(() -> collector.warn(null)).isInstanceOf(NullPointerException.class);
+  void notice_should_throw_when_message_is_null() {
+    assertThatThrownBy(() -> collector.notice(null)).isInstanceOf(NullPointerException.class);
   }
 
   @Test
-  void warn_should_silently_skip_when_message_is_blank() {
-    collector.warn("");
-    collector.warn("   ");
+  void notice_should_silently_skip_when_message_is_blank() {
+    collector.notice("");
+    collector.notice("   ");
 
     assertThat(collector.snapshot()).isEmpty();
   }
 
   @Test
-  void multiple_failed_fetches_should_accumulate_warnings_independently() {
+  void multiple_failed_fetches_should_accumulate_notices_independently() {
     collector.<String>tryFetch(
         "First data",
         () -> {
@@ -158,7 +158,7 @@ class WarningCollectorTest {
   }
 
   @Test
-  void tryFetch_should_include_http_status_code_in_warning_when_http_exception_thrown() {
+  void tryFetch_should_include_http_status_code_in_notice_when_http_exception_thrown() {
     collector.<String>tryFetch(
         "Stack trace data",
         () -> {
@@ -171,7 +171,7 @@ class WarningCollectorTest {
   }
 
   @Test
-  void tryRun_should_include_http_status_code_in_warning_when_http_exception_thrown() {
+  void tryRun_should_include_http_status_code_in_notice_when_http_exception_thrown() {
     collector.tryRun(
         "Class usage data",
         () -> {
@@ -185,12 +185,12 @@ class WarningCollectorTest {
 
   @Test
   void snapshot_should_return_immutable_copy() {
-    collector.warn("existing warning");
+    collector.notice("existing notice");
 
     var snapshot = collector.snapshot();
     assertThatThrownBy(() -> snapshot.add("injected"))
         .isInstanceOf(UnsupportedOperationException.class);
 
-    assertThat(collector.snapshot()).containsExactly("existing warning");
+    assertThat(collector.snapshot()).containsExactly("existing notice");
   }
 }

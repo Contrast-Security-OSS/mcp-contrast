@@ -55,7 +55,7 @@ public class StringSpec {
    * Sets a default value to use when the parameter is null or blank.
    *
    * @param val the default value
-   * @param reason explanation for AI feedback (added as warning when default is used)
+   * @param reason explanation for AI feedback (added as a notice when default is used)
    * @return this for fluent chaining
    */
   public StringSpec defaultTo(String val, String reason) {
@@ -65,7 +65,7 @@ public class StringSpec {
   }
 
   /**
-   * Sets a default value without adding a warning when the default is used.
+   * Sets a default value without adding a notice when the default is used.
    *
    * @param val the default value
    * @return this for fluent chaining
@@ -119,7 +119,7 @@ public class StringSpec {
 
     if (result == null && defaultValue != null) {
       if (defaultReason != null) {
-        ctx.addWarning(defaultReason);
+        ctx.addNotice(defaultReason);
       }
       result = defaultValue;
     }

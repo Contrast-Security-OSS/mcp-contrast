@@ -162,7 +162,7 @@ class PaginatedToolTest {
   @Test
   void executePipeline_should_not_expose_exception_message_in_error() {
     tool.setDoExecuteHandler(
-        (pagination, params, warnings) -> {
+        (pagination, params, notices) -> {
           throw new RuntimeException("sensitive: /api/ng/org-id/traces");
         });
 
@@ -254,21 +254,21 @@ class PaginatedToolTest {
   }
 
   @Test
-  void executePipeline_should_add_empty_results_warning() {
+  void executePipeline_should_add_empty_results_notice() {
     tool.setDoExecuteHandler((pagination, params, collector) -> ExecutionResult.of(List.of(), 0));
 
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
-    assertThat(result.warnings()).contains("No results found matching the specified criteria.");
+    assertThat(result.notices()).contains("No results found matching the specified criteria.");
   }
 
   @Test
-  void executePipeline_should_not_add_generic_empty_warning_when_tool_explains_empty_result() {
+  void executePipeline_should_not_add_generic_empty_notice_when_tool_explains_empty_result() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> {
-          collector.warnForEmptyResults("No widgets found for this account.");
+          collector.noticeForEmptyResults("No widgets found for this account.");
           return ExecutionResult.of(List.of(), 0);
         });
 
@@ -277,43 +277,43 @@ class PaginatedToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
     assertThat(result.totalItems()).isZero();
-    assertThat(result.warnings()).containsExactly("No widgets found for this account.");
+    assertThat(result.notices()).containsExactly("No widgets found for this account.");
   }
 
   @Test
-  void executePipeline_should_include_pagination_warnings() {
+  void executePipeline_should_include_pagination_notices() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> ExecutionResult.of(List.of("item"), 1));
 
     var result = tool.executePipeline(-1, 10, () -> TestParams.valid()); // Invalid page
 
     assertThat(result.isSuccess()).isTrue();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("Invalid page number"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("Invalid page number"));
   }
 
   @Test
-  void executePipeline_should_include_params_warnings() {
+  void executePipeline_should_include_params_notices() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> ExecutionResult.of(List.of("item"), 1));
 
-    var result = tool.executePipeline(1, 10, () -> TestParams.withWarning("Deprecated parameter"));
+    var result = tool.executePipeline(1, 10, () -> TestParams.withNotice("Deprecated parameter"));
 
     assertThat(result.isSuccess()).isTrue();
-    assertThat(result.warnings()).contains("Deprecated parameter");
+    assertThat(result.notices()).contains("Deprecated parameter");
   }
 
   @Test
-  void executePipeline_should_allow_doExecute_to_add_warnings() {
+  void executePipeline_should_allow_doExecute_to_add_notices() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> {
-          collector.warn("Session filtering applied");
+          collector.notice("Session filtering applied");
           return ExecutionResult.of(List.of("item"), 1);
         });
 
     var result = tool.executePipeline(1, 10, () -> TestParams.valid());
 
     assertThat(result.isSuccess()).isTrue();
-    assertThat(result.warnings()).contains("Session filtering applied");
+    assertThat(result.notices()).contains("Session filtering applied");
   }
 
   @Test
@@ -329,20 +329,20 @@ class PaginatedToolTest {
   }
 
   @Test
-  void executePipeline_should_preserve_warnings_when_http_response_exception_occurs() {
+  void executePipeline_should_preserve_notices_when_http_response_exception_occurs() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) -> {
-          collector.warn("Warning added before exception");
+          collector.notice("Notice added before exception");
           throw new HttpResponseException(
               "Rate limited", "GET", "/api/test", 429, "Too Many Requests");
         });
 
-    var result = tool.executePipeline(1, 10, () -> TestParams.withWarning("Initial warning"));
+    var result = tool.executePipeline(1, 10, () -> TestParams.withNotice("Initial notice"));
 
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).containsExactly("Rate limit exceeded. Retry after a brief pause.");
-    assertThat(result.warnings())
-        .containsExactlyInAnyOrder("Initial warning", "Warning added before exception");
+    assertThat(result.notices())
+        .containsExactlyInAnyOrder("Initial notice", "Notice added before exception");
   }
 
   // Test implementation of PaginatedTool
@@ -355,7 +355,7 @@ class PaginatedToolTest {
 
     @Override
     protected ExecutionResult<String> doExecute(
-        PaginationParams pagination, TestParams params, WarningCollector collector)
+        PaginationParams pagination, TestParams params, NoticeCollector collector)
         throws Exception {
       if (handler != null) {
         return handler.execute(pagination, params, collector);
@@ -366,13 +366,13 @@ class PaginatedToolTest {
     @FunctionalInterface
     interface DoExecuteHandler {
       ExecutionResult<String> execute(
-          PaginationParams pagination, TestParams params, WarningCollector collector)
+          PaginationParams pagination, TestParams params, NoticeCollector collector)
           throws Exception;
     }
   }
 
   // Test params implementation
-  private record TestParams(boolean isValid, List<String> errors, List<String> warnings)
+  private record TestParams(boolean isValid, List<String> errors, List<String> notices)
       implements ToolParams {
 
     static TestParams valid() {
@@ -383,8 +383,8 @@ class PaginatedToolTest {
       return new TestParams(false, List.of(error), List.of());
     }
 
-    static TestParams withWarning(String warning) {
-      return new TestParams(true, List.of(), List.of(warning));
+    static TestParams withNotice(String notice) {
+      return new TestParams(true, List.of(), List.of(notice));
     }
   }
 }

@@ -53,7 +53,7 @@ public class StringListSpec {
    * Sets a default value to use when the parameter is null or blank.
    *
    * @param val the default list value
-   * @param reason explanation for AI feedback (added as warning when default is used)
+   * @param reason explanation for AI feedback (added as a notice when default is used)
    * @return this for fluent chaining
    */
   public StringListSpec defaultTo(List<String> val, String reason) {
@@ -94,7 +94,7 @@ public class StringListSpec {
 
     if (parsed == null) {
       if (defaultValue != null) {
-        ctx.addWarning(defaultReason);
+        ctx.addNotice(defaultReason);
         return List.copyOf(defaultValue);
       }
       return null;

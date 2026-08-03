@@ -54,10 +54,10 @@ class ToolValidationContextTest {
   }
 
   @Test
-  void warnings_should_return_immutable_list() {
-    ctx.warnIf(true, "A warning");
+  void notices_should_return_immutable_list() {
+    ctx.noticeIf(true, "A notice");
 
-    assertThatThrownBy(() -> ctx.warnings().add("new warning"))
+    assertThatThrownBy(() -> ctx.notices().add("new notice"))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 
@@ -315,21 +315,21 @@ class ToolValidationContextTest {
     assertThat(ctx.isValid()).isTrue();
   }
 
-  // -- warnIf tests --
+  // -- noticeIf tests --
 
   @Test
-  void warnIf_should_add_warning_when_condition_true() {
-    ctx.warnIf(true, "This is a warning");
+  void noticeIf_should_add_notice_when_condition_true() {
+    ctx.noticeIf(true, "This is a notice");
 
     assertThat(ctx.isValid()).isTrue();
-    assertThat(ctx.warnings()).containsExactly("This is a warning");
+    assertThat(ctx.notices()).containsExactly("This is a notice");
   }
 
   @Test
-  void warnIf_should_not_add_warning_when_condition_false() {
-    ctx.warnIf(false, "This is a warning");
+  void noticeIf_should_not_add_notice_when_condition_false() {
+    ctx.noticeIf(false, "This is a notice");
 
-    assertThat(ctx.warnings()).isEmpty();
+    assertThat(ctx.notices()).isEmpty();
   }
 
   // -- Multiple validations --
@@ -345,21 +345,21 @@ class ToolValidationContextTest {
   }
 
   @Test
-  void should_collect_multiple_warnings() {
-    ctx.warnIf(true, "Warning 1");
-    ctx.warnIf(true, "Warning 2");
+  void should_collect_multiple_notices() {
+    ctx.noticeIf(true, "Notice 1");
+    ctx.noticeIf(true, "Notice 2");
 
     assertThat(ctx.isValid()).isTrue();
-    assertThat(ctx.warnings()).containsExactly("Warning 1", "Warning 2");
+    assertThat(ctx.notices()).containsExactly("Notice 1", "Notice 2");
   }
 
   @Test
-  void should_collect_both_errors_and_warnings() {
-    ctx.warnIf(true, "A warning");
+  void should_collect_both_errors_and_notices() {
+    ctx.noticeIf(true, "A notice");
     ctx.require(null, "appId");
 
     assertThat(ctx.isValid()).isFalse();
     assertThat(ctx.errors()).hasSize(1);
-    assertThat(ctx.warnings()).hasSize(1);
+    assertThat(ctx.notices()).hasSize(1);
   }
 }
