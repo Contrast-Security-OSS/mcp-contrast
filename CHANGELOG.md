@@ -173,7 +173,7 @@ These bugs prevented core functionality from working correctly:
 
 **Rules parameter for attack search**: Filter attacks by exact rule ID:
 - Single rule: `rules="sql-injection"`
-- Multiple rules: `rules="sql-injection,xss-reflected"`
+- Multiple rules: `rules="sql-injection,reflected-xss"`
 
 **Pagination added to consolidated tools**: The old tools returned all results in a single response with no pagination. The new consolidated tools all support pagination:
 - `search_applications` - replaces 5 non-paginated tools

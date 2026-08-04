@@ -205,7 +205,7 @@ class AttackSummaryTest {
     attack.setUuid("test-attack-uuid");
     attack.setStatus("PROBED");
     attack.setSource("192.168.1.100");
-    attack.setRules(List.of("sql-injection", "xss-reflected"));
+    attack.setRules(List.of("sql-injection", "reflected-xss"));
     attack.setProbes(10);
     attack.setStart_time(TEST_TIMESTAMP);
     attack.setEnd_time(TEST_TIMESTAMP + 5000);
