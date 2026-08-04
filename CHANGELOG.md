@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Bug Fixes
 
+**`search_vulnerabilities` example used wrong vulnerability type name**: The tool
+description's example filter for reflected XSS used the incorrect type `xss-reflected`
+instead of `reflected-xss`, causing agents to construct queries that returned no results.
+Fixed to use the correct type name.
+
 **`get_vulnerability` no longer crashes on missing HTTP request data**: When the Contrast
 SDK returned a null HTTP request response, the tool threw a NullPointerException instead
 of returning the vulnerability with the HTTP request field omitted. Fixed.
