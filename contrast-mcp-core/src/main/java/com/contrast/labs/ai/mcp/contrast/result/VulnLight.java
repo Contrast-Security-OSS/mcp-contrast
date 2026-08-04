@@ -23,7 +23,7 @@ import java.util.List;
  * vulnerability information including application correlation data.
  *
  * @param title Vulnerability title/description
- * @param type Vulnerability type/rule name (e.g., "sql-injection", "xss-reflected")
+ * @param type Vulnerability type/rule name (e.g., "sql-injection", "reflected-xss")
  * @param vulnID Unique vulnerability identifier (UUID)
  * @param severity Severity level (CRITICAL, HIGH, MEDIUM, LOW, NOTE)
  * @param appID Application UUID that owns this vulnerability

@@ -92,7 +92,7 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
       @ToolParam(
               description =
                   "Comma-separated list of rule IDs to filter by (e.g.,"
-                      + " 'sql-injection,xss-reflected'). Use get_protect_rules to discover"
+                      + " 'sql-injection,reflected-xss'). Use get_protect_rules to discover"
                       + " available rule IDs for an application. This filters by exact rule match,"
                       + " unlike keyword which does substring search.",
               required = false)
