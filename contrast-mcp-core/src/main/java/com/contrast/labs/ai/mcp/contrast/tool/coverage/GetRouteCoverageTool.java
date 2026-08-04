@@ -49,8 +49,7 @@ public class GetRouteCoverageTool
       description =
           """
           Get route coverage for an application: which routes have been exercised by HTTP requests
-          and which were only discovered. Use search_applications to find application IDs. Session
-          filters: a sessionMetadataName/Value pair or useLatestSession, not both.
+          and which were only discovered. Use search_applications to find application IDs.
           """)
   public SingleToolResponse<RouteCoverageResponseLight> getRouteCoverage(
       @ToolParam(description = "Application ID") String appId,
