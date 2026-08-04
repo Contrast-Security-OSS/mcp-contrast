@@ -261,6 +261,21 @@ class SearchServersToolTest {
   }
 
   @Test
+  void searchServers_should_notice_unknown_state_when_mixed_with_known_servers() throws Exception {
+    var unknownServer = server(1L, "server-unknown");
+    unknownServer.setDefend(null);
+    unknownServer.setLatestAgentVersion("NA");
+    var knownServer = server(2L, "server-known");
+    when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
+        .thenReturn(response(2L, unknownServer, knownServer));
+
+    var result = allServers(1, null);
+
+    assertThat(result.notices()).contains(UNKNOWN_PROTECT_NOTICE, UNKNOWN_AGENT_VERSION_NOTICE);
+    assertThat(result.items()).hasSize(2);
+  }
+
+  @Test
   void searchServers_should_not_emit_unknown_state_notices_when_states_are_known()
       throws Exception {
     when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))

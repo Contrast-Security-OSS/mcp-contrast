@@ -84,6 +84,31 @@ class GetProtectRulesToolTest {
   }
 
   @Test
+  void getProtectRules_should_notice_virtual_patch_when_mixed_with_regular_rules()
+      throws Exception {
+    var protectData = createProtectData();
+    var virtualPatch = new Rule();
+    virtualPatch.setName("CVE-2021-44228");
+    virtualPatch.setType("Virtual Patch");
+    virtualPatch.setEnabledDev(true);
+    virtualPatch.setEnabledQa(false);
+    virtualPatch.setEnabledProd(true);
+    protectData.getRules().add(virtualPatch);
+    when(contrastApiClient.getProtectRules(TEST_APP_ID)).thenReturn(protectData);
+
+    var result = tool.getProtectRules(TEST_APP_ID);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.notices()).containsExactly(VIRTUAL_PATCH_NOTICE);
+    assertThat(result.data().getRules())
+        .extracting(Rule::getName)
+        .containsExactly("sql-injection", "xss-reflected", "CVE-2021-44228");
+    assertThat(result.data().getRules())
+        .filteredOn(rule -> !"Virtual Patch".equalsIgnoreCase(rule.getType()))
+        .allSatisfy(rule -> assertThat(rule.getProduction()).isNotNull());
+  }
+
+  @Test
   void getProtectRules_should_return_validation_error_for_null_appId() {
     var result = tool.getProtectRules(null, null);
 
