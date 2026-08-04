@@ -20,24 +20,42 @@
 # into a throwaway headless Claude instance, and has that instance test every
 # tool the server exposes. The report is printed to stdout for a human to read.
 #
-# Usage: run.sh [smoke|regular] [focus text...]
-#   smoke    checks each tool's main use case only
-#   regular  (default) in-depth exploratory testing; accepts an optional focus
+# Usage: run.sh [smoke|regular] [--model <id>] [focus text...]
+#   smoke              checks each tool's main use case only
+#   regular            (default) in-depth exploratory testing; accepts an optional focus
+#   --model <id>       model for tester subagents (default: sonnet)
 #
 # The tool list is never hardcoded here. The orchestrator asks the running
 # server what it exposes, so a new tool is covered with no change to this script.
 
 set -euo pipefail
 
-# --- parse mode and focus -------------------------------------------------
-# Default to regular. Only consume the first word if it is an explicit mode;
-# otherwise the whole argument is focus text on a regular run.
-MODE="regular"
+# --- parse mode, model, and focus -----------------------------------------
+# Mode (smoke or regular) must be the first positional argument.
+# The skill layer asks the user and always passes an explicit mode.
+TESTER_MODEL="sonnet"
 if [[ "${1:-}" == "smoke" || "${1:-}" == "regular" ]]; then
   MODE="$1"
   shift
+else
+  log "Usage: run.sh <smoke|regular> [--model <id>] [focus text...]"
+  log "Mode (smoke or regular) must be the first argument."
+  exit 1
 fi
-FOCUS="$*"
+# --model <id> anywhere in remaining args overrides the tester model
+REMAINING_ARGS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --model)
+      if [[ $# -lt 2 ]]; then
+        log "--model requires a value (e.g. --model sonnet)"
+        exit 1
+      fi
+      TESTER_MODEL="$2"; shift 2 ;;
+    *) REMAINING_ARGS+=("$1"); shift ;;
+  esac
+done
+FOCUS="${REMAINING_ARGS[*]:-}"
 
 # --- locate repo root -----------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -81,6 +99,8 @@ fi
 # No secrets go in this file. The java subprocess inherits CONTRAST_* from the
 # environment sourced above, so credentials never touch disk.
 WORK="$(mktemp -d)"
+RESULTS_DIR="$WORK/results"
+mkdir -p "$RESULTS_DIR"
 trap 'rm -rf "$WORK"' EXIT
 MCP_CONFIG="$WORK/mcp.json"
 cat > "$MCP_CONFIG" <<EOF
@@ -95,9 +115,9 @@ cat > "$MCP_CONFIG" <<EOF
 EOF
 
 # --- the Sonnet tester persona (short and human on purpose) ---------------
-TESTER_PROMPT='You are a hands-on tester for one Contrast MCP tool. You have the Contrast tools available. Work out what your tool does from its description, then find real data to test it with by calling the other Contrast tools first (for example, search for an application, a vulnerability, or a server). Then actually call your tool and see how it behaves. Report back plainly: what you tried, what worked, anything that looked wrong or confusing, and a one-word verdict of WORKS, ISSUES, BROKEN, or INCONCLUSIVE (use INCONCLUSIVE if you could not find data to test with). Keep it short and honest. Do not spawn other agents.'
+TESTER_PROMPT="You are a hands-on tester for one Contrast MCP tool. You have the Contrast tools available. Work out what your tool does from its description, then find real data to test it with by calling the other Contrast tools first (for example, search for an application, a vulnerability, or a server). Then actually call your tool and see how it behaves. When you are done, write your full results to a file using Bash: echo your report into $RESULTS_DIR/<tool-name>.txt (use the exact tool name, e.g. search_vulnerabilities.txt). Your report must include: what you tried, what worked, anything that looked wrong or confusing, and a one-word verdict line at the end: VERDICT: WORKS, VERDICT: ISSUES, VERDICT: BROKEN, or VERDICT: INCONCLUSIVE. Keep it short and honest. Do not spawn other agents."
 AGENTS_JSON="$(cat <<EOF
-{"mcp-tool-tester": {"description": "Exploratory tester for a single Contrast MCP tool", "prompt": "$TESTER_PROMPT", "model": "sonnet"}}
+{"mcp-tool-tester": {"description": "Exploratory tester for a single Contrast MCP tool", "prompt": "$TESTER_PROMPT", "model": "$TESTER_MODEL"}}
 EOF
 )"
 
@@ -120,7 +140,7 @@ First, list every tool the contrast MCP server exposes to you. Then spawn one mc
 $DEPTH
 $FOCUS_LINE
 
-Let the subagents do the testing and find their own data. Do not test tools yourself beyond what you need to discover the tool list, and do not edit files or run shell commands.
+Let the subagents do the testing and find their own data. Do not test tools yourself beyond what you need to discover the tool list.
 
 When every tester has reported back, pull it all together into one report:
 - Start with a short overall read: is this build safe to release, and the headline problems if not.
@@ -129,12 +149,32 @@ EOF
 )"
 
 # --- run the nested instance ----------------------------------------------
-log "Launching a $MODE test. One Opus orchestrator, one Sonnet tester per tool."
+log "Launching a $MODE test. Orchestrator: opus, testers: $TESTER_MODEL."
 log "This can take several minutes for a full regular run."
 
+ORCH_EXIT=0
 claude -p "$ORCH_PROMPT" \
   --model opus \
   --mcp-config "$MCP_CONFIG" \
   --strict-mcp-config \
-  --allowedTools "mcp__contrast Task" \
-  --agents "$AGENTS_JSON"
+  --allowedTools "mcp__contrast Task Bash" \
+  --agents "$AGENTS_JSON" || ORCH_EXIT=$?
+
+# --- if the orchestrator was killed, salvage individual results ------------
+if [ "$ORCH_EXIT" -ne 0 ]; then
+  RESULT_COUNT="$(find "$RESULTS_DIR" -maxdepth 1 -name '*.txt' | wc -l | tr -d ' ')"
+  if [ "$RESULT_COUNT" -gt 0 ]; then
+    echo ""
+    echo "=== Orchestrator exited early (code $ORCH_EXIT). Salvaged $RESULT_COUNT tool results: ==="
+    for f in "$RESULTS_DIR"/*.txt; do
+      TOOL_NAME="$(basename "$f" .txt)"
+      echo ""
+      echo "--- $TOOL_NAME ---"
+      cat "$f"
+    done
+  else
+    log "Orchestrator exited with code $ORCH_EXIT and no individual results were saved."
+  fi
+fi
+
+exit "$ORCH_EXIT"

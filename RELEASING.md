@@ -23,15 +23,25 @@ plain for in-depth exploratory testing. The run is read-only and prints a report
 for you to read. Treat it as a judgement aid, not an automatic gate. See
 `.claude/skills/test-mcp-server/` for details.
 
+## Pre-release Changelog Update
+
+Before you cut a release, bring `CHANGELOG.md` up to date. From a Claude Code session,
+run `/update-changelog`. It diffs the last release tag against `origin/main`, drafts
+`[Unreleased]` entries for every user-facing change, audits the draft for completeness
+with a read-only subagent, and lands the result on a branch after you approve the
+draft. Merge that change before dispatching the release so the tag contains the
+finished changelog. See `.claude/skills/update-changelog/` for details.
+
 ## Release Steps
 
 1. Ensure all desired changes are merged to `main`.
-2. Confirm CI is passing.
-3. Navigate to the [GitHub Actions](https://github.com/Contrast-Security-OSS/mcp-contrast/actions) page.
-4. Select the **Gradle Release** workflow.
-5. Click **Run workflow** and select `main`.
-6. Leave `release_version` blank for a normal patch release, or enter an explicit `X.Y.Z` version for a major, minor, or migration release.
-7. Start the run.
+2. Ensure the `[Unreleased]` section of `CHANGELOG.md` documents the release. Run `/update-changelog` if needed (see Pre-release Changelog Update).
+3. Confirm CI is passing.
+4. Navigate to the [GitHub Actions](https://github.com/Contrast-Security-OSS/mcp-contrast/actions) page.
+5. Select the **Gradle Release** workflow.
+6. Click **Run workflow** and select `main`.
+7. Leave `release_version` blank for a normal patch release, or enter an explicit `X.Y.Z` version for a major, minor, or migration release.
+8. Start the run.
 
 The first Axion-managed release must be run with `release_version=2.0.0`. After `v2.0.0` exists, leaving `release_version` blank creates the next patch release from the latest `vX.Y.Z` tag.
 
