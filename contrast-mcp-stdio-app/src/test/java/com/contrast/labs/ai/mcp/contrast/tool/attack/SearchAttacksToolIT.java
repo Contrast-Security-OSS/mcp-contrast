@@ -358,12 +358,12 @@ class SearchAttacksToolIT {
   void searchAttacks_should_find_results_with_multiple_rules() {
     var response =
         searchAttacksTool.searchAttacks(
-            1, 50, null, null, null, null, null, null, null, "sql-injection,xss-reflected");
+            1, 50, null, null, null, null, null, null, null, "sql-injection,reflected-xss");
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors()).as("Should have no errors").isEmpty();
     assertThat(response.items())
-        .as("requires seeded attacks matching sql-injection or xss-reflected rules")
+        .as("requires seeded attacks matching sql-injection or reflected-xss rules")
         .isNotEmpty();
 
     // Every attack must have at least one rule matching one of the two requested rule families.

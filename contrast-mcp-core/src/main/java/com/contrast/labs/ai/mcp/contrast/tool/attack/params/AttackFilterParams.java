@@ -87,7 +87,7 @@ public class AttackFilterParams extends BaseToolParams {
    * @param includeBotBlockers Include bot blocker attacks
    * @param includeIpBlacklist Include IP blacklist attacks
    * @param sort Sort field (e.g., "startTime,DESC")
-   * @param rules Comma-separated list of rule IDs (e.g., "sql-injection,xss-reflected")
+   * @param rules Comma-separated list of rule IDs (e.g., "sql-injection,reflected-xss")
    * @return AttackFilterParams with validation state
    */
   public static AttackFilterParams of(
