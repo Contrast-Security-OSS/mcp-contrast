@@ -48,49 +48,15 @@ public class GetRouteCoverageTool
       name = "get_route_coverage",
       description =
           """
-          Retrieves route coverage data for an application.
-
-          Routes can have these statuses:
-          - DISCOVERED: Found by Contrast Assess but has not received any HTTP requests
-          - EXERCISED: Has received at least one HTTP request
-          - EXCLUDED: Excluded from route coverage tracking
-
-          Response fields:
-          - success: Whether the request completed successfully
-          - messages: Informational messages returned by the service
-          - totalRoutes: Total number of routes
-          - exercisedCount: Number of routes with EXERCISED status
-          - discoveredCount: Number of routes with DISCOVERED status
-          - coveragePercent: Percentage of routes that are exercised
-          - totalVulnerabilities: Total vulnerabilities across the returned routes
-          - totalCriticalVulnerabilities: Critical vulnerabilities across the returned routes
-          - routes: List of routes with coverage status and details. Each route includes
-            environments; this list is empty for session-filtered routes because the source omits
-            that data.
-
-          Filtering options (mutually exclusive):
-          - No filter: Returns all routes across all sessions
-          - sessionMetadataName + sessionMetadataValue: Filter by session metadata (e.g., branch=main)
-          - useLatestSession: Filter by the most recent session only
-
-          NOTE: sessionMetadataName and sessionMetadataValue must be provided together or both omitted.
-          If both useLatestSession and session metadata are provided, useLatestSession takes precedence.
-
-          Usage examples:
-          - Get all routes: appId="app-123"
-          - Filter by branch: appId="app-123", sessionMetadataName="branch", sessionMetadataValue="main"
-          - Latest session only: appId="app-123", useLatestSession=true
-
-          Related tools:
-          - search_applications: Find application IDs by name or tag
-          - get_session_metadata: View available session metadata fields
+          Get route coverage for an application: which routes have been exercised by HTTP requests
+          and which were only discovered. Use search_applications to find application IDs.
           """)
   public SingleToolResponse<RouteCoverageResponseLight> getRouteCoverage(
-      @ToolParam(description = "Application ID (use search_applications to find)") String appId,
+      @ToolParam(description = "Application ID") String appId,
       @ToolParam(
               description =
                   "Session metadata field name to filter by (e.g., 'branch'). Must be provided with"
-                      + " sessionMetadataValue.",
+                      + " sessionMetadataValue. Use get_session_metadata to discover field names.",
               required = false)
           String sessionMetadataName,
       @ToolParam(
@@ -189,6 +155,12 @@ public class GetRouteCoverageTool
         "Successfully retrieved route coverage for application ID: {} ({} routes)",
         params.appId(),
         response.getRoutes().size());
+
+    if (request != null) {
+      collector.notice(
+          "Route environments are omitted for session-filtered results because the source does not"
+              + " provide them.");
+    }
 
     // Transform to light response to reduce payload size for AI agents
     return routeMapper.toResponseLight(response);

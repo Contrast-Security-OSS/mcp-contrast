@@ -54,6 +54,9 @@ class GetRouteCoverageToolTest {
   private static final String SESSION_ID = "session-456";
   private static final String ROUTE_HASH = "route-hash-789";
   private static final String SECRET_BODY = "token=raw-token-value&apiKey=secret";
+  private static final String FILTERED_ENVIRONMENTS_NOTICE =
+      "Route environments are omitted for session-filtered results because the source does not"
+          + " provide them.";
   private static final String FILTERED_ROUTE_COVERAGE_RESPONSE =
       """
       {
@@ -106,6 +109,7 @@ class GetRouteCoverageToolTest {
     assertThat(result.found()).isTrue();
     assertThat(result.data().routes()).hasSize(2);
     assertThat(result.data().totalRoutes()).isEqualTo(2);
+    assertThat(result.notices()).doesNotContain(FILTERED_ENVIRONMENTS_NOTICE);
     verify(contrastApiClient).getRouteCoverage(eq(VALID_APP_ID), isNull());
   }
 
@@ -122,6 +126,7 @@ class GetRouteCoverageToolTest {
     var request = requestCaptor.getValue();
 
     assertThat(result.isSuccess()).isTrue();
+    assertThat(result.notices()).contains(FILTERED_ENVIRONMENTS_NOTICE);
     assertThat(request).isInstanceOf(RouteCoverageBySessionIDAndMetadataRequestExtended.class);
     assertThat(request.getValues()).hasSize(1);
     assertThat(request.getValues().get(0).getLabel()).isEqualTo(METADATA_NAME);
@@ -179,6 +184,7 @@ class GetRouteCoverageToolTest {
     verify(contrastApiClient).getLatestSessionMetadata(VALID_APP_ID);
     verify(contrastApiClient).getRouteCoverage(eq(VALID_APP_ID), requestCaptor.capture());
     assertThat(result.isSuccess()).isTrue();
+    assertThat(result.notices()).contains(FILTERED_ENVIRONMENTS_NOTICE);
     assertThat(requestCaptor.getValue())
         .isInstanceOf(RouteCoverageBySessionIDAndMetadataRequestExtended.class);
     assertThat(requestCaptor.getValue().getSessionID()).isEqualTo(SESSION_ID);

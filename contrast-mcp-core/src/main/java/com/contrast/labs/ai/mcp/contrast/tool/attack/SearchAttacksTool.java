@@ -43,44 +43,13 @@ public class SearchAttacksTool extends PaginatedTool<AttackFilterParams, AttackS
       name = "search_attacks",
       description =
           """
-          Retrieves attacks from Contrast ADR (Attack Detection and Response) with optional filtering
-          and sorting. Supports filtering by attack categorization (quickFilter), outcome status
-          (statusFilter), keywords, rules, and other criteria.
+          Search attacks detected by Contrast ADR (Attack Detection and Response) across the
+          organization, with filtering by categorization, outcome status, keyword, and rule.
 
-          Returns a paginated list of attack summaries with key information including rule names,
-          status, severity, affected applications, source IP, and probe counts.
-
-          Common usage examples:
-          - All attacks: No filters (returns all attack types)
-          - Active attacks only: quickFilter="ACTIVE"
-          - Exploited attacks: statusFilter="EXPLOITED"
-          - SQL injection attacks by keyword: keyword="SQL Injection" (searches multiple fields)
-          - SQL injection attacks by rule: rules="sql-injection" (exact rule ID match)
-          - Multiple rules: rules="sql-injection,xss-reflected"
-          - Blocked attacks: statusFilter="BLOCKED"
-          - Production attacks: quickFilter="PRODUCTION"
-
-          Filter combinations:
+          Examples:
           - Effective exploits: quickFilter="EFFECTIVE", statusFilter="EXPLOITED"
-          - Manual SQL attacks: quickFilter="MANUAL", rules="sql-injection"
-
-          Keyword vs Rules:
-          - keyword: Substring match (OR logic) across source IP, server name/hostname,
-            application name, rule name, attack UUID, forwarded IP/path, and attack tags
-          - rules: Exact match against rule IDs (e.g., "sql-injection"). Use get_protect_rules
-            to discover available rule IDs for an application.
-
-          Response fields:
-          - attackId: Unique identifier for the attack
-          - status: Attack outcome (EXPLOITED, PROBED, BLOCKED, etc.)
-          - source: Source IP address of the attacker
-          - rules: Protection rules triggered by the attack
-          - probes: Number of probe attempts
-          - applications: List of affected applications with severity and status
-
-          Related tools:
-          - get_protect_rules: View configured protection rules for an application
-          - search_applications: Find application IDs by name or tag
+          - Manual SQL injection: quickFilter="MANUAL", rules="sql-injection"
+          - Blocked attacks from one source: statusFilter="BLOCKED", keyword="192.0.2.10"
           """)
   public PaginatedToolResponse<AttackSummary> searchAttacks(
       @ToolParam(description = "Page number (1-based), default: 1", required = false) Integer page,

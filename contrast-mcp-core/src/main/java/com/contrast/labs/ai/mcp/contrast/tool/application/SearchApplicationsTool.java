@@ -56,21 +56,11 @@ public class SearchApplicationsTool
       name = "search_applications",
       description =
           """
-          Search applications with optional filters. Returns all applications if no filters specified.
+          Search applications by name, tag, or custom metadata. Returns every application when no
+          filters are given. This is the discovery tool for the appId parameter used by
+          application-scoped tools.
 
-          Filtering behavior:
-          - name: Server-side text search on displayName, contextPath, tags, and metadata values
-          - tag: Exact, case-insensitive matching
-          - metadataFilters: JSON object for metadata field filtering
-            - Format: {"fieldName":"value"} or {"fieldName":["value1","value2"]}
-            - Multiple fields use AND logic, multiple values use OR logic
-            - Field names are case-insensitive
-            - Values are case-insensitive
-            - Values must be non-empty (empty, null, or whitespace-only values are rejected)
-
-          Related tools:
-          - get_session_metadata: Get session metadata for an application
-          - search_vulnerabilities: Search vulnerabilities across applications
+          Example: name="petclinic", metadataFilters='{"team":"payments"}'
           """)
   public PaginatedToolResponse<ApplicationData> searchApplications(
       @ToolParam(description = "Page number (1-based), default: 1", required = false) Integer page,
@@ -85,7 +75,9 @@ public class SearchApplicationsTool
       @ToolParam(
               description =
                   "JSON object for metadata filters. Format: {\"field\":\"value\"} or"
-                      + " {\"field\":[\"v1\",\"v2\"]}",
+                      + " {\"field\":[\"v1\",\"v2\"]}. Multiple fields use AND logic."
+                      + " Multiple values within a field use OR logic. Field names and values are"
+                      + " case-insensitive. Values must be non-empty.",
               required = false)
           String metadataFilters,
       ToolContext toolContext) {

@@ -155,7 +155,10 @@ Two rules make the table binding.
 
 **Earliest-moment tiebreaker.** A fact needed at more than one moment goes in the earliest home where it is needed, and only there. "Use score, not severity, when sorting by risk" shapes the `sort` argument, so it lives on the `sort` parameter even though it sounds like result interpretation.
 
-**Duplication ban.** A fact stated in a parameter description must not repeat in the body. Cross-checking body against params is part of review.
+**Duplication ban.** A fact stated in a parameter description must not repeat in the body. A
+discovery pointer carried by the description body is never repeated in a parameter description;
+parameter-level discovery cross-references apply only when the body does not carry the pointer.
+Cross-checking body against params is part of review.
 
 ### Templates and budgets
 
@@ -169,11 +172,23 @@ Each verb shape has a fixed template. Every slot except the lead is optional. Th
 4. Call-shaping quirks that span more than one parameter. Mutual exclusivity between parameters is the canonical example ("sessionMetadataFilters and useLatestSession are mutually exclusive"). Single-parameter semantics belong on the parameter.
 5. Up to three usage examples, preferring filter combinations over single filters. Simple tools get none.
 
-**Get tools, 40 words or fewer.** Lead sentence plus a discovery pointer for the identifier ("Use search_vulnerabilities to find vulnerability IDs"). Interpretation quirks arrive as notices, not prose.
+**Get tools, 40 words or fewer.** Lead sentence plus a discovery pointer for the identifier when the
+catalog has a discovery tool for it and the pointer would help ("Use search_vulnerabilities to find
+vulnerability IDs"). Omit the pointer when no discovery tool exists or it would not help.
+Interpretation quirks arrive as notices, not prose.
 
 **Update tools, 60 words or fewer.** Lead sentence, allowed transitions when not carried by the parameter, and an audit or reversibility note.
 
 **Escape hatch.** A description may exceed its budget only when the overage is use-when/don't-use disambiguation, and the overage must name the sibling it disambiguates against. The enforcement test records the exemption in a reviewed allowlist.
+
+### Repository boundary
+
+Tool descriptions in this public repository must refer only to tools exposed by `mcp-contrast`.
+They must never name hosted-only tools from `aiml-services`, because `mcp-contrast` can be
+deployed independently and those tools may not exist. The hosted `aiml-services` catalog may refer
+to public `mcp-contrast` tools because it deliberately aggregates them. Cross-repo routing that
+would otherwise require a reverse public-to-hosted reference belongs in the hosted server's
+instructions once that channel clears its delivery gate.
 
 ### Transitional clauses
 
@@ -391,6 +406,7 @@ For any other application that consumes `contrast-mcp-core`, register tools thro
 - [ ] Body follows the verb-shape template and is within budget (search/list ≤150 words, get ≤40, update ≤60), or carries a named allowlist exemption for sibling disambiguation
 - [ ] Every fact sits in its one home per the routing table, no body/param duplication
 - [ ] Prerequisite and discovery pointers inline, no "Related tools" footer
+- [ ] References only tools exposed by `mcp-contrast`, never hosted-only `aiml-services` tools
 - [ ] At most three usage examples, combinations preferred
 - [ ] No documented parameter the tool does not accept, no response-field inventory
 - [ ] Transitional clauses tagged and tied to the change that removes them

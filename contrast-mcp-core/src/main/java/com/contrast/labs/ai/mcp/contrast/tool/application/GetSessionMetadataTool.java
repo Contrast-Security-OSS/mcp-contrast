@@ -44,21 +44,12 @@ public class GetSessionMetadataTool
       name = "get_session_metadata",
       description =
           """
-          Retrieves session metadata for a specific application by its ID.
-
-          Returns the session metadata available for the application, including branch names,
-          build IDs, and other custom metadata fields that can be used for filtering
-          vulnerabilities in search_app_vulnerabilities.
-
-          Use search_applications(name=...) to find the application ID from a name.
-
-          Related tools:
-          - search_applications: Find application IDs by name, tag, or metadata
-          - search_app_vulnerabilities: Search vulnerabilities with session filtering
+          Get the session metadata fields and values recorded for an application, such as branch or
+          build. Field names feed sessionMetadataFilters in search_app_vulnerabilities and session
+          filters in get_route_coverage. Use search_applications to find application IDs.
           """)
   public SingleToolResponse<MetadataFilterResponse> getSessionMetadata(
-      @ToolParam(description = "Application ID (use search_applications to find)") String appId,
-      ToolContext toolContext) {
+      @ToolParam(description = "Application ID") String appId, ToolContext toolContext) {
     return executePipeline(() -> GetSessionMetadataParams.of(appId), toolContext);
   }
 
