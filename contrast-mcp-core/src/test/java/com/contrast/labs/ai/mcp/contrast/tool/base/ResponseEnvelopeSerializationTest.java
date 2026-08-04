@@ -69,15 +69,7 @@ class ResponseEnvelopeSerializationTest {
     assertThat(json.path("notices").size()).isZero();
   }
 
-  private JsonNode serialize(PaginatedToolResponse<?> response) throws Exception {
-    return parse(JsonParser.toJson(response));
-  }
-
-  private JsonNode serialize(SingleToolResponse<?> response) throws Exception {
-    return parse(JsonParser.toJson(response));
-  }
-
-  private JsonNode serialize(CursorToolResponse<?> response) throws Exception {
+  private JsonNode serialize(Object response) throws Exception {
     return parse(JsonParser.toJson(response));
   }
 
