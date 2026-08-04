@@ -51,6 +51,12 @@ import org.springframework.ai.tool.annotation.Tool;
 class SearchServersToolTest {
 
   private static final String SECRET_BODY = "token=raw-token-value&apiKey=secret";
+  private static final String UNKNOWN_PROTECT_NOTICE =
+      "protectEnabled null means Protect state is unknown or unavailable for that server, not"
+          + " disabled.";
+  private static final String UNKNOWN_AGENT_VERSION_NOTICE =
+      "agentOutOfDate null means the latest agent version could not be determined, not that the"
+          + " agent is current.";
 
   private ContrastApiClient contrastApiClient;
   private SearchServersTool tool;
@@ -241,6 +247,32 @@ class SearchServersToolTest {
   }
 
   @Test
+  void searchServers_should_explain_unknown_protect_and_agent_version_state() throws Exception {
+    var server = server(1L, "server-1");
+    server.setDefend(null);
+    server.setLatestAgentVersion("NA");
+    when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
+        .thenReturn(response(1L, server));
+
+    var result = allServers(1, null);
+
+    assertThat(result.notices())
+        .containsExactly(UNKNOWN_PROTECT_NOTICE, UNKNOWN_AGENT_VERSION_NOTICE);
+  }
+
+  @Test
+  void searchServers_should_not_emit_unknown_state_notices_when_states_are_known()
+      throws Exception {
+    when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
+        .thenReturn(response(1L, server(1L, "server-1")));
+
+    var result = allServers(1, null);
+
+    assertThat(result.notices())
+        .doesNotContain(UNKNOWN_PROTECT_NOTICE, UNKNOWN_AGENT_VERSION_NOTICE);
+  }
+
+  @Test
   void searchServers_should_return_standard_notice_for_valid_empty_result() throws Exception {
     when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
         .thenReturn(response(0L));
@@ -304,6 +336,7 @@ class SearchServersToolTest {
     server.setServerId(serverId);
     server.setName(name);
     server.setLatestAgentVersion("5.1.0");
+    server.setDefend(false);
     server.setTags(List.of());
     server.setApplicationCount(0L);
     return server;

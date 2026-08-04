@@ -36,6 +36,9 @@ import org.springframework.ai.tool.annotation.Tool;
 class GetProtectRulesToolTest {
 
   private static final String TEST_APP_ID = "test-app-456";
+  private static final String VIRTUAL_PATCH_NOTICE =
+      "Virtual Patch entries use enabledDev/enabledQa/enabledProd booleans; their"
+          + " development/qa/production mode fields and uuid are not populated.";
 
   private GetProtectRulesTool tool;
   private ContrastApiClient contrastApiClient;
@@ -58,7 +61,26 @@ class GetProtectRulesToolTest {
     assertThat(result.data().getRules())
         .extracting(Rule::getName)
         .containsExactly("sql-injection", "xss-reflected");
+    assertThat(result.notices()).doesNotContain(VIRTUAL_PATCH_NOTICE);
     verify(contrastApiClient).getProtectRules(TEST_APP_ID);
+  }
+
+  @Test
+  void getProtectRules_should_explain_virtual_patch_response_shape() throws Exception {
+    var protectData = new ProtectData();
+    var virtualPatch = new Rule();
+    virtualPatch.setName("CVE-2021-44228");
+    virtualPatch.setType("Virtual Patch");
+    virtualPatch.setEnabledDev(true);
+    virtualPatch.setEnabledQa(false);
+    virtualPatch.setEnabledProd(true);
+    protectData.setRules(new ArrayList<>(java.util.List.of(virtualPatch)));
+    when(contrastApiClient.getProtectRules(TEST_APP_ID)).thenReturn(protectData);
+
+    var result = tool.getProtectRules(TEST_APP_ID);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.notices()).containsExactly(VIRTUAL_PATCH_NOTICE);
   }
 
   @Test

@@ -56,27 +56,11 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
       name = "list_applications_by_cve",
       description =
           """
-          Find applications and libraries affected by a specific CVE.
-
-          Takes a CVE ID (e.g., CVE-2021-44228) and returns:
-          - apps: List of applications containing vulnerable libraries
-          - libraries: The vulnerable library versions
-          - cve: CVE details including preferred CVSS score/severity and nested v2/v3 metrics
-
-          For each application, class usage data is populated:
-          - classCount: Total classes in the vulnerable library
-          - classUsage: Number of classes actually used by the application
-
-          Important: If classUsage is 0, the vulnerable library code is likely NOT
-          being executed, significantly reducing exploitability risk. Prioritize
-          remediation for applications where classUsage > 0.
-
-          score is absent for v2-only CVEs because TeamServer does not provide a numeric v2
-          base score; use severity and cvssv2 metrics in that case.
-
-          Related tools:
-          - list_application_libraries: Get all libraries for a specific application
-          - search_applications: Find applications by name, tag, or metadata
+          List applications affected by one CVE, with the vulnerable library versions and
+          per-application class usage. classUsage 0 or absent means no classes from the vulnerable
+          library were seen loaded, so exploitation is unlikely; prioritize applications with
+          classUsage above 0. Use list_application_libraries for the reverse direction, all
+          libraries of one application.
           """)
   public SingleToolResponse<CveData> listApplicationsByCve(
       @ToolParam(description = "CVE identifier (e.g., CVE-2021-44228)") String cveId,
@@ -99,6 +83,11 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
       return null; // SingleTool converts this to notFound response
     }
     applyPreferredCvssSummary(cveData.getCve());
+    if (hasOnlyCvssV2(cveData.getCve())) {
+      collector.notice(
+          "score is omitted for CVEs with only CVSS v2 data; use severity and the cvssv2"
+              + " metrics.");
+    }
     dedupeServersById(cveData);
 
     var vulnerableLibs =
@@ -146,6 +135,10 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
       cve.setScore(null);
       cve.setSeverity(cve.getCvssv2().getSeverity());
     }
+  }
+
+  private static boolean hasOnlyCvssV2(Cve cve) {
+    return cve != null && cve.getCvssv3() == null && cve.getCvssv2() != null;
   }
 
   private void enrichAppsWithClassUsage(

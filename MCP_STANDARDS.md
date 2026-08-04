@@ -155,7 +155,10 @@ Two rules make the table binding.
 
 **Earliest-moment tiebreaker.** A fact needed at more than one moment goes in the earliest home where it is needed, and only there. "Use score, not severity, when sorting by risk" shapes the `sort` argument, so it lives on the `sort` parameter even though it sounds like result interpretation.
 
-**Duplication ban.** A fact stated in a parameter description must not repeat in the body. Cross-checking body against params is part of review.
+**Duplication ban.** A fact stated in a parameter description must not repeat in the body. A
+discovery pointer carried by the description body is never repeated in a parameter description;
+parameter-level discovery cross-references apply only when the body does not carry the pointer.
+Cross-checking body against params is part of review.
 
 ### Templates and budgets
 
@@ -169,7 +172,10 @@ Each verb shape has a fixed template. Every slot except the lead is optional. Th
 4. Call-shaping quirks that span more than one parameter. Mutual exclusivity between parameters is the canonical example ("sessionMetadataFilters and useLatestSession are mutually exclusive"). Single-parameter semantics belong on the parameter.
 5. Up to three usage examples, preferring filter combinations over single filters. Simple tools get none.
 
-**Get tools, 40 words or fewer.** Lead sentence plus a discovery pointer for the identifier ("Use search_vulnerabilities to find vulnerability IDs"). Interpretation quirks arrive as notices, not prose.
+**Get tools, 40 words or fewer.** Lead sentence plus a discovery pointer for the identifier when the
+catalog has a discovery tool for it and the pointer would help ("Use search_vulnerabilities to find
+vulnerability IDs"). Omit the pointer when no discovery tool exists or it would not help.
+Interpretation quirks arrive as notices, not prose.
 
 **Update tools, 60 words or fewer.** Lead sentence, allowed transitions when not carried by the parameter, and an audit or reversibility note.
 

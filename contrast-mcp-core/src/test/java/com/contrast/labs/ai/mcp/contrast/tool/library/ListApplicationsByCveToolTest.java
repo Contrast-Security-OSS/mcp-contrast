@@ -48,6 +48,8 @@ class ListApplicationsByCveToolTest {
   private static final String CVE_ID = "CVE-2021-44228";
   private static final String LIBRARY_HASH = "hash-123";
   private static final String SECRET_BODY = "token=raw-token-value&apiKey=secret";
+  private static final String CVSS_V2_NOTICE =
+      "score is omitted for CVEs with only CVSS v2 data; use severity and the cvssv2 metrics.";
   private static final String CVSS_V3_CVE_RESPONSE =
       """
       {
@@ -145,6 +147,7 @@ class ListApplicationsByCveToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.data().getCve().getScore()).isEqualTo(9.3);
     assertThat(result.data().getCve().getSeverity()).isEqualTo("Critical");
+    assertThat(result.notices()).doesNotContain(CVSS_V2_NOTICE);
     assertThat(result.data().getCve())
         .extracting(
             cve -> cve.getId(),
@@ -184,6 +187,7 @@ class ListApplicationsByCveToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.data().getCve().getSeverity()).isEqualTo("High");
     assertThat(result.data().getCve().getScore()).isNull();
+    assertThat(result.notices()).contains(CVSS_V2_NOTICE);
     assertThat(result.data().getCve().getCvssv2())
         .extracting(
             cvss -> cvss.getAccessVector(),
