@@ -17,20 +17,25 @@ on demand only.
 
 ## Usage
 
-- `/test-mcp-server` runs the in-depth (regular) pass.
+- `/test-mcp-server` runs the in-depth (regular) pass with Sonnet testers.
 - `/test-mcp-server smoke` runs a fast pass that just checks each tool's main use case.
 - `/test-mcp-server regular <focus>` runs in-depth with a nudge, e.g. `/test-mcp-server regular focus on the server tools`.
+- `/test-mcp-server --model claude-opus-4-6` runs with Opus testers instead of Sonnet.
+- `--model <id>` can be combined with any mode, e.g. `/test-mcp-server smoke --model claude-opus-4-6`.
 
 ## What to do
 
 1. Work out the mode and focus from the arguments. Default mode is regular. If the
    first word is not `smoke` or `regular`, treat the whole argument as focus text on
    a regular run.
-2. Launch the helper in the background, since a full regular run can take several
-   minutes, and wait for the completion notification rather than polling:
+2. Launch the helper in the background so the user can keep chatting. A regular
+   run spawns one tester per tool and can take 15-20 minutes. Set
+   `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0` in the command so the background
+   output capture waits indefinitely instead of cutting off at the default
+   600-second ceiling:
 
    ```
-   bash .claude/skills/test-mcp-server/run.sh <mode> <focus>
+   CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0 bash .claude/skills/test-mcp-server/run.sh <mode> <focus>
    ```
 
 3. When it finishes, read its output and show the human the report as the script
