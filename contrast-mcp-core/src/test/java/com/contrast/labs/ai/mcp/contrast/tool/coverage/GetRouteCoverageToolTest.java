@@ -55,7 +55,7 @@ class GetRouteCoverageToolTest {
   private static final String ROUTE_HASH = "route-hash-789";
   private static final String SECRET_BODY = "token=raw-token-value&apiKey=secret";
   private static final String FILTERED_ENVIRONMENTS_NOTICE =
-      "route environments are omitted for session-filtered results because the source does not"
+      "Route environments are omitted for session-filtered results because the source does not"
           + " provide them.";
   private static final String FILTERED_ROUTE_COVERAGE_RESPONSE =
       """

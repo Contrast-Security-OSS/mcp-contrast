@@ -36,6 +36,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, ProtectData> {
 
+  static final String VIRTUAL_PATCH_TYPE = "Virtual Patch";
+
   private final ContrastApiClient contrastApiClient;
 
   public GetProtectRulesTool(ContrastApiClient contrastApiClient) {
@@ -74,7 +76,8 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
     if (Optional.ofNullable(protectData.getRules()).orElse(List.of()).stream()
         .anyMatch(GetProtectRulesTool::isVirtualPatch)) {
       collector.notice(
-          "Virtual Patch entries use enabledDev/enabledQa/enabledProd booleans; their"
+          VIRTUAL_PATCH_TYPE
+              + " entries use enabledDev/enabledQa/enabledProd booleans; their"
               + " development/qa/production mode fields and uuid are not populated.");
     }
 
@@ -82,6 +85,6 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
   }
 
   private static boolean isVirtualPatch(Rule rule) {
-    return "Virtual Patch".equalsIgnoreCase(rule.getType());
+    return VIRTUAL_PATCH_TYPE.equalsIgnoreCase(rule.getType());
   }
 }

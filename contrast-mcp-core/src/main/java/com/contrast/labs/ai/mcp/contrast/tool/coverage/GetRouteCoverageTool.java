@@ -158,7 +158,7 @@ public class GetRouteCoverageTool
 
     if (request != null) {
       collector.notice(
-          "route environments are omitted for session-filtered results because the source does not"
+          "Route environments are omitted for session-filtered results because the source does not"
               + " provide them.");
     }
 

@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.attack;
 
+import static com.contrast.labs.ai.mcp.contrast.tool.attack.GetProtectRulesTool.VIRTUAL_PATCH_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -26,6 +27,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Rule;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,11 +72,11 @@ class GetProtectRulesToolTest {
     var protectData = new ProtectData();
     var virtualPatch = new Rule();
     virtualPatch.setName("CVE-2021-44228");
-    virtualPatch.setType("Virtual Patch");
+    virtualPatch.setType(VIRTUAL_PATCH_TYPE);
     virtualPatch.setEnabledDev(true);
     virtualPatch.setEnabledQa(false);
     virtualPatch.setEnabledProd(true);
-    protectData.setRules(new ArrayList<>(java.util.List.of(virtualPatch)));
+    protectData.setRules(new ArrayList<>(List.of(virtualPatch)));
     when(contrastApiClient.getProtectRules(TEST_APP_ID)).thenReturn(protectData);
 
     var result = tool.getProtectRules(TEST_APP_ID);
@@ -89,7 +91,7 @@ class GetProtectRulesToolTest {
     var protectData = createProtectData();
     var virtualPatch = new Rule();
     virtualPatch.setName("CVE-2021-44228");
-    virtualPatch.setType("Virtual Patch");
+    virtualPatch.setType(VIRTUAL_PATCH_TYPE);
     virtualPatch.setEnabledDev(true);
     virtualPatch.setEnabledQa(false);
     virtualPatch.setEnabledProd(true);
@@ -104,7 +106,7 @@ class GetProtectRulesToolTest {
         .extracting(Rule::getName)
         .containsExactly("sql-injection", "xss-reflected", "CVE-2021-44228");
     assertThat(result.data().getRules())
-        .filteredOn(rule -> !"Virtual Patch".equalsIgnoreCase(rule.getType()))
+        .filteredOn(rule -> !VIRTUAL_PATCH_TYPE.equalsIgnoreCase(rule.getType()))
         .allSatisfy(rule -> assertThat(rule.getProduction()).isNotNull());
   }
 
