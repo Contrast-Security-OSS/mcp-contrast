@@ -31,19 +31,27 @@
 set -euo pipefail
 
 # --- parse mode, model, and focus -----------------------------------------
-# Default to regular. Only consume the first word if it is an explicit mode;
-# otherwise the whole argument is focus text on a regular run.
-MODE="regular"
+# Mode (smoke or regular) must be the first positional argument.
+# The skill layer asks the user and always passes an explicit mode.
 TESTER_MODEL="sonnet"
 if [[ "${1:-}" == "smoke" || "${1:-}" == "regular" ]]; then
   MODE="$1"
   shift
+else
+  log "Usage: run.sh <smoke|regular> [--model <id>] [focus text...]"
+  log "Mode (smoke or regular) must be the first argument."
+  exit 1
 fi
 # --model <id> anywhere in remaining args overrides the tester model
 REMAINING_ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --model) TESTER_MODEL="$2"; shift 2 ;;
+    --model)
+      if [[ $# -lt 2 ]]; then
+        log "--model requires a value (e.g. --model sonnet)"
+        exit 1
+      fi
+      TESTER_MODEL="$2"; shift 2 ;;
     *) REMAINING_ARGS+=("$1"); shift ;;
   esac
 done
@@ -154,7 +162,7 @@ claude -p "$ORCH_PROMPT" \
 
 # --- if the orchestrator was killed, salvage individual results ------------
 if [ "$ORCH_EXIT" -ne 0 ]; then
-  RESULT_COUNT="$(ls "$RESULTS_DIR"/*.txt 2>/dev/null | wc -l | tr -d ' ')"
+  RESULT_COUNT="$(find "$RESULTS_DIR" -maxdepth 1 -name '*.txt' | wc -l | tr -d ' ')"
   if [ "$RESULT_COUNT" -gt 0 ]; then
     echo ""
     echo "=== Orchestrator exited early (code $ORCH_EXIT). Salvaged $RESULT_COUNT tool results: ==="

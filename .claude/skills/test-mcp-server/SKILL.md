@@ -25,9 +25,10 @@ on demand only.
 
 ## What to do
 
-1. Work out the mode and focus from the arguments. Default mode is regular. If the
-   first word is not `smoke` or `regular`, treat the whole argument as focus text on
-   a regular run.
+1. Work out the mode and focus from the arguments. If the first word is `smoke` or
+   `regular`, use it as the mode and treat the rest as focus text. If no mode was
+   provided, ask the user which mode to run (smoke or regular) before launching.
+   Always pass an explicit mode to the script.
 2. Launch the helper in the background so the user can keep chatting. A regular
    run spawns one tester per tool and can take 15-20 minutes. Set
    `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0` in the command so the background
