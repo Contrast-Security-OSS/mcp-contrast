@@ -41,9 +41,8 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
       description =
           """
           Searches servers visible to the current credentials for inventory, agent health, and
-          Protect coverage. Values within a comma-separated parameter are ORed; different
-          parameters and the single-valued quickFilter are ANDed. To combine two quick-filter
-          dimensions, filter by one and inspect item fields for the other.
+          Protect coverage. To combine two quick-filter dimensions, filter by one and inspect
+          item fields for the other.
 
           ONLINE/OFFLINE use TeamServer's activity threshold (typically about 50 minutes).
           OUT_OF_DATE means older than the newest agent TeamServer can serve for that language.
