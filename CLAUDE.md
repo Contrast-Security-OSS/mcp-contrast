@@ -601,6 +601,10 @@ Run the harness-engineering playbooks against this repo on demand via `/harness-
 
 `/test-mcp-server` runs an exploratory test of the freshly built server against the `.env.integration-test` org (in-depth by default, `smoke` for a fast pass). Run it before a release or when explicitly asked — never as part of routine feature development. See `.claude/skills/test-mcp-server/`.
 
+### Pre-release changelog update
+
+`/update-changelog` brings `[Unreleased]` in CHANGELOG.md up to date against everything merged since the last release tag, audits completeness with a read-only subagent per range, and lands the result on a branch after user approval. Run before dispatching the Gradle Release workflow or when explicitly asked. See `.claude/skills/update-changelog/`.
+
 
 
 @SECURITY.md
