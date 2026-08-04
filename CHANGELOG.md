@@ -9,13 +9,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking Changes
 
-**Response notices and remediation hint renamed**: The published `contrast-mcp-core` response
-envelopes now expose `notices` instead of `warnings`, including the JSON field and the record
-component on `PaginatedToolResponse`, `SingleToolResponse`, and `CursorToolResponse`.
-`WarningCollector` is now `NoticeCollector`, `ToolParams.warnings()` is now
-`ToolParams.notices()`, and `Vulnerability.hint` is now `Vulnerability.remediationHint`.
-Java consumers must recompile and update these API references; JSON consumers must read
-`notices` and `remediationHint`.
+**Response envelope field `warnings` renamed to `notices`**: The informational messages
+attached to every tool response were renamed from `warnings` to `notices` because the old
+name caused AI agents to treat normal teaching notes as problems. The `Vulnerability`
+field `hint` was also renamed to `remediationHint` for clarity. JSON consumers must read
+`notices` and `remediationHint` instead of the old field names.
+
+### Bug Fixes
+
+**`get_vulnerability` no longer crashes on missing HTTP request data**: When the Contrast
+SDK returned a null HTTP request response, the tool threw a NullPointerException instead
+of returning the vulnerability with the HTTP request field omitted. Fixed.
+
+### Improvements
+
+**Tool descriptions rewritten to reduce token usage by ~650 tokens per session**: Every
+tool description was trimmed to a word-budget template, cutting tool description text by
+55% (1,079 to 490 words). Some parameter semantics moved from tool bodies down to
+individual parameter descriptions where agents need them at call time, bringing the net
+reduction across all agent-visible text to ~30%.
+
+**Response-shape caveats moved to conditional notices**: Several static description
+paragraphs that warned about edge-case response shapes now appear as runtime notices only
+when the response actually contains the edge case, instead of adding to the token cost of
+every call.
+
+**Server instructions deliver catalog-wide conventions**: The MCP server now emits an
+`instructions` field during initialization, teaching agents conventions that apply
+uniformly across all tools. These facts no longer repeat in individual tool descriptions,
+further reducing per-session token usage.
+
+### Documentation
+
+**Vulnerability environment filter semantics clarified**: Tool descriptions now explain
+that environment filters match any historical vulnerability instance, while the returned
+`environments` field reflects only the latest instance and may omit the environment that
+caused the match.
+
+**README documents hosted server authorization scope**: The README now explains that the
+hosted MCP server's OAuth scopes are identity-only by design, authorization is enforced
+per-request by the platform using existing RBAC, and every tool call is audited.
 
 ## [2.1.0] - 2026-07-20
 
