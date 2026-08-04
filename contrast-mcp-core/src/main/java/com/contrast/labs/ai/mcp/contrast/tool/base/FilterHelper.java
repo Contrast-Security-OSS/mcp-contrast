@@ -74,7 +74,7 @@ public class FilterHelper {
    * Parse comma-separated string into list with robust whitespace handling. Handles edge cases like
    * extra whitespace, empty values, and null input.
    *
-   * @param input Comma-separated string (e.g., "CRITICAL, HIGH" or "sql-injection,xss-reflected")
+   * @param input Comma-separated string (e.g., "CRITICAL, HIGH" or "sql-injection,reflected-xss")
    * @return List of trimmed, non-empty strings, or null if input is null/empty
    * @example parseCommaSeparated("CRITICAL, HIGH, ") → ["CRITICAL", "HIGH"]
    * @example parseCommaSeparated("sql-injection,,xss") → ["sql-injection", "xss"]

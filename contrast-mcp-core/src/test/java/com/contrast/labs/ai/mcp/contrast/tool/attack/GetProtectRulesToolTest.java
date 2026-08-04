@@ -62,7 +62,7 @@ class GetProtectRulesToolTest {
     assertThat(result.found()).isTrue();
     assertThat(result.data().getRules())
         .extracting(Rule::getName)
-        .containsExactly("sql-injection", "xss-reflected");
+        .containsExactly("sql-injection", "reflected-xss");
     assertThat(result.notices()).doesNotContain(VIRTUAL_PATCH_NOTICE);
     verify(contrastApiClient).getProtectRules(TEST_APP_ID);
   }
@@ -104,7 +104,7 @@ class GetProtectRulesToolTest {
     assertThat(result.notices()).containsExactly(VIRTUAL_PATCH_NOTICE);
     assertThat(result.data().getRules())
         .extracting(Rule::getName)
-        .containsExactly("sql-injection", "xss-reflected", "CVE-2021-44228");
+        .containsExactly("sql-injection", "reflected-xss", "CVE-2021-44228");
     assertThat(result.data().getRules())
         .filteredOn(rule -> !VIRTUAL_PATCH_TYPE.equalsIgnoreCase(rule.getType()))
         .allSatisfy(rule -> assertThat(rule.getProduction()).isNotNull());
@@ -205,7 +205,7 @@ class GetProtectRulesToolTest {
     rules.add(sqlRule);
 
     var xssRule = new Rule();
-    xssRule.setName("xss-reflected");
+    xssRule.setName("reflected-xss");
     xssRule.setProduction("monitor");
     rules.add(xssRule);
 
