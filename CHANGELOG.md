@@ -7,14 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Breaking Changes
-
-**Response envelope field `warnings` renamed to `notices`**: The informational messages
-attached to every tool response were renamed from `warnings` to `notices` because the old
-name caused AI agents to treat normal teaching notes as problems. The `Vulnerability`
-field `hint` was also renamed to `remediationHint` for clarity. JSON consumers must read
-`notices` and `remediationHint` instead of the old field names.
-
 ### Bug Fixes
 
 **`get_vulnerability` no longer crashes on missing HTTP request data**: When the Contrast
@@ -22,6 +14,11 @@ SDK returned a null HTTP request response, the tool threw a NullPointerException
 of returning the vulnerability with the HTTP request field omitted. Fixed.
 
 ### Improvements
+
+**Response envelope field `warnings` renamed to `notices`**: The informational messages
+attached to every tool response were renamed from `warnings` to `notices` because the old
+name caused AI agents to treat normal teaching notes as problems. The `Vulnerability`
+field `hint` was also renamed to `remediationHint` for clarity.
 
 **Tool descriptions rewritten to reduce token usage by ~650 tokens per session**: Every
 tool description was trimmed to a word-budget template, cutting tool description text by
