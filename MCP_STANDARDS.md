@@ -266,9 +266,9 @@ The MCP `instructions` string is read once near session start, far from any call
 
 ## Enforcement
 
-The standard is enforced by budget tests. Until those tests land, reviewers enforce the budgets by counting body words against the templates.
+The standard is enforced by `ToolDescriptionBudgetTest`.
 
-- **Budget checks.** A test counts body words per description against the template ceilings and the catalog-total size against a hard cap. The word count is the plain whitespace-delimited count of the description body, parameter descriptions excluded. Exceeding a ceiling fails the build unless the tool has a named allowlist entry, which is itself a reviewed artifact.
+- **Budget checks.** The test counts body words per description against the template ceilings. The word count is the plain whitespace-delimited count of the description body, parameter descriptions excluded. Exceeding a ceiling fails the build unless the tool has a named allowlist entry, which is itself a reviewed artifact.
 
 ---
 
