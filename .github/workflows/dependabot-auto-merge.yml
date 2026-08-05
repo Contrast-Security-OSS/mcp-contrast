@@ -52,6 +52,11 @@ jobs:
     steps:
       # Path is spelled out rather than derived, so a rename of this file must update
       # it here too. gh is preinstalled on the runner, so this needs no action.
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
       - name: Check whether the pull request modifies this workflow
         id: check
         env:
