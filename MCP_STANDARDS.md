@@ -162,7 +162,7 @@ Cross-checking body against params is part of review.
 
 ### Templates and budgets
 
-Each verb shape has a fixed template. Every slot except the lead is optional. The budget is a ceiling a reviewer verifies by counting words in the body prose. `@ToolParam` text is not counted.
+Each verb shape has a fixed template. Every slot except the lead is optional. `ToolDescriptionBudgetTest` enforces the ceiling by counting words in the body prose. `@ToolParam` text is not counted.
 
 **Search and list tools, 150 words or fewer.**
 

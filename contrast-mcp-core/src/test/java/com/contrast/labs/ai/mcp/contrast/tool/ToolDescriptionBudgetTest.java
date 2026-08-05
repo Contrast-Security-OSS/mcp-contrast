@@ -16,6 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.tool;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Method;
 import java.util.List;
@@ -101,6 +102,36 @@ class ToolDescriptionBudgetTest {
         .isSubsetOf(toolNames);
   }
 
+  @Test
+  void wordCount_should_return_zero_when_description_is_blank() {
+    assertThat(wordCount("")).isZero();
+    assertThat(wordCount("   ")).isZero();
+    assertThat(wordCount("one")).isEqualTo(1);
+    assertThat(wordCount("one two three")).isEqualTo(3);
+  }
+
+  @Test
+  void budgetFor_should_throw_when_verb_prefix_is_unrecognized() {
+    assertThatThrownBy(() -> budgetFor("create_something"))
+        .isInstanceOf(AssertionError.class)
+        .hasMessageContaining("new verb shape")
+        .hasMessageContaining("ToolDescriptionBudgetTest");
+  }
+
+  @Test
+  void justificationNamesSibling_should_match_when_it_names_another_tool() {
+    assertThat(
+            justificationNamesSibling("search_attacks", "disambiguates against get_vulnerability"))
+        .isTrue();
+  }
+
+  @Test
+  void justificationNamesSibling_should_not_match_when_no_sibling_named() {
+    assertThat(
+            justificationNamesSibling("search_attacks", "generic justification without tool name"))
+        .isFalse();
+  }
+
   private static Budget budgetFor(String toolName) {
     if (toolName.startsWith("search_")) {
       return new Budget(SEARCH_WORD_CEILING, "search_");
@@ -115,13 +146,16 @@ class ToolDescriptionBudgetTest {
       return new Budget(UPDATE_WORD_CEILING, "update_");
     }
     throw new AssertionError(
-        toolName + " uses a new verb shape that needs a ceiling decision in MCP_STANDARDS.md");
+        toolName
+            + " uses a new verb shape that needs a ceiling decision in MCP_STANDARDS.md"
+            + " and a budget constant in ToolDescriptionBudgetTest");
   }
 
   private static int wordCount(String description) {
     // Word count is the plain whitespace-delimited token count of the @Tool description body.
     // @ToolParam text is excluded. This matches the method pinned in MCP_STANDARDS.md Enforcement.
-    return description.trim().split("\\s+").length;
+    var trimmed = description.trim();
+    return trimmed.isEmpty() ? 0 : trimmed.split("\\s+").length;
   }
 
   private static boolean justificationNamesSibling(String toolName, String justification) {

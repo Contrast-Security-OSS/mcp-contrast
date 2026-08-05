@@ -41,6 +41,7 @@ public final class ToolTestReflection {
   public static Method toolMethod(Class<?> toolClass, String methodName) {
     return Arrays.stream(toolClass.getDeclaredMethods())
         .filter(candidate -> candidate.getName().equals(methodName))
+        .filter(candidate -> candidate.isAnnotationPresent(Tool.class))
         .findFirst()
         .orElseThrow();
   }
