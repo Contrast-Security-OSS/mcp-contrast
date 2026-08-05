@@ -9,31 +9,29 @@ name: Dependabot Auto-Approve and Merge
 # boundary. Changes made here, and why, are recorded in AIML-1245. If the upstream
 # action changes materially, revisit this file rather than assuming they still match.
 #
-# Uses secrets.GITHUB_TOKEN, which needs no provisioning and is enough to approve and
-# to enable auto-merge on this repo. A GitHub App token is the intended end state, for
-# two reasons: upstream is moving off its static PAT onto an App, and a push attributed
-# to GITHUB_TOKEN does not trigger further workflow runs, which may stop the post-merge
-# wiz-scan firing on an auto-merged bump. Migration is one create-github-app-token step
-# plus swapping the token references below. Tracked in mcp-vc50.
+# Uses a GitHub App token (minted via actions/create-github-app-token) to approve and
+# enable auto-merge. A push attributed to a GitHub App triggers downstream workflow
+# runs (unlike GITHUB_TOKEN, which suppresses them), so the post-merge wiz-scan fires
+# on auto-merged bumps. The App is scoped to mcp-contrast with pull-requests:write and
+# contents:write only. Tracked in mcp-vc50.
 #
-# The self-modification guard job below has no upstream counterpart, and does not need
-# one: upstream keeps its action pins in common-github-actions, so a consuming repo's
-# Dependabot cannot alter what runs inside the approving job. Vendoring put the pins and
-# the auto-merge in the same repository, which is what creates the loop the guard closes.
+# pull_request_target runs the default-branch copy of this workflow, not the PR-head
+# copy. A Dependabot update to an action pin in this file therefore cannot execute the
+# proposed version with the App private key available. The guard job is still valuable:
+# it prevents auto-merging workflow-modifying PRs that a human should review.
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
 
 permissions:
   contents: read
 
 jobs:
-  # Dependabot proposes minor and patch bumps to this file's own action pins, and a
-  # pull_request run executes the PR branch's copy of this workflow. Without this gate
-  # the proposed action version would run with the write permissions the auto-merge job
-  # holds and could approve and merge itself. Deciding in a separate read-only job,
-  # ahead of every uses: step, means an untrusted action version never executes at all,
-  # rather than merely not being merged. Needs no checkout.
+  # A Dependabot PR that modifies this workflow file should be reviewed by a human,
+  # not auto-merged. pull_request_target already prevents the PR-head workflow from
+  # executing (so untrusted action versions never run with the App key), but the guard
+  # still blocks auto-merge of workflow changes that alter eligibility logic, action
+  # pins, or permission grants.
   guard:
     # Both conditions, deliberately. github.actor is whoever triggered this run, so it
     # blocks a human push to a Dependabot branch; pull_request.user.login is the author.
@@ -74,7 +72,7 @@ jobs:
   auto-merge:
     needs: guard
     # The actor and author checks are repeated from the guard job on purpose. This is
-    # the job that holds write permissions, so it should not depend on needs: guard
+    # the job that holds the App private key, so it should not depend on needs: guard
     # surviving a future edit to stay gated.
     if: >-
       needs.guard.outputs.self_modifying == 'false' &&
@@ -82,12 +80,10 @@ jobs:
       github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
-      # A Dependabot-triggered run gets a read-only GITHUB_TOKEN whatever the repo
-      # default is, and the permissions key is the only way to raise it. Without
-      # these two, every gh call below fails with 403. Approving also depends on
-      # "Allow GitHub Actions to create and approve pull requests" being enabled.
-      contents: write
-      pull-requests: write
+      # GITHUB_TOKEN is used only by fetch-metadata (read-only). The App token handles
+      # approval and auto-merge, so GITHUB_TOKEN no longer needs write access.
+      contents: read
+      pull-requests: read
 
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -121,10 +117,23 @@ jobs:
               ;;
           esac
 
+      # Mint a short-lived installation token scoped to this repository. The App
+      # identity is not subject to the GITHUB_TOKEN suppression rule, so pushes
+      # attributed to it trigger downstream workflows (wiz-scan on main).
+      - name: Create GitHub App token
+        if: steps.eligibility.outputs.eligible == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.DEPENDABOT_MERGE_APP_ID }}
+          private-key: ${{ secrets.DEPENDABOT_MERGE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
       - name: Approve pull request
         if: steps.eligibility.outputs.eligible == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: gh pr review --approve "$PR_URL"
 
@@ -135,6 +144,6 @@ jobs:
       - name: Enable auto-merge
         if: steps.eligibility.outputs.eligible == 'true'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: gh pr merge --auto --merge "$PR_URL"
