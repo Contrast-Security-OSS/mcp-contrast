@@ -14,7 +14,7 @@ report total result count on the first page, matching the capability offset-pagi
 already have via `PaginatedToolResponse.totalItems`. The field is nullable and defaults to
 null, so existing cursor tools are unaffected.
 
-## [2.2.0]
+## [2.2.0] - 2026-08-04
 
 ### Bug Fixes
 
