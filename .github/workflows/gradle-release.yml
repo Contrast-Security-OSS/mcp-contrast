@@ -284,7 +284,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker image (without pushing)
-        uses: step-security/docker-build-push-action@9af9b5acc1751dcec2aa5375a068979fa526bc9a # v7.2.0
+        uses: step-security/docker-build-push-action@144392094f7fc3199dda455efe3b70dbea4b72a0 # v7.3.0
         with:
           context: .
           push: false
