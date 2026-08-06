@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Improvements
+
+**`CursorToolResponse` now carries optional `totalItems`**: Cursor-paginated tools can
+report total result count on the first page, matching the capability offset-paginated tools
+already have via `PaginatedToolResponse.totalItems`. The field is nullable and defaults to
+null, so existing cursor tools are unaffected.
+
+## [2.2.0]
+
 ### Bug Fixes
 
 **`search_vulnerabilities` example used wrong vulnerability type name**: The tool
@@ -19,11 +28,6 @@ SDK returned a null HTTP request response, the tool threw a NullPointerException
 of returning the vulnerability with the HTTP request field omitted. Fixed.
 
 ### Improvements
-
-**`CursorToolResponse` now carries optional `totalItems`**: Cursor-paginated tools can
-report total result count on the first page, matching the capability offset-paginated tools
-already have via `PaginatedToolResponse.totalItems`. The field is nullable and defaults to
-null, so existing cursor tools are unaffected.
 
 **Response envelope field `warnings` renamed to `notices`**: The informational messages
 attached to every tool response were renamed from `warnings` to `notices` because the old
