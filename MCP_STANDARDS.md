@@ -34,7 +34,7 @@ Tool names (in `@Tool` annotation) use `action_entity` snake_case format.
 
 ### `search_*` - Flexible Filtering
 - Multiple optional filters
-- Paginated results
+- Paginated results: offset-paginated where the upstream supports offset paging, cursor-paginated where the upstream is cursor-only
 - Returns items matching filter combinations
 - Use when: "find all X where..."
 
@@ -113,7 +113,8 @@ Tools returning analytical data (reports, coverage, metadata) may use `get_*` ev
 | `vulnId` | Vulnerability identifier |
 | `cveId` | CVE identifier |
 | `sessionMetadataName/Value` | Session metadata |
-| `page` / `pageSize` | Pagination (1-based) |
+| `page` / `pageSize` | Offset pagination (1-based) |
+| `cursor` / `pageSize` | Cursor pagination (opaque continuation token) |
 | `useLatestSession` | Latest session flag |
 
 ### Filter Conventions
@@ -274,7 +275,7 @@ The standard is enforced by `ToolDescriptionBudgetTest`.
 
 ## Tool-per-Class Architecture
 
-All MCP tools follow a **one-class-per-tool** pattern with shared base classes. Each tool is a standalone `@Service` class that extends `PaginatedTool` for offset/page-backed search/list operations, `CursorPaginatedTool` for cursor/keyset-backed list operations, or `SingleTool` for single-item retrieval.
+All MCP tools follow a **one-class-per-tool** pattern with shared base classes. Each tool is a standalone `@Service` class that extends `PaginatedTool` for offset/page-backed search/list operations, `CursorPaginatedTool` for cursor/keyset-backed search/list operations, or `SingleTool` for single-item retrieval.
 
 ### Package Structure
 
@@ -306,7 +307,7 @@ com.contrast.labs.ai.mcp.contrast.tool/
 - Subclasses implement `doExecute()` returning item or null
 - Returns `SingleToolResponse<R>` with item, errors, notices
 
-**`CursorPaginatedTool<P extends ToolParams, R>`** - For cursor/keyset-backed list tools:
+**`CursorPaginatedTool<P extends ToolParams, R>`** - For cursor/keyset-backed search/list tools:
 - Template method `executePipeline()` handles cursor pagination, validation, exceptions
 - Subclasses treat cursor values as opaque continuation tokens
 - Returns `CursorToolResponse<R>` with items, `nextCursor`, `hasMore`, errors, and notices
