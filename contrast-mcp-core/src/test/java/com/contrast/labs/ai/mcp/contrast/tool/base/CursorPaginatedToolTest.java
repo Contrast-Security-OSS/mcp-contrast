@@ -139,6 +139,7 @@ class CursorPaginatedToolTest {
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).containsExactly("API error (HTTP 400)");
     assertThat(result.errors()).noneMatch(error -> error.contains(OPAQUE_CURSOR));
+    assertThat(result.totalItems()).isNull();
     assertThat(result.notices())
         .containsExactlyInAnyOrder("Initial notice", "Notice added before exception");
     assertThat(result.notices()).noneMatch(notice -> notice.contains(OPAQUE_CURSOR));

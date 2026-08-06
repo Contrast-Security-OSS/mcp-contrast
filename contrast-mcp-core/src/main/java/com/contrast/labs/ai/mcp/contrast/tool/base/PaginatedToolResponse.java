@@ -16,6 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import java.util.List;
+import org.springframework.lang.Nullable;
 
 /**
  * Generic paginated response wrapper for all list-returning MCP tools. Provides consistent
@@ -39,11 +40,11 @@ public record PaginatedToolResponse<T>(
     List<T> items,
     int page,
     int pageSize,
-    Integer totalItems,
+    @Nullable Integer totalItems,
     boolean hasMorePages,
     List<String> errors,
     List<String> notices,
-    Long durationMs) {
+    @Nullable Long durationMs) {
 
   /** Compact constructor ensures non-null, immutable lists. */
   public PaginatedToolResponse {
@@ -78,10 +79,10 @@ public record PaginatedToolResponse<T>(
       List<T> items,
       int page,
       int pageSize,
-      Integer totalItems,
+      @Nullable Integer totalItems,
       boolean hasMorePages,
       List<String> notices,
-      Long durationMs) {
+      @Nullable Long durationMs) {
     return new PaginatedToolResponse<>(
         items, page, pageSize, totalItems, hasMorePages, List.of(), notices, durationMs);
   }
