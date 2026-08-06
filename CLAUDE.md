@@ -300,70 +300,13 @@ This codebase handles sensitive vulnerability data. The README contains critical
 
 ## Beads Workflow Requirements
 
-This project uses Beads (br) for issue tracking. See the MCP resource `beads://quickstart` for usage details.
+This project uses Beads (`br`) for issue tracking. **Every bead mutation (create, claim, close, triage, comment, label) is governed by the `bead-workflow` skill** — invoke it before mutating a bead. Read-only commands (`br show`, `br ready`, `br list`) need no skill.
 
-### Bead Command Reference
-
-```bash
-# Status — set in_progress immediately when starting; close only when done
-br update <bead-id> --status in_progress
-br close <bead-id> --reason "why it's done"   # --reason/-r is REQUIRED; positional arg fails
-br reopen <bead-id>
-
-# Viewing
-br show <bead-id>
-br ready                                       # list unblocked open beads
-br list
-
-# Comments — 'br comment' does NOT exist; use 'br comments add'
-br comments add <bead-id> --message "short single-line text"
-br comments add <bead-id> -f /tmp/comment.txt  # use -f for multi-line (avoids shell interpretation)
-
-# Labels
-br label add <bead-id> -l <label>
-br label remove <bead-id> -l <label>
-
-# Dependencies
-br dep add <dependent> <prerequisite>          # dependent "blocks on" prerequisite
-br dep add <child> <parent> --type parent-child
-```
-
-**Multi-line content — quoted heredoc prevents all shell interpretation:**
-```bash
-# Comments — pipe via stdin (-f - supported)
-cat << 'EOF' | br comments add <bead-id> -f -
-## Heading
-
-With `code blocks`, **markdown**, and $(variables) — all literal.
-EOF
-
-# Description/design — capture via $() (inner heredoc is still safe with quoted delimiter)
-br create "Title" --description "$(cat << 'EOF'
-## Description with `code` and $(vars) — all literal.
-EOF
-)"
-
-# Design field — same $() pattern works
-br update <bead-id> --design "$(cat << 'EOF'
-## Design with `code` and --flags and $(vars) — all literal.
-EOF
-)"
-```
-
-### Human Review Labels
-
-- `ready-for-human` — human should inspect, decide, or run the work with agent assistance; autonomous agents should not pick it up
-- `needs-human-review` — DO NOT start work; ask human to review first
-- `human-security-review` — security review is required before agent work proceeds
-- `external-approval` — blocked on approval outside the agent workflow
-
-`human-reviewed` is the cleared marker after review; AI may proceed when no human-only label remains.
-
-When reviewing a `needs-human-review` bead, update the description if needed, then:
-```bash
-br label remove <bead-id> -l needs-human-review
-br label add <bead-id> -l human-reviewed
-```
+Quick reference (full detail in `docs/agents/issue-tracker.md`):
+- `br update <id> --claim` when starting; `br close <id> --reason "..."` only when done (`--reason` is required)
+- `br sync --flush-only` after mutations; `.beads/` is gitignored and must never be committed (public repo)
+- Human-review and triage labels: see `docs/agents/triage-labels.md`
+- Multi-line content: quoted heredocs; design field via `scripts/br-set-design`
 
 ## Helper Scripts
 
@@ -373,114 +316,17 @@ br label add <bead-id> -l human-reviewed
 
 ### Jira Issue Tracking
 
-This project is tracked in Jira under the **AIML** project. When creating Jira tickets for this codebase:
-
-**Standard Configuration:**
-- **Project**: `AIML`
-- **Component**: `Contrast MCP Server` (always use this component for work on this repository)
-- **Issue Type**:
-  - `Story` - for features and improvements
-  - `Task` - for simple non-feature changes (refactoring, documentation, bug fixes)
-  - `Epic` - for large features with many dependent tasks (typically managed by Product Management)
-
-**Access**: Use the Atlassian MCP server to read or write Jira tickets programmatically.
-
-**AIML Project Transition IDs** (use with `transitionJiraIssue`, cloudId: `https://contrast.atlassian.net`):
-- `11` → To Do
-- `21` → In Progress
-- `41` → In Review
-- `51` → Ready to Deploy
-- `61` → Blocked
-- `71` → Backlog
-- `81` → Closed
-
-**IMPORTANT**: When a jira ticket is created for a bead, you must do 2 things:
-1. Update the `external-ref` of the bead to be the jira ticket id
-2. Update the `title` of the bead to be prefixed with the jira ticket id.
+This project is tracked in Jira under the **AIML** project, component **Contrast MCP Server**. **All Jira lifecycle operations — ticket creation, bead-to-Jira parity (title prefix + `external-ref`), and status transitions — are governed by the `jira-workflow` skill.** Metadata (issue types, transition IDs, creation example) lives in `.claude/skills/jira-workflow/references/aiml.md`.
 
 ----
 
 ## AI Development Workflow
 
-This section defines the complete workflow for a Developer using AI agents working with beads and Jira tickets in this project.
+The bead and Jira lifecycle (starting work, branching, stacked branches, labels, dependencies, closing) is owned by the `bead-workflow` and `jira-workflow` skills — invoke them rather than working from memory. The sections below cover what stays in this file: build verification and testing gates, plus the user trigger phrases that map to pr-tools skills.
 
-### Workflow Overview
+**Workflow labels:** `stacked-branch` (branch based on another PR branch), `pr-created`, `in-review` (PR ready for human review, not draft). Details in the `bead-workflow` skill.
 
-**Key Labels:**
-- `stacked-branch` - Branch is based on another PR branch (not main)
-- `pr-created` - Pull request has been created
-- `in-review` - Pull request is ready for human review (not draft)
-
-**Decision Tree:**
-
-```
-Branch Creation:
-├─ Based on main → No special label
-└─ Based on another PR branch → Label with `stacked-branch`
-
-PR Creation:
-├─ Has `stacked-branch` label?
-│  └─ YES → Create DRAFT PR (Stacked PRs workflow)
-│            - Base: parent PR's branch
-│            - Labels: `pr-created` (NOT `in-review` yet)
-│            - Add warning banner + dependency context
-│
-└─ NO → Create ready PR (Moving to Review workflow)
-         - Base: main
-         - Labels: `pr-created`, `in-review`
-         - Standard PR description
-
-Promoting Stacked PR (after base PR merges):
-└─ Rebase onto main, update base branch, remove warnings
-   Add `in-review` label, mark PR ready
-```
-
-### Starting Work on a Bead
-
-**1. Determine if a feature branch is needed:**
-   - **Bead has Jira ticket**: Create a new feature branch
-     - **Ask user which branch to base it off of**
-     - Show recently updated branches (sorted by most recent commits/PRs)
-     - User may be working with stacked branches where each new branch comes off the previous PR branch
-     - Name the branch with Jira ID prefix (e.g., `AIML-224-description`)
-     - **If based on another PR branch (not main)**: Label bead with `stacked-branch`
-   - **Bead is a child of Jira-linked bead**: Use the same branch as the parent bead
-   - **Bead has no Jira association and no parent**:
-     - **Ask user if it should have a Jira ticket**
-     - Most code changes need a Jira ticket and branch before merging
-     - Code changes should generally have a Jira ticket in scope
-
-**2. Update bead status and labels:**
-   - Set bead status to `in_progress`
-   - Record the branch name in the bead (so it's easily found later)
-   - **If this is a stacked branch** (based on another PR branch):
-     - Label the bead with `stacked-branch`
-     - Create blocks dependency: `br dep add <new-bead-id> <base-bead-id> --type blocks`
-       - This represents that the base bead "blocks" the new bead from being merged
-       - Example: If AIML-230 is stacked on AIML-228, use `br dep add mcp-uuv mcp-9kr --type blocks`
-
-**3. Update Jira (if applicable):**
-   - If bead has a linked Jira ticket:
-     - Update Jira status to "In Progress" using Atlassian MCP
-     - **Assign the ticket to the current user** (the authenticated Atlassian MCP user)
-
-### Creating Related Beads
-
-**When creating new beads from a Jira-linked bead:**
-- Ask user if the new bead should be a child of the Jira-linked bead
-- If yes, establish parent-child relationship using `br dep add <child> <parent>` with `parent-child` dependency type
-- Child beads work on the same branch as their parent
-  
-### Managing Bead Dependencies
-
-**Command syntax:** `br dep add <dependent-task> <prerequisite-task>`
-
-Example: If B must be done after A completes, use `br dep add B A` (not `br dep add A B`).
-
-Verify with `br show <task-id>` - dependent tasks show "Depends on", prerequisites show "Blocks".
-
-NOTE: This is not for parent-child dependencies, these are blocks dependencies. 
-**IMPORTANT** If you are asked to add a bead as a child or with phrasing that implies a parent-child relationship, ensure you add the dependency of type parent-child. The default is a blocks type.
+**Dependency direction:** `br dep add <dependent> <prerequisite>` — if B must wait for A, `br dep add B A`. When phrasing implies hierarchy ("add as a child"), use `--type parent-child`; the default is a blocks edge.
 
 ### During Development
 
@@ -530,64 +376,36 @@ assertThat(libraries)
 - `GetRouteCoverageToolIT` — pagination + filter + edge cases
 - `GetSastProjectToolIT` — regression coverage for field mapping
 
-### Moving to Review
+### Review and merge triggers
 
-When user says "move to review" or "ready for review" for a bead WITHOUT the `stacked-branch` label:
+Each trigger phrase maps to a pr-tools skill; the `bead-workflow` and `jira-workflow` skills own the accompanying bead labels and Jira transitions.
 
-1. Apply the `pr-created` and `in-review` labels to the bead(s) on this branch
-2. Transition the linked Jira ticket to "In Review"
-3. Push the feature branch
-4. Run `/pr-tools:create-pr` — it generates the description and creates a ready-for-review PR targeting `main`
+| User says | Run | Bead / Jira effect |
+|-----------|-----|--------------------|
+| "move to review" / "ready for review" (no `stacked-branch` label) | `/pr-tools:create-pr` | `pr-created` + `in-review`; Jira → In Review |
+| "ready for stacked PR" (`stacked-branch` label) | `/pr-tools:create-pr` (draft, targets parent) | `pr-created` only; Jira stays In Progress |
+| "promote stacked PR" / "finalize stacked PR" | `/pr-tools:promote-stacked-pr` | add `in-review`; Jira → In Review |
+| PR merged to `main` | `/pr-tools:after-pr-merged` | close bead (ask first); Jira → Ready to Deploy |
 
-### Stacked PRs (Ready for Draft Review)
-
-When user says "ready for stacked PR" or creating a PR for a bead WITH the `stacked-branch` label:
-
-1. Apply the `pr-created` label to the bead(s) — do **not** add the `in-review` label yet
-2. Keep the linked Jira ticket at "In Progress"
-3. Push the branch
-4. Run `/pr-tools:create-pr` — it auto-detects the stacked context, creates a draft PR with the warning banner, and targets the parent branch
-
-The PR stays in draft until the parent merges and this branch is rebased onto `main` (use `/pr-tools:promote-stacked-pr`).
-
-### Promoting Stacked PR to Ready for Review
-
-When user says "promote stacked PR" or "finalize stacked PR" for a bead WITH the `stacked-branch` label:
-
-1. Run `/pr-tools:promote-stacked-pr` — it rebases onto main with `--onto`, force-pushes safely, retargets the PR base, updates the body, and marks it ready
-2. Add the `in-review` label to the bead and update notes with the PR URL
-3. Keep the bead `in_progress` until the PR merges
-
-### After PR is Merged to main
-
-1. Close the bead with brief description of what was done.
-2. Update Jira status to "Ready to Deploy"
-3. Handle dependent stacked PRs:
-   - Run `/pr-tools:after-pr-merged` to find and optionally promote child PRs
-
-**Rationale:**
-- "Ready to Deploy" indicates the code is merged and ready for the next release
-- "Closed" should only be used when the code is actually deployed/released to production
-- This allows tracking what code is ready to go out in the next release vs what's already deployed
-
-
-### Closing Beads
-
-**IMPORTANT**: Always ask the user before closing a bead.
-
-**Cannot close parent beads** if they still have open children. Ensure all child beads are closed first.
-
-**Parent beads** typically remain `in_progress` (with `in-review` label) until the PR review is complete and merged. Only close beads when explicitly instructed by the user.
+**Always ask the user before closing a bead.** Parent beads cannot close with open children and typically stay `in_progress` (with `in-review`) until the PR merges. Jira "Closed" is reserved for code actually released to production.
 
 ## Agent skills
 
+### Bead workflow
+
+Every bead mutation (create, claim, implement, close, triage, comment) follows the `bead-workflow` skill: pre-claim checks, stacked-branch handling, commit-before-close, sync discipline. See `.claude/skills/bead-workflow/`.
+
+### Jira workflow
+
+Jira ticket creation, bead parity, and status transitions follow the `jira-workflow` skill. See `.claude/skills/jira-workflow/`.
+
 ### Issue tracker
 
-Issues are tracked in Jira (AIML project) and Beads (`br`), not GitHub Issues. See `docs/agents/issue-tracker.md`.
+Issues are tracked in Jira (AIML project) and Beads (`br`), not GitHub Issues. Beads is the working store, Jira the external reference. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-Canonical triage labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) for all new triage work; existing CLAUDE.md human-review labels are documented for awareness. See `docs/agents/triage-labels.md`.
+Canonical triage labels (`needs-decision`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) for all new triage work; older labels and human-review labels are documented for awareness. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
