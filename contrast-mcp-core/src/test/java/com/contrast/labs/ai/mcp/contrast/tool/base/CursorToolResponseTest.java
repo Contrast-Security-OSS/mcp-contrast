@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Test;
 
 class CursorToolResponseTest {
 
+  private static final int TOTAL_ITEMS = 42;
+
   @Test
   void success_should_include_cursor_pagination_metadata_only() {
     var response =
@@ -33,10 +35,27 @@ class CursorToolResponseTest {
     assertThat(response.pageSize()).isEqualTo(50);
     assertThat(response.nextCursor()).isEqualTo("next-opaque-token");
     assertThat(response.hasMore()).isTrue();
+    assertThat(response.totalItems()).isNull();
     assertThat(response.errors()).isEmpty();
     assertThat(response.notices()).isEmpty();
     assertThat(response.durationMs()).isEqualTo(10L);
     assertThat(response.isSuccess()).isTrue();
+  }
+
+  @Test
+  void success_with_totalItems_should_include_total_in_response() {
+    var response =
+        CursorToolResponse.success(
+            List.of("item1"), 50, "next-opaque-token", true, TOTAL_ITEMS, List.of(), 10L);
+
+    assertThat(response.totalItems()).isEqualTo(TOTAL_ITEMS);
+  }
+
+  @Test
+  void success_without_totalItems_should_default_to_null() {
+    var response = CursorToolResponse.success(List.of("item1"), 50, null, false, List.of(), 10L);
+
+    assertThat(response.totalItems()).isNull();
   }
 
   @Test
@@ -47,9 +66,17 @@ class CursorToolResponseTest {
     assertThat(response.pageSize()).isEqualTo(50);
     assertThat(response.nextCursor()).isNull();
     assertThat(response.hasMore()).isFalse();
+    assertThat(response.totalItems()).isNull();
     assertThat(response.errors()).containsExactly("issueId is required");
     assertThat(response.durationMs()).isNull();
     assertThat(response.isSuccess()).isFalse();
+  }
+
+  @Test
+  void totalItems_should_be_null_for_validation_errors() {
+    var response = CursorToolResponse.validationError(50, List.of("issueId is required"));
+
+    assertThat(response.totalItems()).isNull();
   }
 
   @Test
@@ -60,8 +87,16 @@ class CursorToolResponseTest {
     assertThat(response.pageSize()).isEqualTo(25);
     assertThat(response.nextCursor()).isNull();
     assertThat(response.hasMore()).isFalse();
+    assertThat(response.totalItems()).isNull();
     assertThat(response.errors()).containsExactly("Invalid cursor");
     assertThat(response.notices()).isEmpty();
+  }
+
+  @Test
+  void totalItems_should_be_null_for_errors() {
+    var response = CursorToolResponse.error(25, "Invalid cursor");
+
+    assertThat(response.totalItems()).isNull();
   }
 
   @Test
@@ -70,14 +105,14 @@ class CursorToolResponseTest {
     mutableItems.add("item1");
 
     var response =
-        new CursorToolResponse<>(mutableItems, 50, null, false, List.of(), List.of(), null);
+        new CursorToolResponse<>(mutableItems, 50, null, false, null, List.of(), List.of(), null);
     mutableItems.add("item2");
 
     assertThat(response.items()).containsExactly("item1");
   }
 
   @Test
-  void record_components_should_exclude_total_and_random_access_page_fields() {
+  void record_components_should_include_totalItems_and_exclude_random_access_page_fields() {
     var componentNames =
         Arrays.stream(CursorToolResponse.class.getRecordComponents())
             .map(component -> component.getName())
@@ -85,7 +120,14 @@ class CursorToolResponseTest {
 
     assertThat(componentNames)
         .containsExactly(
-            "items", "pageSize", "nextCursor", "hasMore", "errors", "notices", "durationMs")
-        .doesNotContain("page", "offset", "totalPages", "totalItems", "hasMorePages");
+            "items",
+            "pageSize",
+            "nextCursor",
+            "hasMore",
+            "totalItems",
+            "errors",
+            "notices",
+            "durationMs")
+        .doesNotContain("page", "offset", "totalPages", "hasMorePages");
   }
 }

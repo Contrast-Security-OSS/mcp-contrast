@@ -310,7 +310,7 @@ com.contrast.labs.ai.mcp.contrast.tool/
 **`CursorPaginatedTool<P extends ToolParams, R>`** - For cursor/keyset-backed search/list tools:
 - Template method `executePipeline()` handles cursor pagination, validation, exceptions
 - Subclasses treat cursor values as opaque continuation tokens
-- Returns `CursorToolResponse<R>` with items, `nextCursor`, `hasMore`, errors, and notices
+- Returns `CursorToolResponse<R>` with items, `nextCursor`, `hasMore`, optional `totalItems`, errors, notices, `pageSize`, and `durationMs`
 
 ### Parameter Classes (Params Pattern)
 
