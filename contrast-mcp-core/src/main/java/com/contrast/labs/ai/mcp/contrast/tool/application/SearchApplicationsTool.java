@@ -119,9 +119,28 @@ public class SearchApplicationsTool
       return ExecutionResult.empty();
     }
 
+    noticeNeverObservedApps(response.getApplications(), collector);
+
     var applications = response.getApplications().stream().map(this::toApplicationData).toList();
 
     return ExecutionResult.of(applications, response.getCount());
+  }
+
+  // TeamServer sends last_seen 0 for applications that have never reported agent activity, which
+  // renders as the 1970 Unix epoch in lastSeenAt (Jira AIML-1331).
+  private static void noticeNeverObservedApps(
+      List<Application> applications, NoticeCollector collector) {
+    var neverObserved =
+        applications.stream()
+            .filter(app -> app.getLastSeen() != null && app.getLastSeen() == 0)
+            .map(Application::getName)
+            .toList();
+    if (!neverObserved.isEmpty()) {
+      collector.notice(
+          "lastSeenAt at the 1970 Unix epoch means the application has never been observed"
+              + " running, typically a static or SCA-only upload: "
+              + String.join(", ", neverObserved));
+    }
   }
 
   /**
