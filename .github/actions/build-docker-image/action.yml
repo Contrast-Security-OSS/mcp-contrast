@@ -1,0 +1,70 @@
+# This composite exists so Dependabot bumps to the action pins below edit this
+# file instead of a file under .github/workflows/. GitHub starts no
+# pull_request workflow runs for a Dependabot PR that modifies workflow files,
+# so while these pins lived in gradle-release.yml their bump PRs got no checks
+# at all and could never satisfy the required build check (PRs #196-#199,
+# AIML-1245). Bumps to this file trigger CI like any other change.
+#
+# Dependabot only scans this directory because it is listed under the
+# github-actions entry in .github/dependabot.yml. A new composite action
+# directory must be added there too, or its pins silently stop updating.
+name: Build Docker image
+description: >-
+  Set up Buildx and QEMU, resolve image tags, log in to DockerHub, and build
+  the release image locally (loaded, not pushed). The push stays in the
+  workflow because Docker Content Trust signing needs the trust key material
+  staged there first.
+
+inputs:
+  image:
+    description: Image repository, e.g. contrast/mcp-contrast
+    required: true
+  version:
+    description: Release version tagged alongside latest
+    required: true
+  dockerhub-username:
+    description: DockerHub username
+    required: true
+  dockerhub-token:
+    description: DockerHub access token
+    required: true
+
+outputs:
+  tags:
+    description: Newline-separated fully qualified image tags to push
+    value: ${{ steps.meta.outputs.tags }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Docker Buildx
+      uses: step-security/setup-buildx-action@6997872a55d77391e51b87609556578131f44402 # v4.1.0
+
+    - name: Set up QEMU
+      uses: step-security/setup-qemu-action@fe44c529aab16157fc475f4991a7f926aa9a02a2 # v4.1.0
+
+    - name: Extract metadata for Docker
+      id: meta
+      uses: step-security/metadata-action@619b5adf759ed62ddd8c6d474364da38ea264eee # v6.1.0
+      with:
+        images: ${{ inputs.image }}
+        tags: |
+          type=raw,value=${{ inputs.version }}
+          type=raw,value=latest
+
+    - name: Login to DockerHub
+      uses: step-security/docker-login-action@164e21d7e52229904128e2f946001cb88278c33d # v4.2.0
+      with:
+        username: ${{ inputs.dockerhub-username }}
+        password: ${{ inputs.dockerhub-token }}
+
+    - name: Build Docker image (without pushing)
+      uses: step-security/docker-build-push-action@9af9b5acc1751dcec2aa5375a068979fa526bc9a # v7.2.0
+      with:
+        context: .
+        push: false
+        load: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max

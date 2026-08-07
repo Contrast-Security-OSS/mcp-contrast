@@ -15,7 +15,13 @@ updates:
       default-days: 7
 
   - package-ecosystem: github-actions
-    directory: /
+    # "/" covers .github/workflows only. Local composite actions must be listed
+    # explicitly or Dependabot never sees their pins. Composites exist so pin
+    # bumps do not modify workflow files, which GitHub refuses to run
+    # pull_request checks for on Dependabot PRs (AIML-1245).
+    directories:
+      - /
+      - /.github/actions/build-docker-image
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
