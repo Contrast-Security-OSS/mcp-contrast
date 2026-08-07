@@ -32,6 +32,7 @@ class CursorPaginatedToolTest {
       "Authentication failed or resource not found. Verify credentials and that the resource ID"
           + " is correct.";
   private static final String OPAQUE_CURSOR = "opaque.cursor/with+symbols==";
+  private static final int TOTAL_ITEMS = 42;
 
   private TestCursorTool tool;
 
@@ -77,6 +78,17 @@ class CursorPaginatedToolTest {
     assertThat(result.pageSize()).isEqualTo(25);
     assertThat(result.nextCursor()).isNull();
     assertThat(result.hasMore()).isFalse();
+  }
+
+  @Test
+  void executePipeline_should_propagate_totalItems_from_execution_result() {
+    tool.setDoExecuteHandler(
+        (pagination, params, collector) ->
+            CursorExecutionResult.of(List.of("item"), "next-token", true, TOTAL_ITEMS));
+
+    var result = tool.executePipeline(null, 25, TestParams::valid);
+
+    assertThat(result.totalItems()).isEqualTo(TOTAL_ITEMS);
   }
 
   @Test
@@ -127,6 +139,7 @@ class CursorPaginatedToolTest {
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).containsExactly("API error (HTTP 400)");
     assertThat(result.errors()).noneMatch(error -> error.contains(OPAQUE_CURSOR));
+    assertThat(result.totalItems()).isNull();
     assertThat(result.notices())
         .containsExactlyInAnyOrder("Initial notice", "Notice added before exception");
     assertThat(result.notices()).noneMatch(notice -> notice.contains(OPAQUE_CURSOR));

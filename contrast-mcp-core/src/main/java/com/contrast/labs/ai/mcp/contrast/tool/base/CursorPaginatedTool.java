@@ -143,6 +143,7 @@ public abstract class CursorPaginatedTool<P extends ToolParams, R> extends BaseT
         pagination.pageSize(),
         null,
         false,
+        null,
         List.of(errorMessage),
         collector.snapshot(),
         null);
@@ -166,6 +167,7 @@ public abstract class CursorPaginatedTool<P extends ToolParams, R> extends BaseT
         pagination.pageSize(),
         result.nextCursor(),
         result.hasMore(),
+        result.totalItems(),
         collector.snapshot(),
         duration);
   }

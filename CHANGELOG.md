@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Improvements
+
+**`CursorToolResponse` now carries optional `totalItems`**: Cursor-paginated tools can
+report total result count on the first page, matching the capability offset-paginated tools
+already have via `PaginatedToolResponse.totalItems`. The field is nullable and defaults to
+null, so existing cursor tools are unaffected.
+
+## [2.2.0] - 2026-08-04
+
 ### Bug Fixes
 
 **`search_vulnerabilities` example used wrong vulnerability type name**: The tool

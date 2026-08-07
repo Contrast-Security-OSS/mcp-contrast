@@ -25,9 +25,10 @@ import org.springframework.lang.Nullable;
  * @param items page items
  * @param nextCursor opaque continuation token returned by the backend, or null
  * @param hasMore true when another page can be fetched
+ * @param totalItems total count across all pages, or null when unavailable
  */
 public record CursorExecutionResult<T>(
-    List<T> items, @Nullable String nextCursor, boolean hasMore) {
+    List<T> items, @Nullable String nextCursor, boolean hasMore, @Nullable Integer totalItems) {
 
   public CursorExecutionResult {
     items = items != null ? List.copyOf(items) : List.of();
@@ -35,10 +36,15 @@ public record CursorExecutionResult<T>(
 
   public static <T> CursorExecutionResult<T> of(
       List<T> items, @Nullable String nextCursor, boolean hasMore) {
-    return new CursorExecutionResult<>(items, nextCursor, hasMore);
+    return of(items, nextCursor, hasMore, null);
+  }
+
+  public static <T> CursorExecutionResult<T> of(
+      List<T> items, @Nullable String nextCursor, boolean hasMore, @Nullable Integer totalItems) {
+    return new CursorExecutionResult<>(items, nextCursor, hasMore, totalItems);
   }
 
   public static <T> CursorExecutionResult<T> empty() {
-    return new CursorExecutionResult<>(List.of(), null, false);
+    return new CursorExecutionResult<>(List.of(), null, false, null);
   }
 }
