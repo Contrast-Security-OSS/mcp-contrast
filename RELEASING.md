@@ -119,6 +119,7 @@ This checklist describes an automated workflow release. For a manual recovery re
 - `contrast-mcp-core` artifact is available in Artifactory at the release version.
 - `main` has no release-version or next-snapshot commits from the workflow.
 - `./gradlew -q printVersion` on the release tag prints `X.Y.Z`.
+- GitHub release notes contain the changelog entries for this version. Copy the `[X.Y.Z]` section from `CHANGELOG.md` into the release body. This is manual for now but will be automated.
 
 ## Troubleshooting
 
