@@ -50,6 +50,12 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveParams, CveData> {
 
+  private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
+  private static final String INTERNAL_SERVER_ERROR_MESSAGE =
+      "The service returned an error. This happens for CVEs the SCA library data does not"
+          + " recognize, including CVEs that exist only in NorthStar CVE Shield data. Verify the"
+          + " CVE with search_cves or get_cve_impact, or retry later if the service is failing.";
+
   private final ContrastApiClient contrastApiClient;
 
   @Tool(
@@ -70,6 +76,14 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
 
   public SingleToolResponse<CveData> listApplicationsByCve(String cveId) {
     return listApplicationsByCve(cveId, null);
+  }
+
+  @Override
+  protected String mapHttpErrorCode(int code) {
+    if (code == HTTP_INTERNAL_SERVER_ERROR) {
+      return INTERNAL_SERVER_ERROR_MESSAGE;
+    }
+    return super.mapHttpErrorCode(code);
   }
 
   @Override
