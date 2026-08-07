@@ -66,7 +66,10 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
           per-application class usage. classUsage 0 or absent means no classes from the vulnerable
           library were seen loaded, so exploitation is unlikely; prioritize applications with
           classUsage above 0. Use list_application_libraries for the reverse direction, all
-          libraries of one application.
+          libraries of one application. lastSeen of 0 means the application has never been observed
+          running, typically a static or SCA-only upload. Application and server status reflect
+          last-known agent reports and can lag live status; search_servers is fresher for current
+          server state.
           """)
   public SingleToolResponse<CveData> listApplicationsByCve(
       @ToolParam(description = "CVE identifier (e.g., CVE-2021-44228)") String cveId,
