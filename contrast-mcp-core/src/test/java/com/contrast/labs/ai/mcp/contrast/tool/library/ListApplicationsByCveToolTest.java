@@ -408,6 +408,46 @@ class ListApplicationsByCveToolTest {
   }
 
   @Test
+  void listApplicationsByCve_should_map_downstream_500_with_cve_shield_guidance() throws Exception {
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID)))
+        .thenThrow(
+            new HttpResponseException(
+                "Internal Server Error",
+                "GET",
+                "/ng/org/libraries/cve",
+                500,
+                "Internal Server Error",
+                SECRET_BODY));
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors())
+        .containsExactly(
+            "The service returned an error. This happens for CVEs the SCA library data does not"
+                + " recognize, including CVEs that exist only in NorthStar CVE Shield data."
+                + " Verify the CVE with search_cves or get_cve_impact, or retry later if the"
+                + " service is failing.");
+    assertThat(result.toString()).doesNotContain(SECRET_BODY, "/ng/org/libraries/cve");
+  }
+
+  @Test
+  void listApplicationsByCve_should_map_downstream_502_with_base_message() throws Exception {
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID)))
+        .thenThrow(
+            new HttpResponseException(
+                "Bad Gateway", "GET", "/ng/org/libraries/cve", 502, "Bad Gateway", SECRET_BODY));
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors())
+        .containsExactly(
+            "The service returned an error. Narrow filters or reduce page size, then retry.");
+    assertThat(result.toString()).doesNotContain(SECRET_BODY, "/ng/org/libraries/cve");
+  }
+
+  @Test
   void listApplicationsByCve_should_not_leak_exception_message_when_enrichment_fails()
       throws Exception {
     var cveData = cveData(app("Orders", APP_ID), vulnerableLibrary(LIBRARY_HASH));
