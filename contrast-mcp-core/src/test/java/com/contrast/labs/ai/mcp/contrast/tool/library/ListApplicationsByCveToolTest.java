@@ -50,6 +50,10 @@ class ListApplicationsByCveToolTest {
   private static final String SECRET_BODY = "token=raw-token-value&apiKey=secret";
   private static final String CVSS_V2_NOTICE =
       "score is omitted for CVEs with only CVSS v2 data; use severity and the cvssv2 metrics.";
+  private static final long LAST_SEEN_MILLIS = 1721000000000L;
+  private static final String NEVER_OBSERVED_NOTICE_PREFIX =
+      "lastSeen of 0 means the application has never been observed running, typically a static or"
+          + " SCA-only upload: ";
   private static final String CVSS_V3_CVE_RESPONSE =
       """
       {
@@ -301,6 +305,40 @@ class ListApplicationsByCveToolTest {
   }
 
   @Test
+  void listApplicationsByCve_should_notice_never_observed_apps_when_lastSeen_is_zero()
+      throws Exception {
+    var neverObserved = app("StaticUpload", "app-static");
+    neverObserved.setLastSeen(0);
+    var running = app("Orders", APP_ID);
+    var cveData = new CveData();
+    cveData.setApps(List.of(neverObserved, running));
+    cveData.setLibraries(List.of(vulnerableLibrary(LIBRARY_HASH)));
+
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID))).thenReturn(cveData);
+    when(contrastApiClient.getAllLibraries(eq("app-static"))).thenReturn(List.of());
+    when(contrastApiClient.getAllLibraries(eq(APP_ID))).thenReturn(List.of());
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.notices()).contains(NEVER_OBSERVED_NOTICE_PREFIX + "StaticUpload");
+  }
+
+  @Test
+  void listApplicationsByCve_should_not_notice_never_observed_apps_when_lastSeen_is_populated()
+      throws Exception {
+    var cveData = cveData(app("Orders", APP_ID), vulnerableLibrary(LIBRARY_HASH));
+
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID))).thenReturn(cveData);
+    when(contrastApiClient.getAllLibraries(eq(APP_ID))).thenReturn(List.of());
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.notices()).noneMatch(n -> n.contains("never been observed running"));
+  }
+
+  @Test
   void listApplicationsByCve_should_dedupe_top_level_servers_by_server_id() throws Exception {
     var cveData = cveData(app("Orders", APP_ID), vulnerableLibrary(LIBRARY_HASH));
     cveData.setServers(
@@ -482,6 +520,7 @@ class ListApplicationsByCveToolTest {
     var app = new App();
     app.setName(name);
     app.setAppId(appId);
+    app.setLastSeen(LAST_SEEN_MILLIS);
     return app;
   }
 

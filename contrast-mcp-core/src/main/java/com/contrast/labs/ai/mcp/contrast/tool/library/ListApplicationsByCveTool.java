@@ -66,10 +66,8 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
           per-application class usage. classUsage 0 or absent means no classes from the vulnerable
           library were seen loaded, so exploitation is unlikely; prioritize applications with
           classUsage above 0. Use list_application_libraries for the reverse direction, all
-          libraries of one application. lastSeen of 0 means the application has never been observed
-          running, typically a static or SCA-only upload. lastSeen and server status reflect
-          last-known agent reports and can lag live state; search_servers is fresher for current
-          server state.
+          libraries of one application. lastSeen and server status reflect last-known agent
+          reports and can lag live state; search_servers is fresher for current server state.
           """)
   public SingleToolResponse<CveData> listApplicationsByCve(
       @ToolParam(description = "CVE identifier (e.g., CVE-2021-44228)") String cveId,
@@ -119,6 +117,8 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
       return cveData;
     }
 
+    noticeNeverObservedApps(apps, collector);
+
     log.debug(
         "Found {} applications vulnerable to {}, enriching with class usage data",
         apps.size(),
@@ -139,6 +139,19 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
         apps.size());
 
     return cveData;
+  }
+
+  // TeamServer sends last_seen 0 for applications that have never reported agent activity, and
+  // App.lastSeen is a primitive long, so the zero sentinel always serializes (Jira AIML-1331).
+  private static void noticeNeverObservedApps(List<App> apps, NoticeCollector collector) {
+    var neverObserved =
+        apps.stream().filter(app -> app.getLastSeen() == 0).map(App::getName).toList();
+    if (!neverObserved.isEmpty()) {
+      collector.notice(
+          "lastSeen of 0 means the application has never been observed running, typically a"
+              + " static or SCA-only upload: "
+              + String.join(", ", neverObserved));
+    }
   }
 
   private static void applyPreferredCvssSummary(Cve cve) {
