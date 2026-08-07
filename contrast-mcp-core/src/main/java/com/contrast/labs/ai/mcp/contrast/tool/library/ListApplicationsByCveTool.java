@@ -67,8 +67,8 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
           library were seen loaded, so exploitation is unlikely; prioritize applications with
           classUsage above 0. Use list_application_libraries for the reverse direction, all
           libraries of one application. lastSeen of 0 means the application has never been observed
-          running, typically a static or SCA-only upload. Application and server status reflect
-          last-known agent reports and can lag live status; search_servers is fresher for current
+          running, typically a static or SCA-only upload. lastSeen and server status reflect
+          last-known agent reports and can lag live state; search_servers is fresher for current
           server state.
           """)
   public SingleToolResponse<CveData> listApplicationsByCve(
