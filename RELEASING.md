@@ -106,7 +106,7 @@ test -f contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar
 
 Then create a GitHub release for the tag and attach `contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar`. Note that these manual instructions do not publish to Artifactory, sign the Docker image, generate SBOMs, or create attestations. Use the workflow whenever possible.
 
-**Coverage gate:** `check` runs `jacocoTestCoverageVerification`, so a release aborts if either module falls below its floor in `ext.coverageMinimums`. Because releases only run from `main`, and the same task and floors already gated the commit in `build.yml`, this should not fire in practice. If it does, run `make coverage` locally for the per-module numbers, or read the `jacoco-coverage-reports` artifact from that commit's build run.
+**Coverage gate:** `check` runs `jacocoTestCoverageVerification`, so a release aborts if either module falls below its floor in `ext.coverageMinimums`. Because releases only run from `main`, and the same task and floors already gated the commit in `build.yml`, this should not fire in practice. If it does, run `make coverage` locally for the per-module numbers, or read the `test-reports` artifact (JaCoCo coverage plus PIT mutation reports) from that commit's build run.
 
 ## Verify the Release
 

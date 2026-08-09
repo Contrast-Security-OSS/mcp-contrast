@@ -63,7 +63,7 @@ jobs:
 
     # Runs even when the coverage floor fails, since that is exactly when the
     # numbers and the HTML report are needed to diagnose the failure. coverageSummary
-    # only reads the reports the step above wrote, so this does not re-run the tests;
+    # only reads the reports the coverage step wrote, so this does not re-run the tests;
     # if that step failed before producing them, the table says so per module. !cancelled()
     # rather than always(), so cancelling the workflow actually stops it.
     - name: Publish coverage summary

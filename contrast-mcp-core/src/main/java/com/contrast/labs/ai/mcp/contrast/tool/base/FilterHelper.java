@@ -93,8 +93,9 @@ public class FilterHelper {
 
   /**
    * Parse date string in ISO format (YYYY-MM-DD) or epoch timestamp (milliseconds). Tries epoch
-   * timestamp first, then falls back to ISO date format. Returns validation message if format is
-   * invalid.
+   * timestamp first, then falls back to ISO date format. Epoch timestamps outside the supported
+   * range (1970-01-01 through 9999-12-31 in millis) are rejected. Returns validation message if
+   * format is invalid.
    *
    * @param dateStr Date string in ISO format or epoch timestamp
    * @param paramName Parameter name for error messages (e.g., "lastSeenAfter")
@@ -112,6 +113,9 @@ public class FilterHelper {
     try {
       // Try parsing as epoch timestamp first
       long timestamp = Long.parseLong(dateStr.trim());
+      if (!isSupportedTimestampMillis(timestamp)) {
+        return invalidDateResult(dateStr, paramName);
+      }
       return new ParseResult<>(new Date(timestamp));
     } catch (NumberFormatException e) {
       // Try ISO date format
@@ -120,15 +124,19 @@ public class FilterHelper {
         Date parsed = Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
         return new ParseResult<>(parsed);
       } catch (DateTimeParseException ex) {
-        String message =
-            String.format(
-                "Invalid %s date '%s'. Expected ISO format (YYYY-MM-DD) like '2025-01-15' or epoch"
-                    + " timestamp like '1705276800000'.",
-                paramName, sanitizeForMessage(dateStr));
-        log.warn(message);
-        return new ParseResult<>(null, message);
+        return invalidDateResult(dateStr, paramName);
       }
     }
+  }
+
+  private static ParseResult<Date> invalidDateResult(String dateStr, String paramName) {
+    String message =
+        String.format(
+            "Invalid %s date '%s'. Expected ISO format (YYYY-MM-DD) like '2025-01-15' or epoch"
+                + " timestamp between %d and %d millis like '1705276800000'.",
+            paramName, sanitizeForMessage(dateStr), MIN_EPOCH_MILLIS, MAX_EPOCH_MILLIS);
+    log.warn(message);
+    return new ParseResult<>(null, message);
   }
 
   /**
