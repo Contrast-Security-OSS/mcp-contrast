@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
+import static com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants.MAX_PAGE_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
 
 class CursorPaginationParamsTest {
 
+  private static final int MIN_PAGE_SIZE = 1;
   private static final String OPAQUE_CURSOR = "opaque.cursor/with+symbols==";
 
   @Test
@@ -45,6 +47,24 @@ class CursorPaginationParamsTest {
     assertThat(params.cursorPresence()).isEqualTo("present");
     assertThat(params.pageSize()).isEqualTo(25);
     assertThat(params.limit()).isEqualTo(25);
+    assertThat(params.notices()).isEmpty();
+  }
+
+  @Test
+  void of_should_accept_minimum_page_size_without_notice_when_page_size_is_one() {
+    var params = CursorPaginationParams.of(OPAQUE_CURSOR, MIN_PAGE_SIZE);
+
+    assertThat(params.pageSize()).isEqualTo(MIN_PAGE_SIZE);
+    assertThat(params.limit()).isEqualTo(MIN_PAGE_SIZE);
+    assertThat(params.notices()).isEmpty();
+  }
+
+  @Test
+  void of_should_accept_default_maximum_without_notice_when_page_size_is_maximum() {
+    var params = CursorPaginationParams.of(OPAQUE_CURSOR, MAX_PAGE_SIZE);
+
+    assertThat(params.pageSize()).isEqualTo(MAX_PAGE_SIZE);
+    assertThat(params.limit()).isEqualTo(MAX_PAGE_SIZE);
     assertThat(params.notices()).isEmpty();
   }
 

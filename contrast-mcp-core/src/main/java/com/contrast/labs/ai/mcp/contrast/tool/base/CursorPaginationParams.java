@@ -66,7 +66,7 @@ public record CursorPaginationParams(
       @Nullable String cursor, @Nullable Integer pageSize, int maxPageSize) {
     List<String> notices = new ArrayList<>();
     int defaultSize = Math.min(DEFAULT_PAGE_SIZE, maxPageSize);
-    int actualSize = pageSize != null && pageSize > 0 ? pageSize : defaultSize;
+    int actualSize = pageSize != null ? pageSize : defaultSize;
 
     if (pageSize != null && pageSize < 1) {
       notices.add(String.format("Invalid pageSize %d, using default %d", pageSize, defaultSize));

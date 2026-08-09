@@ -167,14 +167,14 @@ tasks.register('verifyCorePublicationMetadata') {
 
 check.dependsOn tasks.named('verifyCorePublicationMetadata')
 
-// Mutation testing via PIT. Measured 2026-08-08 with PIT 1.25.8: 868 mutants, 792 killed,
-// test strength 94%. Floor set a few points under, matching the coverageMinimums convention.
+// Mutation testing via PIT. Measured 2026-08-08 with PIT 1.25.8: 854 mutants, 796 killed,
+// test strength 96%. Floor set two points under, matching the coverageMinimums convention.
 pitest {
     pitestVersion = pitestCoreVersion
     junit5PluginVersion = pitestJunit5PluginVersion
     targetClasses = ['com.contrast.labs.ai.mcp.contrast.*']
     targetTests = ['com.contrast.labs.ai.mcp.contrast.*']
-    testStrengthThreshold = 91
+    testStrengthThreshold = 94
     outputFormats = ['HTML', 'XML']
     timestampedReports = false
     threads = Runtime.runtime.availableProcessors()
