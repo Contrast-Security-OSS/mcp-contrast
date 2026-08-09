@@ -51,6 +51,7 @@ make test-coverage                 # Unit tests plus coverage floors in one grad
 make coverage-changed              # Changed src/main/java files must meet the changed-file floor
 make coverage-changed BASE=origin/main   # Compare against a ref instead of the working tree
 make buildsrc-check                # Static analysis, tests and coverage for buildSrc
+make mutation                       # PIT mutation testing on contrast-mcp-core
 make install-hooks                 # Install the pre-push hook (backs up any hook it replaces)
 
 # Verbose output when debugging failures
@@ -69,12 +70,15 @@ make coverage VERBOSE=1
 - **Coverage**: `./gradlew jacocoTestCoverageVerification coverageSummary`
 - **Changed-file coverage**: `./gradlew jacocoChangedFileCoverageVerification -PjacocoChangedBase=origin/main`
 - **Core publication metadata**: `./gradlew :contrast-mcp-core:verifyCorePublicationMetadata`
+- **Mutation testing**: `./gradlew :contrast-mcp-core:pitest`
 - **Format code**: `./gradlew spotlessApply`
 - **Run locally**: `java -jar contrast-mcp-stdio-app/build/libs/mcp-contrast-*.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
 
 **Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard local verification command for static analysis, unit tests, and coverage.
 
 **Coverage floors:** Per-module minimums live in `ext.coverageMinimums` in the root `build.gradle` and are enforced by `jacocoTestCoverageVerification`, which `check` depends on. Floors sit a couple of points under the measured figures on purpose, so one new uncovered branch cannot redden `main`. Raise a floor as coverage improves; never lower one to make a build pass. `verifyCoverageMinimums` fails the build if any floor drops below `ext.coverageStandardMinimum` (85%). `McpContrastApplication` is the only class excluded.
+
+**Mutation testing:** PIT runs against `contrast-mcp-core` via the `info.solidsoft.pitest` Gradle plugin. It gates on test strength (killed / (killed + survived)), not mutation score, so it measures test quality independent of JaCoCo coverage. The `testStrengthThreshold` floor lives in `contrast-mcp-core/build.gradle` and is enforced in CI on pull requests. Raise the floor as survivors get fixed, never lower it. `lombok.config` at the repo root enables `@lombok.Generated` so both PIT and JaCoCo skip Lombok-generated code.
 
 **Changed-file coverage:** `ext.changedFileCoverageMinimum` (85%) is enforced per changed `src/main/java` file by `jacocoChangedFileCoverageVerification`. Runs in CI on every pull request regardless of base branch, so stacked PRs are gated too, plus the pre-push hook (`make install-hooks`, bypass with `SKIP_COVERAGE_HOOK=1`) and `make coverage-changed`. The hook warns but still runs when dirty source, build, or resource files could change JaCoCo output; pull-request CI remains authoritative because it tests a clean checkout. Unrelated changes such as Markdown files do not warn. Set `COVERAGE_BASE_REF=origin/<parent>` on the first push of a new stacked branch. Not wired into `check`, which has no base ref to diff against. Logic lives in `buildSrc/`, which has its own checks via `make buildsrc-check`. See `scripts/git-hooks/README.md`.
 

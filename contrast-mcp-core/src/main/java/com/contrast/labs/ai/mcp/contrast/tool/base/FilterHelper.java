@@ -99,10 +99,11 @@ public class FilterHelper {
    * @param dateStr Date string in ISO format or epoch timestamp
    * @param paramName Parameter name for error messages (e.g., "lastSeenAfter")
    * @return ParseResult with Date object and optional validation message
-   * @example parseDate("2025-01-15", "lastSeenAfter") → ParseResult(Date, null)
-   * @example parseDate("1704067200000", "lastSeenAfter") → ParseResult(Date, null)
-   * @example parseDate("invalid", "lastSeenAfter") → ParseResult(null, "Invalid date...")
-   * @example parseDate(null, "lastSeenAfter") → ParseResult(null, null)
+   * @example parseDateWithValidation("2025-01-15", "lastSeenAfter") → ParseResult(Date, null)
+   * @example parseDateWithValidation("1704067200000", "lastSeenAfter") → ParseResult(Date, null)
+   * @example parseDateWithValidation("invalid", "lastSeenAfter") → ParseResult(null, "Invalid
+   *     date...")
+   * @example parseDateWithValidation(null, "lastSeenAfter") → ParseResult(null, null)
    */
   public static ParseResult<Date> parseDateWithValidation(String dateStr, String paramName) {
     if (!StringUtils.hasText(dateStr)) {
@@ -192,14 +193,6 @@ public class FilterHelper {
   }
 
   /**
-   * Parse date string (legacy method for backward compatibility). Use parseDateWithValidation() for
-   * new code to get validation messages.
-   */
-  public static Date parseDate(String dateStr) {
-    return parseDateWithValidation(dateStr, "date").getValue();
-  }
-
-  /**
    * Parse comma-separated list and convert to case-insensitive list. Useful for status, severity,
    * and other case-insensitive filters.
    *
@@ -213,22 +206,6 @@ public class FilterHelper {
       return null;
     }
     return parsed.stream().map(String::toUpperCase).toList();
-  }
-
-  /**
-   * Parse comma-separated list and convert to lowercase list. Useful for vulnerability types and
-   * other lowercase filters.
-   *
-   * @param input Comma-separated string
-   * @return List of trimmed, lowercase strings, or null if input is null/empty
-   * @example parseCommaSeparatedLowerCase("SQL-Injection, XSS") → ["sql-injection", "xss"]
-   */
-  public static List<String> parseCommaSeparatedLowerCase(String input) {
-    List<String> parsed = parseCommaSeparated(input);
-    if (parsed == null) {
-      return null;
-    }
-    return parsed.stream().map(String::toLowerCase).toList();
   }
 
   /**

@@ -178,6 +178,45 @@ class FilterHelperTest {
         .matches("[+-]\\d{2}:\\d{2}");
   }
 
+  private static final long MIN_EPOCH_MILLIS = 0L;
+  private static final long MAX_EPOCH_MILLIS = 253402300799999L;
+  private static final long ONE_PAST_MAX_EPOCH_MILLIS = 253402300800000L;
+
+  @Test
+  void parseTimestampWithValidation_should_accept_min_epoch_boundary() {
+    var result = FilterHelper.parseTimestampWithValidation(String.valueOf(MIN_EPOCH_MILLIS), "ts");
+
+    assertThat(result.getValue()).isNotNull();
+    assertThat(result.hasValidationMessage()).isFalse();
+  }
+
+  @Test
+  void parseTimestampWithValidation_should_reject_below_min_epoch_boundary() {
+    var result = FilterHelper.parseTimestampWithValidation("-1", "ts");
+
+    assertThat(result.getValue()).isNull();
+    assertThat(result.hasValidationMessage()).isTrue();
+    assertThat(result.getValidationMessage()).contains("Invalid");
+  }
+
+  @Test
+  void parseTimestampWithValidation_should_accept_max_epoch_boundary() {
+    var result = FilterHelper.parseTimestampWithValidation(String.valueOf(MAX_EPOCH_MILLIS), "ts");
+
+    assertThat(result.getValue()).isNotNull();
+    assertThat(result.hasValidationMessage()).isFalse();
+  }
+
+  @Test
+  void parseTimestampWithValidation_should_reject_above_max_epoch_boundary() {
+    var result =
+        FilterHelper.parseTimestampWithValidation(String.valueOf(ONE_PAST_MAX_EPOCH_MILLIS), "ts");
+
+    assertThat(result.getValue()).isNull();
+    assertThat(result.hasValidationMessage()).isTrue();
+    assertThat(result.getValidationMessage()).contains("Invalid");
+  }
+
   @Test
   void testFormatTimestamp_ConsistentFormat() {
     // Given: Multiple different timestamps

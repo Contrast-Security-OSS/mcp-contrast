@@ -1,6 +1,6 @@
 GRADLE ?= ./gradlew
 
-.PHONY: help build test test-verbose check check-verbose check-test buildsrc-check buildsrc-check-verbose coverage coverage-verbose coverage-changed coverage-changed-verbose test-coverage test-coverage-verbose install-hooks format clean verify verify-verbose
+.PHONY: help build test test-verbose check check-verbose check-test buildsrc-check buildsrc-check-verbose coverage coverage-verbose coverage-changed coverage-changed-verbose test-coverage test-coverage-verbose mutation mutation-verbose install-hooks format clean verify verify-verbose
 
 help: ## Display available make targets
 	@awk 'BEGIN {FS=":.*##"; printf "\nUsage: make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_\-]+:.*##/ {printf "  %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -150,6 +150,23 @@ check-test: ## Run all checks, tests, and coverage
 	@$(MAKE) check
 	@$(MAKE) buildsrc-check
 	@$(MAKE) test-coverage
+
+## Mutation testing
+
+mutation: ## Run PIT mutation testing on contrast-mcp-core
+	@if [ -n "$$VERBOSE" ]; then \
+		$(GRADLE) :contrast-mcp-core:pitest; \
+	else \
+		$(MAKE) mutation-quiet; \
+	fi
+
+mutation-quiet:
+	@. ./hack/run_silent.sh && print_main_header "Running Mutation Tests"
+	@. ./hack/run_silent.sh && print_header "contrast-mcp-core" "PIT mutation testing"
+	@. ./hack/run_silent.sh && run_with_quiet "Mutation test strength floor met" "$(GRADLE) :contrast-mcp-core:pitest"
+
+mutation-verbose: ## Run mutation testing with verbose output
+	@VERBOSE=1 $(MAKE) mutation
 
 ## Other targets
 

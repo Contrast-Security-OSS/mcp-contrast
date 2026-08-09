@@ -7,6 +7,7 @@ import javax.xml.xpath.XPathFactory
 plugins {
     id 'maven-publish'
     id 'signing'
+    id 'info.solidsoft.pitest'
 }
 
 dependencies {
@@ -165,6 +166,19 @@ tasks.register('verifyCorePublicationMetadata') {
 }
 
 check.dependsOn tasks.named('verifyCorePublicationMetadata')
+
+// Mutation testing via PIT. Measured 2026-08-08 with PIT 1.25.8: 868 mutants, 792 killed,
+// test strength 94%. Floor set a few points under, matching the coverageMinimums convention.
+pitest {
+    pitestVersion = pitestCoreVersion
+    junit5PluginVersion = pitestJunit5PluginVersion
+    targetClasses = ['com.contrast.labs.ai.mcp.contrast.*']
+    targetTests = ['com.contrast.labs.ai.mcp.contrast.*']
+    testStrengthThreshold = 91
+    outputFormats = ['HTML', 'XML']
+    timestampedReports = false
+    threads = Runtime.runtime.availableProcessors()
+}
 
 String mcpCoreArtifactProperty(String name) {
     def propertiesFile = rootProject.file('gradle/contrast-mcp-core-artifact.properties')
