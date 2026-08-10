@@ -196,8 +196,9 @@ EOF
 
 **All MCP tool development MUST follow the standards defined in [MCP_STANDARDS.md](./MCP_STANDARDS.md).**
 
+**Read MCP_STANDARDS.md before any tool change.** This includes new tools, renamed tools, modified descriptions, error messages, notices, parameter changes, and response shape changes. The standards govern cross-server constraints (e.g., core tools must never reference hosted-only tools) that are not obvious from the code alone.
+
 When creating or modifying MCP tools:
-- Read MCP_STANDARDS.md for complete naming and design standards
 - Use `action_entity` naming convention (e.g., `search_vulnerabilities`, `get_vulnerability`)
 - Follow verb hierarchy: `search_*` (flexible filtering) > `list_*` (scoped) > `get_*` (single item)
 - Use camelCase for parameters, snake_case for tool names

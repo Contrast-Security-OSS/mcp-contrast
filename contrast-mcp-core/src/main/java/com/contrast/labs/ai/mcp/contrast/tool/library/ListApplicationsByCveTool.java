@@ -52,9 +52,9 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
 
   private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
   private static final String INTERNAL_SERVER_ERROR_MESSAGE =
-      "The service returned an error. This happens for CVEs the SCA library data does not"
-          + " recognize, including CVEs that exist only in NorthStar CVE Shield data. Verify the"
-          + " CVE with search_cves or get_cve_impact, or retry later if the service is failing.";
+      "The service returned an error. This typically happens for CVEs that the SCA library data"
+          + " does not recognize. Verify the CVE identifier is correct and retry later if the"
+          + " service is failing.";
 
   private final ContrastApiClient contrastApiClient;
 

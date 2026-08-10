@@ -446,7 +446,7 @@ class ListApplicationsByCveToolTest {
   }
 
   @Test
-  void listApplicationsByCve_should_map_downstream_500_with_cve_shield_guidance() throws Exception {
+  void listApplicationsByCve_should_map_downstream_500_with_sca_guidance() throws Exception {
     when(contrastApiClient.getApplicationsByCve(eq(CVE_ID)))
         .thenThrow(
             new HttpResponseException(
@@ -462,10 +462,9 @@ class ListApplicationsByCveToolTest {
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors())
         .containsExactly(
-            "The service returned an error. This happens for CVEs the SCA library data does not"
-                + " recognize, including CVEs that exist only in NorthStar CVE Shield data."
-                + " Verify the CVE with search_cves or get_cve_impact, or retry later if the"
-                + " service is failing.");
+            "The service returned an error. This typically happens for CVEs that the SCA library"
+                + " data does not recognize. Verify the CVE identifier is correct and retry later"
+                + " if the service is failing.");
     assertThat(result.toString()).doesNotContain(SECRET_BODY, "/ng/org/libraries/cve");
   }
 
