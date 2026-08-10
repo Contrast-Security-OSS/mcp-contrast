@@ -47,10 +47,7 @@ class FilterHelperTest {
           .toInstant(ZoneOffset.UTC)
           .toEpochMilli(); // 1500000000000L
 
-  // Must stay in sync with FilterHelper's private MIN_EPOCH_MILLIS / MAX_EPOCH_MILLIS.
-  private static final long MIN_EPOCH_MILLIS = 0L;
-  private static final long MAX_EPOCH_MILLIS = 253402300799999L;
-  private static final long ONE_PAST_MAX_EPOCH_MILLIS = 253402300800000L;
+  private static final long ONE_PAST_MAX = FilterHelper.MAX_EPOCH_MILLIS + 1;
 
   @Test
   void testFormatTimestamp_ValidTimestamp() {
@@ -186,9 +183,11 @@ class FilterHelperTest {
 
   @Test
   void parseTimestampWithValidation_should_accept_min_epoch_boundary() {
-    var result = FilterHelper.parseTimestampWithValidation(String.valueOf(MIN_EPOCH_MILLIS), "ts");
+    var result =
+        FilterHelper.parseTimestampWithValidation(
+            String.valueOf(FilterHelper.MIN_EPOCH_MILLIS), "ts");
 
-    assertThat(result.getValue()).isEqualTo(new Date(MIN_EPOCH_MILLIS));
+    assertThat(result.getValue()).isEqualTo(new Date(FilterHelper.MIN_EPOCH_MILLIS));
     assertThat(result.hasValidationMessage()).isFalse();
   }
 
@@ -200,34 +199,39 @@ class FilterHelperTest {
     assertThat(result.hasValidationMessage()).isTrue();
     assertThat(result.getValidationMessage())
         .contains("Invalid ts timestamp")
-        .contains("between " + MIN_EPOCH_MILLIS + " and " + MAX_EPOCH_MILLIS);
+        .contains(
+            "between " + FilterHelper.MIN_EPOCH_MILLIS + " and " + FilterHelper.MAX_EPOCH_MILLIS);
   }
 
   @Test
   void parseTimestampWithValidation_should_accept_max_epoch_boundary() {
-    var result = FilterHelper.parseTimestampWithValidation(String.valueOf(MAX_EPOCH_MILLIS), "ts");
+    var result =
+        FilterHelper.parseTimestampWithValidation(
+            String.valueOf(FilterHelper.MAX_EPOCH_MILLIS), "ts");
 
-    assertThat(result.getValue()).isEqualTo(new Date(MAX_EPOCH_MILLIS));
+    assertThat(result.getValue()).isEqualTo(new Date(FilterHelper.MAX_EPOCH_MILLIS));
     assertThat(result.hasValidationMessage()).isFalse();
   }
 
   @Test
   void parseTimestampWithValidation_should_reject_above_max_epoch_boundary() {
-    var result =
-        FilterHelper.parseTimestampWithValidation(String.valueOf(ONE_PAST_MAX_EPOCH_MILLIS), "ts");
+    var result = FilterHelper.parseTimestampWithValidation(String.valueOf(ONE_PAST_MAX), "ts");
 
     assertThat(result.getValue()).isNull();
     assertThat(result.hasValidationMessage()).isTrue();
     assertThat(result.getValidationMessage())
         .contains("Invalid ts timestamp")
-        .contains("between " + MIN_EPOCH_MILLIS + " and " + MAX_EPOCH_MILLIS);
+        .contains(
+            "between " + FilterHelper.MIN_EPOCH_MILLIS + " and " + FilterHelper.MAX_EPOCH_MILLIS);
   }
 
   @Test
   void parseDateWithValidation_should_accept_min_epoch_boundary() {
-    var result = FilterHelper.parseDateWithValidation(String.valueOf(MIN_EPOCH_MILLIS), "lastSeen");
+    var result =
+        FilterHelper.parseDateWithValidation(
+            String.valueOf(FilterHelper.MIN_EPOCH_MILLIS), "lastSeen");
 
-    assertThat(result.getValue()).isEqualTo(new Date(MIN_EPOCH_MILLIS));
+    assertThat(result.getValue()).isEqualTo(new Date(FilterHelper.MIN_EPOCH_MILLIS));
     assertThat(result.hasValidationMessage()).isFalse();
   }
 
@@ -239,27 +243,70 @@ class FilterHelperTest {
     assertThat(result.hasValidationMessage()).isTrue();
     assertThat(result.getValidationMessage())
         .contains("Invalid lastSeen date")
-        .contains("between " + MIN_EPOCH_MILLIS + " and " + MAX_EPOCH_MILLIS);
+        .contains(
+            "between " + FilterHelper.MIN_EPOCH_MILLIS + " and " + FilterHelper.MAX_EPOCH_MILLIS);
   }
 
   @Test
   void parseDateWithValidation_should_accept_max_epoch_boundary() {
-    var result = FilterHelper.parseDateWithValidation(String.valueOf(MAX_EPOCH_MILLIS), "lastSeen");
+    var result =
+        FilterHelper.parseDateWithValidation(
+            String.valueOf(FilterHelper.MAX_EPOCH_MILLIS), "lastSeen");
 
-    assertThat(result.getValue()).isEqualTo(new Date(MAX_EPOCH_MILLIS));
+    assertThat(result.getValue()).isEqualTo(new Date(FilterHelper.MAX_EPOCH_MILLIS));
     assertThat(result.hasValidationMessage()).isFalse();
   }
 
   @Test
   void parseDateWithValidation_should_reject_above_max_epoch_boundary() {
-    var result =
-        FilterHelper.parseDateWithValidation(String.valueOf(ONE_PAST_MAX_EPOCH_MILLIS), "lastSeen");
+    var result = FilterHelper.parseDateWithValidation(String.valueOf(ONE_PAST_MAX), "lastSeen");
 
     assertThat(result.getValue()).isNull();
     assertThat(result.hasValidationMessage()).isTrue();
     assertThat(result.getValidationMessage())
         .contains("Invalid lastSeen date")
-        .contains("between " + MIN_EPOCH_MILLIS + " and " + MAX_EPOCH_MILLIS);
+        .contains(
+            "between " + FilterHelper.MIN_EPOCH_MILLIS + " and " + FilterHelper.MAX_EPOCH_MILLIS);
+  }
+
+  @Test
+  void parseDateWithValidation_should_reject_pre_epoch_iso_date() {
+    var result = FilterHelper.parseDateWithValidation("1969-12-31", "lastSeen");
+
+    assertThat(result.getValue()).isNull();
+    assertThat(result.hasValidationMessage()).isTrue();
+    assertThat(result.getValidationMessage())
+        .contains("Invalid lastSeen date")
+        .contains(
+            "between " + FilterHelper.MIN_EPOCH_MILLIS + " and " + FilterHelper.MAX_EPOCH_MILLIS);
+  }
+
+  @Test
+  void parseDateWithValidation_should_reject_far_future_iso_date() {
+    var result = FilterHelper.parseDateWithValidation("+10000-01-01", "lastSeen");
+
+    assertThat(result.getValue()).isNull();
+    assertThat(result.hasValidationMessage()).isTrue();
+    assertThat(result.getValidationMessage())
+        .contains("Invalid lastSeen date")
+        .contains(
+            "between " + FilterHelper.MIN_EPOCH_MILLIS + " and " + FilterHelper.MAX_EPOCH_MILLIS);
+  }
+
+  @Test
+  void parseDateWithValidation_should_accept_valid_iso_date() {
+    var result = FilterHelper.parseDateWithValidation("2025-01-15", "lastSeen");
+
+    assertThat(result.getValue()).isNotNull();
+    assertThat(result.hasValidationMessage()).isFalse();
+  }
+
+  @Test
+  void parseDateWithValidation_should_accept_epoch_start_iso_date() {
+    var result = FilterHelper.parseDateWithValidation("1970-01-01", "lastSeen");
+
+    assertThat(result.getValue()).isNotNull();
+    assertThat(result.hasValidationMessage()).isFalse();
   }
 
   @Test

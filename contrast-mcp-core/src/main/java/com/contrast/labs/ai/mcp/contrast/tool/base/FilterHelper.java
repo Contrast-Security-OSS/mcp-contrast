@@ -36,8 +36,8 @@ import org.springframework.util.StringUtils;
  */
 @Slf4j
 public class FilterHelper {
-  private static final long MIN_EPOCH_MILLIS = 0L;
-  private static final long MAX_EPOCH_MILLIS = 253402300799999L;
+  static final long MIN_EPOCH_MILLIS = 0L;
+  static final long MAX_EPOCH_MILLIS = 253402300799999L;
   private static final DateTimeFormatter TIMESTAMP_FORMATTER =
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssxxx");
   private static final DateTimeFormatter TIMESTAMP_WITH_MILLIS_FORMATTER =
@@ -93,8 +93,8 @@ public class FilterHelper {
 
   /**
    * Parse date string in ISO format (YYYY-MM-DD) or epoch timestamp (milliseconds). Tries epoch
-   * timestamp first, then falls back to ISO date format. Epoch timestamps outside the supported
-   * range (1970-01-01 through 9999-12-31 in millis) are rejected. Returns validation message if
+   * timestamp first, then falls back to ISO date format. Values outside the supported range
+   * (1970-01-01 through 9999-12-31) are rejected in both formats. Returns validation message if
    * format is invalid.
    *
    * @param dateStr Date string in ISO format or epoch timestamp
@@ -122,6 +122,9 @@ public class FilterHelper {
       try {
         LocalDate localDate = LocalDate.parse(dateStr.trim());
         Date parsed = Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        if (!isSupportedTimestampMillis(parsed.getTime())) {
+          return invalidDateResult(dateStr, paramName);
+        }
         return new ParseResult<>(parsed);
       } catch (DateTimeParseException ex) {
         return invalidDateResult(dateStr, paramName);
