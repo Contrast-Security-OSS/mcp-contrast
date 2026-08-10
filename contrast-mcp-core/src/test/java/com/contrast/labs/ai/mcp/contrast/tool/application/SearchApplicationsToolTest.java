@@ -163,6 +163,39 @@ class SearchApplicationsToolTest {
   }
 
   @Test
+  void searchApplications_should_notice_never_observed_apps_when_lastSeen_is_zero()
+      throws Exception {
+    var neverObserved = createAppWithMetadata("Static", "environment", "prod");
+    neverObserved.setLastSeen(0L);
+    var running = createAppWithMetadata("Orders", "environment", "prod");
+    when(contrastApiClient.searchApplications(isNull(), isNull(), isNull(), eq(10), eq(0)))
+        .thenReturn(createResponse(List.of(neverObserved, running), 2));
+
+    var result = tool.searchApplications(1, 10, null, null, null, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.notices())
+        .contains(
+            "lastSeenAt at the 1970 Unix epoch means the application has never been observed"
+                + " running, typically a static or SCA-only upload: Static");
+  }
+
+  @Test
+  void searchApplications_should_not_notice_never_observed_apps_when_lastSeen_is_populated_or_null()
+      throws Exception {
+    var running = createAppWithMetadata("Orders", "environment", "prod");
+    var neverReported = createAppWithMetadata("Legacy", "environment", "prod");
+    neverReported.setLastSeen(null);
+    when(contrastApiClient.searchApplications(isNull(), isNull(), isNull(), eq(10), eq(0)))
+        .thenReturn(createResponse(List.of(running, neverReported), 2));
+
+    var result = tool.searchApplications(1, 10, null, null, null, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.notices()).noneMatch(n -> n.contains("never been observed running"));
+  }
+
+  @Test
   void searchApplications_should_map_downstream_403_without_exposing_response_body()
       throws Exception {
     when(contrastApiClient.searchApplications(isNull(), isNull(), isNull(), eq(10), eq(0)))

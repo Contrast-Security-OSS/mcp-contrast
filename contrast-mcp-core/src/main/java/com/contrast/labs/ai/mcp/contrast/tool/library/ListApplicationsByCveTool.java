@@ -50,6 +50,12 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveParams, CveData> {
 
+  private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
+  private static final String INTERNAL_SERVER_ERROR_MESSAGE =
+      "The service returned an error. This happens for CVEs the SCA library data does not"
+          + " recognize, including CVEs that exist only in NorthStar CVE Shield data. Verify the"
+          + " CVE with search_cves or get_cve_impact, or retry later if the service is failing.";
+
   private final ContrastApiClient contrastApiClient;
 
   @Tool(
@@ -60,7 +66,8 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
           per-application class usage. classUsage 0 or absent means no classes from the vulnerable
           library were seen loaded, so exploitation is unlikely; prioritize applications with
           classUsage above 0. Use list_application_libraries for the reverse direction, all
-          libraries of one application.
+          libraries of one application. lastSeen and server status reflect last-known agent
+          reports and can lag live state; search_servers is fresher for current server state.
           """)
   public SingleToolResponse<CveData> listApplicationsByCve(
       @ToolParam(description = "CVE identifier (e.g., CVE-2021-44228)") String cveId,
@@ -70,6 +77,14 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
 
   public SingleToolResponse<CveData> listApplicationsByCve(String cveId) {
     return listApplicationsByCve(cveId, null);
+  }
+
+  @Override
+  protected String mapHttpErrorCode(int code) {
+    if (code == HTTP_INTERNAL_SERVER_ERROR) {
+      return INTERNAL_SERVER_ERROR_MESSAGE;
+    }
+    return super.mapHttpErrorCode(code);
   }
 
   @Override
@@ -102,6 +117,8 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
       return cveData;
     }
 
+    noticeNeverObservedApps(apps, collector);
+
     log.debug(
         "Found {} applications vulnerable to {}, enriching with class usage data",
         apps.size(),
@@ -122,6 +139,19 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
         apps.size());
 
     return cveData;
+  }
+
+  // TeamServer sends last_seen 0 for applications that have never reported agent activity, and
+  // App.lastSeen is a primitive long, so the zero sentinel always serializes (Jira AIML-1331).
+  private static void noticeNeverObservedApps(List<App> apps, NoticeCollector collector) {
+    var neverObserved =
+        apps.stream().filter(app -> app.getLastSeen() == 0).map(App::getName).toList();
+    if (!neverObserved.isEmpty()) {
+      collector.notice(
+          "lastSeen of 0 means the application has never been observed running, typically a"
+              + " static or SCA-only upload: "
+              + String.join(", ", neverObserved));
+    }
   }
 
   private static void applyPreferredCvssSummary(Cve cve) {

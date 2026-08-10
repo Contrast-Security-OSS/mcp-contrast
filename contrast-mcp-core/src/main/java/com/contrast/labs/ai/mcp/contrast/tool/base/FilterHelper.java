@@ -36,8 +36,8 @@ import org.springframework.util.StringUtils;
  */
 @Slf4j
 public class FilterHelper {
-  private static final long MIN_EPOCH_MILLIS = 0L;
-  private static final long MAX_EPOCH_MILLIS = 253402300799999L;
+  static final long MIN_EPOCH_MILLIS = 0L;
+  static final long MAX_EPOCH_MILLIS = 253402300799999L;
   private static final DateTimeFormatter TIMESTAMP_FORMATTER =
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssxxx");
   private static final DateTimeFormatter TIMESTAMP_WITH_MILLIS_FORMATTER =
@@ -93,16 +93,18 @@ public class FilterHelper {
 
   /**
    * Parse date string in ISO format (YYYY-MM-DD) or epoch timestamp (milliseconds). Tries epoch
-   * timestamp first, then falls back to ISO date format. Returns validation message if format is
-   * invalid.
+   * timestamp first, then falls back to ISO date format. Values outside the supported range
+   * (1970-01-01 through 9999-12-31) are rejected in both formats. Returns validation message if
+   * format is invalid.
    *
    * @param dateStr Date string in ISO format or epoch timestamp
    * @param paramName Parameter name for error messages (e.g., "lastSeenAfter")
    * @return ParseResult with Date object and optional validation message
-   * @example parseDate("2025-01-15", "lastSeenAfter") → ParseResult(Date, null)
-   * @example parseDate("1704067200000", "lastSeenAfter") → ParseResult(Date, null)
-   * @example parseDate("invalid", "lastSeenAfter") → ParseResult(null, "Invalid date...")
-   * @example parseDate(null, "lastSeenAfter") → ParseResult(null, null)
+   * @example parseDateWithValidation("2025-01-15", "lastSeenAfter") → ParseResult(Date, null)
+   * @example parseDateWithValidation("1704067200000", "lastSeenAfter") → ParseResult(Date, null)
+   * @example parseDateWithValidation("invalid", "lastSeenAfter") → ParseResult(null, "Invalid
+   *     date...")
+   * @example parseDateWithValidation(null, "lastSeenAfter") → ParseResult(null, null)
    */
   public static ParseResult<Date> parseDateWithValidation(String dateStr, String paramName) {
     if (!StringUtils.hasText(dateStr)) {
@@ -111,23 +113,33 @@ public class FilterHelper {
     try {
       // Try parsing as epoch timestamp first
       long timestamp = Long.parseLong(dateStr.trim());
+      if (!isSupportedTimestampMillis(timestamp)) {
+        return invalidDateResult(dateStr, paramName);
+      }
       return new ParseResult<>(new Date(timestamp));
     } catch (NumberFormatException e) {
       // Try ISO date format
       try {
         LocalDate localDate = LocalDate.parse(dateStr.trim());
         Date parsed = Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+        if (!isSupportedTimestampMillis(parsed.getTime())) {
+          return invalidDateResult(dateStr, paramName);
+        }
         return new ParseResult<>(parsed);
       } catch (DateTimeParseException ex) {
-        String message =
-            String.format(
-                "Invalid %s date '%s'. Expected ISO format (YYYY-MM-DD) like '2025-01-15' or epoch"
-                    + " timestamp like '1705276800000'.",
-                paramName, sanitizeForMessage(dateStr));
-        log.warn(message);
-        return new ParseResult<>(null, message);
+        return invalidDateResult(dateStr, paramName);
       }
     }
+  }
+
+  private static ParseResult<Date> invalidDateResult(String dateStr, String paramName) {
+    String message =
+        String.format(
+            "Invalid %s date '%s'. Expected ISO format (YYYY-MM-DD) like '2025-01-15' or epoch"
+                + " timestamp between %d and %d millis like '1705276800000'.",
+            paramName, sanitizeForMessage(dateStr), MIN_EPOCH_MILLIS, MAX_EPOCH_MILLIS);
+    log.warn(message);
+    return new ParseResult<>(null, message);
   }
 
   /**
@@ -192,14 +204,6 @@ public class FilterHelper {
   }
 
   /**
-   * Parse date string (legacy method for backward compatibility). Use parseDateWithValidation() for
-   * new code to get validation messages.
-   */
-  public static Date parseDate(String dateStr) {
-    return parseDateWithValidation(dateStr, "date").getValue();
-  }
-
-  /**
    * Parse comma-separated list and convert to case-insensitive list. Useful for status, severity,
    * and other case-insensitive filters.
    *
@@ -213,22 +217,6 @@ public class FilterHelper {
       return null;
     }
     return parsed.stream().map(String::toUpperCase).toList();
-  }
-
-  /**
-   * Parse comma-separated list and convert to lowercase list. Useful for vulnerability types and
-   * other lowercase filters.
-   *
-   * @param input Comma-separated string
-   * @return List of trimmed, lowercase strings, or null if input is null/empty
-   * @example parseCommaSeparatedLowerCase("SQL-Injection, XSS") → ["sql-injection", "xss"]
-   */
-  public static List<String> parseCommaSeparatedLowerCase(String input) {
-    List<String> parsed = parseCommaSeparated(input);
-    if (parsed == null) {
-      return null;
-    }
-    return parsed.stream().map(String::toLowerCase).toList();
   }
 
   /**
