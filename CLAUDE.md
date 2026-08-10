@@ -6,6 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an MCP (Model Context Protocol) server for Contrast Security that enables AI agents to access and analyze vulnerability data from Contrast's security platform. It serves as a bridge between Contrast Security's API and AI tools like Claude, enabling automated vulnerability remediation and security analysis.
 
+## Communication style
+
+Be concise. Lead with the answer or conclusion, then supporting detail only if
+needed. Skip restating the request, unnecessary preamble, and padding.
+
+## Repo context
+
+See [REPO-CONTEXT.md](./REPO-CONTEXT.md) for domain definitions, architecture notes, and the planning checklist.
+
 ## Git Hooks
 
 **ABSOLUTE RULE: NEVER skip git hooks.** Do not use `--no-verify`, `--no-gpg-sign`, `SKIP_COVERAGE_HOOK=1`, or any other mechanism to bypass pre-commit, pre-push, or any other git hook. No exceptions. No shortcuts. If a hook fails, fix the underlying problem. A skipped hook caused a CI build failure; this rule exists to prevent that from ever happening again. If you skip a hook, you have made an error.
@@ -128,6 +137,24 @@ tool/
 
 **Hint System**: `hints/` package provides context-aware security guidance for vulnerability remediation.
 
+### Module Split
+
+- `contrast-mcp-core` is the transport-neutral shared library published as `com.contrast.labs.ai.mcp:contrast-mcp-core`.
+- `contrast-mcp-stdio-app` is the local stdio Spring Boot app and keeps local Contrast SDK credential wiring, SDK helper/cache implementations, and local-only raw SARIF behavior.
+
+**Hosted local development:** The private `aiml-services/services/aiml-hosted-mcp-server` project consumes `contrast-mcp-core`. For cross-repo work, check out `aiml-services` and `mcp-contrast` as siblings and use Gradle composite-build substitution:
+
+```kotlin
+includeBuild("../mcp-contrast") {
+    dependencySubstitution {
+        substitute(module("com.contrast.labs.ai.mcp:contrast-mcp-core"))
+            .using(project(":contrast-mcp-core"))
+    }
+}
+```
+
+Use `hack/verify-core-publication.sh` for the public core publication/classpath gate.
+
 ### Configuration
 
 The application uses Spring Boot configuration with the following key properties:
@@ -192,6 +219,24 @@ EOF
 6. **Hint Generation**: Rule-based system provides contextual security guidance
 7. **Defensive Design**: All external API calls include error handling and logging via base classes
 
+### Code Refactoring with ast-grep
+
+For bulk structural code changes (renaming, pattern replacement), use **ast-grep (sg)** instead of sed/grep:
+
+```bash
+# Preview changes
+sg run -p 'ContrastConfig' -r 'ContrastSDKFactory' -l java src/
+
+# Apply changes (-U = update all)
+sg run -p 'config.getSDK()' -r 'sdkFactory.getSDK()' -l java -U src/
+
+# Pattern with metavariable
+sg run -p 'ReflectionTestUtils.setField($T, "config", config)' \
+       -r 'ReflectionTestUtils.setField($T, "sdkFactory", sdkFactory)' -l java -U src/
+```
+
+**Why ast-grep over sed:** understands Java syntax (won't match inside strings/comments), handles formatting variations, metavariables (`$VAR`) capture and reuse matched code, safer bulk refactoring across many files.
+
 ### MCP Tool Standards
 
 **All MCP tool development MUST follow the standards defined in [MCP_STANDARDS.md](./MCP_STANDARDS.md).**
@@ -207,7 +252,7 @@ When creating or modifying MCP tools:
 
 ### Coding Standards
 
-**CLAUDE.md Principle**: Maximum conciseness to minimize token usage. Violate grammar rules for brevity. No verbose examples.
+**CLAUDE.md Principle**: Maximum conciseness to minimize token usage. Violate grammar rules for brevity. No verbose examples. Keep CLAUDE.md concise.
 
 **Java Style:**
 - `var` for obvious types: `var list = new ArrayList<String>()`
