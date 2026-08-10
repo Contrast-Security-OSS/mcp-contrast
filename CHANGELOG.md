@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Bug Fixes
+
+**`list_applications_by_cve` no longer returns misleading error for unrecognized CVEs**: When
+the upstream endpoint returned HTTP 500 for CVEs unknown to the SCA library data, the tool
+returned a generic "Narrow filters or reduce page size" message that made no sense for a tool
+with neither filters nor pagination. It now explains that the CVE may exist only in NorthStar
+CVE Shield data and suggests `search_cves` or `get_cve_impact` as alternatives.
+
+### Improvements
+
+**`list_applications_by_cve` and `search_applications` explain lastSeen-zero applications**:
+When any application in the response has a `lastSeen` value of 0, the tool now emits a notice
+explaining that the application has never been observed running, typically a static or SCA-only
+upload. Previously agents misread the zero timestamp as January 1970 or missing data.
+
+**`list_applications_by_cve` notes that server status can lag live state**: The tool description
+now explains that `lastSeen` and server status reflect last-known agent reports and may not match
+current state, directing agents to `search_servers` for fresher data.
+
+**Date parameters now reject out-of-range values with actionable messages**: Tools that accept
+date filters now reject epoch timestamps outside the supported range (1970-01-01 through
+9999-12-31) and return validation errors that include the valid range bounds. Previously,
+negative or far-future timestamps were silently accepted.
+
 ## [2.3.0] - 2026-08-07
 
 ### Improvements
