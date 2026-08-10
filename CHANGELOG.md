@@ -14,8 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **`list_applications_by_cve` no longer returns misleading error for unrecognized CVEs**: When
 the upstream endpoint returned HTTP 500 for CVEs unknown to the SCA library data, the tool
 returned a generic "Narrow filters or reduce page size" message that made no sense for a tool
-with neither filters nor pagination. It now explains that the CVE may exist only in NorthStar
-CVE Shield data and suggests `search_cves` or `get_cve_impact` as alternatives.
+with neither filters nor pagination. It now explains that the CVE may not be recognized by the
+SCA library data and suggests verifying the CVE identifier.
 
 ### Improvements
 
