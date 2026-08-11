@@ -203,6 +203,23 @@ class PaginatedToolTest {
   }
 
   @Test
+  void executePipeline_should_surface_actionableToolErrorException_message_as_user_error() {
+    var actionableMessage = "Fix this condition before retrying.";
+    tool.setDoExecuteHandler(
+        (pagination, params, collector) -> {
+          throw new ActionableToolErrorException(actionableMessage);
+        });
+
+    var result = tool.executePipeline(1, 10, () -> TestParams.valid());
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors())
+        .as("ActionableToolErrorException message must surface verbatim")
+        .containsExactly(actionableMessage);
+    assertThat(result.items()).isEmpty();
+  }
+
+  @Test
   void executePipeline_should_calculate_hasMorePages_with_known_total() {
     tool.setDoExecuteHandler(
         (pagination, params, collector) ->

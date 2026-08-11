@@ -34,6 +34,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.Agent
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator;
 import com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator.ApplicationState;
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseTool;
 import com.contrastsecurity.exceptions.HttpResponseException;
 import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.models.RouteCoverageBySessionIDAndMetadataRequest;
@@ -292,6 +293,18 @@ class GetRouteCoverageToolTest {
   }
 
   @Test
+  void getRouteCoverage_should_bypass_license_discriminator_for_401() throws Exception {
+    when(contrastApiClient.getRouteCoverage(eq(VALID_APP_ID), isNull()))
+        .thenThrow(unauthorizedFailure(401));
+
+    var result = tool.getRouteCoverage(VALID_APP_ID, null, null, null, null);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).containsExactly(BaseTool.AUTHENTICATION_OR_NOT_FOUND_ERROR);
+    verifyNoInteractions(applicationLicenseDiscriminator);
+  }
+
+  @Test
   void getRouteCoverage_should_return_unlicensed_error_when_route_coverage_403_is_discriminated()
       throws Exception {
     var originalForbidden = unauthorizedFailure();
@@ -405,7 +418,11 @@ class GetRouteCoverageToolTest {
   }
 
   private static UnauthorizedException unauthorizedFailure() {
+    return unauthorizedFailure(403);
+  }
+
+  private static UnauthorizedException unauthorizedFailure(int status) {
     return new UnauthorizedException(
-        "Downstream failure", "GET", "/ng/org/route", 403, "Forbidden", SECRET_BODY);
+        "Downstream failure", "GET", "/ng/org/route", status, "Unauthorized", SECRET_BODY);
   }
 }

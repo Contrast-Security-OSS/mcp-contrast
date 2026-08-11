@@ -52,6 +52,10 @@ public interface ContrastApiClient {
 
   List<AppMetadataField> getApplicationMetadataFields() throws Exception;
 
+  /**
+   * Returns application details including its merged license service level. Hosted implementors
+   * (aiml-services) must wire this method through their transport adapter.
+   */
   Application getApplicationWithLicense(String appId) throws Exception;
 
   MetadataFilterResponse getSessionMetadata(String appId) throws Exception;

@@ -116,6 +116,8 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
       return handleException(e, pagination, requestId, "Resource not found");
     } catch (HttpResponseException e) {
       return handleHttpResponseException(e, pagination, requestId, collector);
+    } catch (ActionableToolErrorException e) {
+      return handleException(e, pagination, requestId, e.getMessage());
     } catch (IllegalArgumentException e) {
       // User-input rejection raised mid-execution (e.g., resolveAppMetadataFilters when an
       // unknown field name is supplied). The exception message is the actionable user message.
