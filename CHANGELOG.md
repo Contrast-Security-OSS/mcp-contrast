@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Bug Fixes
+
+**`get_route_coverage` explains license and archive denials instead of suggesting
+credential problems**: When called on an unlicensed or archived application, the tool
+previously returned a generic "Access denied" error that led agents to retry or question
+their credentials. It now returns a distinct, non-retryable message explaining the actual
+cause and what to do about it.
+
+### Improvements
+
+**Vulnerability status values normalized for round-trip filtering**: Both
+`search_vulnerabilities` and `search_app_vulnerabilities` now return canonical status
+values (`NotAProblem`, `AutoRemediated`) instead of TeamServer display labels ("Not a
+Problem", "Remediated - Auto-Verified"). All seven valid statuses are listed in
+parameter descriptions, so agents can discover and filter by any status without first
+encountering a validation error.
+
+**Vulnerability type parameters validated against the live organization catalogue**: Both
+`search_vulnerabilities` and `search_app_vulnerabilities` now validate `vulnTypes` against
+the organization's rule catalogue before searching. Invalid or misspelled values produce an
+explicit error pointing to `list_vulnerability_types`, instead of silently returning empty
+results indistinguishable from a genuine "no vulnerabilities found" response. Values are
+matched case-insensitively.
+
 ## [2.4.0] - 2026-08-10
 
 ### Bug Fixes
