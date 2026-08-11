@@ -48,6 +48,11 @@ the human's approval of the `[Unreleased]` content, but commits nothing, the lan
 branch does not exist yet. It returns the approved draft and its suggested next
 version, computed under the semver definition that lives in that skill.
 
+For a dependency-bump-only release (the Phase 1 ask), pass guidance overriding the
+usual internal classification, e.g. `treat the dependabot bumps as a Security entry,
+this is a dependency-only release`. Without it the skill classifies dependabot
+changes as internal and returns an empty draft.
+
 ## Phase 3 — Version gate
 
 Present the version decision with AskUserQuestion: three options, each showing the

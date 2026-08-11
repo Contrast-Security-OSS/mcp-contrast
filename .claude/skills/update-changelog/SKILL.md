@@ -1,6 +1,6 @@
 ---
 name: update-changelog
-description: Bring the [Unreleased] section of CHANGELOG.md up to date before a release. Diffs the last release tag against origin/main, drafts entries PR-by-PR, audits the draft for completeness with a read-only subagent, and lands the result on a branch after the user approves. Run pre-release, before dispatching the Gradle Release workflow, or whenever a human asks for a changelog update. Optional free text is treated as guidance, e.g. classification hints.
+description: Bring the [Unreleased] section of CHANGELOG.md up to date before a release. Diffs the last release tag against origin/main, drafts entries PR-by-PR, audits the draft for completeness with a read-only subagent, and lands the result on a branch after the user approves (or returns the approved draft to /release in deferred-landing mode). Run pre-release, before dispatching the Gradle Release workflow, or whenever a human asks for a changelog update. Optional free text is treated as guidance, e.g. classification hints.
 ---
 
 # Pre-release changelog update
