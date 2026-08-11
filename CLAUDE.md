@@ -480,6 +480,12 @@ Run the harness-engineering playbooks against this repo on demand via `/harness-
 
 `/update-changelog` brings `[Unreleased]` in CHANGELOG.md up to date against everything merged since the last release tag, audits completeness with a read-only subagent per range, and lands the result on a branch after user approval. Run before dispatching the Gradle Release workflow or when explicitly asked. See `.claude/skills/update-changelog/`.
 
+## Spawning Codex via Herdr
+
+When spawning a Codex agent through Herdr:
+
+1. `herdr agent start <name> --kind codex --pane <pane-id>` with no extra args after `--`. Default Codex startup is correct. Do not pass `--full-auto` or `--permission-mode auto`.
+2. `herdr agent prompt <name> "<brief>" --wait` with NO `--timeout` flag. Codex runs often exceed 10 minutes. Omitting `--timeout` lets Herdr wait indefinitely. The Bash tool's own 10-minute ceiling applies, so run the prompt call with `run_in_background: true` and wait for the task notification.
 
 
 @SECURITY.md
