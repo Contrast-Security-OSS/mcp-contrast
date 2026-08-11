@@ -18,10 +18,14 @@ package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.result.RouteCoverageResponseLight;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator;
+import com.contrast.labs.ai.mcp.contrast.tool.base.ActionableToolErrorException;
 import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.coverage.params.RouteCoverageParams;
+import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.models.RouteCoverageMetadataLabelValues;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
@@ -41,15 +45,32 @@ import org.springframework.stereotype.Service;
 public class GetRouteCoverageTool
     extends SingleTool<RouteCoverageParams, RouteCoverageResponseLight> {
 
+  public static final String ARCHIVED_APPLICATION_ERROR =
+      "This application is archived. Route coverage is not available for archived applications."
+          + " The application ID is correct, do not retry. Unarchive the application in Contrast"
+          + " to view route coverage.";
+  public static final String UNLICENSED_APPLICATION_ERROR =
+      "This application is unlicensed and route coverage requires an Assess license. The"
+          + " application ID is correct, do not retry. Apply an Assess license to the application"
+          + " in Contrast to view route coverage.";
+  public static final String LICENSED_APPLICATION_ACCESS_DENIED_ERROR =
+      "Contrast denied access to route coverage even though the application is visible and"
+          + " licensed. This can occur briefly after a license change.";
+
+  private static final int HTTP_FORBIDDEN = 403;
+
   private final ContrastApiClient contrastApiClient;
   private final RouteMapper routeMapper;
+  private final ApplicationLicenseDiscriminator applicationLicenseDiscriminator;
 
   @Tool(
       name = "get_route_coverage",
       description =
           """
           Get route coverage for an application: which routes have been exercised by HTTP requests
-          and which were only discovered. Use search_applications to find application IDs.
+          and which were only discovered. Use search_applications to find application IDs. Route
+          coverage requires the application to hold an Assess license; unlicensed applications
+          return an error.
           """)
   public SingleToolResponse<RouteCoverageResponseLight> getRouteCoverage(
       @ToolParam(description = "Application ID") String appId,
@@ -133,7 +154,7 @@ public class GetRouteCoverageTool
 
     // Call API client to get route coverage
     log.debug("Fetching route coverage data for application ID: {}", params.appId());
-    var response = contrastApiClient.getRouteCoverage(params.appId(), request);
+    var response = fetchRouteCoverage(params.appId(), request);
 
     // Defensive null checks - API may return null on errors or permission issues
     if (response == null) {
@@ -164,5 +185,25 @@ public class GetRouteCoverageTool
 
     // Transform to light response to reduce payload size for AI agents
     return routeMapper.toResponseLight(response);
+  }
+
+  private RouteCoverageResponse fetchRouteCoverage(
+      String appId, RouteCoverageBySessionIDAndMetadataRequestExtended request) throws Exception {
+    try {
+      return contrastApiClient.getRouteCoverage(appId, request);
+    } catch (UnauthorizedException originalForbidden) {
+      if (originalForbidden.getCode() != HTTP_FORBIDDEN) {
+        throw originalForbidden;
+      }
+
+      var applicationState = applicationLicenseDiscriminator.discriminate(appId, originalForbidden);
+      var message =
+          switch (applicationState) {
+            case ARCHIVED -> ARCHIVED_APPLICATION_ERROR;
+            case UNLICENSED -> UNLICENSED_APPLICATION_ERROR;
+            case LICENSED -> LICENSED_APPLICATION_ACCESS_DENIED_ERROR;
+          };
+      throw new ActionableToolErrorException(message);
+    }
   }
 }

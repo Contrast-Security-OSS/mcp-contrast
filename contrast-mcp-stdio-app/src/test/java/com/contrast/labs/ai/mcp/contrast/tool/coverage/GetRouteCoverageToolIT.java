@@ -15,11 +15,15 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 
+import static com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator.LICENSED_LEVEL;
+import static com.contrast.labs.ai.mcp.contrast.tool.coverage.GetRouteCoverageTool.UNLICENSED_APPLICATION_ERROR;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
 import com.contrast.labs.ai.mcp.contrast.result.RouteCoverageResponseLight;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
+import com.contrast.labs.ai.mcp.contrast.util.IntegrationTestDataCache;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper.RouteCoverageTestData;
 import java.io.IOException;
@@ -96,19 +100,22 @@ public class GetRouteCoverageToolIT
     boolean hasSessionMetadata;
     String sessionMetadataName;
     String sessionMetadataValue;
+    String unlicensedAppId;
     int routeCount;
 
     @Override
     public String toString() {
       return String.format(
           "TestData{appId='%s', appName='%s', hasRouteCoverage=%s, hasSessionMetadata=%s, "
-              + "sessionMetadataName='%s', sessionMetadataValue='%s', routeCount=%d}",
+              + "sessionMetadataName='%s', sessionMetadataValue='%s', unlicensedAppId='%s', "
+              + "routeCount=%d}",
           appId,
           appName,
           hasRouteCoverage,
           hasSessionMetadata,
           sessionMetadataName,
           sessionMetadataValue,
+          unlicensedAppId,
           routeCount);
     }
   }
@@ -121,6 +128,11 @@ public class GetRouteCoverageToolIT
   @Override
   protected Class<TestData> testDataType() {
     return TestData.class;
+  }
+
+  @Override
+  protected int discoveryVersion() {
+    return 2;
   }
 
   @Override
@@ -148,6 +160,13 @@ public class GetRouteCoverageToolIT
       throw new NoTestDataException(buildTestDataErrorMessage(50));
     }
 
+    var unlicensedApplication = findUnlicensedApplication();
+    if (unlicensedApplication.isEmpty()) {
+      throw new NoTestDataException(
+          "No visible unlicensed application found in the application list returned with license"
+              + " expansion.");
+    }
+
     var candidate = routeCandidate.get();
     var data = new TestData();
     data.appId = candidate.application().getAppId();
@@ -157,7 +176,17 @@ public class GetRouteCoverageToolIT
     data.hasSessionMetadata = candidate.hasSessionMetadata();
     data.sessionMetadataName = candidate.sessionMetadataName();
     data.sessionMetadataValue = candidate.sessionMetadataValue();
+    data.unlicensedAppId = unlicensedApplication.get().getAppId();
     return data;
+  }
+
+  private Optional<Application> findUnlicensedApplication() throws IOException {
+    var applications = IntegrationTestDataCache.getApplications(orgId, sdkExtension);
+    return applications.stream()
+        .filter(application -> !application.isArchived())
+        .filter(application -> application.getLicense() != null)
+        .filter(application -> !LICENSED_LEVEL.equals(application.getLicense().getLevel()))
+        .findFirst();
   }
 
   @Override
@@ -413,6 +442,21 @@ public class GetRouteCoverageToolIT
   }
 
   // ========== Error handling tests ==========
+
+  @Test
+  void getRouteCoverage_should_return_unlicensed_error_for_unlicensed_application() {
+    assertThat(testData.unlicensedAppId)
+        .as("requires an unlicensed application discovered with license expansion")
+        .isNotBlank();
+
+    var response =
+        getRouteCoverageTool.getRouteCoverage(testData.unlicensedAppId, null, null, null);
+
+    assertThat(response.isSuccess()).isFalse();
+    assertThat(response.found()).isFalse();
+    assertThat(response.data()).isNull();
+    assertThat(response.errors()).containsExactly(UNLICENSED_APPLICATION_ERROR);
+  }
 
   @Test
   void getRouteCoverage_should_not_return_populated_data_for_invalid_appId() {

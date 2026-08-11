@@ -24,6 +24,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksFilterBody
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetadataField;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetadataFilter;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;
@@ -50,6 +51,8 @@ public interface ContrastApiClient {
       throws Exception;
 
   List<AppMetadataField> getApplicationMetadataFields() throws Exception;
+
+  Application getApplicationWithLicense(String appId) throws Exception;
 
   MetadataFilterResponse getSessionMetadata(String appId) throws Exception;
 

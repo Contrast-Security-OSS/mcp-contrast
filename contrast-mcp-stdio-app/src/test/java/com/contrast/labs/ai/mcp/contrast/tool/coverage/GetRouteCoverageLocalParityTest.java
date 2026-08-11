@@ -26,10 +26,14 @@ import com.contrast.labs.ai.mcp.contrast.client.SdkApiClient;
 import com.contrast.labs.ai.mcp.contrast.config.ContrastSDKFactory;
 import com.contrast.labs.ai.mcp.contrast.config.SDKExtensionFactory;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationLicense;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.AgentSession;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator;
+import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.models.RouteCoverageBySessionIDAndMetadataRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -58,7 +62,9 @@ class GetRouteCoverageLocalParityTest {
   @BeforeEach
   void setUp() {
     var sdkApiClient = new SdkApiClient(sdkFactory, sdkExtensionFactory);
-    tool = new GetRouteCoverageTool(sdkApiClient, new RouteMapper());
+    tool =
+        new GetRouteCoverageTool(
+            sdkApiClient, new RouteMapper(), new ApplicationLicenseDiscriminator(sdkApiClient));
     when(sdkFactory.getOrgId()).thenReturn(TEST_ORG_ID);
     when(sdkExtensionFactory.getSDKExtension()).thenReturn(sdkExtension);
   }
@@ -101,6 +107,26 @@ class GetRouteCoverageLocalParityTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(requestCaptor.getValue().getSessionID()).isEqualTo(TEST_SESSION_ID);
     assertThat(objectMapper.writeValueAsString(result)).doesNotContain(TEST_ORG_ID);
+  }
+
+  @Test
+  void getRouteCoverage_should_surface_unlicensed_error_through_local_sdk_client()
+      throws Exception {
+    var originalForbidden =
+        new UnauthorizedException("Forbidden", "GET", "/route", 403, "Forbidden");
+    var application = new Application();
+    var license = new ApplicationLicense();
+    license.setLevel("Unlicensed");
+    application.setLicense(license);
+    when(sdkExtension.getRouteCoverage(TEST_ORG_ID, TEST_APP_ID, null))
+        .thenThrow(originalForbidden);
+    when(sdkExtension.getApplicationWithLicense(TEST_ORG_ID, TEST_APP_ID)).thenReturn(application);
+
+    var result = tool.getRouteCoverage(TEST_APP_ID, null, null, null);
+
+    verify(sdkExtension).getApplicationWithLicense(TEST_ORG_ID, TEST_APP_ID);
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).containsExactly(GetRouteCoverageTool.UNLICENSED_APPLICATION_ERROR);
   }
 
   private static RouteCoverageResponse routeCoverageResponse(String signature) {
