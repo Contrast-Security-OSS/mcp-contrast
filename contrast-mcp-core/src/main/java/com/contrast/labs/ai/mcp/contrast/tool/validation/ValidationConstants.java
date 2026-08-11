@@ -84,7 +84,7 @@ public final class ValidationConstants {
       "The statuses filter uses canonical values; result statuses may use TeamServer display labels"
           + " such as \""
           + AUTO_REMEDIATED_VULN_STATUS_DISPLAY_LABEL
-          + "\".";
+          + "\". AutoRemediated means automatically verified as fixed, not auto-remediated.";
 
   /** Default vulnerability statuses (actionable only). */
   public static final List<String> DEFAULT_VULN_STATUSES =

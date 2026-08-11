@@ -5,7 +5,7 @@ Glossary for the mcp-contrast repository. Tool contracts, docs, and code must us
 ## Language
 
 **Vulnerability status**:
-One of seven canonical filter values on the legacy TeamServer vulnerability model. The values are Reported, Suspicious, Confirmed, NotAProblem, Remediated, Fixed, and AutoRemediated. `ValidationConstants.VALID_VULN_STATUSES_CSV` is the source of truth for documentation and validation.
+One of seven canonical filter values on the legacy TeamServer vulnerability model. The values are Reported, Suspicious, Confirmed, NotAProblem, Remediated, Fixed, and AutoRemediated. `ValidationConstants.VALID_VULN_STATUSES_CSV` is the source of truth for documentation and validation. AutoRemediated means the remediation was automatically verified as fixed, not that the vulnerability was auto-remediated. SmartFix performs actual auto-remediation, which is a different concept.
 _Avoid_: Issue Status, trace status
 
 **Issue Status**:
