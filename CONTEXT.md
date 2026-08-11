@@ -24,6 +24,14 @@ _Avoid_: using this term for legacy Vulnerability statuses
 The kind of vulnerability a finding represents, for example `sql-injection` or `reflected-xss`. Values are lowercase-hyphenated and org-specific, discoverable via `list_vulnerability_types`. Synonymous with the TeamServer term "rule name", a historical artifact: the Contrast Agent used a detection rule per vulnerability type, so the `sql-injection` rule found SQL injection vulnerabilities. Vulnerability type is the canonical term.
 _Avoid_: rule name, rule type, except when naming the raw TeamServer API surface (e.g. `getRules()`)
 
+**Licensed application**:
+An application whose merged license service level in TeamServer is exactly Licensed, meaning it holds an Assess license. TeamServer refuses route coverage and single-vulnerability detail reads for unlicensed applications with an opaque HTTP 403 "Authorization failure".
+_Avoid_: describing those 403s as credential problems, missing data, or language limitations
+
+**Route coverage**:
+The set of routes an Assess agent observed in an application, each either discovered (found in the code) or exercised (hit by an HTTP request).
+_Avoid_: route data, endpoint coverage
+
 **Status display label**:
 The human-readable status text TeamServer returns on vulnerability records, for example "Remediated - Auto-Verified" for a vulnerability in the AutoRemediated status. Filters take canonical Vulnerability statuses, and this server's tool results carry canonical Vulnerability statuses, not display labels.
 _Avoid_: treating a display label as a valid filter value or exposing one in a tool result
