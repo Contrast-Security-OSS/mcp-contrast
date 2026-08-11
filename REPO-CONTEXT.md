@@ -1,7 +1,12 @@
 # Repo context
 
 ## Definitions
-<!-- Common terms specific to this repo/team -->
+
+Domain terms live in [CONTEXT.md](./CONTEXT.md). Read it before touching tool contracts. It covers the Vulnerability status vocabulary, the distinct Issue Status vocabulary, and status display labels.
+
+## Design docs
+
+Planning design docs are saved in the bead's design field via `scripts/br-set-design <bead-id> <file>`. They are not committed to the repo.
 
 ## Architecture
 <!-- High-level architecture notes -->

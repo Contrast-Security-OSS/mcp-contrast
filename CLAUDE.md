@@ -305,6 +305,7 @@ When creating or modifying MCP tools:
 **Testing:**
 - Simplified `mock()`: `ClassName mock = mock()` not `mock(ClassName.class)` — when `mock(X.class)` appears as a method argument (not an assignment), extract to a typed local first: `Foo x = mock(); when(x.method())...`
 - AssertJ fluent: `assertThat(x).isEqualTo(y)` not `assertEquals(y, x)`
+- **Share contract text with tests:** Define exact descriptions, notices, errors, and other long contract text once in a production constant, then reference that constant from both production code and tests. Never duplicate or reconstruct the full text in test expectations.
 - Naming: `methodName_should_expectedBehavior_when_condition()` — body must verify the behavior the name promises. If assertions don't match the name, strengthen the assertions. Do **not** delete or weaken the name.
 - Example: `getVulnerability_should_return_data_when_valid_id()`
 - **Anonymous builders**: Use `AnonymousXxxBuilder` pattern for complex mocks (see `AnonymousApplicationBuilder.java`)

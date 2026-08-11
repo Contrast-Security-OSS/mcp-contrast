@@ -39,20 +39,56 @@ public final class ValidationConstants {
   /** Minimum page number (1-indexed). */
   public static final int MIN_PAGE = 1;
 
+  /** Canonical filter value for vulnerabilities marked not a problem. */
+  public static final String NOT_A_PROBLEM_VULN_STATUS = "NotAProblem";
+
+  /** Canonical filter value for vulnerabilities automatically remediated by TeamServer. */
+  public static final String AUTO_REMEDIATED_VULN_STATUS = "AutoRemediated";
+
+  /** TeamServer display label returned for the not-a-problem vulnerability status. */
+  public static final String NOT_A_PROBLEM_VULN_STATUS_DISPLAY_LABEL = "Not a Problem";
+
+  /** TeamServer display label returned for the automatically remediated vulnerability status. */
+  public static final String AUTO_REMEDIATED_VULN_STATUS_DISPLAY_LABEL =
+      "Remediated - Auto-Verified";
+
+  /** Canonical vulnerability status values, formatted for tool parameter descriptions. */
+  public static final String VALID_VULN_STATUSES_CSV =
+      "Reported,Suspicious,Confirmed,"
+          + NOT_A_PROBLEM_VULN_STATUS
+          + ",Remediated,Fixed,"
+          + AUTO_REMEDIATED_VULN_STATUS;
+
   /** Valid vulnerability status values. */
   public static final Set<String> VALID_VULN_STATUSES =
-      Set.of(
-          "Reported",
-          "Suspicious",
-          "Confirmed",
-          "NotAProblem",
-          "Remediated",
-          "Fixed",
-          "AutoRemediated");
+      Set.copyOf(List.of(VALID_VULN_STATUSES_CSV.split(",")));
 
-  /** Default vulnerability statuses (actionable only, excludes Fixed/Remediated). */
+  /** Default vulnerability status values, formatted for tool parameter descriptions. */
+  public static final String DEFAULT_VULN_STATUSES_CSV = "Reported,Suspicious,Confirmed";
+
+  /** Description shared by vulnerability status tool parameters and their contract tests. */
+  public static final String VULN_STATUSES_PARAM_DESCRIPTION =
+      "Comma-separated vulnerability statuses: "
+          + VALID_VULN_STATUSES_CSV
+          + ". Default: "
+          + DEFAULT_VULN_STATUSES_CSV
+          + " (actionable only)";
+
+  /** Notice emitted when a vulnerability search applies the default status filter. */
+  public static final String DEFAULT_VULN_STATUSES_NOTICE =
+      "Showing actionable vulnerabilities only. To see all vulnerability statuses, specify the "
+          + "statuses parameter explicitly.";
+
+  /** Standing result semantics shared by vulnerability search tool descriptions and tests. */
+  public static final String VULN_STATUS_RESULT_SEMANTICS =
+      "The statuses filter uses canonical values; result statuses may use TeamServer display labels"
+          + " such as \""
+          + AUTO_REMEDIATED_VULN_STATUS_DISPLAY_LABEL
+          + "\".";
+
+  /** Default vulnerability statuses (actionable only). */
   public static final List<String> DEFAULT_VULN_STATUSES =
-      List.of("Reported", "Suspicious", "Confirmed");
+      List.of(DEFAULT_VULN_STATUSES_CSV.split(","));
 
   private ValidationConstants() {}
 }

@@ -36,10 +36,20 @@ class ValidationConstantsTest {
             "Reported",
             "Suspicious",
             "Confirmed",
-            "NotAProblem",
+            ValidationConstants.NOT_A_PROBLEM_VULN_STATUS,
             "Remediated",
             "Fixed",
-            "AutoRemediated");
+            ValidationConstants.AUTO_REMEDIATED_VULN_STATUS);
+  }
+
+  @Test
+  void vulnerability_status_collections_should_match_documentation_csv_constants() {
+    assertThat(ValidationConstants.VALID_VULN_STATUSES)
+        .containsExactlyInAnyOrder(ValidationConstants.VALID_VULN_STATUSES_CSV.split(","));
+    assertThat(ValidationConstants.DEFAULT_VULN_STATUSES)
+        .containsExactly(ValidationConstants.DEFAULT_VULN_STATUSES_CSV.split(","));
+    assertThat(ValidationConstants.VALID_VULN_STATUSES)
+        .containsAll(ValidationConstants.DEFAULT_VULN_STATUSES);
   }
 
   @Test
@@ -47,9 +57,13 @@ class ValidationConstantsTest {
     assertThat(ValidationConstants.DEFAULT_VULN_STATUSES)
         .containsExactly("Reported", "Suspicious", "Confirmed");
 
-    // Should not contain resolved statuses
+    // Actionable defaults omit terminal statuses.
     assertThat(ValidationConstants.DEFAULT_VULN_STATUSES)
-        .doesNotContain("Fixed", "Remediated", "NotAProblem", "AutoRemediated");
+        .doesNotContain(
+            "Fixed",
+            "Remediated",
+            ValidationConstants.NOT_A_PROBLEM_VULN_STATUS,
+            ValidationConstants.AUTO_REMEDIATED_VULN_STATUS);
   }
 
   @Test
