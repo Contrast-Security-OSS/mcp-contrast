@@ -482,7 +482,7 @@ Run the harness-engineering playbooks against this repo on demand via `/harness-
 
 ### Release orchestration
 
-`/release` runs the full release end to end: preflight, release ticket and branch, `/update-changelog` plus version stamp, `/test-mcp-server smoke`, Gradle Release dispatch and monitoring, artifact verification, and the Jira/bead sweep. Human gates at version choice, changelog approval, and go/no-go. Run only when a human asks to cut a release. See `.claude/skills/release/`.
+`/release` runs the full release end to end, changelog-first: preflight, `/update-changelog` in deferred-landing mode, version gate, release ticket and branch, version stamp, `/test-mcp-server smoke`, Gradle Release dispatch and monitoring, artifact verification, release-notes sync, Jira/bead sweep, and Slack announcement. Human gates at changelog approval, version choice, PR merge, go/no-go, sweep, and the post. Run only when a human asks to cut a release. See `.claude/skills/release/`.
 
 ## Spawning Codex via Herdr
 

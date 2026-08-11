@@ -15,12 +15,15 @@ This project uses the **Gradle Release** GitHub Actions workflow. Release versio
 ## Orchestrated Release
 
 The whole process below can be driven from a Claude Code session with `/release`.
-The skill runs the preflight checks, creates the release ticket and branch, runs the
-changelog update and version stamp, runs the smoke test, dispatches and monitors the
-Gradle Release workflow, verifies the published artifacts, and sweeps Jira and beads
-afterward. You keep three decisions: the version, the changelog draft, and the final
-go/no-go before dispatch. See `.claude/skills/release/` for details. The manual steps
-below remain authoritative if you release by hand.
+The skill runs the preflight checks, drafts and audits the changelog first, takes
+your version decision from that evidence, then creates the release ticket and branch,
+lands the changelog and version stamp, runs the smoke test, dispatches and monitors
+the Gradle Release workflow, verifies the published artifacts, syncs the GitHub
+release notes from the changelog, sweeps Jira and beads, and announces in Slack. You
+keep the decisions: the changelog draft, the version, the changelog PR merge, the
+go/no-go before dispatch, the tracker sweep, and the announcement. See
+`.claude/skills/release/` for details. The manual steps below remain authoritative if
+you release by hand.
 
 ## Pre-release Testing
 
