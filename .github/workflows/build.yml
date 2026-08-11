@@ -27,6 +27,11 @@ jobs:
         fetch-depth: 0
         # This job runs PR-authored build code and no step pushes.
         persist-credentials: false
+    - name: Scan for secrets
+      uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Validate Gradle wrapper
       uses: gradle/actions/wrapper-validation@6550634d3eb14a20275549de1588a83267023d42 # v6
 
