@@ -61,7 +61,9 @@ existing `vX.Y.Z` tag at HEAD.
 
 ## Phase 4 — Smoke test
 
-Run `/test-mcp-server smoke` (always pass the mode explicitly, the skill asks
+Sync the local checkout to the merged `origin/main` first, the test builds the jar
+from the current checkout and it must exercise the exact content that gets tagged.
+Then run `/test-mcp-server smoke` (always pass the mode explicitly, the skill asks
 otherwise). Show the human the report. It is a judgment aid, not a gate, but the
 human decides whether to continue.
 
@@ -69,7 +71,9 @@ human decides whether to continue.
 
 1. Guard: re-fetch and confirm `origin/main` HEAD is still the commit the stamped
    changelog covers. If another PR merged in between, the tag would ship
-   undocumented changes, loop back to Phase 3.
+   undocumented changes, loop back to Phase 3. On that loop-back, this skill owns
+   folding the new entries into the stamped `[X.Y.Z]` section, `/update-changelog`
+   treats stamped versions as settled and will not reopen them.
 2. Ask the human for an explicit go/no-go.
 3. Dispatch with the version spelled out, never blank, so the tag cannot diverge
    from the stamped heading:
