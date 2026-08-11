@@ -29,8 +29,8 @@ to re-dispatch because it reuses an existing `vX.Y.Z` tag at HEAD.
 1. `git fetch origin --tags -q`. Confirm the working tree is clean and HEAD matches
    `origin/main`. If not, stop and tell the human.
 2. Verify the `pr-tools` plugin is available (check for `/pr-tools:create-pr` in the
-   skill list). Phase 4 and `/update-changelog` depend on it. If missing, stop and
-   tell the human to install it per the CLAUDE.md "Required Plugins" section.
+   skill list). Phase 4 depends on it. If missing, stop and tell the human to
+   install it per the CLAUDE.md "Required Plugins" section.
 3. Confirm CI is green: `gh run list --branch main --workflow build.yml --limit 1
    --json conclusion,headSha` and check the run covers the current `origin/main`
    HEAD. Red or stale CI stops the release by default. The human may explicitly
@@ -143,11 +143,12 @@ gh release edit vX.Y.Z --notes-file <file containing the [X.Y.Z] section>
 
 ## Phase 9 — Tracker sweep
 
-1. Derive shipped AIML ids from the PRs merged to `main` in the `vLAST..vX.Y.Z`
-   range. List PRs merged in the window with `gh pr list --base main --state merged`
-   filtered to merge commits in the tag range, then extract `AIML-\d+` from PR
-   titles. Fall back to scanning all commit subjects in the range for `AIML-\d+` to
-   catch direct-to-main commits without a PR. Deduplicate and skip dependabot PRs.
+1. Derive shipped AIML ids from two sources, union and deduplicate the results.
+   First, `gh pr list --state merged --json number,title,mergeCommit --limit 200`,
+   keep PRs whose merge SHA appears in `git rev-list vLAST..vX.Y.Z`, extract
+   `AIML-\d+` from their titles. Second, scan every commit subject in
+   `vLAST..vX.Y.Z` for `AIML-\d+` to catch direct commits and collapsed stack
+   merges. Skip dependabot PRs.
 2. Show the human the full list with each ticket's current status and let them pick
    the set to transition. Transition the chosen tickets to Closed (`81`) via the
    `jira-workflow` skill, the release ticket included. Closed is reserved for code
