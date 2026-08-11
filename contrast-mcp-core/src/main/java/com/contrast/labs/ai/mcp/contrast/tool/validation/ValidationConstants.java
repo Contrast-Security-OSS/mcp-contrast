@@ -45,6 +45,10 @@ public final class ValidationConstants {
   /** Canonical vulnerability status for vulnerabilities auto-verified as remediated. */
   public static final String AUTO_REMEDIATED_VULN_STATUS = "AutoRemediated";
 
+  /** Clarifies the legacy AutoRemediated status name. */
+  public static final String AUTO_REMEDIATED_VULN_STATUS_NOTE =
+      "AutoRemediated means the Agent verified a fix at runtime; Contrast did not fix it.";
+
   /** Canonical vulnerability statuses, formatted for tool parameter descriptions. */
   public static final String VALID_VULN_STATUSES_CSV =
       "Reported,Suspicious,Confirmed,"
@@ -69,7 +73,8 @@ public final class ValidationConstants {
           + VALID_VULN_STATUSES_CSV
           + ". Default: "
           + DEFAULT_VULN_STATUSES_CSV
-          + " (actionable only)";
+          + " (actionable only). "
+          + AUTO_REMEDIATED_VULN_STATUS_NOTE;
 
   /** Notice emitted when a vulnerability search applies the default status filter. */
   public static final String DEFAULT_VULN_STATUSES_NOTICE =

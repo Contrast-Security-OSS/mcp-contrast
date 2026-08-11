@@ -53,6 +53,12 @@ class ValidationConstantsTest {
   }
 
   @Test
+  void vulnerability_status_description_should_explain_auto_remediated() {
+    assertThat(ValidationConstants.VULN_STATUSES_PARAM_DESCRIPTION)
+        .contains(ValidationConstants.AUTO_REMEDIATED_VULN_STATUS_NOTE);
+  }
+
+  @Test
   void default_vuln_statuses_should_contain_actionable_only() {
     assertThat(ValidationConstants.DEFAULT_VULN_STATUSES)
         .containsExactly("Reported", "Suspicious", "Confirmed");
