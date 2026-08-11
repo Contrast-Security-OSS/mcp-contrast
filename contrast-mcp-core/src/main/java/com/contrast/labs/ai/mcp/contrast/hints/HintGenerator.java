@@ -8,11 +8,6 @@ import org.springframework.util.StringUtils;
  */
 public class HintGenerator {
 
-  private static final String DEFAULT_HINT =
-      "Where a vulnerable library exists in the stacktrace and it looks like that library may be"
-          + " the cause of the underlying vulnerability, prioritise upgrading that library but only"
-          + " fix the vulnerability explicitly asked by the developer";
-
   /**
    * Generate vulnerability fix hints for a specific rule.
    *
@@ -21,13 +16,13 @@ public class HintGenerator {
    */
   public static String generateVulnerabilityFixHint(String rule) {
     if (!StringUtils.hasText(rule)) {
-      return DEFAULT_HINT;
+      return HintUtils.formatHints(HintProvider.getGeneralGuidance());
     }
 
     var hints = HintProvider.getAllHintsForRule(rule);
 
     if (hints.isEmpty()) {
-      return DEFAULT_HINT + rule;
+      return HintUtils.formatHints(HintProvider.getGeneralGuidance());
     }
 
     return HintUtils.formatHints(hints);
