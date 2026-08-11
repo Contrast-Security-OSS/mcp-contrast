@@ -1,6 +1,6 @@
 ---
 name: update-changelog
-description: Bring the [Unreleased] section of CHANGELOG.md up to date before a release. Diffs the last release tag against origin/main, drafts entries PR-by-PR, audits the draft for completeness with a read-only subagent, and lands the result on a branch after the user approves. Run pre-release, before dispatching the Gradle Release workflow, or whenever a human asks for a changelog update. Optional free text is treated as guidance, e.g. classification hints.
+description: Bring the [Unreleased] section of CHANGELOG.md up to date before a release. Diffs the last release tag against origin/main, drafts entries PR-by-PR, audits the draft for completeness with a read-only subagent, and lands the result on a branch after the user approves (or returns the approved draft to /release in deferred-landing mode). Run pre-release, before dispatching the Gradle Release workflow, or whenever a human asks for a changelog update. Optional free text is treated as guidance, e.g. classification hints.
 ---
 
 # Pre-release changelog update
@@ -18,6 +18,11 @@ when a human explicitly asks. Not part of routine feature development.
 - `/update-changelog` runs the full flow.
 - `/update-changelog <guidance>` passes free-text hints, e.g.
   `/update-changelog the SBOM work is internal, skip it`.
+- **Deferred-landing mode**, invoked by the `/release` skill: draft, audit, and get
+  the human's approval as usual, but skip the branch question in Step 1, all of
+  Step 6, and Step 7. The range is the base range only. Return the approved draft
+  text and the suggested next version to the caller, which creates the release
+  branch and lands the changelog itself.
 
 ## Ground rules
 
@@ -29,7 +34,12 @@ when a human explicitly asks. Not part of routine feature development.
   or wrong. Never delete one silently. Propose deletions in the draft and let the
   human decide.
 - Report a suggested next version (breaking changes → major, new capabilities → minor,
-  otherwise patch). It is informational only. Do not act on it.
+  otherwise patch). It is informational only. Do not act on it. **Breaking** here
+  means removed or renamed tools, or changes to hosting requirements, a new Java
+  version, a Spring Boot major, changed Docker or jar run instructions. Changes to
+  the `contrast-mcp-core` library API are not breaking on their own, its only
+  consumer is internal. Small tool contract changes (parameters, response shape)
+  stay minor, AI consumers adapt.
 - Do not create beads. This is a one-file docs change.
 
 ## Step 1 — Orient and choose the branch
@@ -79,6 +89,8 @@ For each range:
 
 - Section order within a version: Breaking Changes, Bug Fixes, Improvements, Security,
   Documentation. Include only non-empty sections.
+- Hosting-requirement changes (Java version, Spring Boot major, Docker or jar run
+  instructions) belong under Breaking Changes, that section drives the version bump.
 - Each entry is a short prose paragraph led by a **bold summary phrase**, wrapped at
   roughly 100 characters.
 - No PR numbers or ticket IDs in the published text. Cite external-system defects
