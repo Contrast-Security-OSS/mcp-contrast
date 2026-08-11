@@ -136,7 +136,7 @@ public class AttackFilterParams extends BaseToolParams {
     params.includeBotBlockers = includeBotBlockers;
     params.includeIpBlacklist = includeIpBlacklist;
 
-    params.sort = ToolSortParser.parse(ctx, sort, SORT_FIELDS, true, null);
+    params.sort = ToolSortParser.parse(ctx, sort, SORT_FIELDS, null);
 
     // Parse rules (comma-separated list of rule IDs)
     params.rules = ctx.stringListParam(rules, "rules").get();

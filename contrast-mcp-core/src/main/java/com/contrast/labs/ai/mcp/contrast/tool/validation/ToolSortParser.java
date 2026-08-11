@@ -37,7 +37,6 @@ public final class ToolSortParser {
    * @param context validation result collector
    * @param sort public sort value, or {@code null}
    * @param fields public property names mapped to their wire names
-   * @param propertyCaseSensitive whether public property matching is case-sensitive
    * @param defaultSort value returned when sort is absent or invalid
    * @return translated wire sort, prefixed with {@code -} for descending order
    */
@@ -45,7 +44,6 @@ public final class ToolSortParser {
       @NonNull ToolValidationContext context,
       @Nullable String sort,
       @NonNull Map<String, String> fields,
-      boolean propertyCaseSensitive,
       @Nullable String defaultSort) {
     if (!StringUtils.hasText(sort)) {
       return defaultSort;
@@ -60,8 +58,7 @@ public final class ToolSortParser {
 
     var property =
         fields.keySet().stream()
-            .filter(
-                candidate -> propertyMatches(candidate, parts.getFirst(), propertyCaseSensitive))
+            .filter(candidate -> candidate.equalsIgnoreCase(parts.getFirst()))
             .findFirst();
     var direction = parts.get(1).toUpperCase(Locale.ROOT);
     if (property.isEmpty() || !VALID_DIRECTIONS.contains(direction)) {
@@ -71,13 +68,6 @@ public final class ToolSortParser {
 
     var wireProperty = fields.get(property.get());
     return "DESC".equals(direction) ? "-" + wireProperty : wireProperty;
-  }
-
-  private static boolean propertyMatches(
-      String candidate, String requested, boolean propertyCaseSensitive) {
-    return propertyCaseSensitive
-        ? candidate.equals(requested)
-        : candidate.equalsIgnoreCase(requested);
   }
 
   private static String sortError(String sort, Map<String, String> fields) {
