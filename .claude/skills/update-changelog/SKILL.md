@@ -19,10 +19,10 @@ when a human explicitly asks. Not part of routine feature development.
 - `/update-changelog <guidance>` passes free-text hints, e.g.
   `/update-changelog the SBOM work is internal, skip it`.
 - **Deferred-landing mode**, invoked by the `/release` skill: draft, audit, and get
-  the human's approval as usual, but skip the branch question in Step 1 and all of
-  Step 6. The range is the base range only. Return the approved draft text and the
-  suggested next version to the caller, which creates the release branch and lands
-  the changelog itself.
+  the human's approval as usual, but skip the branch question in Step 1, all of
+  Step 6, and Step 7. The range is the base range only. Return the approved draft
+  text and the suggested next version to the caller, which creates the release
+  branch and lands the changelog itself.
 
 ## Ground rules
 

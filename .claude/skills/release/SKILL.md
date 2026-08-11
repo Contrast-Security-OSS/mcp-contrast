@@ -28,15 +28,18 @@ to re-dispatch because it reuses an existing `vX.Y.Z` tag at HEAD.
 
 1. `git fetch origin --tags -q`. Confirm the working tree is clean and HEAD matches
    `origin/main`. If not, stop and tell the human.
-2. Confirm CI is green: `gh run list --branch main --workflow build.yml --limit 1
+2. Verify the `pr-tools` plugin is available (check for `/pr-tools:create-pr` in the
+   skill list). Phase 4 and `/update-changelog` depend on it. If missing, stop and
+   tell the human to install it per the CLAUDE.md "Required Plugins" section.
+3. Confirm CI is green: `gh run list --branch main --workflow build.yml --limit 1
    --json conclusion,headSha` and check the run covers the current `origin/main`
    HEAD. Red or stale CI stops the release by default. The human may explicitly
    override for a known-flaky failure, record the override in the final report.
-3. Find the last release tag: `git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1`.
-4. Enumerate the release content: `git log --oneline --merges vLAST..origin/main`,
+4. Find the last release tag: `git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1`.
+5. Enumerate the release content: `git log --oneline --merges vLAST..origin/main`,
    plus the same without `--merges` for direct commits. If the range is empty, there
    is nothing to release, stop.
-5. If every change in the range is internal (CI config, dependabot, refactors), ask
+6. If every change in the range is internal (CI config, dependabot, refactors), ask
    the human whether to ship a dependency-bump release anyway. If yes, the Phase 2
    draft must include a section summarizing the dependency updates (drawn from the
    dependabot PR titles, house style) so the stamped section is never empty.
@@ -140,8 +143,11 @@ gh release edit vX.Y.Z --notes-file <file containing the [X.Y.Z] section>
 
 ## Phase 9 — Tracker sweep
 
-1. Derive shipped AIML ids from the merge commits in `vLAST..vX.Y.Z` (branch names
-   in merge subjects). Skip dependabot PRs.
+1. Derive shipped AIML ids from the PRs merged to `main` in the `vLAST..vX.Y.Z`
+   range. List PRs merged in the window with `gh pr list --base main --state merged`
+   filtered to merge commits in the tag range, then extract `AIML-\d+` from PR
+   titles. Fall back to scanning all commit subjects in the range for `AIML-\d+` to
+   catch direct-to-main commits without a PR. Deduplicate and skip dependabot PRs.
 2. Show the human the full list with each ticket's current status and let them pick
    the set to transition. Transition the chosen tickets to Closed (`81`) via the
    `jira-workflow` skill, the release ticket included. Closed is reserved for code
