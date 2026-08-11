@@ -43,11 +43,20 @@ class ValidationConstantsTest {
   }
 
   @Test
+  void vulnerability_status_collections_should_match_documentation_csv_constants() {
+    assertThat(ValidationConstants.VALID_VULN_STATUSES)
+        .containsExactlyInAnyOrder(ValidationConstants.VALID_VULN_STATUSES_CSV.split(","));
+    assertThat(ValidationConstants.DEFAULT_VULN_STATUSES)
+        .containsExactly(ValidationConstants.DEFAULT_VULN_STATUSES_CSV.split(","));
+    assertThat(ValidationConstants.VALID_VULN_STATUSES)
+        .containsAll(ValidationConstants.DEFAULT_VULN_STATUSES);
+  }
+
+  @Test
   void default_vuln_statuses_should_contain_actionable_only() {
     assertThat(ValidationConstants.DEFAULT_VULN_STATUSES)
         .containsExactly("Reported", "Suspicious", "Confirmed");
 
-    // Should not contain resolved statuses
     assertThat(ValidationConstants.DEFAULT_VULN_STATUSES)
         .doesNotContain("Fixed", "Remediated", "NotAProblem", "AutoRemediated");
   }

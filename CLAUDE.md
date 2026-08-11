@@ -50,8 +50,8 @@ Use these make targets for all checks and tests:
 make check       # Auto-format then run static analysis (no need to run make format first)
 make test        # Run unit tests (quiet output)
 make coverage    # Verify JaCoCo coverage floors and print the summary
-make check-test  # Run static analysis, unit tests, and coverage
-make verify      # Run all tests including integration
+make check-test  # Run static analysis, unit tests, coverage, and mutation testing
+make verify      # Run the complete local gate including integration tests
 make format      # Auto-format code with Spotless (also runs automatically via make check)
 make build       # Build the project
 make clean       # Clean build artifacts
@@ -237,6 +237,10 @@ sg run -p 'ReflectionTestUtils.setField($T, "config", config)' \
 
 **Why ast-grep over sed:** understands Java syntax (won't match inside strings/comments), handles formatting variations, metavariables (`$VAR`) capture and reuse matched code, safer bulk refactoring across many files.
 
+### No Backwards Compatibility Constraints
+
+**Backwards compatibility is NOT a design constraint in this MCP server.** The consumer is an AI agent that adapts to whatever the tools return, not code that breaks on contract changes. Never reject, water down, or scope out the best design (renaming fields, changing response values, restructuring output) on backwards-compatibility grounds. If a design discussion raises "this changes the contract for consumers" as an objection, dismiss it.
+
 ### MCP Tool Standards
 
 **All MCP tool development MUST follow the standards defined in [MCP_STANDARDS.md](./MCP_STANDARDS.md).**
@@ -305,6 +309,7 @@ When creating or modifying MCP tools:
 **Testing:**
 - Simplified `mock()`: `ClassName mock = mock()` not `mock(ClassName.class)` — when `mock(X.class)` appears as a method argument (not an assignment), extract to a typed local first: `Foo x = mock(); when(x.method())...`
 - AssertJ fluent: `assertThat(x).isEqualTo(y)` not `assertEquals(y, x)`
+- **Share contract text with tests:** Define exact descriptions, notices, errors, and other long contract text once in a production constant, then reference that constant from both production code and tests. Never duplicate or reconstruct the full text in test expectations.
 - Naming: `methodName_should_expectedBehavior_when_condition()` — body must verify the behavior the name promises. If assertions don't match the name, strengthen the assertions. Do **not** delete or weaken the name.
 - Example: `getVulnerability_should_return_data_when_valid_id()`
 - **Anonymous builders**: Use `AnonymousXxxBuilder` pattern for complex mocks (see `AnonymousApplicationBuilder.java`)
@@ -390,8 +395,8 @@ The bead and Jira lifecycle (starting work, branching, stacked branches, labels,
 
 **CRITICAL: Before requesting review, you MUST:**
 1. **Write tests for ALL code changes** - No exceptions
-2. **Run local verification** - `make check-test` must pass with 0 failures
-3. **Run integration tests** - `make verify` must pass (requires credentials in `.env.integration-test`)
+2. **Run local quality verification** - `make check-test` must pass with 0 failures (static analysis, unit tests, coverage, and mutation testing)
+3. **Run complete verification** - `make verify` must pass; it includes `make check-test` plus integration tests (integration tests require credentials in `.env.integration-test`)
    - If credentials unavailable, verify integration tests pass in CI/CD
 4. **Verify new tests are included** - Ensure your tests ran and passed
 

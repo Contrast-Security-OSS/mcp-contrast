@@ -64,21 +64,21 @@ test-quiet:
 test-verbose: ## Run tests with verbose output
 	@VERBOSE=1 $(MAKE) test
 
-## Verify targets (unit + integration tests)
+## Verify targets (complete local gate including integration tests)
 
-verify: ## Run all tests including integration (quiet output)
+verify: check-test ## Run all local verification including integration tests (quiet output)
 	@if [ -n "$$VERBOSE" ]; then \
-		$(GRADLE) test :contrast-mcp-stdio-app:integrationTest; \
+		$(GRADLE) :contrast-mcp-stdio-app:integrationTest; \
 	else \
 		$(MAKE) verify-quiet; \
 	fi
 
 verify-quiet:
-	@. ./hack/run_silent.sh && print_main_header "Running All Tests"
-	@. ./hack/run_silent.sh && print_header "mcp-contrast" "Unit + Integration tests"
-	@. ./hack/run_silent.sh && run_silent_with_test_count "All tests passed" "$(GRADLE) test :contrast-mcp-stdio-app:integrationTest" "gradle"
+	@. ./hack/run_silent.sh && print_main_header "Running Integration Tests"
+	@. ./hack/run_silent.sh && print_header "contrast-mcp-stdio-app" "Integration tests"
+	@. ./hack/run_silent.sh && run_silent_with_test_count "Integration tests passed" "$(GRADLE) :contrast-mcp-stdio-app:integrationTest" "gradle"
 
-verify-verbose: ## Run all tests with verbose output
+verify-verbose: ## Run all local verification including integration tests with verbose output
 	@VERBOSE=1 $(MAKE) verify
 
 ## Coverage targets
@@ -146,10 +146,11 @@ test-coverage-verbose: ## Run tests and coverage with verbose output
 
 ## Combined targets
 
-check-test: ## Run all checks, tests, and coverage
+check-test: ## Run all checks, unit tests, coverage, and mutation testing
 	@$(MAKE) check
 	@$(MAKE) buildsrc-check
 	@$(MAKE) test-coverage
+	@$(MAKE) mutation
 
 ## Mutation testing
 
