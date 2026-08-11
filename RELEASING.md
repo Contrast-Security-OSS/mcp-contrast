@@ -12,6 +12,16 @@ This project uses the **Gradle Release** GitHub Actions workflow. Release versio
 - Access to trigger GitHub Actions workflows
 - A green `main` branch
 
+## Orchestrated Release
+
+The whole process below can be driven from a Claude Code session with `/release`.
+The skill runs the preflight checks, creates the release ticket and branch, runs the
+changelog update and version stamp, runs the smoke test, dispatches and monitors the
+Gradle Release workflow, verifies the published artifacts, and sweeps Jira and beads
+afterward. You keep three decisions: the version, the changelog draft, and the final
+go/no-go before dispatch. See `.claude/skills/release/` for details. The manual steps
+below remain authoritative if you release by hand.
+
 ## Pre-release Testing
 
 Before you cut a release, exercise the shipped tools against a live org. From a
