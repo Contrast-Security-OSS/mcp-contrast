@@ -20,6 +20,10 @@ _Avoid_: conflating SmartFix with the AutoRemediated status or with Auto-Verifie
 The NorthStar status vocabulary on Issue entities. The values are REPORTED, CONFIRMED, REMEDIATED, NOT_A_PROBLEM, and FIXED. Suspicious and AutoRemediated exist only as Vulnerability statuses, never as Issue Statuses.
 _Avoid_: using this term for legacy Vulnerability statuses
 
+**Vulnerability type**:
+The kind of vulnerability a finding represents, for example `sql-injection` or `reflected-xss`. Values are lowercase-hyphenated and org-specific, discoverable via `list_vulnerability_types`. Synonymous with the TeamServer term "rule name", a historical artifact: the Contrast Agent used a detection rule per vulnerability type, so the `sql-injection` rule found SQL injection vulnerabilities. Vulnerability type is the canonical term.
+_Avoid_: rule name, rule type, except when naming the raw TeamServer API surface (e.g. `getRules()`)
+
 **Status display label**:
 The human-readable status text TeamServer returns on vulnerability records, for example "Remediated - Auto-Verified" for a vulnerability in the AutoRemediated status. Filters take canonical Vulnerability statuses, and this server's tool results carry canonical Vulnerability statuses, not display labels.
 _Avoid_: treating a display label as a valid filter value or exposing one in a tool result
