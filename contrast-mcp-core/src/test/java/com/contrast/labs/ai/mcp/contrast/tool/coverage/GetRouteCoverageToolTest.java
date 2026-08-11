@@ -32,7 +32,11 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCo
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.AgentSession;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator;
+import com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator.ApplicationState;
+import com.contrast.labs.ai.mcp.contrast.tool.base.BaseTool;
 import com.contrastsecurity.exceptions.HttpResponseException;
+import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.models.RouteCoverageBySessionIDAndMetadataRequest;
 import com.contrastsecurity.sdk.internal.GsonFactory;
 import java.lang.reflect.Method;
@@ -80,12 +84,16 @@ class GetRouteCoverageToolTest {
       """;
 
   private ContrastApiClient contrastApiClient;
+  private ApplicationLicenseDiscriminator applicationLicenseDiscriminator;
   private GetRouteCoverageTool tool;
 
   @BeforeEach
   void setUp() {
     contrastApiClient = mock();
-    tool = new GetRouteCoverageTool(contrastApiClient, new RouteMapper());
+    applicationLicenseDiscriminator = mock();
+    tool =
+        new GetRouteCoverageTool(
+            contrastApiClient, new RouteMapper(), applicationLicenseDiscriminator);
   }
 
   @Test
@@ -111,6 +119,8 @@ class GetRouteCoverageToolTest {
     assertThat(result.data().totalRoutes()).isEqualTo(2);
     assertThat(result.notices()).doesNotContain(FILTERED_ENVIRONMENTS_NOTICE);
     verify(contrastApiClient).getRouteCoverage(eq(VALID_APP_ID), isNull());
+    verify(contrastApiClient, never()).getApplicationWithLicense(any());
+    verifyNoInteractions(applicationLicenseDiscriminator);
   }
 
   @Test
@@ -279,6 +289,69 @@ class GetRouteCoverageToolTest {
             "Access denied or resource not found. Verify credentials and that the resource ID is"
                 + " correct.");
     assertThat(result.toString()).doesNotContain(SECRET_BODY, "/ng/org/route");
+    verifyNoInteractions(applicationLicenseDiscriminator);
+  }
+
+  @Test
+  void getRouteCoverage_should_bypass_license_discriminator_for_401() throws Exception {
+    when(contrastApiClient.getRouteCoverage(eq(VALID_APP_ID), isNull()))
+        .thenThrow(unauthorizedFailure(401));
+
+    var result = tool.getRouteCoverage(VALID_APP_ID, null, null, null, null);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).containsExactly(BaseTool.AUTHENTICATION_OR_NOT_FOUND_ERROR);
+    verifyNoInteractions(applicationLicenseDiscriminator);
+  }
+
+  @Test
+  void getRouteCoverage_should_return_unlicensed_error_when_route_coverage_403_is_discriminated()
+      throws Exception {
+    var originalForbidden = unauthorizedFailure();
+    when(contrastApiClient.getRouteCoverage(eq(VALID_APP_ID), isNull()))
+        .thenThrow(originalForbidden);
+    when(applicationLicenseDiscriminator.discriminate(VALID_APP_ID, originalForbidden))
+        .thenReturn(ApplicationState.UNLICENSED);
+
+    var result = tool.getRouteCoverage(VALID_APP_ID, null, null, null, null);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).containsExactly(GetRouteCoverageTool.UNLICENSED_APPLICATION_ERROR);
+    assertThat(result.data()).isNull();
+    verify(applicationLicenseDiscriminator).discriminate(VALID_APP_ID, originalForbidden);
+  }
+
+  @Test
+  void getRouteCoverage_should_return_archived_error_when_route_coverage_403_is_discriminated()
+      throws Exception {
+    var originalForbidden = unauthorizedFailure();
+    when(contrastApiClient.getRouteCoverage(eq(VALID_APP_ID), isNull()))
+        .thenThrow(originalForbidden);
+    when(applicationLicenseDiscriminator.discriminate(VALID_APP_ID, originalForbidden))
+        .thenReturn(ApplicationState.ARCHIVED);
+
+    var result = tool.getRouteCoverage(VALID_APP_ID, null, null, null, null);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors()).containsExactly(GetRouteCoverageTool.ARCHIVED_APPLICATION_ERROR);
+    assertThat(result.data()).isNull();
+  }
+
+  @Test
+  void getRouteCoverage_should_return_residual_error_when_route_coverage_403_is_discriminated()
+      throws Exception {
+    var originalForbidden = unauthorizedFailure();
+    when(contrastApiClient.getRouteCoverage(eq(VALID_APP_ID), isNull()))
+        .thenThrow(originalForbidden);
+    when(applicationLicenseDiscriminator.discriminate(VALID_APP_ID, originalForbidden))
+        .thenReturn(ApplicationState.LICENSED);
+
+    var result = tool.getRouteCoverage(VALID_APP_ID, null, null, null, null);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors())
+        .containsExactly(GetRouteCoverageTool.LICENSED_APPLICATION_ACCESS_DENIED_ERROR);
+    assertThat(result.data()).isNull();
   }
 
   @Test
@@ -342,5 +415,14 @@ class GetRouteCoverageToolTest {
   private static HttpResponseException apiFailure(int status) {
     return new HttpResponseException(
         "Downstream failure", "POST", "/ng/org/route", status, "Downstream failure", SECRET_BODY);
+  }
+
+  private static UnauthorizedException unauthorizedFailure() {
+    return unauthorizedFailure(403);
+  }
+
+  private static UnauthorizedException unauthorizedFailure(int status) {
+    return new UnauthorizedException(
+        "Downstream failure", "GET", "/ng/org/route", status, "Unauthorized", SECRET_BODY);
   }
 }

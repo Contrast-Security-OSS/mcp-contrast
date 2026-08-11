@@ -86,6 +86,8 @@ public abstract class CursorPaginatedTool<P extends ToolParams, R> extends BaseT
       return handleException(e, pagination, requestId, "Resource not found");
     } catch (HttpResponseException e) {
       return handleHttpResponseException(e, pagination, requestId, collector);
+    } catch (ActionableToolErrorException e) {
+      return handleException(e, pagination, requestId, e.getMessage());
     } catch (IllegalArgumentException e) {
       return handleException(e, pagination, requestId, e.getMessage());
     } catch (Exception e) {

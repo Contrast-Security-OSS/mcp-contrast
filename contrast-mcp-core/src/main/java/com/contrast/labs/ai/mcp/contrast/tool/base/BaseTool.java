@@ -26,6 +26,10 @@ import org.springframework.lang.Nullable;
  */
 public abstract class BaseTool {
 
+  public static final String AUTHENTICATION_OR_NOT_FOUND_ERROR =
+      "Authentication failed or resource not found. Verify credentials and that the resource ID"
+          + " is correct.";
+
   private static final AutoCloseable NOOP_AUTHENTICATION_SCOPE = () -> {};
 
   private AuthenticationStrategy authenticationStrategy;
@@ -61,9 +65,7 @@ public abstract class BaseTool {
    */
   protected String mapHttpErrorCode(int code) {
     return switch (code) {
-      case 401 ->
-          "Authentication failed or resource not found. Verify credentials and that the resource ID"
-              + " is correct.";
+      case 401 -> AUTHENTICATION_OR_NOT_FOUND_ERROR;
       case 403 ->
           "Access denied or resource not found. Verify credentials and that the resource ID is"
               + " correct.";

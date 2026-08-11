@@ -115,6 +115,9 @@ public class Application {
   @SerializedName("onboarded_time")
   private Long onboardedTime;
 
+  @SerializedName("license")
+  private ApplicationLicense license;
+
   // Defensive getters - return empty collections instead of null (Effective Java Item 54)
   // These override Lombok's generated getters to ensure null-safety
 

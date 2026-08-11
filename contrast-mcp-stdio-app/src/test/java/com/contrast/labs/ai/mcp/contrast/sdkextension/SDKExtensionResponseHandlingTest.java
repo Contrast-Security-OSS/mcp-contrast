@@ -222,7 +222,7 @@ class SDKExtensionResponseHandlingTest {
     }
 
     @Test
-    void getApplications_should_request_the_metadata_and_technologies_expansions()
+    void getApplications_should_request_metadata_technologies_and_license_expansions()
         throws Exception {
       when(sdk.makeRequest(any(), any())).thenReturn(body("{\"applications\":[]}"));
 
@@ -231,7 +231,7 @@ class SDKExtensionResponseHandlingTest {
       verify(sdk)
           .makeRequest(
               eq(HttpMethod.GET),
-              argThat(url -> url.contains("expand=metadata,technologies,skip_links")));
+              argThat(url -> url.contains("expand=metadata,technologies,license,skip_links")));
     }
   }
 

@@ -469,16 +469,30 @@ class ListApplicationLibrariesToolIT
         .isNotEmpty();
 
     assertThat(scorableLibs)
-        .as("every non-custom library must populate version and report non-negative staleness")
+        .as("every non-custom library must populate internally consistent staleness fields")
         .allSatisfy(
             lib -> {
               assertThat(lib.getVersion()).as("%s.version", lib.getFilename()).isNotBlank();
+              assertThat(lib.getLatestVersion())
+                  .as("%s.latestVersion", lib.getFilename())
+                  .isNotBlank();
               assertThat(lib.getLibScore()).as("%s.libScore", lib.getFilename()).isNotNegative();
-              assertThat(lib.getMonthsOutdated())
-                  .as("%s.monthsOutdated", lib.getFilename())
-                  .isNotNegative();
               assertThat(lib.getReleaseDate())
                   .as("%s.releaseDate (epoch ms)", lib.getFilename())
+                  .isPositive();
+              assertThat(lib.getLatestReleaseDate())
+                  .as("%s.latestReleaseDate (epoch ms)", lib.getFilename())
+                  .isPositive();
+
+              // TeamServer can select a latestVersion released before the installed version,
+              // such as current 3.x versus latest 1.x, and then returns negative monthsOutdated.
+              // The signed staleness value must agree with that upstream release chronology.
+              var releaseDirection = Long.signum(lib.getLatestReleaseDate() - lib.getReleaseDate());
+              var stalenessDirection = Integer.signum(lib.getMonthsOutdated());
+              assertThat((long) releaseDirection * stalenessDirection)
+                  .as(
+                      "%s.monthsOutdated direction must agree with release dates",
+                      lib.getFilename())
                   .isNotNegative();
             });
   }

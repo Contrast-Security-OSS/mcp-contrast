@@ -191,22 +191,16 @@ class AttackFilterParamsTest {
     }
 
     @Test
-    void of_should_be_case_sensitive_starttime_lowercase_invalid() {
-      // API is case-sensitive - must match exact camelCase
-      var params =
+    void of_should_accept_sort_property_case_insensitively_and_forward_canonical_form() {
+      var lowercase =
           AttackFilterParams.of(null, null, null, null, null, null, "starttime,DESC", null);
+      var uppercase =
+          AttackFilterParams.of(null, null, null, null, null, null, "SOURCEIP,ASC", null);
 
-      assertThat(params.isValid()).isFalse();
-      assertThat(params.errors()).anyMatch(e -> e.contains("Invalid sort"));
-    }
-
-    @Test
-    void of_should_be_case_sensitive_STARTTIME_uppercase_invalid() {
-      var params =
-          AttackFilterParams.of(null, null, null, null, null, null, "STARTTIME,DESC", null);
-
-      assertThat(params.isValid()).isFalse();
-      assertThat(params.errors()).anyMatch(e -> e.contains("Invalid sort"));
+      assertThat(lowercase.isValid()).isTrue();
+      assertThat(lowercase.getSort()).isEqualTo("-startTime");
+      assertThat(uppercase.isValid()).isTrue();
+      assertThat(uppercase.getSort()).isEqualTo("sourceIP");
     }
 
     @Test

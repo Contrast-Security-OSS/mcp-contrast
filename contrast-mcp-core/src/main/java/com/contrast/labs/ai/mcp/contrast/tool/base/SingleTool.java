@@ -99,6 +99,8 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
       return handleException(e, requestId, mapHttpErrorCode(e.getCode()), collector);
     } catch (HttpResponseException e) {
       return handleHttpResponseException(e, requestId, collector);
+    } catch (ActionableToolErrorException e) {
+      return handleException(e, requestId, e.getMessage(), collector);
     } catch (IllegalArgumentException e) {
       // User-input rejection raised mid-execution (e.g., resolveSessionMetadataFilters when an
       // unknown field name is supplied). The exception message is the actionable user message.

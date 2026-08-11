@@ -23,6 +23,8 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetadataField;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetadataFieldsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetadataFilter;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationsFilterRequest;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
@@ -34,6 +36,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServersRespons
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants;
 import com.contrastsecurity.exceptions.UnauthorizedException;
+import com.contrastsecurity.http.FilterForm.ApplicationExpandValues;
 import com.contrastsecurity.http.HttpMethod;
 import com.contrastsecurity.http.LibraryFilterForm;
 import com.contrastsecurity.http.MediaType;
@@ -268,7 +271,8 @@ public class SDKExtension {
   public ApplicationsResponse getApplications(String organizationId)
       throws UnauthorizedException, IOException {
     var url =
-        urlBuilder.getApplicationsUrl(organizationId) + "&expand=metadata,technologies,skip_links";
+        urlBuilder.getApplicationsUrl(organizationId)
+            + "&expand=metadata,technologies,license,skip_links";
 
     // When debug logging is enabled, buffer the response for logging
     if (log.isDebugEnabled()) {
@@ -331,6 +335,19 @@ public class SDKExtension {
                 HttpMethod.POST, url, gson.toJson(requestBody), MediaType.JSON);
         Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
       return gson.fromJson(reader, ApplicationsResponse.class);
+    }
+  }
+
+  /** Fetches one application with its merged license level, including archived applications. */
+  public Application getApplicationWithLicense(String organizationId, String appId)
+      throws UnauthorizedException, IOException {
+    var url =
+        urlBuilder.getApplicationUrl(
+            organizationId, appId, EnumSet.of(ApplicationExpandValues.LICENSE));
+
+    try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
+        Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
+      return gson.fromJson(reader, ApplicationResponse.class).getApplication();
     }
   }
 

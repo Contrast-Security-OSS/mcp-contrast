@@ -6,6 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an MCP (Model Context Protocol) server for Contrast Security that enables AI agents to access and analyze vulnerability data from Contrast's security platform. It serves as a bridge between Contrast Security's API and AI tools like Claude, enabling automated vulnerability remediation and security analysis.
 
+## Communication style
+
+Be concise. Lead with the answer or conclusion, then supporting detail only if
+needed. Skip restating the request, unnecessary preamble, and padding.
+
+## Repo context
+
+See [REPO-CONTEXT.md](./REPO-CONTEXT.md) for domain definitions, architecture notes, and the planning checklist.
+
 ## Git Hooks
 
 **ABSOLUTE RULE: NEVER skip git hooks.** Do not use `--no-verify`, `--no-gpg-sign`, `SKIP_COVERAGE_HOOK=1`, or any other mechanism to bypass pre-commit, pre-push, or any other git hook. No exceptions. No shortcuts. If a hook fails, fix the underlying problem. A skipped hook caused a CI build failure; this rule exists to prevent that from ever happening again. If you skip a hook, you have made an error.
@@ -41,8 +50,8 @@ Use these make targets for all checks and tests:
 make check       # Auto-format then run static analysis (no need to run make format first)
 make test        # Run unit tests (quiet output)
 make coverage    # Verify JaCoCo coverage floors and print the summary
-make check-test  # Run static analysis, unit tests, and coverage
-make verify      # Run all tests including integration
+make check-test  # Run static analysis, unit tests, coverage, and mutation testing
+make verify      # Run the complete local gate including integration tests
 make format      # Auto-format code with Spotless (also runs automatically via make check)
 make build       # Build the project
 make clean       # Clean build artifacts
@@ -128,6 +137,24 @@ tool/
 
 **Hint System**: `hints/` package provides context-aware security guidance for vulnerability remediation.
 
+### Module Split
+
+- `contrast-mcp-core` is the transport-neutral shared library published as `com.contrast.labs.ai.mcp:contrast-mcp-core`.
+- `contrast-mcp-stdio-app` is the local stdio Spring Boot app and keeps local Contrast SDK credential wiring, SDK helper/cache implementations, and local-only raw SARIF behavior.
+
+**Hosted local development:** The private `aiml-services/services/aiml-hosted-mcp-server` project consumes `contrast-mcp-core`. For cross-repo work, check out `aiml-services` and `mcp-contrast` as siblings and use Gradle composite-build substitution:
+
+```kotlin
+includeBuild("../mcp-contrast") {
+    dependencySubstitution {
+        substitute(module("com.contrast.labs.ai.mcp:contrast-mcp-core"))
+            .using(project(":contrast-mcp-core"))
+    }
+}
+```
+
+Use `hack/verify-core-publication.sh` for the public core publication/classpath gate.
+
 ### Configuration
 
 The application uses Spring Boot configuration with the following key properties:
@@ -192,6 +219,28 @@ EOF
 6. **Hint Generation**: Rule-based system provides contextual security guidance
 7. **Defensive Design**: All external API calls include error handling and logging via base classes
 
+### Code Refactoring with ast-grep
+
+For bulk structural code changes (renaming, pattern replacement), use **ast-grep (sg)** instead of sed/grep:
+
+```bash
+# Preview changes
+sg run -p 'ContrastConfig' -r 'ContrastSDKFactory' -l java src/
+
+# Apply changes (-U = update all)
+sg run -p 'config.getSDK()' -r 'sdkFactory.getSDK()' -l java -U src/
+
+# Pattern with metavariable
+sg run -p 'ReflectionTestUtils.setField($T, "config", config)' \
+       -r 'ReflectionTestUtils.setField($T, "sdkFactory", sdkFactory)' -l java -U src/
+```
+
+**Why ast-grep over sed:** understands Java syntax (won't match inside strings/comments), handles formatting variations, metavariables (`$VAR`) capture and reuse matched code, safer bulk refactoring across many files.
+
+### No Backwards Compatibility Constraints
+
+**Backwards compatibility is NOT a design constraint in this MCP server.** The consumer is an AI agent that adapts to whatever the tools return, not code that breaks on contract changes. Never reject, water down, or scope out the best design (renaming fields, changing response values, restructuring output) on backwards-compatibility grounds. If a design discussion raises "this changes the contract for consumers" as an objection, dismiss it.
+
 ### MCP Tool Standards
 
 **All MCP tool development MUST follow the standards defined in [MCP_STANDARDS.md](./MCP_STANDARDS.md).**
@@ -207,7 +256,7 @@ When creating or modifying MCP tools:
 
 ### Coding Standards
 
-**CLAUDE.md Principle**: Maximum conciseness to minimize token usage. Violate grammar rules for brevity. No verbose examples.
+**CLAUDE.md Principle**: Maximum conciseness to minimize token usage. Violate grammar rules for brevity. No verbose examples. Keep CLAUDE.md concise.
 
 **Java Style:**
 - `var` for obvious types: `var list = new ArrayList<String>()`
@@ -260,6 +309,7 @@ When creating or modifying MCP tools:
 **Testing:**
 - Simplified `mock()`: `ClassName mock = mock()` not `mock(ClassName.class)` — when `mock(X.class)` appears as a method argument (not an assignment), extract to a typed local first: `Foo x = mock(); when(x.method())...`
 - AssertJ fluent: `assertThat(x).isEqualTo(y)` not `assertEquals(y, x)`
+- **Share contract text with tests:** Define exact descriptions, notices, errors, and other long contract text once in a production constant, then reference that constant from both production code and tests. Never duplicate or reconstruct the full text in test expectations.
 - Naming: `methodName_should_expectedBehavior_when_condition()` — body must verify the behavior the name promises. If assertions don't match the name, strengthen the assertions. Do **not** delete or weaken the name.
 - Example: `getVulnerability_should_return_data_when_valid_id()`
 - **Anonymous builders**: Use `AnonymousXxxBuilder` pattern for complex mocks (see `AnonymousApplicationBuilder.java`)
@@ -345,8 +395,8 @@ The bead and Jira lifecycle (starting work, branching, stacked branches, labels,
 
 **CRITICAL: Before requesting review, you MUST:**
 1. **Write tests for ALL code changes** - No exceptions
-2. **Run local verification** - `make check-test` must pass with 0 failures
-3. **Run integration tests** - `make verify` must pass (requires credentials in `.env.integration-test`)
+2. **Run local quality verification** - `make check-test` must pass with 0 failures (static analysis, unit tests, coverage, and mutation testing)
+3. **Run complete verification** - `make verify` must pass; it includes `make check-test` plus integration tests (integration tests require credentials in `.env.integration-test`)
    - If credentials unavailable, verify integration tests pass in CI/CD
 4. **Verify new tests are included** - Ensure your tests ran and passed
 
@@ -430,6 +480,12 @@ Run the harness-engineering playbooks against this repo on demand via `/harness-
 
 `/update-changelog` brings `[Unreleased]` in CHANGELOG.md up to date against everything merged since the last release tag, audits completeness with a read-only subagent per range, and lands the result on a branch after user approval. Run before dispatching the Gradle Release workflow or when explicitly asked. See `.claude/skills/update-changelog/`.
 
+## Spawning Codex via Herdr
+
+When spawning a Codex agent through Herdr:
+
+1. `herdr agent start <name> --kind codex --pane <pane-id>` with no extra args after `--`. Default Codex startup is correct. Do not pass `--full-auto` or `--permission-mode auto`.
+2. `herdr agent prompt <name> "<brief>" --wait` with NO `--timeout` flag. Codex runs often exceed 10 minutes. Omitting `--timeout` lets Herdr wait indefinitely. The Bash tool's own 10-minute ceiling applies, so run the prompt call with `run_in_background: true` and wait for the task notification.
 
 
 @SECURITY.md

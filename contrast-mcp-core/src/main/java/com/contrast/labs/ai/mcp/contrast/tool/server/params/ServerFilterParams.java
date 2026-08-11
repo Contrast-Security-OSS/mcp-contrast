@@ -110,7 +110,7 @@ public class ServerFilterParams extends BaseToolParams {
     params.applicationIds = ctx.stringListParam(applicationIds, "applicationIds").get();
     params.agentVersions = ctx.stringListParam(agentVersions, "agentVersions").get();
     params.includeApplications = Boolean.TRUE.equals(includeApplications);
-    params.sort = ToolSortParser.parse(ctx, sort, SORT_FIELDS, false, DEFAULT_SORT);
+    params.sort = ToolSortParser.parse(ctx, sort, SORT_FIELDS, DEFAULT_SORT);
 
     params.setValidationResult(ctx);
     return params;

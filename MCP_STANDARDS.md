@@ -121,6 +121,10 @@ Tools returning analytical data (reports, coverage, metadata) may use `get_*` ev
 - **Plural** for comma-separated: `severities`, `statuses`, `environments`
 - **Singular** for single values: `appId`, `keyword`, `sort`
 
+### Enumerated String Parameters
+
+**Be liberal in what you accept, conservative in what you send.** Enumerated string parameters match case-insensitively and ignore surrounding whitespace. The server forwards the canonical form downstream, never the caller's raw spelling. A value that fails to match after normalization is a validation error, never a silent pass-through.
+
 ### Sort Convention
 - Use a single optional `sort` string parameter when a tool exposes caller-controlled ordering.
 - Public MCP sort syntax is `property,DIRECTION`.

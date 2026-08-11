@@ -27,6 +27,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksFilterBody
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.AttacksResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetadataField;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.AppMetadataFilter;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationsResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sca.LibraryObservation;
@@ -69,6 +70,13 @@ public class SdkApiClient implements ContrastApiClient {
   @Override
   public List<AppMetadataField> getApplicationMetadataFields() throws Exception {
     return sdkExtensionFactory.getSDKExtension().getApplicationMetadataFields(localOrganization());
+  }
+
+  @Override
+  public Application getApplicationWithLicense(String appId) throws Exception {
+    return sdkExtensionFactory
+        .getSDKExtension()
+        .getApplicationWithLicense(localOrganization(), appId);
   }
 
   @Override

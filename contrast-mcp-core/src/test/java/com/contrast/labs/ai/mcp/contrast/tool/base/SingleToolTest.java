@@ -216,6 +216,23 @@ class SingleToolTest {
   }
 
   @Test
+  void executePipeline_should_surface_actionableToolErrorException_message_as_user_error() {
+    var actionableMessage = "Fix this condition before retrying.";
+    tool.setDoExecuteHandler(
+        (params, collector) -> {
+          throw new ActionableToolErrorException(actionableMessage);
+        });
+
+    var result = tool.executePipeline(() -> TestParams.valid());
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors())
+        .as("ActionableToolErrorException message must surface verbatim")
+        .containsExactly(actionableMessage);
+    assertThat(result.data()).isNull();
+  }
+
+  @Test
   void executePipeline_should_include_params_notices() {
     tool.setDoExecuteHandler((params, notices) -> "result");
 
