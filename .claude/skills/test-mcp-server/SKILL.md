@@ -1,6 +1,6 @@
 ---
 name: test-mcp-server
-description: Pre-release exploratory test of the Contrast stdio MCP server. Builds the jar fresh, wires it into a separate headless Claude instance, and has that instance spawn one subagent per discovered tool to test it against a live org. Run on demand only, before a release or when a human explicitly asks, not during routine feature development. Runs in-depth by default; pass "smoke" for a fast is-it-alive pass.
+description: Pre-release exploratory test of the Contrast stdio MCP server. Builds the jar fresh, wires it into a separate headless Claude instance, and has that instance spawn one subagent per discovered tool to test it against a live org. Run on demand only, before a release or when a human explicitly asks, not during routine feature development. Asks which mode to run if not specified.
 ---
 
 # Pre-release MCP server test
@@ -17,18 +17,17 @@ on demand only.
 
 ## Usage
 
-- `/test-mcp-server` runs the in-depth (regular) pass with Sonnet testers.
+- `/test-mcp-server` runs the in-depth (regular) pass using the same model as the launching session.
 - `/test-mcp-server smoke` runs a fast pass that just checks each tool's main use case.
 - `/test-mcp-server regular <focus>` runs in-depth with a nudge, e.g. `/test-mcp-server regular focus on the server tools`.
-- `/test-mcp-server --model claude-opus-4-6` runs with Opus testers instead of Sonnet.
-- `--model <id>` can be combined with any mode, e.g. `/test-mcp-server smoke --model claude-opus-4-6`.
+- `--model <id>` overrides the model for orchestrator and testers, e.g. `/test-mcp-server smoke --model sonnet`.
 
 ## What to do
 
 1. Work out the mode and focus from the arguments. If the first word is `smoke` or
    `regular`, use it as the mode and treat the rest as focus text. If no mode was
-   provided, ask the user which mode to run (smoke or regular) before launching.
-   Always pass an explicit mode to the script.
+   provided, use `AskUserQuestion` to ask which mode to run before launching.
+   Never default to a mode on your own. Always pass an explicit mode to the script.
 2. Launch the helper in the background so the user can keep chatting. A regular
    run spawns one tester per tool and can take 15-20 minutes. Set
    `CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0` in the command so the background
