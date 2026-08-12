@@ -480,6 +480,10 @@ Run the harness-engineering playbooks against this repo on demand via `/harness-
 
 `/update-changelog` brings `[Unreleased]` in CHANGELOG.md up to date against everything merged since the last release tag, audits completeness with a read-only subagent per range, and lands the result on a branch after user approval. Run before dispatching the Gradle Release workflow or when explicitly asked. See `.claude/skills/update-changelog/`.
 
+### Release orchestration
+
+`/release` runs the full release end to end, changelog-first: preflight, `/update-changelog` in deferred-landing mode, version gate, release ticket and branch, version stamp, `/test-mcp-server smoke`, Gradle Release dispatch and monitoring, artifact verification, release-notes sync, Jira/bead sweep, and Slack announcement. Human gates at changelog approval, version choice, PR merge, go/no-go, sweep, and the post. Run only when a human asks to cut a release. See `.claude/skills/release/`.
+
 ## Spawning Codex via Herdr
 
 When spawning a Codex agent through Herdr:

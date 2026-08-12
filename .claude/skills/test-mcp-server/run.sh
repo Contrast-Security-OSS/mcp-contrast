@@ -23,7 +23,7 @@
 # Usage: run.sh [smoke|regular] [--model <id>] [focus text...]
 #   smoke              checks each tool's main use case only
 #   regular            (default) in-depth exploratory testing; accepts an optional focus
-#   --model <id>       model for tester subagents (default: sonnet)
+#   --model <id>       override model for orchestrator and testers (default: inherits from parent)
 #
 # The tool list is never hardcoded here. The orchestrator asks the running
 # server what it exposes, so a new tool is covered with no change to this script.
@@ -33,7 +33,7 @@ set -euo pipefail
 # --- parse mode, model, and focus -----------------------------------------
 # Mode (smoke or regular) must be the first positional argument.
 # The skill layer asks the user and always passes an explicit mode.
-TESTER_MODEL="sonnet"
+MODEL=""
 if [[ "${1:-}" == "smoke" || "${1:-}" == "regular" ]]; then
   MODE="$1"
   shift
@@ -48,10 +48,10 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --model)
       if [[ $# -lt 2 ]]; then
-        log "--model requires a value (e.g. --model sonnet)"
+        log "--model requires a value (e.g. --model opus)"
         exit 1
       fi
-      TESTER_MODEL="$2"; shift 2 ;;
+      MODEL="$2"; shift 2 ;;
     *) REMAINING_ARGS+=("$1"); shift ;;
   esac
 done
@@ -71,7 +71,15 @@ if ! ./gradlew :contrast-mcp-stdio-app:bootJar -q; then
   exit 1
 fi
 
-JAR="$(ls -t contrast-mcp-stdio-app/build/libs/mcp-contrast-*.jar 2>/dev/null | grep -v -- '-plain.jar' | head -1 || true)"
+# Pick the newest non-plain jar without ls|grep (SC2010).
+JAR=""
+for candidate in contrast-mcp-stdio-app/build/libs/mcp-contrast-*.jar; do
+  [ -e "$candidate" ] || continue
+  case "$candidate" in *-plain.jar) continue ;; esac
+  if [ -z "$JAR" ] || [ "$candidate" -nt "$JAR" ]; then
+    JAR="$candidate"
+  fi
+done
 if [ -z "$JAR" ]; then
   log "No runnable jar was produced under contrast-mcp-stdio-app/build/libs. Aborting."
   exit 1
@@ -116,10 +124,17 @@ EOF
 
 # --- the Sonnet tester persona (short and human on purpose) ---------------
 TESTER_PROMPT="You are a hands-on tester for one Contrast MCP tool. You have the Contrast tools available. Work out what your tool does from its description, then find real data to test it with by calling the other Contrast tools first (for example, search for an application, a vulnerability, or a server). Then actually call your tool and see how it behaves. When you are done, write your full results to a file using Bash: echo your report into $RESULTS_DIR/<tool-name>.txt (use the exact tool name, e.g. search_vulnerabilities.txt). Your report must include: what you tried, what worked, anything that looked wrong or confusing, and a one-word verdict line at the end: VERDICT: WORKS, VERDICT: ISSUES, VERDICT: BROKEN, or VERDICT: INCONCLUSIVE. Keep it short and honest. Do not spawn other agents."
-AGENTS_JSON="$(cat <<EOF
-{"mcp-tool-tester": {"description": "Exploratory tester for a single Contrast MCP tool", "prompt": "$TESTER_PROMPT", "model": "$TESTER_MODEL"}}
+if [ -n "$MODEL" ]; then
+  AGENTS_JSON="$(cat <<EOF
+{"mcp-tool-tester": {"description": "Exploratory tester for a single Contrast MCP tool", "prompt": "$TESTER_PROMPT", "model": "$MODEL"}}
 EOF
 )"
+else
+  AGENTS_JSON="$(cat <<EOF
+{"mcp-tool-tester": {"description": "Exploratory tester for a single Contrast MCP tool", "prompt": "$TESTER_PROMPT"}}
+EOF
+)"
+fi
 
 # --- the Opus orchestrator brief ------------------------------------------
 if [ "$MODE" == "smoke" ]; then
@@ -149,16 +164,16 @@ EOF
 )"
 
 # --- run the nested instance ----------------------------------------------
-log "Launching a $MODE test. Orchestrator: opus, testers: $TESTER_MODEL."
+MODEL_DISPLAY="${MODEL:-inherited from parent}"
+log "Launching a $MODE test. Model: $MODEL_DISPLAY."
 log "This can take several minutes for a full regular run."
 
 ORCH_EXIT=0
-claude -p "$ORCH_PROMPT" \
-  --model opus \
-  --mcp-config "$MCP_CONFIG" \
-  --strict-mcp-config \
-  --allowedTools "mcp__contrast Task Bash" \
-  --agents "$AGENTS_JSON" || ORCH_EXIT=$?
+CLAUDE_ARGS=(-p "$ORCH_PROMPT" --mcp-config "$MCP_CONFIG" --strict-mcp-config --allowedTools "mcp__contrast Task Bash" --agents "$AGENTS_JSON")
+if [ -n "$MODEL" ]; then
+  CLAUDE_ARGS+=(--model "$MODEL")
+fi
+claude "${CLAUDE_ARGS[@]}" || ORCH_EXIT=$?
 
 # --- if the orchestrator was killed, salvage individual results ------------
 if [ "$ORCH_EXIT" -ne 0 ]; then
