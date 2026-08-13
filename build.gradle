@@ -434,6 +434,12 @@ subprojects {
         testImplementation "org.assertj:assertj-core:${assertjVersion}"
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     }
+
+    if (project.name == 'contrast-mcp-core') {
+        dependencies {
+            testImplementation "com.tngtech.archunit:archunit-junit5:${archunitVersion}"
+        }
+    }
 }
 
 tasks.register('coverageSummary') {
