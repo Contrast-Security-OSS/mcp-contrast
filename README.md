@@ -311,9 +311,6 @@ These prompts work with either server, except where a section says otherwise.
 #### Retrieve Applications by Metadata
 * Please give me the applications with metadata "dev-team" and "backend-team."
 
-#### Static Scan (SAST) Results
-* Give me the details and vulnerability counts for scan project X.
-
 #### Retrieve Vulnerabilities by Session Metadata
 * Give me the session metadata for Application X.
 * Give me the vulnerabilities in the latest session for Application X.
