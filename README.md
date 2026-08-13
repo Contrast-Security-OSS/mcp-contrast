@@ -292,7 +292,7 @@ Getting the JAR file (download, attestation verification, and build from source)
 
 ## Sample prompts
 
-These prompts work with either server.
+These prompts work with either server, except where a section says otherwise.
 
 ### For the Developer
 #### Remediate Vulnerabilities in Code
@@ -311,6 +311,9 @@ These prompts work with either server.
 #### Retrieve Applications by Metadata
 * Please give me the applications with metadata "dev-team" and "backend-team."
 
+#### Static Scan (SAST) Results
+* Give me the details and vulnerability counts for scan project X.
+
 #### Retrieve Vulnerabilities by Session Metadata
 * Give me the session metadata for Application X.
 * Give me the vulnerabilities in the latest session for Application X.
@@ -322,6 +325,18 @@ These prompts work with either server.
 * Please give me a breakdown of applications and servers vulnerable to CVE-xxxx-xxxx.
 * Please list the libraries for the application named xxx and tell me what version of commons-collections is being used.
 * Which vulnerabilities in Application X are being blocked by a Protect or ADR rule?
+* Which production servers do not have Protect enabled?
+* Show me servers whose agents are out of date.
+* Show me attack events from the last 7 days and tell me which were exploited.
+
+### Hosted server with the unified data platform (NorthStar)
+These prompts require the hosted server and the Contrast unified data platform (NorthStar) to be enabled for your organization.
+* Which CVEs pose the highest risk across my organization?
+* Is my organization shielded from CVE-xxxx-xxxx?
+* Which applications and libraries are affected by CVE-xxxx-xxxx?
+* Show me open security issues for Application X.
+* Give me the details of incident X and the issues linked to it.
+* What observations provide evidence for issue X?
 
 ## Data privacy
 
@@ -334,6 +349,7 @@ Depending on what questions you ask the following information will be provided t
 * Route Coverage data
 * ADR/Protect Attack Event Details
 * Server inventory and agent details (hostnames, paths, agent versions, environments, log levels, and tags)
+* Issue, incident, observation, and CVE Shield data (hosted server with NorthStar)
 
 ## Changelog
 
