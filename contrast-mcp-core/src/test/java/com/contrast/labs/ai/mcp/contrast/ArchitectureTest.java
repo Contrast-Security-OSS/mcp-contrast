@@ -18,8 +18,8 @@ package com.contrast.labs.ai.mcp.contrast;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
+import static com.tngtech.archunit.library.freeze.FreezingArchRule.freeze;
 
-import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -29,9 +29,30 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
-import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Architectural rules for contrast-mcp-core.
+ *
+ * <p>Dependency and convention rules are wrapped in {@code freeze(...)}. Grandfathered violations
+ * live in the committed store at {@code src/test/resources/archunit-store}; any new violation fails
+ * immediately. The store is a ratchet: entries may only be removed, never added, without explicit
+ * user approval (same policy as checkstyle suppressions). After fixing a grandfathered violation,
+ * run {@code ./gradlew :contrast-mcp-core:test -ParchStoreUpdate} to shrink the store and commit
+ * the result. Configuration lives in {@code src/test/resources/archunit.properties}.
+ *
+ * <p>Known grandfathered violations and their burn-down beads:
+ *
+ * <ul>
+ *   <li>mcp-r7xbx — result package (AttackSummary, ServerSummary) depends on tool.base
+ *       (FilterHelper.formatTimestamp), which also creates the one top-level package cycle
+ *   <li>mcp-ax84i — tool.coverage depends on tool.application (ApplicationLicenseDiscriminator)
+ * </ul>
+ *
+ * <p>The size and complexity guardrails at the bottom are NOT frozen because their violation
+ * messages embed live counts. They ratchet manually like the coverage floors in the root
+ * build.gradle: lower a threshold as improvements land, never raise one to make a build pass.
+ */
 @AnalyzeClasses(
     packages = "com.contrast.labs.ai.mcp.contrast",
     importOptions = ImportOption.DoNotIncludeTests.class)
@@ -44,148 +65,158 @@ class ArchitectureTest {
   // Dependency direction: tool -> {client, result, sdkextension, hints}
   //                       client -> {result, sdkextension}
   //                       result and sdkextension.data are leaf packages
-  //
-  // Known violation (mcp-r7xbx): AttackSummary and ServerSummary call
-  // FilterHelper.formatTimestamp from tool.base. Fix by moving the timestamp
-  // formatter to a shared utility outside the tool package.
 
   @ArchTest
   static final ArchRule results_should_not_depend_on_tools =
-      noClasses()
-          .that()
-          .resideInAPackage(BASE + ".result..")
-          .and()
-          .haveNameNotMatching(".*AttackSummary.*")
-          .and()
-          .haveNameNotMatching(".*ServerSummary.*")
-          .should()
-          .dependOnClassesThat()
-          .resideInAPackage(BASE + ".tool..")
-          .as(
-              "Result models should not depend on tool implementations"
-                  + " (AttackSummary and ServerSummary are known exceptions, see mcp-r7xbx)");
+      freeze(
+          noClasses()
+              .that()
+              .resideInAPackage(BASE + ".result..")
+              .should()
+              .dependOnClassesThat()
+              .resideInAPackage(BASE + ".tool..")
+              .as("Result models should not depend on tool implementations"));
 
   @ArchTest
   static final ArchRule data_models_should_not_depend_on_tools =
-      noClasses()
-          .that()
-          .resideInAPackage(BASE + ".sdkextension.data..")
-          .should()
-          .dependOnClassesThat()
-          .resideInAPackage(BASE + ".tool..");
+      freeze(
+          noClasses()
+              .that()
+              .resideInAPackage(BASE + ".sdkextension.data..")
+              .should()
+              .dependOnClassesThat()
+              .resideInAPackage(BASE + ".tool.."));
 
   @ArchTest
   static final ArchRule hints_should_not_depend_on_tools =
-      noClasses()
-          .that()
-          .resideInAPackage(BASE + ".hints..")
-          .should()
-          .dependOnClassesThat()
-          .resideInAPackage(BASE + ".tool..");
+      freeze(
+          noClasses()
+              .that()
+              .resideInAPackage(BASE + ".hints..")
+              .should()
+              .dependOnClassesThat()
+              .resideInAPackage(BASE + ".tool.."));
+
+  // ── SDK containment ────────────────────────────────────────────────────────
+  //
+  // Only the client and sdkextension packages may use the Contrast SDK
+  // directly. Tools and result models should code against our own client
+  // abstraction so the published core stays decoupled from SDK churn. The
+  // grandfathered violations in the store are the burn-down list.
+
+  @ArchTest
+  static final ArchRule only_client_and_sdkextension_should_use_the_contrast_sdk =
+      freeze(
+          noClasses()
+              .that()
+              .resideOutsideOfPackages(BASE + ".client..", BASE + ".sdkextension..")
+              .should()
+              .dependOnClassesThat()
+              .resideInAPackage("com.contrastsecurity..")
+              .as("Only client and sdkextension may depend on the Contrast SDK directly"));
 
   // ── Dependency cycles ──────────────────────────────────────────────────────
   //
   // Top-level slices (tool, client, result, sdkextension, hints) must form a
   // DAG. The one known cycle is result -> tool.base (FilterHelper), tracked
-  // by mcp-r7xbx. Once that is fixed, remove the ignoreDependency call.
-
-  private static final DescribedPredicate<JavaClass> IN_RESULT_PACKAGE =
-      new DescribedPredicate<>("in result package") {
-        @Override
-        public boolean test(JavaClass c) {
-          return c.getPackageName().startsWith(BASE + ".result");
-        }
-      };
-
-  private static final DescribedPredicate<JavaClass> IN_TOOL_PACKAGE =
-      new DescribedPredicate<>("in tool package") {
-        @Override
-        public boolean test(JavaClass c) {
-          return c.getPackageName().startsWith(BASE + ".tool");
-        }
-      };
+  // by mcp-r7xbx and grandfathered in the store.
 
   @ArchTest
   static final ArchRule top_level_packages_should_be_cycle_free =
-      slices()
-          .matching(BASE + ".(*)..")
-          .should()
-          .beFreeOfCycles()
-          .ignoreDependency(IN_RESULT_PACKAGE, IN_TOOL_PACKAGE)
-          .as("Top-level packages should be free of dependency cycles");
+      freeze(
+          slices()
+              .matching(BASE + ".(*)..")
+              .should()
+              .beFreeOfCycles()
+              .as("Top-level packages should be free of dependency cycles"));
 
   // ── Tool domain isolation ──────────────────────────────────────────────────
   //
   // Each tool domain (vulnerability, application, library, attack, server,
   // sast, coverage) should only depend on tool.base and tool.validation,
-  // never on sibling domains.
-  //
-  // Known violation (mcp-ax84i): tool.coverage depends on tool.application
-  // for ApplicationLicenseDiscriminator. Fix by moving it to tool.base.
+  // never on sibling domains. The known coverage -> application dependency
+  // (ApplicationLicenseDiscriminator, mcp-ax84i) is grandfathered in the
+  // store.
 
   private static final String[] TOOL_DOMAINS = {
     "vulnerability", "application", "library", "attack", "server", "sast", "coverage"
   };
 
-  private static final Set<String> KNOWN_CROSS_DOMAIN_EXCEPTIONS = Set.of("coverage->application");
-
-  @ArchTest
-  static void tool_domains_should_not_cross_import(JavaClasses classes) {
+  private static String toolDomainOf(JavaClass javaClass) {
+    var pkg = javaClass.getPackageName();
     for (var domain : TOOL_DOMAINS) {
-      for (var other : TOOL_DOMAINS) {
-        if (domain.equals(other)) continue;
-        var key = domain + "->" + other;
-        if (KNOWN_CROSS_DOMAIN_EXCEPTIONS.contains(key)) continue;
-
-        noClasses()
-            .that()
-            .resideInAPackage(BASE + ".tool." + domain + "..")
-            .should()
-            .dependOnClassesThat()
-            .resideInAPackage(BASE + ".tool." + other + "..")
-            .as(
-                "tool."
-                    + domain
-                    + " should not depend on tool."
-                    + other
-                    + " (extract shared code to tool.base)")
-            .check(classes);
+      var prefix = BASE + ".tool." + domain;
+      if (pkg.equals(prefix) || pkg.startsWith(prefix + ".")) {
+        return domain;
       }
     }
+    return null;
   }
+
+  @ArchTest
+  static final ArchRule tool_domains_should_not_cross_import =
+      freeze(
+          classes()
+              .should(
+                  new ArchCondition<JavaClass>("not depend on sibling tool domains") {
+                    @Override
+                    public void check(JavaClass javaClass, ConditionEvents events) {
+                      var sourceDomain = toolDomainOf(javaClass);
+                      if (sourceDomain == null) {
+                        return;
+                      }
+                      javaClass.getDirectDependenciesFromSelf().stream()
+                          .filter(
+                              dep -> {
+                                var targetDomain = toolDomainOf(dep.getTargetClass());
+                                return targetDomain != null && !targetDomain.equals(sourceDomain);
+                              })
+                          .forEach(
+                              dep ->
+                                  events.add(
+                                      SimpleConditionEvent.violated(
+                                          javaClass, dep.getDescription())));
+                    }
+                  })
+              .as(
+                  "Tool domains should not depend on sibling domains"
+                      + " (extract shared code to tool.base)"));
 
   // ── Structural conventions ─────────────────────────────────────────────────
 
   @ArchTest
   static final ArchRule params_should_live_in_params_package =
-      classes()
-          .that()
-          .haveSimpleNameEndingWith("Params")
-          .and()
-          .resideInAPackage(BASE + ".tool..")
-          .and()
-          .resideOutsideOfPackage(BASE + ".tool.base..")
-          .and()
-          .resideOutsideOfPackage(BASE + ".tool.validation..")
-          .should()
-          .resideInAPackage("..params..")
-          .as("Domain-specific Params classes should live in a params sub-package");
+      freeze(
+          classes()
+              .that()
+              .haveSimpleNameEndingWith("Params")
+              .and()
+              .resideInAPackage(BASE + ".tool..")
+              .and()
+              .resideOutsideOfPackage(BASE + ".tool.base..")
+              .and()
+              .resideOutsideOfPackage(BASE + ".tool.validation..")
+              .should()
+              .resideInAPackage("..params..")
+              .as("Domain-specific Params classes should live in a params sub-package"));
 
   @ArchTest
   static final ArchRule client_classes_should_live_in_client_package =
-      classes()
-          .that()
-          .haveSimpleNameEndingWith("Client")
-          .and()
-          .resideInAPackage(BASE + "..")
-          .should()
-          .resideInAPackage(BASE + ".client..");
+      freeze(
+          classes()
+              .that()
+              .haveSimpleNameEndingWith("Client")
+              .and()
+              .resideInAPackage(BASE + "..")
+              .should()
+              .resideInAPackage(BASE + ".client.."));
 
   // ── Size and complexity guardrails ─────────────────────────────────────────
   //
-  // Thresholds sit a few points above current maximums so one new class or
-  // method does not fail an unrelated PR, matching the headroom convention
-  // used by the coverage floors in the root build.gradle.
+  // Not frozen: violation messages embed live counts, so store entries would
+  // stop matching as soon as a count changes. Thresholds sit a few points
+  // above current maximums and ratchet manually like the coverage floors in
+  // the root build.gradle: lower as improvements land, never raise.
 
   private static final int MAX_CLASSES_PER_PACKAGE = 20;
 

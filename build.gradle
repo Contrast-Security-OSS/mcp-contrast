@@ -191,6 +191,13 @@ subprojects {
         systemProperty 'junit.jupiter.execution.parallel.mode.classes.default', 'concurrent'
         systemProperty 'junit.jupiter.execution.parallel.config.strategy', 'dynamic'
         systemProperty 'junit.jupiter.execution.parallel.config.dynamic.factor', '1'
+        // ArchUnit FreezingArchRule store updates are opt-in. The store is
+        // read-only by default (archunit.properties) so CI and PIT never
+        // mutate it; pass -ParchStoreUpdate to let a local run remove fixed
+        // violations from the store.
+        if (project.hasProperty('archStoreUpdate')) {
+            systemProperty 'archunit.freeze.store.default.allowStoreUpdate', 'true'
+        }
     }
 
     jacoco {
