@@ -17,10 +17,11 @@ package com.contrast.labs.ai.mcp.contrast.tool.attack;
 
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Rule;
 import com.contrast.labs.ai.mcp.contrast.tool.attack.params.GetProtectRulesParams;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.ai.chat.model.ToolContext;
@@ -35,6 +36,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, ProtectData> {
 
+  static final String VIRTUAL_PATCH_TYPE = "Virtual Patch";
+
   private final ContrastApiClient contrastApiClient;
 
   public GetProtectRulesTool(ContrastApiClient contrastApiClient) {
@@ -45,33 +48,11 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
       name = "get_protect_rules",
       description =
           """
-          Takes an application ID and returns the Protect rules for the application.
-          Use search_applications first to get the application ID from a name.
-
-          Returns protection configuration including:
-          - Rule names (e.g., sql-injection, xss-reflected, path-traversal)
-          - Production mode for each rule (block, monitor, or off)
-          - Rule-specific configuration settings
-
-          Response shape note:
-          - Protect Rules use development/qa/production mode strings and populate uuid.
-          - Virtual Patches use enabledDev/enabledQa/enabledProd booleans instead; their
-            development/qa/production mode fields and uuid may be null.
-
-          Usage examples:
-          - Get protect rules: appId="app-123"
-
-          Note: Protect/ADR is a premium feature. The application must have Protect enabled
-          and at least one rule configured. If the application has no Protect rules configured,
-          an empty rules list will be returned.
-
-          Related tools:
-          - search_applications: Find application IDs by name or tag
-          - search_attacks: Search for attacks across the organization
+          Get Protect (ADR) rules for an application, including block/monitor/off mode per
+          environment. Use search_applications to find application IDs.
           """)
   public SingleToolResponse<ProtectData> getProtectRules(
-      @ToolParam(description = "Application ID (use search_applications to find)") String appId,
-      ToolContext toolContext) {
+      @ToolParam(description = "Application ID") String appId, ToolContext toolContext) {
     return executePipeline(() -> GetProtectRulesParams.of(appId), toolContext);
   }
 
@@ -80,7 +61,7 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
   }
 
   @Override
-  protected ProtectData doExecute(GetProtectRulesParams params, WarningCollector collector)
+  protected ProtectData doExecute(GetProtectRulesParams params, NoticeCollector collector)
       throws Exception {
     var protectData = contrastApiClient.getProtectRules(params.appId());
 
@@ -90,9 +71,20 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
 
     var ruleCount = Optional.ofNullable(protectData.getRules()).map(List::size).orElse(0);
     if (ruleCount == 0) {
-      collector.warn("Application has Protect enabled but no rules are configured.");
+      collector.notice("Application has Protect enabled but no rules are configured.");
+    }
+    if (Optional.ofNullable(protectData.getRules()).orElse(List.of()).stream()
+        .anyMatch(GetProtectRulesTool::isVirtualPatch)) {
+      collector.notice(
+          VIRTUAL_PATCH_TYPE
+              + " entries use enabledDev/enabledQa/enabledProd booleans; their"
+              + " development/qa/production mode fields and uuid are not populated.");
     }
 
     return protectData;
+  }
+
+  private static boolean isVirtualPatch(Rule rule) {
+    return VIRTUAL_PATCH_TYPE.equalsIgnoreCase(rule.getType());
   }
 }

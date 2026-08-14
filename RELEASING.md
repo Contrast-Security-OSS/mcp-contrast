@@ -12,15 +12,49 @@ This project uses the **Gradle Release** GitHub Actions workflow. Release versio
 - Access to trigger GitHub Actions workflows
 - A green `main` branch
 
+## Orchestrated Release
+
+The whole process below can be driven from a Claude Code session with `/release`.
+The skill runs the preflight checks, drafts and audits the changelog first, takes
+your version decision from that evidence, then creates the release ticket and branch,
+lands the changelog and version stamp, runs the smoke test, dispatches and monitors
+the Gradle Release workflow, verifies the published artifacts, syncs the GitHub
+release notes from the changelog, sweeps Jira and beads, and announces in Slack. You
+keep the decisions: the changelog draft, the version, the changelog PR merge, the
+go/no-go before dispatch, the tracker sweep, and the announcement. See
+`.claude/skills/release/` for details. The manual steps below remain authoritative if
+you release by hand.
+
+## Pre-release Testing
+
+Before you cut a release, exercise the shipped tools against a live org. From a
+Claude Code session on the release branch, run `/test-mcp-server`. It builds the
+stdio jar fresh, wires that exact artifact into a separate headless Claude
+instance, and has that instance test every tool it discovers using credentials
+from `.env.integration-test`. Pass `smoke` for a fast is-it-alive pass or run it
+plain for in-depth exploratory testing. The run is read-only and prints a report
+for you to read. Treat it as a judgement aid, not an automatic gate. See
+`.claude/skills/test-mcp-server/` for details.
+
+## Pre-release Changelog Update
+
+Before you cut a release, bring `CHANGELOG.md` up to date. From a Claude Code session,
+run `/update-changelog`. It diffs the last release tag against `origin/main`, drafts
+`[Unreleased]` entries for every user-facing change, audits the draft for completeness
+with a read-only subagent, and lands the result on a branch after you approve the
+draft. Merge that change before dispatching the release so the tag contains the
+finished changelog. See `.claude/skills/update-changelog/` for details.
+
 ## Release Steps
 
 1. Ensure all desired changes are merged to `main`.
-2. Confirm CI is passing.
-3. Navigate to the [GitHub Actions](https://github.com/Contrast-Security-OSS/mcp-contrast/actions) page.
-4. Select the **Gradle Release** workflow.
-5. Click **Run workflow** and select `main`.
-6. Leave `release_version` blank for a normal patch release, or enter an explicit `X.Y.Z` version for a major, minor, or migration release.
-7. Start the run.
+2. Ensure the `[Unreleased]` section of `CHANGELOG.md` documents the release. Run `/update-changelog` if needed (see Pre-release Changelog Update).
+3. Confirm CI is passing.
+4. Navigate to the [GitHub Actions](https://github.com/Contrast-Security-OSS/mcp-contrast/actions) page.
+5. Select the **Gradle Release** workflow.
+6. Click **Run workflow** and select `main`.
+7. Leave `release_version` blank for a normal patch release, or enter an explicit `X.Y.Z` version for a major, minor, or migration release.
+8. Start the run.
 
 The first Axion-managed release must be run with `release_version=2.0.0`. After `v2.0.0` exists, leaving `release_version` blank creates the next patch release from the latest `vX.Y.Z` tag.
 
@@ -85,7 +119,7 @@ test -f contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar
 
 Then create a GitHub release for the tag and attach `contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar`. Note that these manual instructions do not publish to Artifactory, sign the Docker image, generate SBOMs, or create attestations. Use the workflow whenever possible.
 
-**Coverage gate:** `check` runs `jacocoTestCoverageVerification`, so a release aborts if either module falls below its floor in `ext.coverageMinimums`. Because releases only run from `main`, and the same task and floors already gated the commit in `build.yml`, this should not fire in practice. If it does, run `make coverage` locally for the per-module numbers, or read the `jacoco-coverage-reports` artifact from that commit's build run.
+**Coverage gate:** `check` runs `jacocoTestCoverageVerification`, so a release aborts if either module falls below its floor in `ext.coverageMinimums`. Because releases only run from `main`, and the same task and floors already gated the commit in `build.yml`, this should not fire in practice. If it does, run `make coverage` locally for the per-module numbers, or read the `test-reports` artifact (JaCoCo coverage plus PIT mutation reports) from that commit's build run.
 
 ## Verify the Release
 
@@ -98,6 +132,7 @@ This checklist describes an automated workflow release. For a manual recovery re
 - `contrast-mcp-core` artifact is available in Artifactory at the release version.
 - `main` has no release-version or next-snapshot commits from the workflow.
 - `./gradlew -q printVersion` on the release tag prints `X.Y.Z`.
+- GitHub release notes contain the changelog entries for this version. Copy the `[X.Y.Z]` section from `CHANGELOG.md` into the release body. This is manual for now but will be automated.
 
 ## Troubleshooting
 

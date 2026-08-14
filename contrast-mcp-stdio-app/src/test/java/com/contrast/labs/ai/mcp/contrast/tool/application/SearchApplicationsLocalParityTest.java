@@ -177,7 +177,7 @@ class SearchApplicationsLocalParityTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
     assertThat(result.totalItems()).isEqualTo(0);
-    assertThat(result.warnings()).anyMatch(w -> w.contains("No results found"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("No results found"));
   }
 
   @Test
@@ -230,7 +230,7 @@ class SearchApplicationsLocalParityTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("API returned no application data"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("API returned no application data"));
   }
 
   // -- Helper methods --

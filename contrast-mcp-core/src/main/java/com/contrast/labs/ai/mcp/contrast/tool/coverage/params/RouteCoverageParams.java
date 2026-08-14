@@ -75,7 +75,7 @@ public class RouteCoverageParams extends BaseToolParams {
         "sessionMetadataName is required when sessionMetadataValue is provided");
 
     // Warn if both useLatestSession and metadata params provided (mutually exclusive)
-    ctx.warnIf(
+    ctx.noticeIf(
         Boolean.TRUE.equals(useLatestSession) && hasName,
         "Both useLatestSession and sessionMetadataName provided - "
             + "useLatestSession takes precedence and sessionMetadata filter will be ignored");

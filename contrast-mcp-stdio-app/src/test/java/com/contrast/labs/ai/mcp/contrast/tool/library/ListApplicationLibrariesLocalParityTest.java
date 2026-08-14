@@ -92,7 +92,7 @@ class ListApplicationLibrariesLocalParityTest {
   }
 
   @Test
-  void listApplicationLibraries_should_return_empty_list_with_warning_when_no_libraries()
+  void listApplicationLibraries_should_return_empty_list_with_notice_when_no_libraries()
       throws IOException {
     var mockResponse = createMockResponse(new ArrayList<>(), 0L);
     mockedSDKHelper
@@ -107,7 +107,7 @@ class ListApplicationLibrariesLocalParityTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
     assertThat(result.totalItems()).isEqualTo(0);
-    assertThat(result.warnings()).anyMatch(w -> w.contains("No libraries found"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("No libraries found"));
   }
 
   @Test
@@ -126,7 +126,7 @@ class ListApplicationLibrariesLocalParityTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("No libraries found"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("No libraries found"));
   }
 
   @Test
@@ -225,7 +225,7 @@ class ListApplicationLibrariesLocalParityTest {
   }
 
   @Test
-  void listApplicationLibraries_should_cap_pageSize_at_50_with_warning() throws IOException {
+  void listApplicationLibraries_should_cap_pageSize_at_50_with_notice() throws IOException {
     var mockLibraries = createMockLibraries(50);
     var mockResponse = createMockResponse(mockLibraries, 200L);
 
@@ -237,14 +237,14 @@ class ListApplicationLibrariesLocalParityTest {
                     eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension), eq(50), eq(0)))
         .thenReturn(mockResponse);
 
-    // Request pageSize 100, should be capped to 50 with warning
+    // Request pageSize 100, should be capped to 50 with notice
     var result = tool.listApplicationLibraries(1, 100, TEST_APP_ID);
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).hasSize(50);
     assertThat(result.totalItems()).isEqualTo(200);
     assertThat(result.pageSize()).isEqualTo(50); // Response shows effective (capped) amount
-    assertThat(result.warnings()).anyMatch(w -> w.contains("exceeds maximum 50"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("exceeds maximum 50"));
   }
 
   private List<LibraryExtended> createMockLibraries(int count) {

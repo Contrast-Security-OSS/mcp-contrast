@@ -16,7 +16,7 @@ jobs:
 
     steps:
     - name: Harden the runner (Audit all outbound calls)
-      uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+      uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
       with:
         egress-policy: audit
 
@@ -28,10 +28,10 @@ jobs:
         # This job runs PR-authored build code and no step pushes.
         persist-credentials: false
     - name: Validate Gradle wrapper
-      uses: gradle/actions/wrapper-validation@6550634d3eb14a20275549de1588a83267023d42 # v6
+      uses: gradle/actions/wrapper-validation@889dc537cf3672c0c060560c9ead940a2b8b7077 # v6
 
     - name: Set up JDK 21
-      uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+      uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
       with:
         java-version: '21'
         distribution: 'temurin'
@@ -57,9 +57,13 @@ jobs:
         -PjacocoChangedBase="$BASE_SHA"
         --no-daemon
 
+    - name: Run mutation testing
+      if: github.event_name == 'pull_request'
+      run: ./gradlew :contrast-mcp-core:pitest --no-daemon
+
     # Runs even when the coverage floor fails, since that is exactly when the
     # numbers and the HTML report are needed to diagnose the failure. coverageSummary
-    # only reads the reports the step above wrote, so this does not re-run the tests;
+    # only reads the reports the coverage step wrote, so this does not re-run the tests;
     # if that step failed before producing them, the table says so per module. !cancelled()
     # rather than always(), so cancelling the workflow actually stops it.
     - name: Publish coverage summary
@@ -70,10 +74,11 @@ jobs:
       if: ${{ !cancelled() }}
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
-        name: jacoco-coverage-reports
+        name: test-reports
         path: |
           **/build/reports/jacoco/test/html/**
           **/build/reports/jacoco/test/jacocoTestReport.xml
+          **/build/reports/pitest/**
         if-no-files-found: warn
         # Diagnostic output for a failed run, not a durable artifact.
         retention-days: 7

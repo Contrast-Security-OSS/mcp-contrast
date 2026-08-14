@@ -23,10 +23,10 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Applicati
 import com.contrast.labs.ai.mcp.contrast.tool.application.params.ApplicationFilterParams;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
 import com.contrast.labs.ai.mcp.contrast.tool.base.FilterHelper;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.UnresolvedMetadataFilter;
 import java.util.HashMap;
 import java.util.List;
@@ -56,21 +56,11 @@ public class SearchApplicationsTool
       name = "search_applications",
       description =
           """
-          Search applications with optional filters. Returns all applications if no filters specified.
+          Search applications by name, tag, or custom metadata. Returns every application when no
+          filters are given. This is the discovery tool for the appId parameter used by
+          application-scoped tools.
 
-          Filtering behavior:
-          - name: Server-side text search on displayName, contextPath, tags, and metadata values
-          - tag: Exact, case-insensitive matching
-          - metadataFilters: JSON object for metadata field filtering
-            - Format: {"fieldName":"value"} or {"fieldName":["value1","value2"]}
-            - Multiple fields use AND logic, multiple values use OR logic
-            - Field names are case-insensitive
-            - Values are case-insensitive
-            - Values must be non-empty (empty, null, or whitespace-only values are rejected)
-
-          Related tools:
-          - get_session_metadata: Get session metadata for an application
-          - search_vulnerabilities: Search vulnerabilities across applications
+          Example: name="petclinic", metadataFilters='{"team":"payments"}'
           """)
   public PaginatedToolResponse<ApplicationData> searchApplications(
       @ToolParam(description = "Page number (1-based), default: 1", required = false) Integer page,
@@ -85,7 +75,9 @@ public class SearchApplicationsTool
       @ToolParam(
               description =
                   "JSON object for metadata filters. Format: {\"field\":\"value\"} or"
-                      + " {\"field\":[\"v1\",\"v2\"]}",
+                      + " {\"field\":[\"v1\",\"v2\"]}. Multiple fields use AND logic."
+                      + " Multiple values within a field use OR logic. Field names and values are"
+                      + " case-insensitive. Values must be non-empty.",
               required = false)
           String metadataFilters,
       ToolContext toolContext) {
@@ -101,7 +93,7 @@ public class SearchApplicationsTool
 
   @Override
   protected ExecutionResult<ApplicationData> doExecute(
-      PaginationParams pagination, ApplicationFilterParams params, WarningCollector collector)
+      PaginationParams pagination, ApplicationFilterParams params, NoticeCollector collector)
       throws Exception {
 
     // Resolve metadata field names to IDs if metadata filters provided
@@ -123,13 +115,32 @@ public class SearchApplicationsTool
             pagination.offset());
 
     if (response == null || response.getApplications() == null) {
-      collector.warn("API returned no application data.");
+      collector.notice("API returned no application data.");
       return ExecutionResult.empty();
     }
+
+    noticeNeverObservedApps(response.getApplications(), collector);
 
     var applications = response.getApplications().stream().map(this::toApplicationData).toList();
 
     return ExecutionResult.of(applications, response.getCount());
+  }
+
+  // TeamServer sends last_seen 0 for applications that have never reported agent activity, which
+  // renders as the 1970 Unix epoch in lastSeenAt (Jira AIML-1331).
+  private static void noticeNeverObservedApps(
+      List<Application> applications, NoticeCollector collector) {
+    var neverObserved =
+        applications.stream()
+            .filter(app -> app.getLastSeen() != null && app.getLastSeen() == 0)
+            .map(Application::getName)
+            .toList();
+    if (!neverObserved.isEmpty()) {
+      collector.notice(
+          "lastSeenAt at the 1970 Unix epoch means the application has never been observed"
+              + " running, typically a static or SCA-only upload: "
+              + String.join(", ", neverObserved));
+    }
   }
 
   /**

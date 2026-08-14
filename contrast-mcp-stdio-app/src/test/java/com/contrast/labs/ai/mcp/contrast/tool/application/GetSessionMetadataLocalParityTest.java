@@ -76,7 +76,7 @@ class GetSessionMetadataLocalParityTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("No session metadata found"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("No session metadata found"));
   }
 
   @Test

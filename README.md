@@ -73,6 +73,8 @@ Any MCP client that supports Streamable HTTP transport and OAuth 2.0 with PKCE c
 
 Your client discovers the OAuth configuration automatically through the `WWW-Authenticate` response header, which points to the standard `/.well-known/oauth-protected-resource` metadata document. Clients that support Dynamic Client Registration can register at `/oauth2/connect/register` on the Contrast origin.
 
+These OAuth scopes cover identity only, and that is deliberate. The token grants no data permissions of its own. Authorization is decided by the Contrast platform on every request, using the signed-in user's existing role-based access control. This means there is no broadly-scoped token for an agent to hold or leak, and no authorization scope to get wrong at connection time. See [Security and privacy](#security-and-privacy) for the full model.
+
 ### Supported clients
 
 | Client | Status |
@@ -94,7 +96,8 @@ The hosted server changes how access works without changing what you are allowed
 - **OAuth, not API keys.** You sign in through your browser, so there are no long-lived keys to distribute or store on developer machines.
 - **Read-only.** Every hosted tool is read-only. You cannot modify, update, or delete data through the hosted server.
 - **Organization-scoped.** Each session is bound to the single organization you select at sign-in, so there is no organization ID to guess or get wrong.
-- **Your existing permissions apply.** Every request carries your identity to Contrast, which enforces the same role-based access control as the web interface. If you cannot see something in Contrast, your agent cannot see it either.
+- **Your existing permissions apply.** Every request carries your identity to Contrast, which enforces the same role-based access control as the web interface. If you cannot see something in Contrast, your agent cannot see it either. Authorization is a runtime decision made on each request, not a one-time grant encoded in the token, so scoping an agent is the same exercise as scoping its user.
+- **Every tool call is audited.** Contrast records each request with a unique identifier, the tool invoked, the user, the organization, and the outcome, supporting incident reconstruction.
 - **No data storage.** The hosted server stores none of your data, and your token never appears in a tool response.
 
 The shared warning above still applies. Tool results become part of your AI conversation, so follow your organization's policy on what security data can be sent to your chosen AI client and model.
@@ -125,6 +128,11 @@ The hosted server provides read-only tools across the domains below. Your agent 
 | `search_applications` | Search applications by name, tag, or metadata filters |
 | `get_session_metadata` | Get session metadata fields available for an application |
 
+#### Servers
+| Tool | Description |
+|------|-------------|
+| `search_servers` | Search the server inventory for agent health and Protect coverage |
+
 #### Libraries (SCA)
 | Tool | Description |
 |------|-------------|
@@ -147,25 +155,24 @@ The hosted server provides read-only tools across the domains below. Your agent 
 |------|-------------|
 | `get_scan_project` | Get SAST project details and vulnerability counts |
 
-#### Issues, Incidents, and Observations
+#### CVEs, Issues, Incidents, and Observations
 These tools require the Contrast unified data platform (NorthStar) to be enabled for your organization.
 
 | Tool | Description |
 |------|-------------|
+| `search_cves` | Search CVEs across your organization for CVE Shield exposure and risk |
+| `list_cve_issues` | List affected applications and libraries for a CVE, one issue per pair |
+| `get_cve_impact` | Get CVE risk, exposure, and shield protection posture across your organization |
 | `search_issues` | Search and filter security issues across your organization |
 | `get_issue` | Get full details for a specific issue |
-| `get_issue_summary` | Get a concise summary of a specific issue |
-| `get_issue_count` | Count issues matching filters without fetching full details |
 | `list_issue_incidents` | List incidents linked to an issue |
 | `list_issues_by_library` | List open issues associated with an application library |
 | `search_incidents` | Search and filter incidents |
 | `get_incident` | Get full details for a specific incident |
-| `get_incident_summary` | Get a concise summary of a specific incident |
 | `list_incident_issues` | List issues linked to an incident |
 | `get_observation` | Get full details for a specific observation |
 | `list_issue_observations` | List observations linked to an issue (cursor-paginated) |
 | `list_incident_observations` | List observations linked to an incident (cursor-paginated) |
-| `get_incident_observation_count` | Count observations linked to an incident without paging |
 
 </details>
 
@@ -285,7 +292,7 @@ Getting the JAR file (download, attestation verification, and build from source)
 
 ## Sample prompts
 
-These prompts work with either server.
+These prompts work with either server, except where a section says otherwise.
 
 ### For the Developer
 #### Remediate Vulnerabilities in Code
@@ -315,6 +322,18 @@ These prompts work with either server.
 * Please give me a breakdown of applications and servers vulnerable to CVE-xxxx-xxxx.
 * Please list the libraries for the application named xxx and tell me what version of commons-collections is being used.
 * Which vulnerabilities in Application X are being blocked by a Protect or ADR rule?
+* Which production servers do not have Protect enabled?
+* Show me servers whose agents are out of date.
+* Show me attack events from the last 7 days and tell me which were exploited.
+
+### Hosted server with the unified data platform (NorthStar)
+These prompts require the hosted server and the Contrast unified data platform (NorthStar) to be enabled for your organization.
+* Which CVEs pose the highest risk across my organization?
+* Is my organization shielded from CVE-xxxx-xxxx?
+* Which applications and libraries are affected by CVE-xxxx-xxxx?
+* Show me open security issues for Application X.
+* Give me the details of incident X and the issues linked to it.
+* What observations provide evidence for issue X?
 
 ## Data privacy
 
@@ -327,6 +346,7 @@ Depending on what questions you ask the following information will be provided t
 * Route Coverage data
 * ADR/Protect Attack Event Details
 * Server inventory and agent details (hostnames, paths, agent versions, environments, log levels, and tags)
+* Issue, incident, observation, and CVE Shield data (hosted server with NorthStar)
 
 ## Changelog
 

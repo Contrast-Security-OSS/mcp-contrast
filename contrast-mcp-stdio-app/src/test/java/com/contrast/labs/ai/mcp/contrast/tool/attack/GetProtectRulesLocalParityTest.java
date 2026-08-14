@@ -67,11 +67,11 @@ class GetProtectRulesLocalParityTest {
     assertThat(response.isSuccess()).isTrue();
     assertThat(response.found()).isTrue();
     assertThat(response.errors()).isEmpty();
-    assertThat(response.warnings()).isEmpty();
+    assertThat(response.notices()).isEmpty();
     assertThat(response.data().getRules())
         .extracting(Rule::getName)
-        .containsExactly("sql-injection", "xss-reflected");
-    assertThat(responseJson).contains("sql-injection", "xss-reflected").doesNotContain(TEST_ORG_ID);
+        .containsExactly("sql-injection", "reflected-xss");
+    assertThat(responseJson).contains("sql-injection", "reflected-xss").doesNotContain(TEST_ORG_ID);
     verify(sdkExtension).getProtectConfig(TEST_ORG_ID, TEST_APP_ID);
   }
 
@@ -85,7 +85,7 @@ class GetProtectRulesLocalParityTest {
     rules.add(sqlRule);
 
     var xssRule = new Rule();
-    xssRule.setName("xss-reflected");
+    xssRule.setName("reflected-xss");
     xssRule.setProduction("monitor");
     rules.add(xssRule);
 

@@ -87,7 +87,7 @@ public class AttackFilterParams extends BaseToolParams {
    * @param includeBotBlockers Include bot blocker attacks
    * @param includeIpBlacklist Include IP blacklist attacks
    * @param sort Sort field (e.g., "startTime,DESC")
-   * @param rules Comma-separated list of rule IDs (e.g., "sql-injection,xss-reflected")
+   * @param rules Comma-separated list of rule IDs (e.g., "sql-injection,reflected-xss")
    * @return AttackFilterParams with validation state
    */
   public static AttackFilterParams of(
@@ -124,19 +124,19 @@ public class AttackFilterParams extends BaseToolParams {
     // Parse includeSuppressed with smart default
     if (includeSuppressed == null) {
       params.includeSuppressed = false;
-      ctx.warnIf(
-          true,
-          "Excluding suppressed attacks by default. "
-              + "To see all attacks including suppressed, set includeSuppressed=true.");
     } else {
       params.includeSuppressed = includeSuppressed;
     }
+    ctx.noticeIf(
+        includeSuppressed == null,
+        "Excluding suppressed attacks by default. "
+            + "To see all attacks including suppressed, set includeSuppressed=true.");
 
     // Parse other boolean filters (no defaults needed)
     params.includeBotBlockers = includeBotBlockers;
     params.includeIpBlacklist = includeIpBlacklist;
 
-    params.sort = ToolSortParser.parse(ctx, sort, SORT_FIELDS, true, null);
+    params.sort = ToolSortParser.parse(ctx, sort, SORT_FIELDS, null);
 
     // Parse rules (comma-separated list of rule IDs)
     params.rules = ctx.stringListParam(rules, "rules").get();

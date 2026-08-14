@@ -30,7 +30,7 @@ class ServerFilterParamsTest {
     var params = params(null, null, null, null, null, null, null, null, null);
 
     assertThat(params.isValid()).isTrue();
-    assertThat(params.warnings()).isEmpty();
+    assertThat(params.notices()).isEmpty();
     assertThat(params.getQuickFilter()).isEqualTo("ALL");
     assertThat(params.getSort()).isEqualTo("-lastActivity");
     assertThat(params.isIncludeApplications()).isFalse();

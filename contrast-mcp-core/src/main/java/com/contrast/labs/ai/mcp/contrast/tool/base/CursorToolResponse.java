@@ -27,8 +27,10 @@ import org.springframework.lang.Nullable;
  * @param pageSize page size used
  * @param nextCursor opaque continuation token, or null when absent
  * @param hasMore true when another page can be fetched
+ * @param totalItems total count across all pages, or null when unavailable
  * @param errors validation or execution errors
- * @param warnings non-fatal warnings
+ * @param notices Informational notices: applied defaults, failed optional enrichments, empty-result
+ *     explanations, interpretation facts
  * @param durationMs execution duration in milliseconds
  */
 public record CursorToolResponse<T>(
@@ -36,14 +38,15 @@ public record CursorToolResponse<T>(
     int pageSize,
     @Nullable String nextCursor,
     boolean hasMore,
+    @Nullable Integer totalItems,
     List<String> errors,
-    List<String> warnings,
+    List<String> notices,
     @Nullable Long durationMs) {
 
   public CursorToolResponse {
     items = items != null ? List.copyOf(items) : List.of();
     errors = errors != null ? List.copyOf(errors) : List.of();
-    warnings = warnings != null ? List.copyOf(warnings) : List.of();
+    notices = notices != null ? List.copyOf(notices) : List.of();
   }
 
   /**
@@ -60,18 +63,30 @@ public record CursorToolResponse<T>(
       int pageSize,
       @Nullable String nextCursor,
       boolean hasMore,
-      List<String> warnings,
+      List<String> notices,
+      @Nullable Long durationMs) {
+    return success(items, pageSize, nextCursor, hasMore, null, notices, durationMs);
+  }
+
+  public static <T> CursorToolResponse<T> success(
+      List<T> items,
+      int pageSize,
+      @Nullable String nextCursor,
+      boolean hasMore,
+      @Nullable Integer totalItems,
+      List<String> notices,
       @Nullable Long durationMs) {
     return new CursorToolResponse<>(
-        items, pageSize, nextCursor, hasMore, List.of(), warnings, durationMs);
+        items, pageSize, nextCursor, hasMore, totalItems, List.of(), notices, durationMs);
   }
 
   public static <T> CursorToolResponse<T> validationError(int pageSize, List<String> errors) {
-    return new CursorToolResponse<>(List.of(), pageSize, null, false, errors, List.of(), null);
+    return new CursorToolResponse<>(
+        List.of(), pageSize, null, false, null, errors, List.of(), null);
   }
 
   public static <T> CursorToolResponse<T> error(int pageSize, String errorMessage) {
     return new CursorToolResponse<>(
-        List.of(), pageSize, null, false, List.of(errorMessage), List.of(), null);
+        List.of(), pageSize, null, false, null, List.of(errorMessage), List.of(), null);
   }
 }

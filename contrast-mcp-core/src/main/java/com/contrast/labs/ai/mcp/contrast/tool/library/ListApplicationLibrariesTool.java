@@ -18,10 +18,10 @@ package com.contrast.labs.ai.mcp.contrast.tool.library;
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.library.params.ListApplicationLibrariesParams;
 import com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants;
 import java.util.List;
@@ -53,38 +53,17 @@ public class ListApplicationLibrariesTool
       name = "list_application_libraries",
       description =
           """
-          Returns all libraries used by a specific application.
-
-          Use search_applications(name=...) to find the application ID from a name.
-
-          Response includes for each library:
-          - filename: Library file name (e.g., "log4j-core-2.17.1.jar")
-          - version: Library version
-          - hash: Unique library hash for identification
-          - classCount: Total classes in the library
-          - classesUsed: Number of classes actually loaded by the application
-          - totalVulnerabilities: Total CVE count
-          - criticalVulnerabilities: CRITICAL severity CVE count
-          - highVulnerabilities: HIGH severity CVE count (not CRITICAL)
-          - mediumVulnerabilities: MEDIUM severity CVE count
-          - lowVulnerabilities: LOW severity CVE count
-          - noteVulnerabilities: NOTE severity CVE count
-          - vulnerabilities: Known CVEs affecting this library version
-          - grade: Library security grade (A-F)
-
-          Note: If classesUsed is 0, the library is likely not actively used and may
-          be a transitive dependency. Libraries with 0 class usage are unlikely to
-          be exploitable even if they have known vulnerabilities.
-
-          Related tools:
-          - search_applications: Find application IDs by name, tag, or metadata
-          - list_applications_by_cve: Find applications affected by a specific CVE
+          List the third-party libraries in one application, with known CVEs, severity counts,
+          security grade, and class usage. classesUsed 0 means no classes from that library were
+          seen loaded, so it is likely unused and unlikely to be exploitable. Use
+          search_applications to find application IDs. Use list_applications_by_cve for the reverse
+          direction, from a CVE to affected applications.
           """)
   public PaginatedToolResponse<LibraryExtended> listApplicationLibraries(
       @ToolParam(description = "Page number (1-based), default: 1", required = false) Integer page,
       @ToolParam(description = "Items per page (max 50), default: 50", required = false)
           Integer pageSize,
-      @ToolParam(description = "Application ID (use search_applications to find)") String appId,
+      @ToolParam(description = "Application ID") String appId,
       ToolContext toolContext) {
     return executePipeline(
         page, pageSize, () -> ListApplicationLibrariesParams.of(appId), toolContext);
@@ -97,9 +76,7 @@ public class ListApplicationLibrariesTool
 
   @Override
   protected ExecutionResult<LibraryExtended> doExecute(
-      PaginationParams pagination,
-      ListApplicationLibrariesParams params,
-      WarningCollector collector)
+      PaginationParams pagination, ListApplicationLibrariesParams params, NoticeCollector collector)
       throws Exception {
 
     log.debug("Retrieving libraries for application: {}", params.appId());
@@ -113,7 +90,7 @@ public class ListApplicationLibrariesTool
 
     if (libraries == null || libraries.isEmpty()) {
       if (pagination.offset() == 0 && total == 0) {
-        collector.warnForEmptyResults(
+        collector.noticeForEmptyResults(
             "No libraries found for this application. "
                 + "The application may not have any third-party dependencies, "
                 + "or library data may not have been collected yet.");

@@ -18,10 +18,14 @@ package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.result.RouteCoverageResponseLight;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
+import com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator;
+import com.contrast.labs.ai.mcp.contrast.tool.base.ActionableToolErrorException;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.coverage.params.RouteCoverageParams;
+import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.models.RouteCoverageMetadataLabelValues;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
@@ -41,56 +45,39 @@ import org.springframework.stereotype.Service;
 public class GetRouteCoverageTool
     extends SingleTool<RouteCoverageParams, RouteCoverageResponseLight> {
 
+  public static final String ARCHIVED_APPLICATION_ERROR =
+      "This application is archived. Route coverage is not available for archived applications."
+          + " The application ID is correct, do not retry. Unarchive the application in Contrast"
+          + " to view route coverage.";
+  public static final String UNLICENSED_APPLICATION_ERROR =
+      "This application is unlicensed and route coverage requires an Assess license. The"
+          + " application ID is correct, do not retry. Apply an Assess license to the application"
+          + " in Contrast to view route coverage.";
+  public static final String LICENSED_APPLICATION_ACCESS_DENIED_ERROR =
+      "Contrast denied access to route coverage even though the application is visible and"
+          + " licensed. This can occur briefly after a license change.";
+
+  private static final int HTTP_FORBIDDEN = 403;
+
   private final ContrastApiClient contrastApiClient;
   private final RouteMapper routeMapper;
+  private final ApplicationLicenseDiscriminator applicationLicenseDiscriminator;
 
   @Tool(
       name = "get_route_coverage",
       description =
           """
-          Retrieves route coverage data for an application.
-
-          Routes can have these statuses:
-          - DISCOVERED: Found by Contrast Assess but has not received any HTTP requests
-          - EXERCISED: Has received at least one HTTP request
-          - EXCLUDED: Excluded from route coverage tracking
-
-          Response fields:
-          - success: Whether the request completed successfully
-          - messages: Informational messages returned by the service
-          - totalRoutes: Total number of routes
-          - exercisedCount: Number of routes with EXERCISED status
-          - discoveredCount: Number of routes with DISCOVERED status
-          - coveragePercent: Percentage of routes that are exercised
-          - totalVulnerabilities: Total vulnerabilities across the returned routes
-          - totalCriticalVulnerabilities: Critical vulnerabilities across the returned routes
-          - routes: List of routes with coverage status and details. Each route includes
-            environments; this list is empty for session-filtered routes because the source omits
-            that data.
-
-          Filtering options (mutually exclusive):
-          - No filter: Returns all routes across all sessions
-          - sessionMetadataName + sessionMetadataValue: Filter by session metadata (e.g., branch=main)
-          - useLatestSession: Filter by the most recent session only
-
-          NOTE: sessionMetadataName and sessionMetadataValue must be provided together or both omitted.
-          If both useLatestSession and session metadata are provided, useLatestSession takes precedence.
-
-          Usage examples:
-          - Get all routes: appId="app-123"
-          - Filter by branch: appId="app-123", sessionMetadataName="branch", sessionMetadataValue="main"
-          - Latest session only: appId="app-123", useLatestSession=true
-
-          Related tools:
-          - search_applications: Find application IDs by name or tag
-          - get_session_metadata: View available session metadata fields
+          Get route coverage for an application: which routes have been exercised by HTTP requests
+          and which were only discovered. Use search_applications to find application IDs. Route
+          coverage requires the application to hold an Assess license; unlicensed applications
+          return an error.
           """)
   public SingleToolResponse<RouteCoverageResponseLight> getRouteCoverage(
-      @ToolParam(description = "Application ID (use search_applications to find)") String appId,
+      @ToolParam(description = "Application ID") String appId,
       @ToolParam(
               description =
                   "Session metadata field name to filter by (e.g., 'branch'). Must be provided with"
-                      + " sessionMetadataValue.",
+                      + " sessionMetadataValue. Use get_session_metadata to discover field names.",
               required = false)
           String sessionMetadataName,
       @ToolParam(
@@ -124,7 +111,7 @@ public class GetRouteCoverageTool
 
   @Override
   protected RouteCoverageResponseLight doExecute(
-      RouteCoverageParams params, WarningCollector collector) throws Exception {
+      RouteCoverageParams params, NoticeCollector collector) throws Exception {
 
     // Build request based on parameters
     RouteCoverageBySessionIDAndMetadataRequestExtended request = null;
@@ -136,13 +123,13 @@ public class GetRouteCoverageTool
 
       if (latest == null) {
         log.warn("No session metadata found for application ID: {}", params.appId());
-        collector.warn("Session metadata not available for this application");
+        collector.notice("Session metadata not available for this application");
         return null; // SingleTool converts this to notFound response
       }
 
       if (latest.getAgentSession() == null) {
         log.warn("No agent session found for application ID: {}", params.appId());
-        collector.warn("Agent session not available for this application");
+        collector.notice("Agent session not available for this application");
         return null; // SingleTool converts this to notFound response
       }
 
@@ -167,7 +154,7 @@ public class GetRouteCoverageTool
 
     // Call API client to get route coverage
     log.debug("Fetching route coverage data for application ID: {}", params.appId());
-    var response = contrastApiClient.getRouteCoverage(params.appId(), request);
+    var response = fetchRouteCoverage(params.appId(), request);
 
     // Defensive null checks - API may return null on errors or permission issues
     if (response == null) {
@@ -190,7 +177,33 @@ public class GetRouteCoverageTool
         params.appId(),
         response.getRoutes().size());
 
+    if (request != null) {
+      collector.notice(
+          "Route environments are omitted for session-filtered results because the source does not"
+              + " provide them.");
+    }
+
     // Transform to light response to reduce payload size for AI agents
     return routeMapper.toResponseLight(response);
+  }
+
+  private RouteCoverageResponse fetchRouteCoverage(
+      String appId, RouteCoverageBySessionIDAndMetadataRequestExtended request) throws Exception {
+    try {
+      return contrastApiClient.getRouteCoverage(appId, request);
+    } catch (UnauthorizedException originalForbidden) {
+      if (originalForbidden.getCode() != HTTP_FORBIDDEN) {
+        throw originalForbidden;
+      }
+
+      var applicationState = applicationLicenseDiscriminator.discriminate(appId, originalForbidden);
+      var message =
+          switch (applicationState) {
+            case ARCHIVED -> ARCHIVED_APPLICATION_ERROR;
+            case UNLICENSED -> UNLICENSED_APPLICATION_ERROR;
+            case LICENSED -> LICENSED_APPLICATION_ACCESS_DENIED_ERROR;
+          };
+      throw new ActionableToolErrorException(message);
+    }
   }
 }

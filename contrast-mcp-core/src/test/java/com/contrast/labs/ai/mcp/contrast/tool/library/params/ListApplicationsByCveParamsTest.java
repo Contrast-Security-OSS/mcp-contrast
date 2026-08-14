@@ -30,7 +30,7 @@ class ListApplicationsByCveParamsTest {
     assertThat(params.isValid()).isTrue();
     assertThat(params.cveId()).isEqualTo("CVE-2021-44228");
     assertThat(params.errors()).isEmpty();
-    assertThat(params.warnings()).isEmpty();
+    assertThat(params.notices()).isEmpty();
   }
 
   @Test

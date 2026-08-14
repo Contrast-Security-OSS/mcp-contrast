@@ -6,6 +6,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an MCP (Model Context Protocol) server for Contrast Security that enables AI agents to access and analyze vulnerability data from Contrast's security platform. It serves as a bridge between Contrast Security's API and AI tools like Claude, enabling automated vulnerability remediation and security analysis.
 
+## Communication style
+
+Be concise. Lead with the answer or conclusion, then supporting detail only if
+needed. Skip restating the request, unnecessary preamble, and padding.
+
+## Repo context
+
+See [REPO-CONTEXT.md](./REPO-CONTEXT.md) for domain definitions, architecture notes, and the planning checklist.
+
+## Git Hooks
+
+**ABSOLUTE RULE: NEVER skip git hooks.** Do not use `--no-verify`, `--no-gpg-sign`, `SKIP_COVERAGE_HOOK=1`, or any other mechanism to bypass pre-commit, pre-push, or any other git hook. No exceptions. No shortcuts. If a hook fails, fix the underlying problem. A skipped hook caused a CI build failure; this rule exists to prevent that from ever happening again. If you skip a hook, you have made an error.
+
 ## Branching Requirements
 
 **All code changes must be made on a feature branch.** Never commit directly to `main`.
@@ -37,8 +50,8 @@ Use these make targets for all checks and tests:
 make check       # Auto-format then run static analysis (no need to run make format first)
 make test        # Run unit tests (quiet output)
 make coverage    # Verify JaCoCo coverage floors and print the summary
-make check-test  # Run static analysis, unit tests, and coverage
-make verify      # Run all tests including integration
+make check-test  # Run static analysis, unit tests, coverage, and mutation testing
+make verify      # Run the complete local gate including integration tests
 make format      # Auto-format code with Spotless (also runs automatically via make check)
 make build       # Build the project
 make clean       # Clean build artifacts
@@ -47,6 +60,7 @@ make test-coverage                 # Unit tests plus coverage floors in one grad
 make coverage-changed              # Changed src/main/java files must meet the changed-file floor
 make coverage-changed BASE=origin/main   # Compare against a ref instead of the working tree
 make buildsrc-check                # Static analysis, tests and coverage for buildSrc
+make mutation                       # PIT mutation testing on contrast-mcp-core
 make install-hooks                 # Install the pre-push hook (backs up any hook it replaces)
 
 # Verbose output when debugging failures
@@ -65,12 +79,17 @@ make coverage VERBOSE=1
 - **Coverage**: `./gradlew jacocoTestCoverageVerification coverageSummary`
 - **Changed-file coverage**: `./gradlew jacocoChangedFileCoverageVerification -PjacocoChangedBase=origin/main`
 - **Core publication metadata**: `./gradlew :contrast-mcp-core:verifyCorePublicationMetadata`
+- **Mutation testing**: `./gradlew :contrast-mcp-core:pitest`
 - **Format code**: `./gradlew spotlessApply`
 - **Run locally**: `java -jar contrast-mcp-stdio-app/build/libs/mcp-contrast-*.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
 
 **Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard local verification command for static analysis, unit tests, and coverage.
 
 **Coverage floors:** Per-module minimums live in `ext.coverageMinimums` in the root `build.gradle` and are enforced by `jacocoTestCoverageVerification`, which `check` depends on. Floors sit a couple of points under the measured figures on purpose, so one new uncovered branch cannot redden `main`. Raise a floor as coverage improves; never lower one to make a build pass. `verifyCoverageMinimums` fails the build if any floor drops below `ext.coverageStandardMinimum` (85%). `McpContrastApplication` is the only class excluded.
+
+**Mutation testing:** PIT runs against `contrast-mcp-core` via the `info.solidsoft.pitest` Gradle plugin. It gates on test strength (killed / (killed + survived)), not mutation score, so it measures test quality independent of JaCoCo coverage. The `testStrengthThreshold` floor lives in `contrast-mcp-core/build.gradle` and is enforced in CI on pull requests. Raise the floor as survivors get fixed, never lower it. `lombok.config` at the repo root enables `@lombok.Generated` so both PIT and JaCoCo skip Lombok-generated code.
+
+**Fixing PIT survivors:** When a mutation survives, determine whether it is a genuine test gap or an equivalent mutant. A genuine gap (the mutated behavior is observably different but no test catches it) is fixed by writing a better test. An equivalent mutant (the mutated behavior produces identical output through the public API) is left alone and accommodated by threshold headroom. Never restructure production code to eliminate equivalent-mutant sites. Small well-named helpers naturally create branches that are unreachable from their sole call site, and collapsing them to satisfy a metric trades readability for a number.
 
 **Changed-file coverage:** `ext.changedFileCoverageMinimum` (85%) is enforced per changed `src/main/java` file by `jacocoChangedFileCoverageVerification`. Runs in CI on every pull request regardless of base branch, so stacked PRs are gated too, plus the pre-push hook (`make install-hooks`, bypass with `SKIP_COVERAGE_HOOK=1`) and `make coverage-changed`. The hook warns but still runs when dirty source, build, or resource files could change JaCoCo output; pull-request CI remains authoritative because it tests a clean checkout. Unrelated changes such as Markdown files do not warn. Set `COVERAGE_BASE_REF=origin/<parent>` on the first push of a new stacked branch. Not wired into `check`, which has no base ref to diff against. Logic lives in `buildSrc/`, which has its own checks via `make buildsrc-check`. See `scripts/git-hooks/README.md`.
 
@@ -117,6 +136,24 @@ tool/
 **Data Models**: Comprehensive POJOs in `data/` package representing vulnerability information, library data, applications, and attack events.
 
 **Hint System**: `hints/` package provides context-aware security guidance for vulnerability remediation.
+
+### Module Split
+
+- `contrast-mcp-core` is the transport-neutral shared library published as `com.contrast.labs.ai.mcp:contrast-mcp-core`.
+- `contrast-mcp-stdio-app` is the local stdio Spring Boot app and keeps local Contrast SDK credential wiring, SDK helper/cache implementations, and local-only raw SARIF behavior.
+
+**Hosted local development:** The private `aiml-services/services/aiml-hosted-mcp-server` project consumes `contrast-mcp-core`. For cross-repo work, check out `aiml-services` and `mcp-contrast` as siblings and use Gradle composite-build substitution:
+
+```kotlin
+includeBuild("../mcp-contrast") {
+    dependencySubstitution {
+        substitute(module("com.contrast.labs.ai.mcp:contrast-mcp-core"))
+            .using(project(":contrast-mcp-core"))
+    }
+}
+```
+
+Use `hack/verify-core-publication.sh` for the public core publication/classpath gate.
 
 ### Configuration
 
@@ -182,12 +219,35 @@ EOF
 6. **Hint Generation**: Rule-based system provides contextual security guidance
 7. **Defensive Design**: All external API calls include error handling and logging via base classes
 
+### Code Refactoring with ast-grep
+
+For bulk structural code changes (renaming, pattern replacement), use **ast-grep (sg)** instead of sed/grep:
+
+```bash
+# Preview changes
+sg run -p 'ContrastConfig' -r 'ContrastSDKFactory' -l java src/
+
+# Apply changes (-U = update all)
+sg run -p 'config.getSDK()' -r 'sdkFactory.getSDK()' -l java -U src/
+
+# Pattern with metavariable
+sg run -p 'ReflectionTestUtils.setField($T, "config", config)' \
+       -r 'ReflectionTestUtils.setField($T, "sdkFactory", sdkFactory)' -l java -U src/
+```
+
+**Why ast-grep over sed:** understands Java syntax (won't match inside strings/comments), handles formatting variations, metavariables (`$VAR`) capture and reuse matched code, safer bulk refactoring across many files.
+
+### No Backwards Compatibility Constraints
+
+**Backwards compatibility is NOT a design constraint in this MCP server.** The consumer is an AI agent that adapts to whatever the tools return, not code that breaks on contract changes. Never reject, water down, or scope out the best design (renaming fields, changing response values, restructuring output) on backwards-compatibility grounds. If a design discussion raises "this changes the contract for consumers" as an objection, dismiss it.
+
 ### MCP Tool Standards
 
 **All MCP tool development MUST follow the standards defined in [MCP_STANDARDS.md](./MCP_STANDARDS.md).**
 
+**Read MCP_STANDARDS.md before any tool change.** This includes new tools, renamed tools, modified descriptions, error messages, notices, parameter changes, and response shape changes. The standards govern cross-server constraints (e.g., core tools must never reference hosted-only tools) that are not obvious from the code alone.
+
 When creating or modifying MCP tools:
-- Read MCP_STANDARDS.md for complete naming and design standards
 - Use `action_entity` naming convention (e.g., `search_vulnerabilities`, `get_vulnerability`)
 - Follow verb hierarchy: `search_*` (flexible filtering) > `list_*` (scoped) > `get_*` (single item)
 - Use camelCase for parameters, snake_case for tool names
@@ -196,7 +256,7 @@ When creating or modifying MCP tools:
 
 ### Coding Standards
 
-**CLAUDE.md Principle**: Maximum conciseness to minimize token usage. Violate grammar rules for brevity. No verbose examples.
+**CLAUDE.md Principle**: Maximum conciseness to minimize token usage. Violate grammar rules for brevity. No verbose examples. Keep CLAUDE.md concise.
 
 **Java Style:**
 - `var` for obvious types: `var list = new ArrayList<String>()`
@@ -249,6 +309,7 @@ When creating or modifying MCP tools:
 **Testing:**
 - Simplified `mock()`: `ClassName mock = mock()` not `mock(ClassName.class)` — when `mock(X.class)` appears as a method argument (not an assignment), extract to a typed local first: `Foo x = mock(); when(x.method())...`
 - AssertJ fluent: `assertThat(x).isEqualTo(y)` not `assertEquals(y, x)`
+- **Share contract text with tests:** Define exact descriptions, notices, errors, and other long contract text once in a production constant, then reference that constant from both production code and tests. Never duplicate or reconstruct the full text in test expectations.
 - Naming: `methodName_should_expectedBehavior_when_condition()` — body must verify the behavior the name promises. If assertions don't match the name, strengthen the assertions. Do **not** delete or weaken the name.
 - Example: `getVulnerability_should_return_data_when_valid_id()`
 - **Anonymous builders**: Use `AnonymousXxxBuilder` pattern for complex mocks (see `AnonymousApplicationBuilder.java`)
@@ -296,70 +357,13 @@ This codebase handles sensitive vulnerability data. The README contains critical
 
 ## Beads Workflow Requirements
 
-This project uses Beads (br) for issue tracking. See the MCP resource `beads://quickstart` for usage details.
+This project uses Beads (`br`) for issue tracking. **Every bead mutation (create, claim, close, triage, comment, label) is governed by the `bead-workflow` skill** — invoke it before mutating a bead. Read-only commands (`br show`, `br ready`, `br list`) need no skill.
 
-### Bead Command Reference
-
-```bash
-# Status — set in_progress immediately when starting; close only when done
-br update <bead-id> --status in_progress
-br close <bead-id> --reason "why it's done"   # --reason/-r is REQUIRED; positional arg fails
-br reopen <bead-id>
-
-# Viewing
-br show <bead-id>
-br ready                                       # list unblocked open beads
-br list
-
-# Comments — 'br comment' does NOT exist; use 'br comments add'
-br comments add <bead-id> --message "short single-line text"
-br comments add <bead-id> -f /tmp/comment.txt  # use -f for multi-line (avoids shell interpretation)
-
-# Labels
-br label add <bead-id> -l <label>
-br label remove <bead-id> -l <label>
-
-# Dependencies
-br dep add <dependent> <prerequisite>          # dependent "blocks on" prerequisite
-br dep add <child> <parent> --type parent-child
-```
-
-**Multi-line content — quoted heredoc prevents all shell interpretation:**
-```bash
-# Comments — pipe via stdin (-f - supported)
-cat << 'EOF' | br comments add <bead-id> -f -
-## Heading
-
-With `code blocks`, **markdown**, and $(variables) — all literal.
-EOF
-
-# Description/design — capture via $() (inner heredoc is still safe with quoted delimiter)
-br create "Title" --description "$(cat << 'EOF'
-## Description with `code` and $(vars) — all literal.
-EOF
-)"
-
-# Design field — same $() pattern works
-br update <bead-id> --design "$(cat << 'EOF'
-## Design with `code` and --flags and $(vars) — all literal.
-EOF
-)"
-```
-
-### Human Review Labels
-
-- `ready-for-human` — human should inspect, decide, or run the work with agent assistance; autonomous agents should not pick it up
-- `needs-human-review` — DO NOT start work; ask human to review first
-- `human-security-review` — security review is required before agent work proceeds
-- `external-approval` — blocked on approval outside the agent workflow
-
-`human-reviewed` is the cleared marker after review; AI may proceed when no human-only label remains.
-
-When reviewing a `needs-human-review` bead, update the description if needed, then:
-```bash
-br label remove <bead-id> -l needs-human-review
-br label add <bead-id> -l human-reviewed
-```
+Quick reference (full detail in `docs/agents/issue-tracker.md`):
+- `br update <id> --claim` when starting; `br close <id> --reason "..."` only when done (`--reason` is required)
+- `br sync --flush-only` after mutations; `.beads/` is gitignored and must never be committed (public repo)
+- Human-review and triage labels: see `docs/agents/triage-labels.md`
+- Multi-line content: quoted heredocs; design field via `scripts/br-set-design`
 
 ## Helper Scripts
 
@@ -369,114 +373,17 @@ br label add <bead-id> -l human-reviewed
 
 ### Jira Issue Tracking
 
-This project is tracked in Jira under the **AIML** project. When creating Jira tickets for this codebase:
-
-**Standard Configuration:**
-- **Project**: `AIML`
-- **Component**: `Contrast MCP Server` (always use this component for work on this repository)
-- **Issue Type**:
-  - `Story` - for features and improvements
-  - `Task` - for simple non-feature changes (refactoring, documentation, bug fixes)
-  - `Epic` - for large features with many dependent tasks (typically managed by Product Management)
-
-**Access**: Use the Atlassian MCP server to read or write Jira tickets programmatically.
-
-**AIML Project Transition IDs** (use with `transitionJiraIssue`, cloudId: `https://contrast.atlassian.net`):
-- `11` → To Do
-- `21` → In Progress
-- `41` → In Review
-- `51` → Ready to Deploy
-- `61` → Blocked
-- `71` → Backlog
-- `81` → Closed
-
-**IMPORTANT**: When a jira ticket is created for a bead, you must do 2 things:
-1. Update the `external-ref` of the bead to be the jira ticket id
-2. Update the `title` of the bead to be prefixed with the jira ticket id.
+This project is tracked in Jira under the **AIML** project, component **Contrast MCP Server**. **All Jira lifecycle operations — ticket creation, bead-to-Jira parity (title prefix + `external-ref`), and status transitions — are governed by the `jira-workflow` skill.** Metadata (issue types, transition IDs, creation example) lives in `.claude/skills/jira-workflow/references/aiml.md`.
 
 ----
 
 ## AI Development Workflow
 
-This section defines the complete workflow for a Developer using AI agents working with beads and Jira tickets in this project.
+The bead and Jira lifecycle (starting work, branching, stacked branches, labels, dependencies, closing) is owned by the `bead-workflow` and `jira-workflow` skills — invoke them rather than working from memory. The sections below cover what stays in this file: build verification and testing gates, plus the user trigger phrases that map to pr-tools skills.
 
-### Workflow Overview
+**Workflow labels:** `stacked-branch` (branch based on another PR branch), `pr-created`, `in-review` (PR ready for human review, not draft). Details in the `bead-workflow` skill.
 
-**Key Labels:**
-- `stacked-branch` - Branch is based on another PR branch (not main)
-- `pr-created` - Pull request has been created
-- `in-review` - Pull request is ready for human review (not draft)
-
-**Decision Tree:**
-
-```
-Branch Creation:
-├─ Based on main → No special label
-└─ Based on another PR branch → Label with `stacked-branch`
-
-PR Creation:
-├─ Has `stacked-branch` label?
-│  └─ YES → Create DRAFT PR (Stacked PRs workflow)
-│            - Base: parent PR's branch
-│            - Labels: `pr-created` (NOT `in-review` yet)
-│            - Add warning banner + dependency context
-│
-└─ NO → Create ready PR (Moving to Review workflow)
-         - Base: main
-         - Labels: `pr-created`, `in-review`
-         - Standard PR description
-
-Promoting Stacked PR (after base PR merges):
-└─ Rebase onto main, update base branch, remove warnings
-   Add `in-review` label, mark PR ready
-```
-
-### Starting Work on a Bead
-
-**1. Determine if a feature branch is needed:**
-   - **Bead has Jira ticket**: Create a new feature branch
-     - **Ask user which branch to base it off of**
-     - Show recently updated branches (sorted by most recent commits/PRs)
-     - User may be working with stacked branches where each new branch comes off the previous PR branch
-     - Name the branch with Jira ID prefix (e.g., `AIML-224-description`)
-     - **If based on another PR branch (not main)**: Label bead with `stacked-branch`
-   - **Bead is a child of Jira-linked bead**: Use the same branch as the parent bead
-   - **Bead has no Jira association and no parent**:
-     - **Ask user if it should have a Jira ticket**
-     - Most code changes need a Jira ticket and branch before merging
-     - Code changes should generally have a Jira ticket in scope
-
-**2. Update bead status and labels:**
-   - Set bead status to `in_progress`
-   - Record the branch name in the bead (so it's easily found later)
-   - **If this is a stacked branch** (based on another PR branch):
-     - Label the bead with `stacked-branch`
-     - Create blocks dependency: `br dep add <new-bead-id> <base-bead-id> --type blocks`
-       - This represents that the base bead "blocks" the new bead from being merged
-       - Example: If AIML-230 is stacked on AIML-228, use `br dep add mcp-uuv mcp-9kr --type blocks`
-
-**3. Update Jira (if applicable):**
-   - If bead has a linked Jira ticket:
-     - Update Jira status to "In Progress" using Atlassian MCP
-     - **Assign the ticket to the current user** (the authenticated Atlassian MCP user)
-
-### Creating Related Beads
-
-**When creating new beads from a Jira-linked bead:**
-- Ask user if the new bead should be a child of the Jira-linked bead
-- If yes, establish parent-child relationship using `br dep add <child> <parent>` with `parent-child` dependency type
-- Child beads work on the same branch as their parent
-  
-### Managing Bead Dependencies
-
-**Command syntax:** `br dep add <dependent-task> <prerequisite-task>`
-
-Example: If B must be done after A completes, use `br dep add B A` (not `br dep add A B`).
-
-Verify with `br show <task-id>` - dependent tasks show "Depends on", prerequisites show "Blocks".
-
-NOTE: This is not for parent-child dependencies, these are blocks dependencies. 
-**IMPORTANT** If you are asked to add a bead as a child or with phrasing that implies a parent-child relationship, ensure you add the dependency of type parent-child. The default is a blocks type.
+**Dependency direction:** `br dep add <dependent> <prerequisite>` — if B must wait for A, `br dep add B A`. When phrasing implies hierarchy ("add as a child"), use `--type parent-child`; the default is a blocks edge.
 
 ### During Development
 
@@ -488,8 +395,8 @@ NOTE: This is not for parent-child dependencies, these are blocks dependencies.
 
 **CRITICAL: Before requesting review, you MUST:**
 1. **Write tests for ALL code changes** - No exceptions
-2. **Run local verification** - `make check-test` must pass with 0 failures
-3. **Run integration tests** - `make verify` must pass (requires credentials in `.env.integration-test`)
+2. **Run local quality verification** - `make check-test` must pass with 0 failures (static analysis, unit tests, coverage, and mutation testing)
+3. **Run complete verification** - `make verify` must pass; it includes `make check-test` plus integration tests (integration tests require credentials in `.env.integration-test`)
    - If credentials unavailable, verify integration tests pass in CI/CD
 4. **Verify new tests are included** - Ensure your tests ran and passed
 
@@ -526,64 +433,36 @@ assertThat(libraries)
 - `GetRouteCoverageToolIT` — pagination + filter + edge cases
 - `GetSastProjectToolIT` — regression coverage for field mapping
 
-### Moving to Review
+### Review and merge triggers
 
-When user says "move to review" or "ready for review" for a bead WITHOUT the `stacked-branch` label:
+Each trigger phrase maps to a pr-tools skill; the `bead-workflow` and `jira-workflow` skills own the accompanying bead labels and Jira transitions.
 
-1. Apply the `pr-created` and `in-review` labels to the bead(s) on this branch
-2. Transition the linked Jira ticket to "In Review"
-3. Push the feature branch
-4. Run `/pr-tools:create-pr` — it generates the description and creates a ready-for-review PR targeting `main`
+| User says | Run | Bead / Jira effect |
+|-----------|-----|--------------------|
+| "move to review" / "ready for review" (no `stacked-branch` label) | `/pr-tools:create-pr` | `pr-created` + `in-review`; Jira → In Review |
+| "ready for stacked PR" (`stacked-branch` label) | `/pr-tools:create-pr` (draft, targets parent) | `pr-created` only; Jira stays In Progress |
+| "promote stacked PR" / "finalize stacked PR" | `/pr-tools:promote-stacked-pr` | add `in-review`; Jira → In Review |
+| PR merged to `main` | `/pr-tools:after-pr-merged` | close bead (ask first); Jira → Ready to Deploy |
 
-### Stacked PRs (Ready for Draft Review)
-
-When user says "ready for stacked PR" or creating a PR for a bead WITH the `stacked-branch` label:
-
-1. Apply the `pr-created` label to the bead(s) — do **not** add the `in-review` label yet
-2. Keep the linked Jira ticket at "In Progress"
-3. Push the branch
-4. Run `/pr-tools:create-pr` — it auto-detects the stacked context, creates a draft PR with the warning banner, and targets the parent branch
-
-The PR stays in draft until the parent merges and this branch is rebased onto `main` (use `/pr-tools:promote-stacked-pr`).
-
-### Promoting Stacked PR to Ready for Review
-
-When user says "promote stacked PR" or "finalize stacked PR" for a bead WITH the `stacked-branch` label:
-
-1. Run `/pr-tools:promote-stacked-pr` — it rebases onto main with `--onto`, force-pushes safely, retargets the PR base, updates the body, and marks it ready
-2. Add the `in-review` label to the bead and update notes with the PR URL
-3. Keep the bead `in_progress` until the PR merges
-
-### After PR is Merged to main
-
-1. Close the bead with brief description of what was done.
-2. Update Jira status to "Ready to Deploy"
-3. Handle dependent stacked PRs:
-   - Run `/pr-tools:after-pr-merged` to find and optionally promote child PRs
-
-**Rationale:**
-- "Ready to Deploy" indicates the code is merged and ready for the next release
-- "Closed" should only be used when the code is actually deployed/released to production
-- This allows tracking what code is ready to go out in the next release vs what's already deployed
-
-
-### Closing Beads
-
-**IMPORTANT**: Always ask the user before closing a bead.
-
-**Cannot close parent beads** if they still have open children. Ensure all child beads are closed first.
-
-**Parent beads** typically remain `in_progress` (with `in-review` label) until the PR review is complete and merged. Only close beads when explicitly instructed by the user.
+**Always ask the user before closing a bead.** Parent beads cannot close with open children and typically stay `in_progress` (with `in-review`) until the PR merges. Jira "Closed" is reserved for code actually released to production.
 
 ## Agent skills
 
+### Bead workflow
+
+Every bead mutation (create, claim, implement, close, triage, comment) follows the `bead-workflow` skill: pre-claim checks, stacked-branch handling, commit-before-close, sync discipline. See `.claude/skills/bead-workflow/`.
+
+### Jira workflow
+
+Jira ticket creation, bead parity, and status transitions follow the `jira-workflow` skill. See `.claude/skills/jira-workflow/`.
+
 ### Issue tracker
 
-Issues are tracked in Jira (AIML project) and Beads (`br`), not GitHub Issues. See `docs/agents/issue-tracker.md`.
+Issues are tracked in Jira (AIML project) and Beads (`br`), not GitHub Issues. Beads is the working store, Jira the external reference. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
-Canonical triage labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) for all new triage work; existing CLAUDE.md human-review labels are documented for awareness. See `docs/agents/triage-labels.md`.
+Canonical triage labels (`needs-decision`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`) for all new triage work; older labels and human-review labels are documented for awareness. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
@@ -593,6 +472,24 @@ Single-context: one `CONTEXT.md` + `docs/adr/` at the repo root (created lazily)
 
 Run the harness-engineering playbooks against this repo on demand via `/harness-review` (broad diagnostic) and `/improve-harness` (one bounded change-and-verify loop). The corpus is pinned and kept read-only. See `docs/agents/harness.md`.
 
+### Pre-release MCP test
+
+`/test-mcp-server` runs an exploratory test of the freshly built server against the `.env.integration-test` org (in-depth by default, `smoke` for a fast pass). Run it before a release or when explicitly asked — never as part of routine feature development. See `.claude/skills/test-mcp-server/`.
+
+### Pre-release changelog update
+
+`/update-changelog` brings `[Unreleased]` in CHANGELOG.md up to date against everything merged since the last release tag, audits completeness with a read-only subagent per range, and lands the result on a branch after user approval. Run before dispatching the Gradle Release workflow or when explicitly asked. See `.claude/skills/update-changelog/`.
+
+### Release orchestration
+
+`/release` runs the full release end to end, changelog-first: preflight, `/update-changelog` in deferred-landing mode, version gate, release ticket and branch, version stamp, `/test-mcp-server smoke`, Gradle Release dispatch and monitoring, artifact verification, release-notes sync, Jira/bead sweep, and Slack announcement. Human gates at changelog approval, version choice, PR merge, go/no-go, sweep, and the post. Run only when a human asks to cut a release. See `.claude/skills/release/`.
+
+## Spawning Codex via Herdr
+
+When spawning a Codex agent through Herdr:
+
+1. `herdr agent start <name> --kind codex --pane <pane-id>` with no extra args after `--`. Default Codex startup is correct. Do not pass `--full-auto` or `--permission-mode auto`.
+2. `herdr agent prompt <name> "<brief>" --wait` with NO `--timeout` flag. Codex runs often exceed 10 minutes. Omitting `--timeout` lets Herdr wait indefinitely. The Bash tool's own 10-minute ceiling applies, so run the prompt call with `run_in_background: true` and wait for the task notification.
 
 
 @SECURITY.md

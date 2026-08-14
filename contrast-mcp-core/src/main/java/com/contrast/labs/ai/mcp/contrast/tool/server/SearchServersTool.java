@@ -18,10 +18,10 @@ package com.contrast.labs.ai.mcp.contrast.tool.server;
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.result.ServerSummary;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ExecutionResult;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginatedToolResponse;
 import com.contrast.labs.ai.mcp.contrast.tool.base.PaginationParams;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.server.params.ServerFilterParams;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.model.ToolContext;
@@ -40,25 +40,15 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
       name = "search_servers",
       description =
           """
-          Searches servers visible to the current credentials for inventory, agent health, and
-          Protect coverage. Values within a comma-separated parameter are ORed; different
-          parameters and the single-valued quickFilter are ANDed. To combine two quick-filter
-          dimensions, filter by one and inspect item fields for the other.
+          Search servers visible to the current credentials (EAC-scoped) for inventory, agent
+          health, and Protect coverage.
 
-          ONLINE/OFFLINE use TeamServer's activity threshold (typically about 50 minutes).
-          OUT_OF_DATE means older than the newest agent TeamServer can serve for that language.
-          protectEnabled=null means unknown or unavailable; non-null Assess/Protect state may
-          reflect the first visible application's effective configuration. Protect
-          pending-restart state is not available from this endpoint (assessPending is accurate);
-          do not infer it from other fields. agentOutOfDate=null means the latest
-          agent version could not be determined. Counts and applications are EAC-scoped.
+          Non-null Assess/Protect state may reflect the first visible application's effective
+          configuration. Protect pending-restart state is not available from this endpoint; do not
+          infer it (assessPending is accurate).
 
-          Unless includeApplications=true, applications is null (not an empty list) and only
-          applicationCount is populated.
-
-          Examples: quickFilter="ONLINE" to inspect Protect state; quickFilter="UNPROTECTED" with
-          environments="PRODUCTION"; environments="QA" with includeApplications=true.
-          Related: search_applications, search_attacks, get_route_coverage, get_session_metadata.
+          Examples: quickFilter="ONLINE" to inspect Protect state; quickFilter="UNPROTECTED",
+          environments="PRODUCTION"; environments="QA", includeApplications=true.
           """)
   public PaginatedToolResponse<ServerSummary> searchServers(
       @ToolParam(description = "Page number (1-based), default: 1", required = false) Integer page,
@@ -75,7 +65,10 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
       @ToolParam(
               description =
                   "Single condition. Valid: ALL, ONLINE, OFFLINE, PROTECTED, UNPROTECTED,"
-                      + " OUT_OF_DATE. Default: ALL",
+                      + " OUT_OF_DATE. ONLINE/OFFLINE use TeamServer's activity threshold"
+                      + " (typically about 50 minutes). OUT_OF_DATE means older than the newest"
+                      + " agent TeamServer can serve for that language. To combine two dimensions,"
+                      + " filter by one and inspect item fields for the other. Default: ALL",
               required = false)
           String quickFilter,
       @ToolParam(
@@ -89,7 +82,8 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
           String agentVersions,
       @ToolParam(
               description =
-                  "Include visible application identities; default false returns only app counts",
+                  "Include visible application identities; default false returns applicationCount"
+                      + " only and applications is null, not an empty list.",
               required = false)
           Boolean includeApplications,
       @ToolParam(
@@ -147,7 +141,7 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
 
   @Override
   protected ExecutionResult<ServerSummary> doExecute(
-      PaginationParams pagination, ServerFilterParams params, WarningCollector collector)
+      PaginationParams pagination, ServerFilterParams params, NoticeCollector collector)
       throws Exception {
     var filterBody = params.toServerFilterBody();
     var response =
@@ -162,6 +156,16 @@ public class SearchServersTool extends PaginatedTool<ServerFilterParams, ServerS
         response.getServers().stream()
             .map(server -> ServerSummary.fromServer(server, params.isIncludeApplications()))
             .toList();
+    if (summaries.stream().anyMatch(summary -> summary.protectEnabled() == null)) {
+      collector.notice(
+          "protectEnabled null means Protect state is unknown or unavailable for that server, not"
+              + " disabled.");
+    }
+    if (summaries.stream().anyMatch(summary -> summary.agentOutOfDate() == null)) {
+      collector.notice(
+          "agentOutOfDate null means the latest agent version could not be determined, not that"
+              + " the agent is current.");
+    }
     var totalItems = (int) Math.min(response.getCount(), Integer.MAX_VALUE);
     return ExecutionResult.of(summaries, totalItems);
   }

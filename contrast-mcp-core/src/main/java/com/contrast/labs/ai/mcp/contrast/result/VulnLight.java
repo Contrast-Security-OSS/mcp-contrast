@@ -23,7 +23,7 @@ import java.util.List;
  * vulnerability information including application correlation data.
  *
  * @param title Vulnerability title/description
- * @param type Vulnerability type/rule name (e.g., "sql-injection", "xss-reflected")
+ * @param type Vulnerability type/rule name (e.g., "sql-injection", "reflected-xss")
  * @param vulnID Unique vulnerability identifier (UUID)
  * @param severity Severity level (CRITICAL, HIGH, MEDIUM, LOW, NOTE)
  * @param appID Application UUID that owns this vulnerability
@@ -33,8 +33,8 @@ import java.util.List;
  * @param status Current vulnerability status (Reported, Confirmed, Remediated, etc.)
  * @param firstSeenAt ISO-8601 timestamp of first detection
  * @param closedAt ISO-8601 timestamp when closed (null if open)
- * @param environments List of environments where vulnerability was seen (DEVELOPMENT, QA,
- *     PRODUCTION)
+ * @param environments Environments from the latest instance only, may omit environments from
+ *     earlier instances.
  * @param tags User-defined tags applied to this vulnerability
  */
 public record VulnLight(

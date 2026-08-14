@@ -24,8 +24,8 @@ import java.util.UUID;
 import org.springframework.util.StringUtils;
 
 /**
- * Fluent validation context for MCP tool parameters. Collects errors and warnings during
- * validation, providing AI-friendly feedback messages.
+ * Fluent validation context for MCP tool parameters. Collects errors and notices during validation,
+ * providing AI-friendly feedback messages.
  *
  * <p>Usage example:
  *
@@ -48,7 +48,7 @@ import org.springframework.util.StringUtils;
  */
 public class ToolValidationContext implements ToolParams {
 
-  private final List<String> warnings = new ArrayList<>();
+  private final List<String> notices = new ArrayList<>();
   private final List<String> errors = new ArrayList<>();
 
   /**
@@ -260,14 +260,14 @@ public class ToolValidationContext implements ToolParams {
   }
 
   /**
-   * Adds a warning if the condition is true.
+   * Adds a notice if the condition is true.
    *
    * @param condition the condition to check
-   * @param message the warning message if condition is true
+   * @param message the notice message if condition is true
    */
-  public void warnIf(boolean condition, String message) {
+  public void noticeIf(boolean condition, String message) {
     if (condition) {
-      warnings.add(message);
+      notices.add(message);
     }
   }
 
@@ -293,12 +293,12 @@ public class ToolValidationContext implements ToolParams {
   }
 
   /**
-   * Adds a warning message. Protected for use by Spec classes and subclasses.
+   * Adds a notice message. Protected for use by Spec classes and subclasses.
    *
-   * @param message the warning message
+   * @param message the notice message
    */
-  protected void addWarning(String message) {
-    warnings.add(message);
+  protected void addNotice(String message) {
+    notices.add(message);
   }
 
   @Override
@@ -312,7 +312,7 @@ public class ToolValidationContext implements ToolParams {
   }
 
   @Override
-  public List<String> warnings() {
-    return List.copyOf(warnings);
+  public List<String> notices() {
+    return List.copyOf(notices);
   }
 }

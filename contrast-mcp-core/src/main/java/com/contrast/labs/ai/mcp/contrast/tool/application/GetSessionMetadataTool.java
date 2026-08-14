@@ -17,9 +17,9 @@ package com.contrast.labs.ai.mcp.contrast.tool.application;
 
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.tool.application.params.GetSessionMetadataParams;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrastsecurity.models.MetadataFilterResponse;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
@@ -44,21 +44,12 @@ public class GetSessionMetadataTool
       name = "get_session_metadata",
       description =
           """
-          Retrieves session metadata for a specific application by its ID.
-
-          Returns the session metadata available for the application, including branch names,
-          build IDs, and other custom metadata fields that can be used for filtering
-          vulnerabilities in search_app_vulnerabilities.
-
-          Use search_applications(name=...) to find the application ID from a name.
-
-          Related tools:
-          - search_applications: Find application IDs by name, tag, or metadata
-          - search_app_vulnerabilities: Search vulnerabilities with session filtering
+          Get the session metadata fields and values recorded for an application, such as branch or
+          build. Field names feed sessionMetadataFilters in search_app_vulnerabilities and session
+          filters in get_route_coverage. Use search_applications to find application IDs.
           """)
   public SingleToolResponse<MetadataFilterResponse> getSessionMetadata(
-      @ToolParam(description = "Application ID (use search_applications to find)") String appId,
-      ToolContext toolContext) {
+      @ToolParam(description = "Application ID") String appId, ToolContext toolContext) {
     return executePipeline(() -> GetSessionMetadataParams.of(appId), toolContext);
   }
 
@@ -68,11 +59,11 @@ public class GetSessionMetadataTool
 
   @Override
   protected MetadataFilterResponse doExecute(
-      GetSessionMetadataParams params, WarningCollector collector) throws Exception {
+      GetSessionMetadataParams params, NoticeCollector collector) throws Exception {
     var response = contrastApiClient.getSessionMetadata(params.appId());
 
     if (response == null) {
-      collector.warn("No session metadata found for this application.");
+      collector.notice("No session metadata found for this application.");
       return null;
     }
 

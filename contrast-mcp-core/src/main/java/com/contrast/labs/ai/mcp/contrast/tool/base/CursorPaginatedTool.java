@@ -65,9 +65,9 @@ public abstract class CursorPaginatedTool<P extends ToolParams, R> extends BaseT
 
     var pagination = CursorPaginationParams.of(cursor, pageSize, getMaxPageSize());
     var params = paramsSupplier.get();
-    var collector = WarningCollector.forContext(Map.of(LoggingKeys.REQUEST_ID, requestId));
-    pagination.warnings().forEach(collector::warn);
-    params.warnings().forEach(collector::warn);
+    var collector = NoticeCollector.forContext(Map.of(LoggingKeys.REQUEST_ID, requestId));
+    pagination.notices().forEach(collector::notice);
+    params.notices().forEach(collector::notice);
 
     if (!params.isValid()) {
       logValidationError(requestId, params.errors(), pagination.cursorPresence());
@@ -86,6 +86,8 @@ public abstract class CursorPaginatedTool<P extends ToolParams, R> extends BaseT
       return handleException(e, pagination, requestId, "Resource not found");
     } catch (HttpResponseException e) {
       return handleHttpResponseException(e, pagination, requestId, collector);
+    } catch (ActionableToolErrorException e) {
+      return handleException(e, pagination, requestId, e.getMessage());
     } catch (IllegalArgumentException e) {
       return handleException(e, pagination, requestId, e.getMessage());
     } catch (Exception e) {
@@ -105,12 +107,12 @@ public abstract class CursorPaginatedTool<P extends ToolParams, R> extends BaseT
    *
    * @param pagination validated cursor pagination params
    * @param params validated tool-specific params
-   * @param collector warning accumulator
+   * @param collector notice accumulator
    * @return cursor execution result
    * @throws Exception from downstream clients or processing
    */
   protected abstract CursorExecutionResult<R> doExecute(
-      CursorPaginationParams pagination, P params, WarningCollector collector) throws Exception;
+      CursorPaginationParams pagination, P params, NoticeCollector collector) throws Exception;
 
   private CursorToolResponse<R> handleException(
       Exception e, CursorPaginationParams pagination, String requestId, String userMessage) {
@@ -127,7 +129,7 @@ public abstract class CursorPaginatedTool<P extends ToolParams, R> extends BaseT
       HttpResponseException e,
       CursorPaginationParams pagination,
       String requestId,
-      WarningCollector collector) {
+      NoticeCollector collector) {
 
     String errorMessage = mapHttpErrorCode(e.getCode());
 
@@ -143,6 +145,7 @@ public abstract class CursorPaginatedTool<P extends ToolParams, R> extends BaseT
         pagination.pageSize(),
         null,
         false,
+        null,
         List.of(errorMessage),
         collector.snapshot(),
         null);
@@ -151,12 +154,12 @@ public abstract class CursorPaginatedTool<P extends ToolParams, R> extends BaseT
   private CursorToolResponse<R> buildSuccessResponse(
       CursorExecutionResult<R> result,
       CursorPaginationParams pagination,
-      WarningCollector collector,
+      NoticeCollector collector,
       long duration,
       String requestId) {
 
-    if (result.items().isEmpty() && !result.hasMore() && !collector.hasEmptyResultsWarning()) {
-      collector.warn("No results found matching the specified criteria.");
+    if (result.items().isEmpty() && !result.hasMore() && !collector.hasEmptyResultsNotice()) {
+      collector.notice("No results found matching the specified criteria.");
     }
 
     logSuccess(requestId, duration, result.items().size(), pagination.cursorPresence());
@@ -166,6 +169,7 @@ public abstract class CursorPaginatedTool<P extends ToolParams, R> extends BaseT
         pagination.pageSize(),
         result.nextCursor(),
         result.hasMore(),
+        result.totalItems(),
         collector.snapshot(),
         duration);
   }

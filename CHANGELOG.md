@@ -7,6 +7,121 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Bug Fixes
+
+**`get_vulnerability` now returns clean Markdown remediation content**: TeamServer Recommendation
+markup in `howToFix` is now rendered as Markdown, including links, code, paragraphs, and emphasis,
+with a scrubbed plain-text fallback. Unmapped or missing Vulnerability types now receive the full
+general `remediationHint` guidance without the type being concatenated onto the final sentence.
+
+## [2.5.0] - 2026-08-11
+
+### Bug Fixes
+
+**`get_route_coverage` explains license and archive denials instead of suggesting
+credential problems**: When called on an unlicensed or archived application, the tool
+previously returned a generic "Access denied" error that led agents to retry or question
+their credentials. It now returns a distinct, non-retryable message explaining the actual
+cause and what to do about it.
+
+### Improvements
+
+**Vulnerability status values normalized for round-trip filtering**: Both
+`search_vulnerabilities` and `search_app_vulnerabilities` now return canonical status
+values (`NotAProblem`, `AutoRemediated`) instead of TeamServer display labels ("Not a
+Problem", "Remediated - Auto-Verified"). All seven valid statuses are listed in
+parameter descriptions, so agents can discover and filter by any status without first
+encountering a validation error.
+
+**Vulnerability type parameters validated against the live organization catalogue**: Both
+`search_vulnerabilities` and `search_app_vulnerabilities` now validate `vulnTypes` against
+the organization's rule catalogue before searching. Invalid or misspelled values produce an
+explicit error pointing to `list_vulnerability_types`, instead of silently returning empty
+results indistinguishable from a genuine "no vulnerabilities found" response. Values are
+matched case-insensitively.
+
+## [2.4.0] - 2026-08-10
+
+### Bug Fixes
+
+**`list_applications_by_cve` no longer returns misleading error for unrecognized CVEs**: When
+the upstream endpoint returned HTTP 500 for CVEs unknown to the SCA library data, the tool
+returned a generic "Narrow filters or reduce page size" message that made no sense for a tool
+with neither filters nor pagination. It now explains that the CVE may not be recognized by the
+SCA library data and suggests verifying the CVE identifier.
+
+### Improvements
+
+**`list_applications_by_cve` and `search_applications` explain lastSeen-zero applications**:
+When any application in the response has a `lastSeen` value of 0, the tool now emits a notice
+explaining that the application has never been observed running, typically a static or SCA-only
+upload. Previously agents misread the zero timestamp as January 1970 or missing data.
+
+**`list_applications_by_cve` notes that server status can lag live state**: The tool description
+now explains that `lastSeen` and server status reflect last-known agent reports and may not match
+current state, directing agents to `search_servers` for fresher data.
+
+**Date parameters now reject out-of-range values with actionable messages**: Tools that accept
+date filters now reject epoch timestamps outside the supported range (1970-01-01 through
+9999-12-31) and return validation errors that include the valid range bounds. Previously,
+negative or far-future timestamps were silently accepted.
+
+## [2.3.0] - 2026-08-07
+
+### Improvements
+
+**`CursorToolResponse` now carries optional `totalItems`**: Cursor-paginated tools can
+report total result count on the first page, matching the capability offset-paginated tools
+already have via `PaginatedToolResponse.totalItems`. The field is nullable and defaults to
+null, so existing cursor tools are unaffected.
+
+## [2.2.0] - 2026-08-04
+
+### Bug Fixes
+
+**`search_vulnerabilities` example used wrong vulnerability type name**: The tool
+description's example filter for reflected XSS used the incorrect type `xss-reflected`
+instead of `reflected-xss`, causing agents to construct queries that returned no results.
+Fixed to use the correct type name.
+
+**`get_vulnerability` no longer crashes on missing HTTP request data**: When the Contrast
+SDK returned a null HTTP request response, the tool threw a NullPointerException instead
+of returning the vulnerability with the HTTP request field omitted. Fixed.
+
+### Improvements
+
+**Response envelope field `warnings` renamed to `notices`**: The informational messages
+attached to every tool response were renamed from `warnings` to `notices` because the old
+name caused AI agents to treat normal teaching notes as problems. The `Vulnerability`
+field `hint` was also renamed to `remediationHint` for clarity.
+
+**Tool descriptions rewritten to reduce token usage by ~650 tokens per session**: Every
+tool description was trimmed to a word-budget template, cutting tool description text by
+55% (1,079 to 490 words). Some parameter semantics moved from tool bodies down to
+individual parameter descriptions where agents need them at call time, bringing the net
+reduction across all agent-visible text to ~30%.
+
+**Response-shape caveats moved to conditional notices**: Several static description
+paragraphs that warned about edge-case response shapes now appear as runtime notices only
+when the response actually contains the edge case, instead of adding to the token cost of
+every call.
+
+**Server instructions deliver catalog-wide conventions**: The MCP server now emits an
+`instructions` field during initialization, teaching agents conventions that apply
+uniformly across all tools. These facts no longer repeat in individual tool descriptions,
+further reducing per-session token usage.
+
+### Documentation
+
+**Vulnerability environment filter semantics clarified**: Tool descriptions now explain
+that environment filters match any historical vulnerability instance, while the returned
+`environments` field reflects only the latest instance and may omit the environment that
+caused the match.
+
+**README documents hosted server authorization scope**: The README now explains that the
+hosted MCP server's OAuth scopes are identity-only by design, authorization is enforced
+per-request by the platform using existing RBAC, and every tool call is audited.
+
 ## [2.1.0] - 2026-07-20
 
 ### Breaking Changes
@@ -163,7 +278,7 @@ These bugs prevented core functionality from working correctly:
 
 **Rules parameter for attack search**: Filter attacks by exact rule ID:
 - Single rule: `rules="sql-injection"`
-- Multiple rules: `rules="sql-injection,xss-reflected"`
+- Multiple rules: `rules="sql-injection,reflected-xss"`
 
 **Pagination added to consolidated tools**: The old tools returned all results in a single response with no pagination. The new consolidated tools all support pagination:
 - `search_applications` - replaces 5 non-paginated tools

@@ -48,6 +48,12 @@ class ListApplicationsByCveToolTest {
   private static final String CVE_ID = "CVE-2021-44228";
   private static final String LIBRARY_HASH = "hash-123";
   private static final String SECRET_BODY = "token=raw-token-value&apiKey=secret";
+  private static final String CVSS_V2_NOTICE =
+      "score is omitted for CVEs with only CVSS v2 data; use severity and the cvssv2 metrics.";
+  private static final long LAST_SEEN_MILLIS = 1721000000000L;
+  private static final String NEVER_OBSERVED_NOTICE_PREFIX =
+      "lastSeen of 0 means the application has never been observed running, typically a static or"
+          + " SCA-only upload: ";
   private static final String CVSS_V3_CVE_RESPONSE =
       """
       {
@@ -145,6 +151,7 @@ class ListApplicationsByCveToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.data().getCve().getScore()).isEqualTo(9.3);
     assertThat(result.data().getCve().getSeverity()).isEqualTo("Critical");
+    assertThat(result.notices()).doesNotContain(CVSS_V2_NOTICE);
     assertThat(result.data().getCve())
         .extracting(
             cve -> cve.getId(),
@@ -184,6 +191,7 @@ class ListApplicationsByCveToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.data().getCve().getSeverity()).isEqualTo("High");
     assertThat(result.data().getCve().getScore()).isNull();
+    assertThat(result.notices()).contains(CVSS_V2_NOTICE);
     assertThat(result.data().getCve().getCvssv2())
         .extracting(
             cvss -> cvss.getAccessVector(),
@@ -293,7 +301,41 @@ class ListApplicationsByCveToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.data()).isSameAs(cveData);
-    assertThat(result.warnings()).anyMatch(w -> w.contains("No applications found"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("No applications found"));
+  }
+
+  @Test
+  void listApplicationsByCve_should_notice_never_observed_apps_when_lastSeen_is_zero()
+      throws Exception {
+    var neverObserved = app("StaticUpload", "app-static");
+    neverObserved.setLastSeen(0);
+    var running = app("Orders", APP_ID);
+    var cveData = new CveData();
+    cveData.setApps(List.of(neverObserved, running));
+    cveData.setLibraries(List.of(vulnerableLibrary(LIBRARY_HASH)));
+
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID))).thenReturn(cveData);
+    when(contrastApiClient.getAllLibraries(eq("app-static"))).thenReturn(List.of());
+    when(contrastApiClient.getAllLibraries(eq(APP_ID))).thenReturn(List.of());
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.notices()).contains(NEVER_OBSERVED_NOTICE_PREFIX + "StaticUpload");
+  }
+
+  @Test
+  void listApplicationsByCve_should_not_notice_never_observed_apps_when_lastSeen_is_populated()
+      throws Exception {
+    var cveData = cveData(app("Orders", APP_ID), vulnerableLibrary(LIBRARY_HASH));
+
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID))).thenReturn(cveData);
+    when(contrastApiClient.getAllLibraries(eq(APP_ID))).thenReturn(List.of());
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isTrue();
+    assertThat(result.notices()).noneMatch(n -> n.contains("never been observed running"));
   }
 
   @Test
@@ -362,7 +404,7 @@ class ListApplicationsByCveToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
-    assertThat(result.warnings()).anyMatch(w -> w.toLowerCase().contains("not found"));
+    assertThat(result.notices()).anyMatch(w -> w.toLowerCase().contains("not found"));
   }
 
   @Test
@@ -404,6 +446,45 @@ class ListApplicationsByCveToolTest {
   }
 
   @Test
+  void listApplicationsByCve_should_map_downstream_500_with_sca_guidance() throws Exception {
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID)))
+        .thenThrow(
+            new HttpResponseException(
+                "Internal Server Error",
+                "GET",
+                "/ng/org/libraries/cve",
+                500,
+                "Internal Server Error",
+                SECRET_BODY));
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors())
+        .containsExactly(
+            "The service returned an error. This typically happens for CVEs that the SCA library"
+                + " data does not recognize. Verify the CVE identifier is correct and retry later"
+                + " if the service is failing.");
+    assertThat(result.toString()).doesNotContain(SECRET_BODY, "/ng/org/libraries/cve");
+  }
+
+  @Test
+  void listApplicationsByCve_should_map_downstream_502_with_base_message() throws Exception {
+    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID)))
+        .thenThrow(
+            new HttpResponseException(
+                "Bad Gateway", "GET", "/ng/org/libraries/cve", 502, "Bad Gateway", SECRET_BODY));
+
+    var result = tool.listApplicationsByCve(CVE_ID, null);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors())
+        .containsExactly(
+            "The service returned an error. Narrow filters or reduce page size, then retry.");
+    assertThat(result.toString()).doesNotContain(SECRET_BODY, "/ng/org/libraries/cve");
+  }
+
+  @Test
   void listApplicationsByCve_should_not_leak_exception_message_when_enrichment_fails()
       throws Exception {
     var cveData = cveData(app("Orders", APP_ID), vulnerableLibrary(LIBRARY_HASH));
@@ -415,7 +496,7 @@ class ListApplicationsByCveToolTest {
     var result = tool.listApplicationsByCve(CVE_ID, null);
 
     assertThat(result.isSuccess()).isTrue();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("(retrieval error)"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("(retrieval error)"));
     assertThat(result.toString()).doesNotContain(secretMessage);
   }
 
@@ -438,6 +519,7 @@ class ListApplicationsByCveToolTest {
     var app = new App();
     app.setName(name);
     app.setAppId(appId);
+    app.setLastSeen(LAST_SEEN_MILLIS);
     return app;
   }
 

@@ -29,23 +29,20 @@ class ToolSortParserTest {
   void parse_should_translate_case_insensitive_property_and_direction() {
     var context = new ToolValidationContext();
 
-    var result = ToolSortParser.parse(context, "LASTACTIVITY,desc", FIELDS, false, null);
+    var result = ToolSortParser.parse(context, "LASTACTIVITY,desc", FIELDS, null);
 
     assertThat(result).isEqualTo("-last_activity");
     assertThat(context.isValid()).isTrue();
   }
 
   @Test
-  void parse_should_preserve_case_sensitive_property_contract() {
+  void parse_should_forward_canonical_property_when_case_differs() {
     var context = new ToolValidationContext();
 
-    var result = ToolSortParser.parse(context, "NAME,ASC", FIELDS, true, null);
+    var result = ToolSortParser.parse(context, "NAME,ASC", FIELDS, null);
 
-    assertThat(result).isNull();
-    assertThat(context.errors())
-        .containsExactly(
-            "Invalid sort: 'NAME,ASC'. Expected format: property,DIRECTION. Valid properties:"
-                + " lastActivity, name. Valid directions: ASC, DESC.");
+    assertThat(result).isEqualTo("server_name");
+    assertThat(context.isValid()).isTrue();
   }
 
   @Test
@@ -53,8 +50,8 @@ class ToolSortParserTest {
     var absentContext = new ToolValidationContext();
     var invalidContext = new ToolValidationContext();
 
-    var absent = ToolSortParser.parse(absentContext, null, FIELDS, false, "-last_activity");
-    var invalid = ToolSortParser.parse(invalidContext, "name", FIELDS, false, "-last_activity");
+    var absent = ToolSortParser.parse(absentContext, null, FIELDS, "-last_activity");
+    var invalid = ToolSortParser.parse(invalidContext, "name", FIELDS, "-last_activity");
 
     assertThat(absent).isEqualTo("-last_activity");
     assertThat(absentContext.isValid()).isTrue();

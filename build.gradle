@@ -7,6 +7,7 @@ plugins {
     id 'pl.allegro.tech.build.axion-release' version "${axionReleasePluginVersion}"
     id 'com.diffplug.spotless' version "${spotlessGradlePluginVersion}" apply false
     id 'org.springframework.boot' version "${springBootVersion}" apply false
+    id 'info.solidsoft.pitest' version "${pitestGradlePluginVersion}" apply false
 }
 
 scmVersion {

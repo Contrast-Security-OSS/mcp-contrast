@@ -159,7 +159,7 @@ class SearchAttacksToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.pageSize()).isEqualTo(100);
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .contains("Requested pageSize 250 exceeds maximum 100, capped to 100");
     verify(contrastApiClient, never()).searchAttacks(any(), eq(250), anyInt(), any());
   }
@@ -174,7 +174,7 @@ class SearchAttacksToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("API returned no attack data"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("API returned no attack data"));
   }
 
   @Test

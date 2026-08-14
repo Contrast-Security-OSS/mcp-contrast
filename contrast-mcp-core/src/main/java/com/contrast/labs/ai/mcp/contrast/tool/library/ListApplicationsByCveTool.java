@@ -22,9 +22,9 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.CveData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Library;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.Server;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.library.params.ListApplicationsByCveParams;
 import java.time.Duration;
 import java.time.Instant;
@@ -50,33 +50,24 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveParams, CveData> {
 
+  private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
+  private static final String INTERNAL_SERVER_ERROR_MESSAGE =
+      "The service returned an error. This typically happens for CVEs that the SCA library data"
+          + " does not recognize. Verify the CVE identifier is correct and retry later if the"
+          + " service is failing.";
+
   private final ContrastApiClient contrastApiClient;
 
   @Tool(
       name = "list_applications_by_cve",
       description =
           """
-          Find applications and libraries affected by a specific CVE.
-
-          Takes a CVE ID (e.g., CVE-2021-44228) and returns:
-          - apps: List of applications containing vulnerable libraries
-          - libraries: The vulnerable library versions
-          - cve: CVE details including preferred CVSS score/severity and nested v2/v3 metrics
-
-          For each application, class usage data is populated:
-          - classCount: Total classes in the vulnerable library
-          - classUsage: Number of classes actually used by the application
-
-          Important: If classUsage is 0, the vulnerable library code is likely NOT
-          being executed, significantly reducing exploitability risk. Prioritize
-          remediation for applications where classUsage > 0.
-
-          score is absent for v2-only CVEs because TeamServer does not provide a numeric v2
-          base score; use severity and cvssv2 metrics in that case.
-
-          Related tools:
-          - list_application_libraries: Get all libraries for a specific application
-          - search_applications: Find applications by name, tag, or metadata
+          List applications affected by one CVE, with the vulnerable library versions and
+          per-application class usage. classUsage 0 or absent means no classes from the vulnerable
+          library were seen loaded, so exploitation is unlikely; prioritize applications with
+          classUsage above 0. Use list_application_libraries for the reverse direction, all
+          libraries of one application. lastSeen and server status reflect last-known agent
+          reports and can lag live state; search_servers is fresher for current server state.
           """)
   public SingleToolResponse<CveData> listApplicationsByCve(
       @ToolParam(description = "CVE identifier (e.g., CVE-2021-44228)") String cveId,
@@ -89,7 +80,15 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
   }
 
   @Override
-  protected CveData doExecute(ListApplicationsByCveParams params, WarningCollector collector)
+  protected String mapHttpErrorCode(int code) {
+    if (code == HTTP_INTERNAL_SERVER_ERROR) {
+      return INTERNAL_SERVER_ERROR_MESSAGE;
+    }
+    return super.mapHttpErrorCode(code);
+  }
+
+  @Override
+  protected CveData doExecute(ListApplicationsByCveParams params, NoticeCollector collector)
       throws Exception {
 
     log.debug("Retrieving applications vulnerable to CVE: {}", params.cveId());
@@ -99,6 +98,11 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
       return null; // SingleTool converts this to notFound response
     }
     applyPreferredCvssSummary(cveData.getCve());
+    if (hasOnlyCvssV2(cveData.getCve())) {
+      collector.notice(
+          "score is omitted for CVEs with only CVSS v2 data; use severity and the cvssv2"
+              + " metrics.");
+    }
     dedupeServersById(cveData);
 
     var vulnerableLibs =
@@ -106,12 +110,14 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
     var apps = cveData.getApps() != null ? cveData.getApps() : Collections.<App>emptyList();
 
     if (apps.isEmpty()) {
-      collector.warn(
+      collector.notice(
           "No applications found with this CVE. "
               + "The CVE may not affect any libraries in your organization, "
               + "or the CVE ID may be invalid.");
       return cveData;
     }
+
+    noticeNeverObservedApps(apps, collector);
 
     log.debug(
         "Found {} applications vulnerable to {}, enriching with class usage data",
@@ -135,6 +141,19 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
     return cveData;
   }
 
+  // TeamServer sends last_seen 0 for applications that have never reported agent activity, and
+  // App.lastSeen is a primitive long, so the zero sentinel always serializes (Jira AIML-1331).
+  private static void noticeNeverObservedApps(List<App> apps, NoticeCollector collector) {
+    var neverObserved =
+        apps.stream().filter(app -> app.getLastSeen() == 0).map(App::getName).toList();
+    if (!neverObserved.isEmpty()) {
+      collector.notice(
+          "lastSeen of 0 means the application has never been observed running, typically a"
+              + " static or SCA-only upload: "
+              + String.join(", ", neverObserved));
+    }
+  }
+
   private static void applyPreferredCvssSummary(Cve cve) {
     if (cve == null) {
       return;
@@ -148,8 +167,12 @@ public class ListApplicationsByCveTool extends SingleTool<ListApplicationsByCveP
     }
   }
 
+  private static boolean hasOnlyCvssV2(Cve cve) {
+    return cve != null && cve.getCvssv3() == null && cve.getCvssv2() != null;
+  }
+
   private void enrichAppsWithClassUsage(
-      List<App> apps, List<Library> vulnerableLibs, WarningCollector collector) {
+      List<App> apps, List<Library> vulnerableLibs, NoticeCollector collector) {
 
     for (App app : apps) {
       collector.tryRun(

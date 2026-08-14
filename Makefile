@@ -1,6 +1,6 @@
 GRADLE ?= ./gradlew
 
-.PHONY: help build test test-verbose check check-verbose check-test buildsrc-check buildsrc-check-verbose coverage coverage-verbose coverage-changed coverage-changed-verbose test-coverage test-coverage-verbose install-hooks format clean verify verify-verbose
+.PHONY: help build test test-verbose check check-verbose check-test buildsrc-check buildsrc-check-verbose coverage coverage-verbose coverage-changed coverage-changed-verbose test-coverage test-coverage-verbose mutation mutation-verbose install-hooks format clean verify verify-verbose
 
 help: ## Display available make targets
 	@awk 'BEGIN {FS=":.*##"; printf "\nUsage: make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_\-]+:.*##/ {printf "  %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -64,21 +64,21 @@ test-quiet:
 test-verbose: ## Run tests with verbose output
 	@VERBOSE=1 $(MAKE) test
 
-## Verify targets (unit + integration tests)
+## Verify targets (complete local gate including integration tests)
 
-verify: ## Run all tests including integration (quiet output)
+verify: check-test ## Run all local verification including integration tests (quiet output)
 	@if [ -n "$$VERBOSE" ]; then \
-		$(GRADLE) test :contrast-mcp-stdio-app:integrationTest; \
+		$(GRADLE) :contrast-mcp-stdio-app:integrationTest; \
 	else \
 		$(MAKE) verify-quiet; \
 	fi
 
 verify-quiet:
-	@. ./hack/run_silent.sh && print_main_header "Running All Tests"
-	@. ./hack/run_silent.sh && print_header "mcp-contrast" "Unit + Integration tests"
-	@. ./hack/run_silent.sh && run_silent_with_test_count "All tests passed" "$(GRADLE) test :contrast-mcp-stdio-app:integrationTest" "gradle"
+	@. ./hack/run_silent.sh && print_main_header "Running Integration Tests"
+	@. ./hack/run_silent.sh && print_header "contrast-mcp-stdio-app" "Integration tests"
+	@. ./hack/run_silent.sh && run_silent_with_test_count "Integration tests passed" "$(GRADLE) :contrast-mcp-stdio-app:integrationTest" "gradle"
 
-verify-verbose: ## Run all tests with verbose output
+verify-verbose: ## Run all local verification including integration tests with verbose output
 	@VERBOSE=1 $(MAKE) verify
 
 ## Coverage targets
@@ -146,10 +146,28 @@ test-coverage-verbose: ## Run tests and coverage with verbose output
 
 ## Combined targets
 
-check-test: ## Run all checks, tests, and coverage
+check-test: ## Run all checks, unit tests, coverage, and mutation testing
 	@$(MAKE) check
 	@$(MAKE) buildsrc-check
 	@$(MAKE) test-coverage
+	@$(MAKE) mutation
+
+## Mutation testing
+
+mutation: ## Run PIT mutation testing on contrast-mcp-core
+	@if [ -n "$$VERBOSE" ]; then \
+		$(GRADLE) :contrast-mcp-core:pitest; \
+	else \
+		$(MAKE) mutation-quiet; \
+	fi
+
+mutation-quiet:
+	@. ./hack/run_silent.sh && print_main_header "Running Mutation Tests"
+	@. ./hack/run_silent.sh && print_header "contrast-mcp-core" "PIT mutation testing"
+	@. ./hack/run_silent.sh && run_with_quiet "Mutation test strength floor met" "$(GRADLE) :contrast-mcp-core:pitest"
+
+mutation-verbose: ## Run mutation testing with verbose output
+	@VERBOSE=1 $(MAKE) mutation
 
 ## Other targets
 

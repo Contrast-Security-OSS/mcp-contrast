@@ -29,18 +29,18 @@ import java.util.List;
  * @param pageSize Validated page size (range: 1-100, default: 50)
  * @param offset Calculated 0-based offset for SDK
  * @param limit Same as pageSize, for SDK clarity
- * @param warnings Validation warnings (soft failures - execution continues with corrected values)
+ * @param notices Validation notices (soft failures - execution continues with corrected values)
  */
 public record PaginationParams(
-    int page, int pageSize, int offset, int limit, List<String> warnings) {
+    int page, int pageSize, int offset, int limit, List<String> notices) {
 
   /**
    * Parse and validate pagination parameters with default max page size. Invalid values are clamped
-   * to acceptable defaults with warnings.
+   * to acceptable defaults with notices.
    *
    * @param page Requested page number (1-based), null defaults to 1
    * @param pageSize Requested page size, null defaults to 50
-   * @return PaginationParams with validated values and warnings
+   * @return PaginationParams with validated values and notices
    */
   public static PaginationParams of(Integer page, Integer pageSize) {
     return of(page, pageSize, MAX_PAGE_SIZE);
@@ -48,30 +48,30 @@ public record PaginationParams(
 
   /**
    * Parse and validate pagination parameters with custom max page size. Invalid values are clamped
-   * to acceptable defaults with warnings.
+   * to acceptable defaults with notices.
    *
    * @param page Requested page number (1-based), null defaults to 1
    * @param pageSize Requested page size, null defaults to 50
    * @param maxPageSize Tool-specific maximum page size (e.g., 50 for APIs with stricter limits)
-   * @return PaginationParams with validated values and warnings
+   * @return PaginationParams with validated values and notices
    */
   public static PaginationParams of(Integer page, Integer pageSize, int maxPageSize) {
-    List<String> warnings = new ArrayList<>();
+    List<String> notices = new ArrayList<>();
 
     // Soft failure: invalid page → clamp to 1
     int actualPage = page != null && page > 0 ? page : 1;
     if (page != null && page < 1) {
-      warnings.add(String.format("Invalid page number %d, using page 1", page));
+      notices.add(String.format("Invalid page number %d, using page 1", page));
     }
 
     // Soft failure: invalid pageSize → clamp to range with tool-specific max
     int actualSize = pageSize != null && pageSize > 0 ? pageSize : DEFAULT_PAGE_SIZE;
     if (pageSize != null && pageSize < 1) {
-      warnings.add(
+      notices.add(
           String.format("Invalid pageSize %d, using default %d", pageSize, DEFAULT_PAGE_SIZE));
       actualSize = DEFAULT_PAGE_SIZE;
     } else if (pageSize != null && pageSize > maxPageSize) {
-      warnings.add(
+      notices.add(
           String.format(
               "Requested pageSize %d exceeds maximum %d, capped to %d",
               pageSize, maxPageSize, maxPageSize));
@@ -83,7 +83,7 @@ public record PaginationParams(
         actualSize,
         (actualPage - 1) * actualSize, // 0-based offset
         actualSize, // limit
-        List.copyOf(warnings));
+        List.copyOf(notices));
   }
 
   /**

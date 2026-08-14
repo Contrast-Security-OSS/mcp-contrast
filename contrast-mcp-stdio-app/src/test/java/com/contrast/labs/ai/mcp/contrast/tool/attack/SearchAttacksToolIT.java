@@ -22,6 +22,7 @@ import com.contrast.labs.ai.mcp.contrast.result.AttackSummary;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -319,6 +320,9 @@ class SearchAttacksToolIT {
 
   // ========== Keyword and Rules Parameter Tests (Bug Fix: AIML-385) ==========
 
+  private static final Set<String> MULTI_RULE_FILTER_DISPLAY_NAMES =
+      Set.of("SQL Injection", "Cross-Site Scripting");
+
   @Test
   void searchAttacks_should_accept_keyword_with_spaces_without_error() {
     // Narrow contract: multi-word keywords must be URL-encoded safely and accepted by the API.
@@ -358,26 +362,22 @@ class SearchAttacksToolIT {
   void searchAttacks_should_find_results_with_multiple_rules() {
     var response =
         searchAttacksTool.searchAttacks(
-            1, 50, null, null, null, null, null, null, null, "sql-injection,xss-reflected");
+            1, 50, null, null, null, null, null, null, null, "sql-injection,reflected-xss");
 
     assertThat(response).as("Response should not be null").isNotNull();
     assertThat(response.errors()).as("Should have no errors").isEmpty();
     assertThat(response.items())
-        .as("requires seeded attacks matching sql-injection or xss-reflected rules")
+        .as("requires seeded attacks matching sql-injection or reflected-xss rules")
         .isNotEmpty();
 
-    // Every attack must have at least one rule matching one of the two requested rule families.
+    // Filter inputs are rule IDs, while AttackSummary exposes TeamServer display names.
     assertThat(response.items())
-        .as("every result must match at least one of the requested rules (sql or xss)")
+        .as("every result must match at least one requested rule display name")
         .allSatisfy(
             attack ->
                 assertThat(attack.rules())
                     .as("attack %s rules", attack.attackId())
-                    .anyMatch(
-                        rule -> {
-                          var lower = rule.toLowerCase();
-                          return lower.contains("sql") || lower.contains("xss");
-                        }));
+                    .anyMatch(MULTI_RULE_FILTER_DISPLAY_NAMES::contains));
   }
 
   // ========== Special Character Keyword Tests (Test Cases 3.5 and 13.4) ==========

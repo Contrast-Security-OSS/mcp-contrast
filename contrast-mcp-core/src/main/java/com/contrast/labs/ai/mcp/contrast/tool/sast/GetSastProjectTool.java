@@ -17,9 +17,9 @@ package com.contrast.labs.ai.mcp.contrast.tool.sast;
 
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.result.ScanProject;
+import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
-import com.contrast.labs.ai.mcp.contrast.tool.base.WarningCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.sast.params.GetSastProjectParams;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,22 +43,8 @@ public class GetSastProjectTool extends SingleTool<GetSastProjectParams, ScanPro
       name = "get_scan_project",
       description =
           """
-          Takes a scan project name and returns the project details.
-
-          Returns project metadata including:
-          - id: Unique project identifier
-          - name: Project name
-          - language: Programming language (Java, JavaScript, etc.)
-          - lastScanId: ID of the most recent scan
-          - lastScanTime: When the last scan completed
-          - completedScans: Total number of completed scans
-          - Vulnerability counts by severity (critical, high, medium, low, note)
-
-          Usage examples:
-          - Get project: projectName="my-application"
-
-          Note: Project name matching is case-insensitive. The returned project's name field
-          reflects the canonical casing as stored in Contrast.
+          Get a Contrast Scan (SAST) project by name, including language, scan counts, last scan ID
+          and time, and vulnerability counts by severity.
           """)
   public SingleToolResponse<ScanProject> getScanProject(
       @ToolParam(description = "Scan project name (matched case-insensitively)") String projectName,
@@ -71,7 +57,7 @@ public class GetSastProjectTool extends SingleTool<GetSastProjectParams, ScanPro
   }
 
   @Override
-  protected ScanProject doExecute(GetSastProjectParams params, WarningCollector collector)
+  protected ScanProject doExecute(GetSastProjectParams params, NoticeCollector collector)
       throws Exception {
     log.debug("Retrieving scan project details for project: {}", params.projectName());
 

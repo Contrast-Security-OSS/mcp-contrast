@@ -128,6 +128,36 @@ class SDKExtensionTest {
   }
 
   @Test
+  void getApplicationWithLicense_should_fetch_single_application_with_license_expand()
+      throws Exception {
+    var mockResponse =
+        """
+        {
+          "application": {
+            "app_id": "app-456",
+            "archived": true,
+            "license": {"level": "Unlicensed"}
+          }
+        }
+        """;
+    when(sdk.makeRequest(eq(HttpMethod.GET), any()))
+        .thenReturn(new ByteArrayInputStream(mockResponse.getBytes(StandardCharsets.UTF_8)));
+
+    var result = sdkExtension.getApplicationWithLicense("org-123", "app-456");
+
+    assertThat(result.getAppId()).isEqualTo("app-456");
+    assertThat(result.isArchived()).isTrue();
+    assertThat(result.getLicense().getLevel()).isEqualTo("Unlicensed");
+    verify(sdk)
+        .makeRequest(
+            eq(HttpMethod.GET),
+            argThat(
+                url ->
+                    url.contains("/ng/org-123/applications/app-456")
+                        && url.contains("expand=license")));
+  }
+
+  @Test
   void getApplicationsFiltered_should_include_metadata_filters_in_request() throws Exception {
     var mockResponse =
         """

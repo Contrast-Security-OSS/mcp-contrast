@@ -101,7 +101,7 @@ class GetSastResultsToolTest {
   }
 
   @Test
-  void getScanResults_should_include_deprecation_warning() throws IOException {
+  void getScanResults_should_include_deprecation_notice() throws IOException {
     var sarifJson = "{\"version\":\"2.1.0\",\"runs\":[]}";
 
     var mockProject =
@@ -120,7 +120,7 @@ class GetSastResultsToolTest {
     var result = tool.getScanResults(TEST_PROJECT_NAME);
 
     assertThat(result.isSuccess()).isTrue();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("DEPRECATED"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("DEPRECATED"));
   }
 
   @Test
@@ -147,7 +147,7 @@ class GetSastResultsToolTest {
 
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("DEPRECATED"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("DEPRECATED"));
   }
 
   @Test
@@ -165,8 +165,8 @@ class GetSastResultsToolTest {
 
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
-    assertThat(result.warnings()).anyMatch(w -> w.contains("No scan results available"));
-    assertThat(result.warnings()).anyMatch(w -> w.contains("DEPRECATED"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("No scan results available"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("DEPRECATED"));
   }
 
   @Test
@@ -186,9 +186,9 @@ class GetSastResultsToolTest {
 
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .anyMatch(w -> w.contains("No scan results available for project: " + TEST_PROJECT_NAME));
-    assertThat(result.warnings()).anyMatch(w -> w.contains("DEPRECATED"));
+    assertThat(result.notices()).anyMatch(w -> w.contains("DEPRECATED"));
   }
 
   @Test

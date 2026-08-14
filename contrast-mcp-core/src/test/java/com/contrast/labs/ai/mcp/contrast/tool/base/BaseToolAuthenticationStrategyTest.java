@@ -217,7 +217,7 @@ class BaseToolAuthenticationStrategyTest {
     }
 
     @Override
-    protected String doExecute(TestParams params, WarningCollector collector) {
+    protected String doExecute(TestParams params, NoticeCollector collector) {
       events.add("doExecute");
       return "ok";
     }
@@ -233,7 +233,7 @@ class BaseToolAuthenticationStrategyTest {
 
     @Override
     protected ExecutionResult<String> doExecute(
-        PaginationParams pagination, TestParams params, WarningCollector collector) {
+        PaginationParams pagination, TestParams params, NoticeCollector collector) {
       events.add("doExecute");
       return ExecutionResult.of(List.of("ok"), 1);
     }
@@ -256,7 +256,7 @@ class BaseToolAuthenticationStrategyTest {
     }
 
     @Override
-    public List<String> warnings() {
+    public List<String> notices() {
       return List.of();
     }
   }

@@ -51,6 +51,12 @@ import org.springframework.ai.tool.annotation.Tool;
 class SearchServersToolTest {
 
   private static final String SECRET_BODY = "token=raw-token-value&apiKey=secret";
+  private static final String UNKNOWN_PROTECT_NOTICE =
+      "protectEnabled null means Protect state is unknown or unavailable for that server, not"
+          + " disabled.";
+  private static final String UNKNOWN_AGENT_VERSION_NOTICE =
+      "agentOutOfDate null means the latest agent version could not be determined, not that the"
+          + " agent is current.";
 
   private ContrastApiClient contrastApiClient;
   private SearchServersTool tool;
@@ -159,14 +165,14 @@ class SearchServersToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.pageSize()).isEqualTo(100);
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .contains("Requested pageSize 250 exceeds maximum 100, capped to 100");
     verify(contrastApiClient, never())
         .searchServers(any(), eq(250), anyInt(), anyString(), anyBoolean());
   }
 
   @Test
-  void searchServers_should_accept_maximum_page_size_without_cap_warning() throws Exception {
+  void searchServers_should_accept_maximum_page_size_without_cap_notice() throws Exception {
     when(contrastApiClient.searchServers(any(), eq(100), eq(0), anyString(), eq(false)))
         .thenReturn(response(1L, server(1L, "server-1")));
 
@@ -174,7 +180,7 @@ class SearchServersToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.pageSize()).isEqualTo(100);
-    assertThat(result.warnings()).noneMatch(warning -> warning.contains("pageSize"));
+    assertThat(result.notices()).noneMatch(notice -> notice.contains("pageSize"));
     verify(contrastApiClient).searchServers(any(), eq(100), eq(0), anyString(), eq(false));
   }
 
@@ -187,7 +193,7 @@ class SearchServersToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.pageSize()).isEqualTo(50);
-    assertThat(result.warnings()).contains("Invalid pageSize 0, using default 50");
+    assertThat(result.notices()).contains("Invalid pageSize 0, using default 50");
     verify(contrastApiClient).searchServers(any(), eq(50), eq(0), anyString(), eq(false));
   }
 
@@ -212,7 +218,7 @@ class SearchServersToolTest {
   }
 
   @Test
-  void searchServers_should_return_standard_warning_for_valid_empty_tag_filter_result()
+  void searchServers_should_return_standard_notice_for_valid_empty_tag_filter_result()
       throws Exception {
     var response = response(0L);
     when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
@@ -225,7 +231,7 @@ class SearchServersToolTest {
     assertThat(result.items()).isEmpty();
     assertThat(result.totalItems()).isZero();
     assertThat(result.errors()).isEmpty();
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .containsExactly("No results found matching the specified criteria.");
   }
 
@@ -241,7 +247,48 @@ class SearchServersToolTest {
   }
 
   @Test
-  void searchServers_should_return_standard_warning_for_valid_empty_result() throws Exception {
+  void searchServers_should_explain_unknown_protect_and_agent_version_state() throws Exception {
+    var server = server(1L, "server-1");
+    server.setDefend(null);
+    server.setLatestAgentVersion("NA");
+    when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
+        .thenReturn(response(1L, server));
+
+    var result = allServers(1, null);
+
+    assertThat(result.notices())
+        .containsExactly(UNKNOWN_PROTECT_NOTICE, UNKNOWN_AGENT_VERSION_NOTICE);
+  }
+
+  @Test
+  void searchServers_should_notice_unknown_state_when_mixed_with_known_servers() throws Exception {
+    var unknownServer = server(1L, "server-unknown");
+    unknownServer.setDefend(null);
+    unknownServer.setLatestAgentVersion("NA");
+    var knownServer = server(2L, "server-known");
+    when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
+        .thenReturn(response(2L, unknownServer, knownServer));
+
+    var result = allServers(1, null);
+
+    assertThat(result.notices()).contains(UNKNOWN_PROTECT_NOTICE, UNKNOWN_AGENT_VERSION_NOTICE);
+    assertThat(result.items()).hasSize(2);
+  }
+
+  @Test
+  void searchServers_should_not_emit_unknown_state_notices_when_states_are_known()
+      throws Exception {
+    when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
+        .thenReturn(response(1L, server(1L, "server-1")));
+
+    var result = allServers(1, null);
+
+    assertThat(result.notices())
+        .doesNotContain(UNKNOWN_PROTECT_NOTICE, UNKNOWN_AGENT_VERSION_NOTICE);
+  }
+
+  @Test
+  void searchServers_should_return_standard_notice_for_valid_empty_result() throws Exception {
     when(contrastApiClient.searchServers(any(), eq(50), eq(0), anyString(), eq(false)))
         .thenReturn(response(0L));
 
@@ -250,7 +297,7 @@ class SearchServersToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.items()).isEmpty();
     assertThat(result.totalItems()).isZero();
-    assertThat(result.warnings())
+    assertThat(result.notices())
         .containsExactly("No results found matching the specified criteria.");
   }
 
@@ -304,6 +351,7 @@ class SearchServersToolTest {
     server.setServerId(serverId);
     server.setName(name);
     server.setLatestAgentVersion("5.1.0");
+    server.setDefend(false);
     server.setTags(List.of());
     server.setApplicationCount(0L);
     return server;
