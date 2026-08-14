@@ -198,14 +198,18 @@ public class GetRouteCoverageTool
       }
 
       var accessDenied = ContrastAccessDeniedException.from(originalForbidden);
-      var applicationState = applicationLicenseDiscriminator.discriminate(appId, accessDenied);
-      var message =
-          switch (applicationState) {
-            case ARCHIVED -> ARCHIVED_APPLICATION_ERROR;
-            case UNLICENSED -> UNLICENSED_APPLICATION_ERROR;
-            case LICENSED -> LICENSED_APPLICATION_ACCESS_DENIED_ERROR;
-          };
-      throw new ActionableToolErrorException(message);
+      try {
+        var applicationState = applicationLicenseDiscriminator.discriminate(appId, accessDenied);
+        var message =
+            switch (applicationState) {
+              case ARCHIVED -> ARCHIVED_APPLICATION_ERROR;
+              case UNLICENSED -> UNLICENSED_APPLICATION_ERROR;
+              case LICENSED -> LICENSED_APPLICATION_ACCESS_DENIED_ERROR;
+            };
+        throw new ActionableToolErrorException(message);
+      } catch (ContrastAccessDeniedException e) {
+        throw originalForbidden;
+      }
     }
   }
 }

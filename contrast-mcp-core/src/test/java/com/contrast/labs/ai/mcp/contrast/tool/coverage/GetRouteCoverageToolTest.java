@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.contrast.labs.ai.mcp.contrast.client.ContrastAccessDeniedException;
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Observation;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
@@ -318,7 +319,10 @@ class GetRouteCoverageToolTest {
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).containsExactly(GetRouteCoverageTool.UNLICENSED_APPLICATION_ERROR);
     assertThat(result.data()).isNull();
-    verify(applicationLicenseDiscriminator).discriminate(eq(VALID_APP_ID), any());
+    var captor = ArgumentCaptor.forClass(ContrastAccessDeniedException.class);
+    verify(applicationLicenseDiscriminator).discriminate(eq(VALID_APP_ID), captor.capture());
+    assertThat(captor.getValue().getHttpCode()).isEqualTo(originalForbidden.getCode());
+    assertThat(captor.getValue().getCause()).isSameAs(originalForbidden);
   }
 
   @Test
