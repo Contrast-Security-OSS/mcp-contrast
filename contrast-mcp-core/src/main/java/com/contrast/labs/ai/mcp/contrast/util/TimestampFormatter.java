@@ -25,6 +25,8 @@ import java.time.format.DateTimeFormatter;
  * can format timestamps without depending on the tool layer.
  */
 public final class TimestampFormatter {
+  // Lowercase 'xxx' always outputs numeric offsets (e.g. "+00:00"), never "Z".
+  // Uppercase 'XXX' would output "Z" for UTC; lowercase guarantees numeric format.
   private static final DateTimeFormatter TIMESTAMP_FORMATTER =
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssxxx");
   private static final DateTimeFormatter TIMESTAMP_WITH_MILLIS_FORMATTER =

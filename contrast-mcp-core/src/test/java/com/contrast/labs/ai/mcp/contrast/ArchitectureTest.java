@@ -44,8 +44,6 @@ import java.util.stream.Collectors;
  * <p>Known grandfathered violations and their burn-down beads:
  *
  * <ul>
- *   <li>mcp-r7xbx — result package (AttackSummary, ServerSummary) depends on tool.base
- *       (FilterHelper.formatTimestamp), which also creates the one top-level package cycle
  *   <li>mcp-ax84i — tool.coverage depends on tool.application (ApplicationLicenseDiscriminator)
  * </ul>
  *
@@ -118,8 +116,7 @@ class ArchitectureTest {
   // ── Dependency cycles ──────────────────────────────────────────────────────
   //
   // Top-level slices (tool, client, result, sdkextension, hints) must form a
-  // DAG. The one known cycle is result -> tool.base (FilterHelper), tracked
-  // by mcp-r7xbx and grandfathered in the store.
+  // DAG. Remaining grandfathered cycles are tracked in the store.
 
   @ArchTest
   static final ArchRule top_level_packages_should_be_cycle_free =
