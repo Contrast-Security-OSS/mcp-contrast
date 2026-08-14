@@ -3,7 +3,8 @@ package com.contrast.labs.ai.mcp.contrast;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.hints.HintGenerator;
-import org.junit.jupiter.api.DisplayName;
+import com.contrast.labs.ai.mcp.contrast.hints.HintProvider;
+import com.contrast.labs.ai.mcp.contrast.hints.HintUtils;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -13,38 +14,42 @@ import org.junit.jupiter.api.Test;
 public class HintGeneratorTest {
 
   @Test
-  @DisplayName("Test with a valid SQL injection rule")
-  public void testGenerateVulnerabilityFixHintForSqlInjection() {
-    var sqlInjectionHints = HintGenerator.generateVulnerabilityFixHint("sql-injection");
-    assertThat(sqlInjectionHints)
-        .as("SQL injection hints should contain 'allow list' guidance")
-        .contains("allow list");
+  public void generateVulnerabilityFixHint_should_include_specific_hints_when_rule_is_mapped() {
+    var expected = HintUtils.formatHints(HintProvider.getAllHintsForRule("sql-injection"));
+
+    var result = HintGenerator.generateVulnerabilityFixHint("sql-injection");
+
+    assertThat(result).isEqualTo(expected).contains("allow list", "prepared statement");
   }
 
   @Test
-  @DisplayName("Test with null rule")
-  public void testGenerateVulnerabilityFixHintForNullRule() {
-    var nullRuleHints = HintGenerator.generateVulnerabilityFixHint(null);
-    assertThat(nullRuleHints)
-        .as("Null rule should return the default hint")
-        .contains("Where a vulnerable library exists");
+  public void generateVulnerabilityFixHint_should_return_full_general_guidance_when_rule_is_null() {
+    var expected = HintUtils.formatHints(HintProvider.getGeneralGuidance());
+
+    var result = HintGenerator.generateVulnerabilityFixHint(null);
+
+    assertThat(result).isEqualTo(expected).contains("dompurify, esapi");
   }
 
   @Test
-  @DisplayName("Test with empty rule")
-  public void testGenerateVulnerabilityFixHintForEmptyRule() {
-    var emptyRuleHints = HintGenerator.generateVulnerabilityFixHint("");
-    assertThat(emptyRuleHints)
-        .as("Empty rule should return the default hint")
-        .contains("Where a vulnerable library exists");
+  public void
+      generateVulnerabilityFixHint_should_return_full_general_guidance_when_rule_is_blank() {
+    var expected = HintUtils.formatHints(HintProvider.getGeneralGuidance());
+
+    var result = HintGenerator.generateVulnerabilityFixHint(" \t");
+
+    assertThat(result).isEqualTo(expected).contains("dompurify, esapi");
   }
 
   @Test
-  @DisplayName("Test with non-existent rule")
-  public void testGenerateVulnerabilityFixHintForNonExistentRule() {
-    var nonExistentRuleHints = HintGenerator.generateVulnerabilityFixHint("non-existent-rule");
-    assertThat(nonExistentRuleHints)
-        .as("Non-existent rule should return the default hint")
-        .contains("Where a vulnerable library exists");
+  public void generateVulnerabilityFixHint_should_omit_unmapped_rule_from_full_general_guidance() {
+    var expected = HintUtils.formatHints(HintProvider.getGeneralGuidance());
+
+    var result = HintGenerator.generateVulnerabilityFixHint("jndi-injection");
+
+    assertThat(result)
+        .isEqualTo(expected)
+        .contains("dompurify, esapi")
+        .doesNotContain("jndi-injection");
   }
 }

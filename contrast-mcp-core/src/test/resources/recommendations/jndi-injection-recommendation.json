@@ -1,0 +1,31 @@
+{
+  "success": true,
+  "messages": [
+    "Vulnerability recommendation loaded successfully"
+  ],
+  "recommendation": {
+    "text": "Untrusted data should never be used in a Java Naming and Directory Interface (JNDI) lookup. If your application requires dynamic JNDI lookups, then restrict those lookups to a known set of safe values using a validator function.\n\n// DynamicJNDILookup.java\nvoid validateName(String name) {\n  if (!allowedNames.contains(name)) {\n    throw new IllegalArgumentException(name + \" is not an allowed name for JNDI lookups\");\n  }\n}\n\n// DynamicJNDILookup.java\nString name = request.getParameter(\"name\");\nContext context = new InitialContext();\nvalidateName(name);\nObject result = context.lookup(name);\n\nAssess users should take care to add a validator such as validateName as a Security Control, to make Assess aware that this custom code validates that lookups are safe from JNDI injection vulnerabilities.\n",
+    "formattedText": "{{#paragraph}}\nUntrusted data should never be used in a Java Naming and Directory Interface (JNDI) lookup. If your application requires dynamic JNDI lookups, then restrict those lookups to a known set of safe values using a validator function.\n{{/paragraph}}\n\n{{#javaBlock}}// DynamicJNDILookup.java\nvoid validateName(String name) {\n  if (!allowedNames.contains(name)) {\n    throw new IllegalArgumentException(name + \" is not an allowed name for JNDI lookups\");\n  }\n}\n{{/javaBlock}}\n\n{{#javaBlock}}// DynamicJNDILookup.java\nString name = request.getParameter(\"name\");\nContext context = new InitialContext();\nvalidateName(name);\nObject result = context.lookup(name);\n{{/javaBlock}}\n\n{{#paragraph}}\nAssess users should take care to add a validator such as {{#code}}validateName{{/code}} as a Security Control, to make Assess aware that this custom code validates that lookups are safe from JNDI injection vulnerabilities.\n{{/paragraph}}",
+    "formattedTextVariables": {
+      "leftBrace": "{",
+      "rightBrace": "}"
+    }
+  },
+  "owasp": "https://owasp.org/Top10/A03_2021-Injection/",
+  "cwe": "https://cwe.mitre.org/data/definitions/74.html",
+  "custom_recommendation": {
+    "text": "",
+    "formattedText": "",
+    "formattedTextVariables": {}
+  },
+  "rule_references": {
+    "text": "https://owasp.org/Top10/A03_2021-Injection/\n",
+    "formattedText": "https://owasp.org/Top10/A03_2021-Injection/{{{nl}}}",
+    "formattedTextVariables": {}
+  },
+  "custom_rule_references": {
+    "text": "",
+    "formattedText": "",
+    "formattedTextVariables": {}
+  }
+}
