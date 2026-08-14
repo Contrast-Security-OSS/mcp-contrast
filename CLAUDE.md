@@ -19,16 +19,17 @@ See [REPO-CONTEXT.md](./REPO-CONTEXT.md) for domain definitions, architecture no
 
 **ABSOLUTE RULE: NEVER skip git hooks.** Do not use `--no-verify`, `--no-gpg-sign`, `SKIP_COVERAGE_HOOK=1`, or any other mechanism to bypass pre-commit, pre-push, or any other git hook. No exceptions. No shortcuts. If a hook fails, fix the underlying problem. A skipped hook caused a CI build failure; this rule exists to prevent that from ever happening again. If you skip a hook, you have made an error.
 
-## Branching Requirements
+## Uncommitted Changes
 
-**All code changes must be made on a feature branch.** Never commit directly to `main`.
+**Never discard uncommitted work without explicit permission.** When switching branches, `git stash` is acceptable only if you `git stash pop` immediately after the checkout completes. Stashing and leaving changes buried in the stash list is not allowed. If the pop fails (conflict, etc.), resolve it right away and restore the changes. The user's working-tree state must survive branch switches intact.
+
+## Branching and PR Requirements
+
+**All code changes must be made on a feature branch.** Never commit directly to `main`. Use `pr-tools` plugin skills when available: `/pr-tools:create-stacked-branch` for new branches, `/pr-tools:create-pr` for pull requests. Do not use raw `git checkout -b` or `gh pr create` when the skills are loaded.
 
 Branch naming: `AIML-<ticket-id>-<short-description>` (e.g., `AIML-391-add-medium-low-note-counts`)
 
-## PR Requirements
-
-PR Titles should be in the form: `<Jira Issue Id> <Title>` 
-For example: `AIML-573 Generate and attach release SBOMs`
+PR Titles: `<Jira Issue Id> <Title>` (e.g., `AIML-573 Generate and attach release SBOMs`)
 
 ## Required Plugins
 
@@ -91,7 +92,9 @@ make coverage VERBOSE=1
 
 **Fixing PIT survivors:** When a mutation survives, determine whether it is a genuine test gap or an equivalent mutant. A genuine gap (the mutated behavior is observably different but no test catches it) is fixed by writing a better test. An equivalent mutant (the mutated behavior produces identical output through the public API) is left alone and accommodated by threshold headroom. Never restructure production code to eliminate equivalent-mutant sites. Small well-named helpers naturally create branches that are unreachable from their sole call site, and collapsing them to satisfy a metric trades readability for a number.
 
-**Architecture tests:** ArchUnit rules in `contrast-mcp-core` (`ArchitectureTest`) enforce layering, SDK containment, domain isolation, and conventions. Dependency rules are frozen: grandfathered violations live in the committed store at `contrast-mcp-core/src/test/resources/archunit-store`, and any new violation fails. The store is a ratchet — entries may only be removed, never added, without explicit user permission (adding one relaxes a rule, same policy as checkstyle suppressions). After fixing a grandfathered violation, run `./gradlew :contrast-mcp-core:test -ParchStoreUpdate` and commit the shrunken store. Size/complexity guardrails in the same test are not frozen; their thresholds ratchet manually like coverage floors — lower as improvements land, never raise.
+**Architecture tests:** ArchUnit rules in `contrast-mcp-core` (`ArchitectureTest`) enforce layering, SDK containment, domain isolation, and conventions. Dependency rules are frozen: grandfathered violations live in the committed store at `contrast-mcp-core/src/test/resources/archunit-store`, and any new violation fails. The store is a ratchet — entries may only be removed, never added, without explicit user permission (adding one relaxes a rule, same policy as checkstyle suppressions). After fixing a grandfathered violation, run `./gradlew :contrast-mcp-core:test -ParchStoreUpdate` and commit the shrunken store. The `-ParchStoreUpdate` flag is shrink-only: it lets ArchUnit remove stale entries for violations that no longer exist, but new violations always fail regardless of any flag. Size/complexity guardrails in the same test are not frozen; their thresholds ratchet manually like coverage floors — lower as improvements land, never raise.
+
+**Responding to ArchUnit violations:** ArchUnit violations are design feedback, not build obstacles. When a violation appears, fix the design. Do not manually edit store files, do not weaken types to dodge the dependency (e.g. replacing a typed parameter with loose strings), and do not restructure code to hide the dependency behind a thinner interface that is actually worse. For SDK containment violations specifically, the fix is a new abstraction in `sdkextension.data` that maps from the SDK type, not loosening the type system. The rule exists to keep the published core decoupled from SDK churn.
 
 **Changed-file coverage:** `ext.changedFileCoverageMinimum` (85%) is enforced per changed `src/main/java` file by `jacocoChangedFileCoverageVerification`. Runs in CI on every pull request regardless of base branch, so stacked PRs are gated too, plus the pre-push hook (`make install-hooks`, bypass with `SKIP_COVERAGE_HOOK=1`) and `make coverage-changed`. The hook warns but still runs when dirty source, build, or resource files could change JaCoCo output; pull-request CI remains authoritative because it tests a clean checkout. Unrelated changes such as Markdown files do not warn. Set `COVERAGE_BASE_REF=origin/<parent>` on the first push of a new stacked branch. Not wired into `check`, which has no base ref to diff against. Logic lives in `buildSrc/`, which has its own checks via `make buildsrc-check`. See `scripts/git-hooks/README.md`.
 

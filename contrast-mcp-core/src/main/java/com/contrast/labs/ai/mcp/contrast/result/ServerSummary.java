@@ -16,7 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.result;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.server.ServerDetail;
-import com.contrast.labs.ai.mcp.contrast.tool.base.FilterHelper;
+import com.contrast.labs.ai.mcp.contrast.util.TimestampFormatter;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.util.StringUtils;
@@ -87,7 +87,7 @@ public record ServerSummary(
         applicationCount,
         applications,
         // The server contract retains backend millisecond precision for activity sorting.
-        FilterHelper.formatTimestampWithMillis(server.getLastActivity()));
+        TimestampFormatter.formatTimestampWithMillis(server.getLastActivity()));
   }
 
   private static Boolean mapOutOfDate(ServerDetail server) {

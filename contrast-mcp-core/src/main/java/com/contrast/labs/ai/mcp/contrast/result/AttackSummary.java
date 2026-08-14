@@ -16,7 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.result;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.Attack;
-import com.contrast.labs.ai.mcp.contrast.tool.base.FilterHelper;
+import com.contrast.labs.ai.mcp.contrast.util.TimestampFormatter;
 import java.util.List;
 import java.util.Optional;
 
@@ -53,12 +53,12 @@ public record AttackSummary(
         attack.getSource(),
         attack.getRules(),
         attack.getProbes(),
-        FilterHelper.formatTimestamp(attack.getStart_time()),
-        FilterHelper.formatTimestamp(attack.getEnd_time()),
+        TimestampFormatter.formatTimestamp(attack.getStart_time()),
+        TimestampFormatter.formatTimestamp(attack.getEnd_time()),
         attack.getStart_time(),
         attack.getEnd_time(),
-        FilterHelper.formatTimestamp(attack.getFirst_event_time()),
-        FilterHelper.formatTimestamp(attack.getLast_event_time()),
+        TimestampFormatter.formatTimestamp(attack.getFirst_event_time()),
+        TimestampFormatter.formatTimestamp(attack.getLast_event_time()),
         attack.getFirst_event_time(),
         attack.getLast_event_time(),
         appInfos);
@@ -84,8 +84,8 @@ public record AttackSummary(
           attackApp.getApplication().getLanguage(),
           attackApp.getSeverity(),
           attackApp.getStatus(),
-          FilterHelper.formatTimestamp(attackApp.getStartTime()),
-          FilterHelper.formatTimestamp(attackApp.getEndTime()),
+          TimestampFormatter.formatTimestamp(attackApp.getStartTime()),
+          TimestampFormatter.formatTimestamp(attackApp.getEndTime()),
           attackApp.getStartTime(),
           attackApp.getEndTime());
     }
