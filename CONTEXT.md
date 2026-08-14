@@ -32,6 +32,14 @@ _Avoid_: describing those 403s as credential problems, missing data, or language
 The set of routes an Assess agent observed in an application, each either discovered (found in the code) or exercised (hit by an HTTP request).
 _Avoid_: route data, endpoint coverage
 
+**Recommendation**:
+TeamServer's per-Vulnerability-type remediation guidance, authored by Contrast security research in rulepack templates. TeamServer serves it in two variants, a lossy plain-text flattening and a marked-up formatted text that UIs render. The `howToFix` field of `get_vulnerability` carries this content.
+_Avoid_: conflating with Remediation hint
+
+**Remediation hint**:
+Agent-directed fix guidance authored in this MCP server, not in TeamServer, keyed by Vulnerability type. The `remediationHint` field of `get_vulnerability` carries this content.
+_Avoid_: conflating with Recommendation or `howToFix`
+
 **Status display label**:
 The human-readable status text TeamServer returns on vulnerability records, for example "Remediated - Auto-Verified" for a vulnerability in the AutoRemediated status. Filters take canonical Vulnerability statuses, and this server's tool results carry canonical Vulnerability statuses, not display labels.
 _Avoid_: treating a display label as a valid filter value or exposing one in a tool result

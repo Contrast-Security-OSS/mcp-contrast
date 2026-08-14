@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Bug Fixes
+
+**`get_vulnerability` now returns clean Markdown remediation content**: TeamServer Recommendation
+markup in `howToFix` is now rendered as Markdown, including links, code, paragraphs, and emphasis,
+with a scrubbed plain-text fallback. Unmapped or missing Vulnerability types now receive the full
+general `remediationHint` guidance without the type being concatenated onto the final sentence.
+
 ## [2.5.0] - 2026-08-11
 
 ### Bug Fixes

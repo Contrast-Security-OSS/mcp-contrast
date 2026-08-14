@@ -19,8 +19,10 @@ dependencies {
     api 'com.fasterxml.jackson.core:jackson-annotations'
 
     implementation 'org.slf4j:slf4j-api'
+    implementation "com.samskivert:jmustache:${jmustacheVersion}"
 
     testImplementation 'org.mockito:mockito-core'
+    testImplementation 'ch.qos.logback:logback-classic'
 }
 
 def publicMavenReleaseRepositoryName = 'contrastPublicRelease'
@@ -120,7 +122,8 @@ tasks.register('verifyCorePublicationMetadata') {
             'com.google.code.gson:gson:compile',
             'com.contrastsecurity:contrast-sdk-java:compile',
             'com.fasterxml.jackson.core:jackson-annotations:compile',
-            'org.slf4j:slf4j-api:runtime'
+            'org.slf4j:slf4j-api:runtime',
+            'com.samskivert:jmustache:runtime'
         ].each { expectedDependency ->
             if (!dependencies.contains(expectedDependency)) {
                 throw new GradleException(
@@ -147,7 +150,8 @@ tasks.register('verifyCorePublicationMetadata') {
             'com.google.code.gson:gson',
             'com.contrastsecurity:contrast-sdk-java',
             'com.fasterxml.jackson.core:jackson-annotations',
-            'org.slf4j:slf4j-api'
+            'org.slf4j:slf4j-api',
+            'com.samskivert:jmustache'
         ].each { expectedDependency ->
             if (!moduleDependencies.contains(expectedDependency)) {
                 throw new GradleException("Missing expected Gradle metadata dependency ${expectedDependency}")
