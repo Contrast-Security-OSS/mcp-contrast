@@ -39,6 +39,8 @@ Do not replace a typed parameter with loose strings. Do not decompose a domain o
 
 Example from this repo: `RecommendationData.from(Recommendation)` in `sdkextension.data` wraps the SDK `Recommendation` so `RecommendationMarkdownRenderer` never imports the SDK.
 
+**For SDK exceptions**, the same pattern applies: define a domain exception that wraps the SDK exception, catch and rethrow at the boundary, and let callers catch the domain type. Example from this repo: `ContrastAccessDeniedException.from(UnauthorizedException)` in `client` lets tool-layer code handle access denials without importing the SDK.
+
 ## Fixing layering violations
 
 **result depends on tool.** Extract the shared utility into `util` (a top-level package alongside `result`, `tool`, `client`). Both `result` and `tool` may import from `util`.
@@ -48,6 +50,6 @@ Example from this repo: `RecommendationData.from(Recommendation)` in `sdkextensi
 ## Anti-patterns
 
 - **Manually editing store files.** Never. Only the store update Gradle task modifies them.
-- **Weakening types to dodge a dependency.** Replacing `Recommendation` with three `String` parameters satisfies the rule but degrades the design.
+- **Weakening types to dodge a dependency.** Replacing `Recommendation` with three `String` parameters satisfies the rule but degrades the design. Changing `SdkException` to `RuntimeException` or `Exception` to avoid the import is the same mistake: it removes the SDK dependency by destroying the type contract instead of moving it behind an abstraction.
 - **Ignoring violations from a parent branch.** If rebasing or stacking surfaces violations not in the store, they are yours to fix on your branch.
 - **Running `-ParchStoreUpdate` hoping it will absorb new violations.** It will not. It only removes stale entries.
