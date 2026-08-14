@@ -32,7 +32,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.AgentSession;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
-import com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator;
+import com.contrast.labs.ai.mcp.contrast.tool.base.ApplicationLicenseDiscriminator;
 import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.models.RouteCoverageBySessionIDAndMetadataRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;

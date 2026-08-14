@@ -41,12 +41,6 @@ import java.util.stream.Collectors;
  * run {@code ./gradlew :contrast-mcp-core:test -ParchStoreUpdate} to shrink the store and commit
  * the result. Configuration lives in {@code src/test/resources/archunit.properties}.
  *
- * <p>Known grandfathered violations and their burn-down beads:
- *
- * <ul>
- *   <li>mcp-ax84i — tool.coverage depends on tool.application (ApplicationLicenseDiscriminator)
- * </ul>
- *
  * <p>The size and complexity guardrails at the bottom are NOT frozen because their violation
  * messages embed live counts. They ratchet manually like the coverage floors in the root
  * build.gradle: lower a threshold as improvements land, never raise one to make a build pass.
@@ -131,9 +125,7 @@ class ArchitectureTest {
   //
   // Each tool domain (vulnerability, application, library, attack, server,
   // sast, coverage) should only depend on tool.base and tool.validation,
-  // never on sibling domains. The known coverage -> application dependency
-  // (ApplicationLicenseDiscriminator, mcp-ax84i) is grandfathered in the
-  // store.
+  // never on sibling domains.
 
   private static final String[] TOOL_DOMAINS = {
     "vulnerability", "application", "library", "attack", "server", "sast", "coverage"

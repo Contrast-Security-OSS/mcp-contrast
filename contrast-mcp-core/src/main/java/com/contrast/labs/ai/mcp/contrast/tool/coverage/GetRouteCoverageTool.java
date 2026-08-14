@@ -15,12 +15,13 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 
+import com.contrast.labs.ai.mcp.contrast.client.ContrastAccessDeniedException;
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.result.RouteCoverageResponseLight;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageBySessionIDAndMetadataRequestExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
-import com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator;
 import com.contrast.labs.ai.mcp.contrast.tool.base.ActionableToolErrorException;
+import com.contrast.labs.ai.mcp.contrast.tool.base.ApplicationLicenseDiscriminator;
 import com.contrast.labs.ai.mcp.contrast.tool.base.NoticeCollector;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
@@ -196,7 +197,8 @@ public class GetRouteCoverageTool
         throw originalForbidden;
       }
 
-      var applicationState = applicationLicenseDiscriminator.discriminate(appId, originalForbidden);
+      var accessDenied = ContrastAccessDeniedException.from(originalForbidden);
+      var applicationState = applicationLicenseDiscriminator.discriminate(appId, accessDenied);
       var message =
           switch (applicationState) {
             case ARCHIVED -> ARCHIVED_APPLICATION_ERROR;
