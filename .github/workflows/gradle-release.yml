@@ -54,7 +54,7 @@ jobs:
           fi
 
       - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@6550634d3eb14a20275549de1588a83267023d42 # v4
+        uses: gradle/actions/wrapper-validation@889dc537cf3672c0c060560c9ead940a2b8b7077 # v4
 
       - name: Set up JDK 21
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
@@ -222,7 +222,7 @@ jobs:
             --no-daemon
 
       - name: Attest build provenance for release jar
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
 
