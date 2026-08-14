@@ -45,7 +45,7 @@ runs:
 
     - name: Extract metadata for Docker
       id: meta
-      uses: step-security/metadata-action@619b5adf759ed62ddd8c6d474364da38ea264eee # v6.1.0
+      uses: step-security/metadata-action@21378f5b76c96c69ac34d21cc3873d85e26381b1 # v6.2.0
       with:
         images: ${{ inputs.image }}
         tags: |
