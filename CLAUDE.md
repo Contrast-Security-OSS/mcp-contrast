@@ -25,7 +25,11 @@ See [REPO-CONTEXT.md](./REPO-CONTEXT.md) for domain definitions, architecture no
 
 ## Branching and PR Requirements
 
-**All code changes must be made on a feature branch.** Never commit directly to `main`. Use `pr-tools` plugin skills when available: `/pr-tools:create-stacked-branch` for new branches, `/pr-tools:create-pr` for pull requests. Do not use raw `git checkout -b` or `gh pr create` when the skills are loaded.
+**All code changes must be made on a feature branch.** Never commit directly to `main`. Never use raw `git checkout -b` or `gh pr create` when pr-tools skills are loaded.
+
+**Default to stacking.** When unmerged feature branches exist, create new branches stacked on the tip of the current stack using `/pr-tools:create-stacked-branch`. Only branch off `main` when the user explicitly says so. If unsure which branch is the stack tip, check with the user rather than defaulting to `main`.
+
+Use `/pr-tools:create-pr` for pull requests.
 
 Branch naming: `AIML-<ticket-id>-<short-description>` (e.g., `AIML-391-add-medium-low-note-counts`)
 
