@@ -1,0 +1,24 @@
+{
+  "formatVersion": 1,
+  "toolVersion": "0.1.0",
+  "generated": "2026-08-17T03:03:36.299849Z",
+  "coverageSelection": "branch-preferred",
+  "threshold": 15.0,
+  "complexityCap": 15,
+  "entries": [
+    {
+      "class": "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/RecommendationMarkdownRenderer",
+      "method": "registerKnownTags",
+      "descriptor": "(Ljava/util/Map;)V",
+      "crap": 38.50,
+      "complexity": 14
+    },
+    {
+      "class": "com/contrast/labs/ai/mcp/contrast/tool/vulnerability/SearchAppVulnerabilitiesTool",
+      "method": "doExecute",
+      "descriptor": "(Lcom/contrast/labs/ai/mcp/contrast/tool/base/PaginationParams;Lcom/contrast/labs/ai/mcp/contrast/tool/vulnerability/params/SearchAppVulnerabilitiesParams;Lcom/contrast/labs/ai/mcp/contrast/tool/base/NoticeCollector;)Lcom/contrast/labs/ai/mcp/contrast/tool/base/ExecutionResult;",
+      "crap": 18.52,
+      "complexity": 15
+    }
+  ]
+}

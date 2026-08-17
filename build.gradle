@@ -4,6 +4,7 @@ import org.gradle.api.plugins.quality.Checkstyle
 
 plugins {
     id 'base'
+    id 'com.architester.crap4j' apply false
     id 'pl.allegro.tech.build.axion-release' version "${axionReleasePluginVersion}"
     id 'com.diffplug.spotless' version "${spotlessGradlePluginVersion}" apply false
     id 'org.springframework.boot' version "${springBootVersion}" apply false
@@ -487,6 +488,10 @@ subprojects {
             testImplementation "com.tngtech.archunit:archunit-junit5:${archunitVersion}"
         }
     }
+
+    // Apply after the existing JaCoCo report configuration so crap4j can finalize the XML output
+    // without preventing this build from declaring its report requirements first.
+    apply plugin: 'com.architester.crap4j'
 }
 
 tasks.register('coverageSummary') {

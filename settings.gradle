@@ -1,4 +1,8 @@
 pluginManagement {
+    // Temporary composite build used to prove open-crap4j before its first publication.
+    // Replace this with the published plugin version before merging this branch.
+    includeBuild('../../oss/open-crap4j')
+
     repositories {
         gradlePluginPortal()
         mavenCentral()

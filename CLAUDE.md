@@ -74,6 +74,14 @@ make check VERBOSE=1
 make coverage VERBOSE=1
 ```
 
+**CRAP gate (temporary local plugin):** This branch consumes the unpublished open-crap4j Gradle
+plugin from the sibling `../../oss/open-crap4j` checkout through a composite build. Run
+`./gradlew crapReport` for advisory per-module reports or `./gradlew crapCheck` for the enforcing
+gate. Existing violations live in each module's `crap4j-baseline.json`; use
+`./gradlew crapBaselineTighten` to remove baseline slack after improving code. Changed-file analysis
+stays in the open-crap4j CLI rather than this build. Replace the composite build with the published
+plugin version before merging this branch.
+
 **After a compilation failure**, stale `.class` files may remain and cause confusing follow-up failures. Always run `make clean && make test` to recover before continuing.
 
 **Direct Gradle commands** (verbose output, use make targets above for quiet output):
