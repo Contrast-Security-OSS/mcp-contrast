@@ -47,6 +47,10 @@ Example from this repo: `RecommendationData.from(Recommendation)` in `sdkextensi
 
 **tool domain cross-imports.** Move shared code to `tool.base`. If it does not fit there, consider `util`.
 
+## Conventions
+
+- Every `@ArchTest` rule must include `.as("Human-readable description")` so the freeze-store key is stable across package renames.
+
 ## Anti-patterns
 
 - **Manually editing store files.** Never. Only the store update Gradle task modifies them.

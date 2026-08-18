@@ -16,13 +16,25 @@ deny() {
 if [ "$tool_name" = "Bash" ]; then
   command=$(echo "$input" | jq -r '.tool_input.command // ""')
   case "$command" in
-    *archunit-store/*)
-      # Legitimate paths: the Gradle store-update task, make targets that
-      # wrap it, and git operations (diff, add, commit of the shrunken store)
-      case "$command" in
-        ./gradlew*|make*|git\ *) exit 0 ;;
-        *) deny ;;
-      esac
+    *archunit-store/*|*archunit-store)
+      # Split on shell operators and check each segment against the allow-list.
+      # A chained command like "git status; rm archunit-store/foo" must deny.
+      segments=${command//&&/$'\n'}
+      segments=${segments//||/$'\n'}
+      segments=${segments//;/$'\n'}
+      segments=${segments//|/$'\n'}
+      while IFS= read -r seg; do
+        seg="${seg#"${seg%%[![:space:]]*}"}"
+        case "$seg" in
+          *archunit-store/*|*archunit-store)
+            case "$seg" in
+              ./gradlew*|make*|git\ *) ;;
+              *) deny ;;
+            esac
+            ;;
+        esac
+      done <<< "$segments"
+      exit 0
       ;;
   esac
   exit 0
@@ -31,7 +43,7 @@ fi
 file_path=$(echo "$input" | jq -r '.tool_input.file_path // ""')
 
 case "$file_path" in
-  *archunit-store/*) ;;
+  *archunit-store/*|*archunit-store) ;;
   *) exit 0 ;;
 esac
 

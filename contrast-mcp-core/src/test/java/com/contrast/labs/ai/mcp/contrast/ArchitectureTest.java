@@ -77,7 +77,8 @@ class ArchitectureTest {
               .resideInAPackage(BASE + ".sdkextension.data..")
               .should()
               .dependOnClassesThat()
-              .resideInAPackage(BASE + ".tool.."));
+              .resideInAPackage(BASE + ".tool..")
+              .as("Data models should not depend on tool implementations"));
 
   @ArchTest
   static final ArchRule hints_should_not_depend_on_tools =
@@ -87,7 +88,8 @@ class ArchitectureTest {
               .resideInAPackage(BASE + ".hints..")
               .should()
               .dependOnClassesThat()
-              .resideInAPackage(BASE + ".tool.."));
+              .resideInAPackage(BASE + ".tool..")
+              .as("Hints should not depend on tool implementations"));
 
   // ── SDK containment ────────────────────────────────────────────────────────
   //
@@ -198,7 +200,8 @@ class ArchitectureTest {
               .and()
               .resideInAPackage(BASE + "..")
               .should()
-              .resideInAPackage(BASE + ".client.."));
+              .resideInAPackage(BASE + ".client..")
+              .as("Client classes should live in the client package"));
 
   // ── Size and complexity guardrails ─────────────────────────────────────────
   //
