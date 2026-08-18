@@ -4,7 +4,7 @@ import org.gradle.api.plugins.quality.Checkstyle
 
 plugins {
     id 'base'
-    id 'com.architester.crap4j' apply false
+    id 'com.architester.crap4j' version '1.0.0' apply false
     id 'pl.allegro.tech.build.axion-release' version "${axionReleasePluginVersion}"
     id 'com.diffplug.spotless' version "${spotlessGradlePluginVersion}" apply false
     id 'org.springframework.boot' version "${springBootVersion}" apply false
