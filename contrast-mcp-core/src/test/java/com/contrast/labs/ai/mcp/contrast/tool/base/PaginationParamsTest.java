@@ -204,6 +204,15 @@ class PaginationParamsTest {
   }
 
   @Test
+  void testPageCappedToPreventOffsetOverflow() {
+    var params = PaginationParams.of(Integer.MAX_VALUE, 100);
+
+    assertThat(params.page()).isEqualTo(Integer.MAX_VALUE / 100);
+    assertThat(params.offset()).isGreaterThanOrEqualTo(0);
+    assertThat(params.notices()).anyMatch(n -> n.contains("exceeds maximum"));
+  }
+
+  @Test
   void testCustomMaxPageSizeBelowDefaultClampsDefault() {
     var params = PaginationParams.of(1, null, 25);
 

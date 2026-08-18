@@ -78,12 +78,18 @@ public record PaginationParams(
       actualSize = maxPageSize;
     }
 
+    // Cap page so (page-1)*pageSize never overflows int
+    int maxPage = Integer.MAX_VALUE / actualSize;
+    if (actualPage > maxPage) {
+      notices.add(
+          String.format(
+              "Page %d exceeds maximum %d for pageSize %d, capped",
+              actualPage, maxPage, actualSize));
+      actualPage = maxPage;
+    }
+
     return new PaginationParams(
-        actualPage,
-        actualSize,
-        (actualPage - 1) * actualSize, // 0-based offset
-        actualSize, // limit
-        List.copyOf(notices));
+        actualPage, actualSize, (actualPage - 1) * actualSize, actualSize, List.copyOf(notices));
   }
 
   /**

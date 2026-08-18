@@ -10,8 +10,6 @@ import net.jqwik.api.constraints.IntRange;
 
 class PaginationParamsPropertyTest {
 
-  private static final int SAFE_MAX_PAGE = 10_000;
-
   @Property
   void page_should_always_be_at_least_one(@ForAll Integer page, @ForAll Integer pageSize) {
     var params = PaginationParams.of(page, pageSize);
@@ -38,11 +36,11 @@ class PaginationParamsPropertyTest {
 
   @Property
   void offset_should_equal_page_minus_one_times_pageSize(
-      @ForAll @IntRange(min = 1, max = SAFE_MAX_PAGE) int page,
+      @ForAll @IntRange(min = 1) int page,
       @ForAll @IntRange(min = 1, max = MAX_PAGE_SIZE) int pageSize) {
     var params = PaginationParams.of(page, pageSize);
 
-    assertThat(params.offset()).isEqualTo((page - 1) * pageSize);
+    assertThat(params.offset()).isEqualTo((params.page() - 1) * params.pageSize());
   }
 
   @Property
@@ -54,7 +52,7 @@ class PaginationParamsPropertyTest {
 
   @Property
   void of_should_be_idempotent_with_no_extra_notices(
-      @ForAll @IntRange(min = 1, max = SAFE_MAX_PAGE) int page,
+      @ForAll @IntRange(min = 1, max = Integer.MAX_VALUE / MAX_PAGE_SIZE) int page,
       @ForAll @IntRange(min = 1, max = MAX_PAGE_SIZE) int pageSize) {
     var first = PaginationParams.of(page, pageSize);
     var second = PaginationParams.of(first.page(), first.pageSize());
@@ -67,7 +65,7 @@ class PaginationParamsPropertyTest {
 
   @Property
   void notices_should_be_empty_when_inputs_are_valid(
-      @ForAll @IntRange(min = 1, max = SAFE_MAX_PAGE) int page,
+      @ForAll @IntRange(min = 1, max = Integer.MAX_VALUE / MAX_PAGE_SIZE) int page,
       @ForAll @IntRange(min = 1, max = MAX_PAGE_SIZE) int pageSize) {
     var params = PaginationParams.of(page, pageSize);
 
@@ -99,6 +97,13 @@ class PaginationParamsPropertyTest {
 
     assertThat(params.notices()).isNotEmpty();
     assertThat(params.pageSize()).isEqualTo(MAX_PAGE_SIZE);
+  }
+
+  @Property
+  void offset_should_never_overflow(@ForAll @IntRange(min = 1) int page, @ForAll Integer pageSize) {
+    var params = PaginationParams.of(page, pageSize);
+
+    assertThat(params.offset()).isGreaterThanOrEqualTo(0);
   }
 
   @Property
