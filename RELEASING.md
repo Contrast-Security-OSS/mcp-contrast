@@ -110,7 +110,7 @@ Use this only if the workflow cannot run:
 ```bash
 git switch main
 git pull
-./gradlew clean spotlessCheck check :contrast-mcp-stdio-app:integrationTest :contrast-mcp-stdio-app:bootJar
+./gradlew clean verify :contrast-mcp-stdio-app:bootJar
 ./gradlew release -Prelease.forceVersion=X.Y.Z
 git checkout vX.Y.Z
 ./gradlew clean :contrast-mcp-stdio-app:bootJar -x test

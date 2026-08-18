@@ -47,41 +47,11 @@ def contrastIntegrationTestCredentialEnvVars = [
 ]
 
 // Credentials come from real environment variables first, then .env.integration-test (ADR 0004).
-def parseIntegrationTestEnvFile = { File envFile ->
-    def values = [:]
-    if (!envFile.exists()) {
-        return values
-    }
-    envFile.readLines().each { rawLine ->
-        def line = rawLine.trim()
-        if (line.isEmpty() || line.startsWith('#')) {
-            return
-        }
-        if (line.startsWith('export ')) {
-            line = line.substring('export '.length()).trim()
-        }
-        def separator = line.indexOf('=')
-        if (separator < 1) {
-            return
-        }
-        def key = line.substring(0, separator).trim()
-        def value = line.substring(separator + 1).trim()
-        def quoted = value.length() > 1 &&
-            ((value.startsWith('"') && value.endsWith('"')) ||
-                (value.startsWith("'") && value.endsWith("'")))
-        if (quoted) {
-            value = value.substring(1, value.length() - 1)
-        }
-        values[key] = value
-    }
-    values
-}
+// Parsing logic lives in buildSrc (EnvFileParser) with unit tests.
+import com.contrast.labs.build.EnvFileParser
 
 def resolveIntegrationTestCredentials = { ->
-    def fileValues = parseIntegrationTestEnvFile(rootProject.file('.env.integration-test'))
-    contrastIntegrationTestCredentialEnvVars.collectEntries { name ->
-        [(name): System.getenv(name) ?: fileValues[name]]
-    }
+    EnvFileParser.resolve(rootProject.file('.env.integration-test'), contrastIntegrationTestCredentialEnvVars)
 }
 
 test {
