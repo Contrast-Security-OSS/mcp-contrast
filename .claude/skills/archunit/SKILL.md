@@ -9,7 +9,7 @@ ArchUnit rules in `ArchitectureTest` enforce layering, SDK containment, domain i
 
 ## When this skill applies
 
-- An ArchUnit test fails during `make check-test` or `./gradlew :contrast-mcp-core:test`
+- An ArchUnit test fails during `make check` or `./gradlew :contrast-mcp-core:test`
 - You are fixing a grandfathered violation from the freeze store
 - New code you wrote introduces a dependency the architecture rules forbid
 
@@ -26,7 +26,7 @@ The store is **shrink-only by design**. `-ParchStoreUpdate` lets ArchUnit remove
 1. **Fix the code.** Change the production code so the violation no longer exists.
 2. **Run the store update.** `./gradlew :contrast-mcp-core:test -ParchStoreUpdate` removes fixed entries.
 3. **If tests still fail,** the remaining violations need code fixes, not more store entries. Go back to step 1.
-4. **Run the full gate.** `make check-test` must pass.
+4. **Run the full gate.** `make check` must pass.
 5. **Commit the shrunken store** alongside the code changes.
 
 ## Fixing SDK containment violations

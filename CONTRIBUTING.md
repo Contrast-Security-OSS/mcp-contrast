@@ -23,10 +23,10 @@ Use the Gradle wrapper from a JDK 21 shell. The public repo is a two-module buil
 Common commands:
 
 ```bash
-./gradlew spotlessCheck checkstyleMain checkstyleTest test
+./gradlew check
 ./gradlew :contrast-mcp-stdio-app:bootJar
 ./gradlew :contrast-mcp-core:publishToMavenLocal :contrast-mcp-core:verifyCorePublicationMetadata
-make check-test
+make check
 make verify
 ```
 
@@ -34,7 +34,7 @@ Checkstyle rules and suppressions are the same rules used before the Gradle spli
 
 ## Test Coverage
 
-JaCoCo measures coverage on every `test` run and writes HTML and XML reports to `<module>/build/reports/jacoco/test/`. `make coverage` verifies the floors and prints a summary, and `make check-test` includes it.
+JaCoCo measures coverage on every `test` run and writes HTML and XML reports to `<module>/build/reports/jacoco/test/`. `make check` verifies the floors and prints a summary.
 
 Per-module floors live in `ext.coverageMinimums` in the root `build.gradle` and are enforced by `jacocoTestCoverageVerification`, which `check` depends on. They are set just below the measured baseline so they block regression rather than blocking adoption. Raise a floor as coverage improves. Never lower one to make a build pass. CI runs the same verification and uploads the reports as a build artifact.
 

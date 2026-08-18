@@ -492,6 +492,22 @@ subprojects {
     // Apply after the existing JaCoCo report configuration so crap4j can finalize the XML output
     // without preventing this build from declaring its report requirements first.
     apply plugin: 'com.architester.crap4j'
+
+    // The plugin defaults attachToCheck to false; check is the single verification gate (ADR 0003).
+    crap4j {
+        attachToCheck = true
+    }
+}
+
+// check + the credential-gated integration tests (ADR 0003/0004). buildSrc is a separate
+// Gradle build and cannot be wired in here.
+tasks.register('verify') {
+    group = 'verification'
+    description = 'Runs check in every project plus the integration tests.'
+    dependsOn tasks.named('check')
+    dependsOn subprojects.collect { ":${it.name}:check" }
+    dependsOn ':contrast-mcp-stdio-app:requireIntegrationTestCredentials'
+    dependsOn ':contrast-mcp-stdio-app:integrationTest'
 }
 
 tasks.register('coverageSummary') {

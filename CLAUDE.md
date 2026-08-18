@@ -17,7 +17,7 @@ See [REPO-CONTEXT.md](./REPO-CONTEXT.md) for domain definitions, architecture no
 
 ## Git Hooks
 
-**ABSOLUTE RULE: NEVER skip git hooks.** Do not use `--no-verify`, `--no-gpg-sign`, `SKIP_COVERAGE_HOOK=1`, or any other mechanism to bypass pre-commit, pre-push, or any other git hook. No exceptions. No shortcuts. If a hook fails, fix the underlying problem. A skipped hook caused a CI build failure; this rule exists to prevent that from ever happening again. If you skip a hook, you have made an error.
+**ABSOLUTE RULE: NEVER skip git hooks.** Do not use `--no-verify`, `--no-gpg-sign`, `SKIP_PUSH_GATE=1`, `SKIP_COVERAGE_HOOK=1`, or any other mechanism to bypass pre-commit, pre-push, or any other git hook. No exceptions. No shortcuts. If a hook fails, fix the underlying problem. A skipped hook caused a CI build failure; this rule exists to prevent that from ever happening again. If you skip a hook, you have made an error.
 
 ## Uncommitted Changes
 
@@ -49,62 +49,59 @@ The workflows below use the **pr-tools** plugin (`/pr-tools:*` commands). If tho
 
 ### Building the Project
 
-Use these make targets for all checks and tests:
+The Gradle `check` and `verify` lifecycles are the single source of truth for verification (ADR 0003, ADR 0004; Check/Verify/Lint defined in CONTEXT.md). Make targets are thin quiet-output wrappers:
 
 ```bash
-make check       # Auto-format then run static analysis (no need to run make format first)
-make test        # Run unit tests (quiet output)
-make coverage    # Verify JaCoCo coverage floors and print the summary
-make check-test  # Run static analysis, unit tests, coverage, and mutation testing
-make verify      # Run the complete local gate including integration tests
-make format      # Auto-format code with Spotless (also runs automatically via make check)
+make check       # Auto-format, then the full Gradle check lifecycle: static analysis,
+                 # unit tests, coverage floors, CRAP gate, PIT mutation testing
+make verify      # check + integration tests (needs Contrast credentials, fails loudly without)
+make lint        # Fast inner loop: auto-format + checkstyle only. Not a gate
+make format      # Auto-format code with Spotless (also runs inside check/verify/lint)
 make build       # Build the project
 make clean       # Clean build artifacts
 
-make test-coverage                 # Unit tests plus coverage floors in one gradle invocation
+make buildsrc-check                # buildSrc is a separate Gradle build; check never covers it
 make coverage-changed              # Changed src/main/java files must meet the changed-file floor
 make coverage-changed BASE=origin/main   # Compare against a ref instead of the working tree
-make buildsrc-check                # Static analysis, tests and coverage for buildSrc
-make mutation                       # PIT mutation testing on contrast-mcp-core
-make install-hooks                 # Install the pre-push hook (backs up any hook it replaces)
+make install-hooks                 # Install the git hooks (backs up any hook it replaces)
 
 # Verbose output when debugging failures
-make test VERBOSE=1
 make check VERBOSE=1
-make coverage VERBOSE=1
+make verify VERBOSE=1
 ```
 
-**CRAP gate:** `./gradlew crapReport` for advisory per-module reports, `./gradlew crapCheck` for the enforcing gate. Existing violations live in each module's `crap4j-baseline.json`; use `./gradlew crapBaseline` to generate or regenerate a baseline, and `./gradlew crapBaselineTighten` to remove baseline slack after improving code.
+Never re-enumerate Gradle task names in make targets, CI, or hooks; attach new verifications to the Gradle `check` lifecycle so every gate inherits them.
 
-**After a compilation failure**, stale `.class` files may remain and cause confusing follow-up failures. Always run `make clean && make test` to recover before continuing.
+**CRAP gate:** part of `check` (`attachToCheck = true`). `./gradlew crapReport` for advisory per-module reports, `./gradlew crapCheck` to run the gate alone. Existing violations live in each module's `crap4j-baseline.json`; use `./gradlew crapBaseline` to generate or regenerate a baseline, and `./gradlew crapBaselineTighten` to remove baseline slack after improving code.
+
+**After a compilation failure**, stale `.class` files may remain and cause confusing follow-up failures. Always run `make clean` then `./gradlew test` to recover before continuing.
 
 **Direct Gradle commands** (verbose output, use make targets above for quiet output):
 - **Build**: `./gradlew :contrast-mcp-stdio-app:bootJar`
 - **Test (unit)**: `./gradlew test`
-- **Test (all)**: `source .env.integration-test && ./gradlew test :contrast-mcp-stdio-app:integrationTest`
-- **Static analysis**: `./gradlew spotlessCheck checkstyleMain checkstyleTest`
-- **Coverage**: `./gradlew jacocoTestCoverageVerification coverageSummary`
+- **Full gate**: `./gradlew check` (static analysis, unit tests, coverage floors, CRAP, PIT)
+- **Full gate + integration tests**: `./gradlew verify` (credentials auto-sourced from `.env.integration-test`; real env vars win)
 - **Changed-file coverage**: `./gradlew jacocoChangedFileCoverageVerification -PjacocoChangedBase=origin/main`
 - **Core publication metadata**: `./gradlew :contrast-mcp-core:verifyCorePublicationMetadata`
-- **Mutation testing**: `./gradlew :contrast-mcp-core:pitest`
+- **Mutation testing alone**: `./gradlew :contrast-mcp-core:pitest`
 - **Format code**: `./gradlew spotlessApply`
 - **Run locally**: `java -jar contrast-mcp-stdio-app/build/libs/mcp-contrast-*.jar --CONTRAST_HOST_NAME=<host> --CONTRAST_API_KEY=<key> --CONTRAST_SERVICE_KEY=<key> --CONTRAST_USERNAME=<user> --CONTRAST_ORG_ID=<org>`
 
-**Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check-test` is the standard local verification command for static analysis, unit tests, and coverage.
+**Note:** `make check` auto-formats before checking — no separate `make format` step needed. `make check` is the standard local verification command; `make verify` is required before review.
 
 **Coverage floors:** Per-module minimums live in `ext.coverageMinimums` in the root `build.gradle` and are enforced by `jacocoTestCoverageVerification`, which `check` depends on. Floors sit a couple of points under the measured figures on purpose, so one new uncovered branch cannot redden `main`. Raise a floor as coverage improves; never lower one to make a build pass. `verifyCoverageMinimums` fails the build if any floor drops below `ext.coverageStandardMinimum` (85%). `McpContrastApplication` is the only class excluded.
 
-**Mutation testing:** PIT runs against `contrast-mcp-core` via the `info.solidsoft.pitest` Gradle plugin. It gates on test strength (killed / (killed + survived)), not mutation score, so it measures test quality independent of JaCoCo coverage. The `testStrengthThreshold` floor lives in `contrast-mcp-core/build.gradle` and is enforced in CI on pull requests. Raise the floor as survivors get fixed, never lower it. `lombok.config` at the repo root enables `@lombok.Generated` so both PIT and JaCoCo skip Lombok-generated code.
+**Mutation testing:** PIT runs against `contrast-mcp-core` via the `info.solidsoft.pitest` Gradle plugin, as part of `check`. It gates on test strength (killed / (killed + survived)), not mutation score, so it measures test quality independent of JaCoCo coverage. The `testStrengthThreshold` floor lives in `contrast-mcp-core/build.gradle`. Raise the floor as survivors get fixed, never lower it. `lombok.config` at the repo root enables `@lombok.Generated` so both PIT and JaCoCo skip Lombok-generated code.
 
 **Fixing PIT survivors:** When a mutation survives, determine whether it is a genuine test gap or an equivalent mutant. A genuine gap (the mutated behavior is observably different but no test catches it) is fixed by writing a better test. An equivalent mutant (the mutated behavior produces identical output through the public API) is left alone and accommodated by threshold headroom. Never restructure production code to eliminate equivalent-mutant sites. Small well-named helpers naturally create branches that are unreachable from their sole call site, and collapsing them to satisfy a metric trades readability for a number.
 
 **Architecture tests:** ArchUnit rules in `ArchitectureTest` enforce layering, SDK containment, domain isolation, and conventions. When an ArchUnit test fails, invoke the `archunit` skill for the fix-then-shrink workflow, SDK containment patterns, and anti-patterns. Never edit store files manually or weaken types to dodge a violation.
 
-**Changed-file coverage:** `ext.changedFileCoverageMinimum` (85%) is enforced per changed `src/main/java` file by `jacocoChangedFileCoverageVerification`. Runs in CI on every pull request regardless of base branch, so stacked PRs are gated too, plus the pre-push hook (`make install-hooks`, bypass with `SKIP_COVERAGE_HOOK=1`) and `make coverage-changed`. The hook warns but still runs when dirty source, build, or resource files could change JaCoCo output; pull-request CI remains authoritative because it tests a clean checkout. Unrelated changes such as Markdown files do not warn. Set `COVERAGE_BASE_REF=origin/<parent>` on the first push of a new stacked branch. Not wired into `check`, which has no base ref to diff against. Logic lives in `buildSrc/`, which has its own checks via `make buildsrc-check`. See `scripts/git-hooks/README.md`.
+**Changed-file coverage:** `ext.changedFileCoverageMinimum` (85%) is enforced per changed `src/main/java` file by `jacocoChangedFileCoverageVerification`. Runs in CI on every pull request regardless of base branch, so stacked PRs are gated too, plus the pre-push hook (`make install-hooks`) and `make coverage-changed`. The pre-push hook also runs the full `check` lifecycle; `SKIP_PUSH_GATE=1` bypasses the whole hook (humans only, emergencies only). The hook warns but still runs when dirty source, build, or resource files could change JaCoCo output; pull-request CI remains authoritative because it tests a clean checkout. Unrelated changes such as Markdown files do not warn. Set `COVERAGE_BASE_REF=origin/<parent>` on the first push of a new stacked branch. Not wired into `check`, which has no base ref to diff against. Logic lives in `buildSrc/`, which has its own checks via `make buildsrc-check`. See `scripts/git-hooks/README.md`.
 
 The gate fails closed. A changed file absent from the JaCoCo report fails unless it is listed in `ext.coverageExcludedClassFiles`; a missing or empty report fails. A file that is in the report with no `LINE` counter has nothing countable to measure, so it passes and is named in the output. That covers roughly 49 of the 128 `contrast-mcp-core` sources, mostly interfaces and Lombok-only types.
 
-**Integration Tests:** Require Contrast credentials in `.env.integration-test` (copy from `.env.integration-test.template`). See INTEGRATION_TESTS.md for details. Integration tests are intentionally skipped when credentials are not available (e.g., in CI forks or local builds without `.env.integration-test`).
+**Integration Tests:** Require Contrast credentials. Gradle sources `.env.integration-test` itself (copy from `.env.integration-test.template`); real environment variables override file values. `verify` fails loudly when no credentials are available; bare `integrationTest` skips instead, so forks and credential-less checkouts still build. `verify` is the maintainer gate — contributors without credentials run `check` and rely on CI. Release CI runs `verify` with credentials from repo secrets. See INTEGRATION_TESTS.md and ADR 0004.
 
 ### Docker Commands
 - **Build Docker image**: `docker build -t mcp-contrast .`
@@ -404,9 +401,9 @@ The bead and Jira lifecycle (starting work, branching, stacked branches, labels,
 
 **CRITICAL: Before requesting review, you MUST:**
 1. **Write tests for ALL code changes** - No exceptions
-2. **Run local quality verification** - `make check-test` must pass with 0 failures (static analysis, unit tests, coverage, and mutation testing)
-3. **Run complete verification** - `make verify` must pass; it includes `make check-test` plus integration tests (integration tests require credentials in `.env.integration-test`)
-   - If credentials unavailable, verify integration tests pass in CI/CD
+2. **Run local quality verification** - `make check` must pass with 0 failures (static analysis, unit tests, coverage, CRAP, and mutation testing)
+3. **Run complete verification** - `make verify` must pass; it is `check` plus integration tests and fails loudly without credentials
+   - If credentials unavailable, run `make check` and confirm integration tests pass in release CI
 4. **Verify new tests are included** - Ensure your tests ran and passed
 
 All code changes require corresponding test coverage. Do not create a PR until `make verify` passes. Do not move to review without tests.

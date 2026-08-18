@@ -9,9 +9,9 @@
       "Bash(br show *)",
       "Bash(br list *)",
       "Bash(br ready)",
-      "Bash(make check-test)",
+      "Bash(make check)",
       "Bash(make check *)",
-      "Bash(make test *)",
+      "Bash(make lint)",
       "Bash(cass search *)",
       "Bash(cass timeline *)",
       "mcp__plugin_atlassian_atlassian__getJiraIssue"

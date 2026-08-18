@@ -185,6 +185,11 @@ pitest {
     threads = Runtime.runtime.availableProcessors()
 }
 
+// PIT rides check (ADR 0003); up-to-date checking makes it free when core is unchanged.
+tasks.named('check') {
+    dependsOn tasks.named('pitest')
+}
+
 String mcpCoreArtifactProperty(String name) {
     def propertiesFile = rootProject.file('gradle/contrast-mcp-core-artifact.properties')
     def properties = new Properties()

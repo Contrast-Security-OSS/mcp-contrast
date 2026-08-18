@@ -53,4 +53,4 @@ on demand only.
 - The tool list is discovered from the running server, so a newly added tool is
   covered automatically with no change to this skill.
 - This is a live exercise of the shipped tools. It does not run the unit or
-  integration suites, which you run separately with `make check-test` and `make verify`.
+  integration suites, which you run separately with `make check` and `make verify`.
