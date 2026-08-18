@@ -65,11 +65,11 @@ public record PaginationParams(
     }
 
     // Soft failure: invalid pageSize → clamp to range with tool-specific max
-    int actualSize = pageSize != null && pageSize > 0 ? pageSize : DEFAULT_PAGE_SIZE;
+    int defaultSize = Math.min(DEFAULT_PAGE_SIZE, maxPageSize);
+    int actualSize = pageSize != null && pageSize > 0 ? pageSize : defaultSize;
     if (pageSize != null && pageSize < 1) {
-      notices.add(
-          String.format("Invalid pageSize %d, using default %d", pageSize, DEFAULT_PAGE_SIZE));
-      actualSize = DEFAULT_PAGE_SIZE;
+      notices.add(String.format("Invalid pageSize %d, using default %d", pageSize, defaultSize));
+      actualSize = defaultSize;
     } else if (pageSize != null && pageSize > maxPageSize) {
       notices.add(
           String.format(

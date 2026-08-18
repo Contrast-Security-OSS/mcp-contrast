@@ -27,9 +27,9 @@ class PaginationParamsPropertyTest {
   }
 
   @Property
-  void pageSize_should_respect_custom_max_when_explicitly_provided(
+  void pageSize_should_respect_custom_max(
       @ForAll Integer page,
-      @ForAll @IntRange(min = 1) int pageSize,
+      @ForAll Integer pageSize,
       @ForAll @IntRange(min = 1, max = MAX_PAGE_SIZE) int maxPageSize) {
     var params = PaginationParams.of(page, pageSize, maxPageSize);
 
