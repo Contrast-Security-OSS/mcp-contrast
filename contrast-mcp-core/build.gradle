@@ -180,7 +180,7 @@ pitest {
     junit5PluginVersion = pitestJunit5PluginVersion
     targetClasses = ['com.contrast.labs.ai.mcp.contrast.*']
     targetTests = ['com.contrast.labs.ai.mcp.contrast.*']
-    testStrengthThreshold = 92
+    testStrengthThreshold = 93
     outputFormats = ['HTML', 'XML']
     timestampedReports = false
     threads = Runtime.runtime.availableProcessors()
