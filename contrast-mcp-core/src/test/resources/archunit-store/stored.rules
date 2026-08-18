@@ -1,5 +1,4 @@
-#
-#Tue Aug 18 12:29:20 EDT 2026
+#Tue Aug 18 12:55:27 EDT 2026
 Client\ classes\ should\ live\ in\ the\ client\ package=23313d7c-6c63-41ab-ae0d-bde2a1aa14b0
 Data\ models\ should\ not\ depend\ on\ tool\ implementations=140bf7a4-013a-4bf7-9f04-529d4d72d3f5
 Domain-specific\ Params\ classes\ should\ live\ in\ a\ params\ sub-package=31ae6a92-3db8-4788-a6e4-1d4d441779d5
@@ -8,6 +7,3 @@ Only\ client\ and\ sdkextension\ may\ depend\ on\ the\ Contrast\ SDK\ directly=9
 Result\ models\ should\ not\ depend\ on\ tool\ implementations=c1555d93-b23c-4a7e-bdef-e6a7f88b3833
 Tool\ domains\ should\ not\ depend\ on\ sibling\ domains\ (extract\ shared\ code\ to\ tool.base)=b141356a-0184-40ad-b0c0-624576f073da
 Top-level\ packages\ should\ be\ free\ of\ dependency\ cycles=597ecc54-261b-4ce0-90a0-a9562d7fa38e
-classes\ that\ have\ simple\ name\ ending\ with\ 'Client'\ and\ reside\ in\ a\ package\ 'com.contrast.labs.ai.mcp.contrast..'\ should\ reside\ in\ a\ package\ 'com.contrast.labs.ai.mcp.contrast.client..'=7ee0a1eb-51c7-42c6-bf9c-4ebfecf0d803
-no\ classes\ that\ reside\ in\ a\ package\ 'com.contrast.labs.ai.mcp.contrast.hints..'\ should\ depend\ on\ classes\ that\ reside\ in\ a\ package\ 'com.contrast.labs.ai.mcp.contrast.tool..'=d8ed7f93-01b4-446d-a28c-34d8d2eb646f
-no\ classes\ that\ reside\ in\ a\ package\ 'com.contrast.labs.ai.mcp.contrast.sdkextension.data..'\ should\ depend\ on\ classes\ that\ reside\ in\ a\ package\ 'com.contrast.labs.ai.mcp.contrast.tool..'=0ae6b9e1-1ad2-4ad8-bc5d-486fd6f29f02
