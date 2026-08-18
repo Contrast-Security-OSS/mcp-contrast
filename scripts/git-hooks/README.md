@@ -53,7 +53,6 @@ so. Merge the two by hand if both are wanted.
   Gradle startup is most of the hook's cost.
 
   Set `SKIP_PUSH_GATE=1` to bypass the whole gate for a push (humans only, emergencies only).
-  `SKIP_COVERAGE_HOOK=1` still works as a deprecated alias.
 
 ## Running the gate by hand
 

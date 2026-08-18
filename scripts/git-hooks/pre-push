@@ -141,11 +141,8 @@ main() {
   local -a remote_refs=()
   local -a remote_shas=()
 
-  # Umbrella bypass, humans only. SKIP_COVERAGE_HOOK is honored as a deprecated alias.
-  if [[ "${SKIP_PUSH_GATE:-}" == "1" || "${SKIP_COVERAGE_HOOK:-}" == "1" ]]; then
-    if [[ "${SKIP_COVERAGE_HOOK:-}" == "1" ]]; then
-      printf "SKIP_COVERAGE_HOOK is deprecated; use SKIP_PUSH_GATE=1.\n" >&2
-    fi
+  # Umbrella bypass, humans only.
+  if [[ "${SKIP_PUSH_GATE:-}" == "1" ]]; then
     printf "SKIP_PUSH_GATE set; skipping the pre-push gate (check + changed-file coverage).\n" >&2
     return
   fi

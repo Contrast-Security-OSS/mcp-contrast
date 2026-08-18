@@ -17,5 +17,5 @@ Make targets become thin quiet-output wrappers that forward to one lifecycle tas
 
 - `make check` grows from a 5s lint pass to the full gate (~5s clean, ~60s when core changed, PIT dominating).
 - Merge-to-main and release CI gain PIT (~3 minutes on runner hardware); both previously shipped without mutation testing.
-- The pre-push hook runs `gradlew check` before the changed-file coverage check. Up-to-date checking makes it ~6s when `make check` already ran, and the full cost lands exactly on pushes that skipped it. One human-only bypass, `SKIP_PUSH_GATE=1`, replaces `SKIP_COVERAGE_HOOK`.
+- The pre-push hook runs `gradlew check` before the changed-file coverage check. Up-to-date checking makes it ~6s when `make check` already ran, and the full cost lands exactly on pushes that skipped it. One human-only bypass, `SKIP_PUSH_GATE=1`, is available for emergencies.
 - The deliberate exceptions stay outside `check` and remain enumerated: `jacocoChangedFileCoverageVerification` (needs a base ref), buildSrc checks (separate Gradle build), integration tests (see ADR 0004), and the pre-commit hook's fix-first subset (`spotlessApply` fixes, `check` only rejects).
