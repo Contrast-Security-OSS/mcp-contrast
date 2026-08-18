@@ -1,5 +1,10 @@
 # open-crap4j local integration research
 
+**Outcome:** This branch ultimately switched to the published `com.architester.crap4j` plugin at
+version 1.0.0 on Maven Central. The local composite-build approach described in "Local consumption
+and plugin contract" and "Decisions and dogfooding result" below reflects an earlier phase that was
+superseded before the PR shipped.
+
 Research date: 2026-08-16. Sources are the local `open-crap4j` checkout at
 `/Users/chrisedwards/projects/oss/open-crap4j`, the current `mcp-contrast` checkout, and read-only
 `br show` output for `mcp-y232` and `crap-0w4.14`.

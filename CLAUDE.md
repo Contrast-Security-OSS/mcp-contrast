@@ -74,7 +74,7 @@ make check VERBOSE=1
 make coverage VERBOSE=1
 ```
 
-**CRAP gate:** `./gradlew crapReport` for advisory per-module reports, `./gradlew crapCheck` for the enforcing gate. Existing violations live in each module's `crap4j-baseline.json`; use `./gradlew crapBaselineTighten` to remove baseline slack after improving code.
+**CRAP gate:** `./gradlew crapReport` for advisory per-module reports, `./gradlew crapCheck` for the enforcing gate. Existing violations live in each module's `crap4j-baseline.json`; use `./gradlew crapBaseline` to generate or regenerate a baseline, and `./gradlew crapBaselineTighten` to remove baseline slack after improving code.
 
 **After a compilation failure**, stale `.class` files may remain and cause confusing follow-up failures. Always run `make clean && make test` to recover before continuing.
 
