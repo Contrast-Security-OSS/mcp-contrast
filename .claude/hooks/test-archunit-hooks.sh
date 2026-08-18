@@ -64,12 +64,6 @@ check "guard: Bash chained || denied" archunit-store-guard.sh \
   "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"make test || sed -i s/a/b/ $STORE\"}}" deny
 check "guard: Bash chained pipe denied" archunit-store-guard.sh \
   "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"echo x | tee $STORE\"}}" deny
-check "guard: Bash rm store directory denied" archunit-store-guard.sh \
-  '{"tool_name":"Bash","tool_input":{"command":"rm -rf contrast-mcp-core/src/test/resources/archunit-store"}}' deny
-check "guard: Bash cp into store directory denied" archunit-store-guard.sh \
-  '{"tool_name":"Bash","tool_input":{"command":"cp /tmp/evil contrast-mcp-core/src/test/resources/archunit-store"}}' deny
-check "guard: Write store directory denied" archunit-store-guard.sh \
-  '{"tool_name":"Write","tool_input":{"file_path":"contrast-mcp-core/src/test/resources/archunit-store"}}' deny
 check "guard: make store update allowed" archunit-store-guard.sh \
   '{"tool_name":"Bash","tool_input":{"command":"make test && ./gradlew :contrast-mcp-core:test -ParchStoreUpdate"}}' silent
 

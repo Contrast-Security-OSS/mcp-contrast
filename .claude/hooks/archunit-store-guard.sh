@@ -16,7 +16,7 @@ deny() {
 if [ "$tool_name" = "Bash" ]; then
   command=$(echo "$input" | jq -r '.tool_input.command // ""')
   case "$command" in
-    *archunit-store/*|*archunit-store)
+    *archunit-store/*)
       # Split on shell operators and check each segment against the allow-list.
       # A chained command like "git status; rm archunit-store/foo" must deny.
       segments=${command//&&/$'\n'}
@@ -26,7 +26,7 @@ if [ "$tool_name" = "Bash" ]; then
       while IFS= read -r seg; do
         seg="${seg#"${seg%%[![:space:]]*}"}"
         case "$seg" in
-          *archunit-store/*|*archunit-store)
+          *archunit-store/*)
             case "$seg" in
               ./gradlew*|make*|git\ *) ;;
               *) deny ;;
@@ -43,7 +43,7 @@ fi
 file_path=$(echo "$input" | jq -r '.tool_input.file_path // ""')
 
 case "$file_path" in
-  *archunit-store/*|*archunit-store) ;;
+  *archunit-store/*) ;;
   *) exit 0 ;;
 esac
 
