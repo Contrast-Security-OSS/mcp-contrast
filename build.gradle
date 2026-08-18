@@ -191,6 +191,53 @@ subprojects {
         systemProperty 'junit.jupiter.execution.parallel.mode.classes.default', 'concurrent'
         systemProperty 'junit.jupiter.execution.parallel.config.strategy', 'dynamic'
         systemProperty 'junit.jupiter.execution.parallel.config.dynamic.factor', '1'
+        // ArchUnit FreezingArchRule store updates are opt-in. The store is
+        // read-only by default (archunit.properties) so CI and PIT never
+        // mutate it; pass -ParchStoreUpdate to let a local run remove fixed
+        // violations from the store.
+        if (project.hasProperty('archStoreUpdate')) {
+            systemProperty 'archunit.freeze.store.default.allowStoreUpdate', 'true'
+        }
+    }
+
+    if (project.name == 'contrast-mcp-core' && project.hasProperty('archStoreUpdate')) {
+        tasks.named('test') {
+            doLast {
+                def storeDir = file('src/test/resources/archunit-store')
+                def rulesFile = new File(storeDir, 'stored.rules')
+                if (!rulesFile.exists()) return
+
+                def props = new Properties()
+                rulesFile.withInputStream { props.load(it) }
+                def referencedIds = props.values().collect { it.toString() }.toSet()
+                def storeFiles = storeDir.listFiles()?.findAll { it.name != 'stored.rules' } ?: []
+
+                def orphanFiles = storeFiles.findAll { !referencedIds.contains(it.name) }
+                def orphanEntries = props.findAll { k, v -> !new File(storeDir, v.toString()).exists() }
+
+                orphanFiles.each { it.delete() }
+                orphanEntries.each { k, v -> props.remove(k) }
+
+                if (orphanEntries) {
+                    rulesFile.withOutputStream { props.store(it, null) }
+                }
+
+                if (orphanFiles || orphanEntries) {
+                    logger.lifecycle("archunit-store cleanup: removed {} orphan file(s), {} orphan rule(s)",
+                        orphanFiles.size(), orphanEntries.size())
+                }
+
+                def diskIds = storeDir.listFiles()?.findAll { it.name != 'stored.rules' }
+                    ?.collect { it.name }?.toSet() ?: [] as Set
+                def added = diskIds - referencedIds
+                def removed = referencedIds - diskIds
+                if (added || removed) {
+                    if (added) logger.lifecycle("archunit-store: new files: {}", added)
+                    if (removed) logger.lifecycle("archunit-store: removed files: {}", removed)
+                    logger.lifecycle("archunit-store: run 'git add/rm' on the store directory to stage changes")
+                }
+            }
+        }
     }
 
     jacoco {
@@ -433,6 +480,12 @@ subprojects {
         testImplementation 'org.junit.jupiter:junit-jupiter'
         testImplementation "org.assertj:assertj-core:${assertjVersion}"
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    if (project.name == 'contrast-mcp-core') {
+        dependencies {
+            testImplementation "com.tngtech.archunit:archunit-junit5:${archunitVersion}"
+        }
     }
 }
 

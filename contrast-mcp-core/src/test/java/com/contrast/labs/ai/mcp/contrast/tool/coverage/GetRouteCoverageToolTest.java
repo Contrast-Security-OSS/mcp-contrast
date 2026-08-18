@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.contrast.labs.ai.mcp.contrast.client.ContrastAccessDeniedException;
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Observation;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
@@ -32,8 +33,8 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCo
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.AgentSession;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
-import com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator;
-import com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator.ApplicationState;
+import com.contrast.labs.ai.mcp.contrast.tool.base.ApplicationLicenseDiscriminator;
+import com.contrast.labs.ai.mcp.contrast.tool.base.ApplicationLicenseDiscriminator.ApplicationState;
 import com.contrast.labs.ai.mcp.contrast.tool.base.BaseTool;
 import com.contrastsecurity.exceptions.HttpResponseException;
 import com.contrastsecurity.exceptions.UnauthorizedException;
@@ -310,7 +311,7 @@ class GetRouteCoverageToolTest {
     var originalForbidden = unauthorizedFailure();
     when(contrastApiClient.getRouteCoverage(eq(VALID_APP_ID), isNull()))
         .thenThrow(originalForbidden);
-    when(applicationLicenseDiscriminator.discriminate(VALID_APP_ID, originalForbidden))
+    when(applicationLicenseDiscriminator.discriminate(eq(VALID_APP_ID), any()))
         .thenReturn(ApplicationState.UNLICENSED);
 
     var result = tool.getRouteCoverage(VALID_APP_ID, null, null, null, null);
@@ -318,7 +319,10 @@ class GetRouteCoverageToolTest {
     assertThat(result.isSuccess()).isFalse();
     assertThat(result.errors()).containsExactly(GetRouteCoverageTool.UNLICENSED_APPLICATION_ERROR);
     assertThat(result.data()).isNull();
-    verify(applicationLicenseDiscriminator).discriminate(VALID_APP_ID, originalForbidden);
+    var captor = ArgumentCaptor.forClass(ContrastAccessDeniedException.class);
+    verify(applicationLicenseDiscriminator).discriminate(eq(VALID_APP_ID), captor.capture());
+    assertThat(captor.getValue().getHttpCode()).isEqualTo(originalForbidden.getCode());
+    assertThat(captor.getValue().getCause()).isSameAs(originalForbidden);
   }
 
   @Test
@@ -327,7 +331,7 @@ class GetRouteCoverageToolTest {
     var originalForbidden = unauthorizedFailure();
     when(contrastApiClient.getRouteCoverage(eq(VALID_APP_ID), isNull()))
         .thenThrow(originalForbidden);
-    when(applicationLicenseDiscriminator.discriminate(VALID_APP_ID, originalForbidden))
+    when(applicationLicenseDiscriminator.discriminate(eq(VALID_APP_ID), any()))
         .thenReturn(ApplicationState.ARCHIVED);
 
     var result = tool.getRouteCoverage(VALID_APP_ID, null, null, null, null);
@@ -343,7 +347,7 @@ class GetRouteCoverageToolTest {
     var originalForbidden = unauthorizedFailure();
     when(contrastApiClient.getRouteCoverage(eq(VALID_APP_ID), isNull()))
         .thenThrow(originalForbidden);
-    when(applicationLicenseDiscriminator.discriminate(VALID_APP_ID, originalForbidden))
+    when(applicationLicenseDiscriminator.discriminate(eq(VALID_APP_ID), any()))
         .thenReturn(ApplicationState.LICENSED);
 
     var result = tool.getRouteCoverage(VALID_APP_ID, null, null, null, null);

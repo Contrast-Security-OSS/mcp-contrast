@@ -13,17 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.contrast.labs.ai.mcp.contrast.tool.application;
+package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.contrast.labs.ai.mcp.contrast.client.ContrastAccessDeniedException;
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.ApplicationLicense;
-import com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator.ApplicationState;
+import com.contrast.labs.ai.mcp.contrast.tool.base.ApplicationLicenseDiscriminator.ApplicationState;
 import com.contrastsecurity.exceptions.UnauthorizedException;
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,13 +36,15 @@ class ApplicationLicenseDiscriminatorTest {
 
   private ContrastApiClient contrastApiClient;
   private ApplicationLicenseDiscriminator discriminator;
-  private UnauthorizedException originalForbidden;
+  private ContrastAccessDeniedException originalForbidden;
 
   @BeforeEach
   void setUp() {
     contrastApiClient = mock();
     discriminator = new ApplicationLicenseDiscriminator(contrastApiClient);
-    originalForbidden = new UnauthorizedException("Forbidden", "GET", "/route", 403, "Forbidden");
+    originalForbidden =
+        ContrastAccessDeniedException.from(
+            new UnauthorizedException("Forbidden", "GET", "/route", 403, "Forbidden"));
   }
 
   @Test

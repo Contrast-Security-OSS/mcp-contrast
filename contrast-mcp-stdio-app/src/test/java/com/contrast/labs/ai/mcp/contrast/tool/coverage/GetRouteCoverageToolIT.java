@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 
-import static com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator.LICENSED_LEVEL;
+import static com.contrast.labs.ai.mcp.contrast.tool.base.ApplicationLicenseDiscriminator.LICENSED_LEVEL;
 import static com.contrast.labs.ai.mcp.contrast.tool.coverage.GetRouteCoverageTool.UNLICENSED_APPLICATION_ERROR;
 import static org.assertj.core.api.Assertions.assertThat;
 

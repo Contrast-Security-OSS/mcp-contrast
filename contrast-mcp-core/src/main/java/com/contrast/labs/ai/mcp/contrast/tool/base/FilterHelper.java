@@ -15,13 +15,12 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
+import com.contrast.labs.ai.mcp.contrast.util.TimestampFormatter;
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.Date;
@@ -38,10 +37,6 @@ import org.springframework.util.StringUtils;
 public class FilterHelper {
   static final long MIN_EPOCH_MILLIS = 0L;
   static final long MAX_EPOCH_MILLIS = 253402300799999L;
-  private static final DateTimeFormatter TIMESTAMP_FORMATTER =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssxxx");
-  private static final DateTimeFormatter TIMESTAMP_WITH_MILLIS_FORMATTER =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSxxx");
 
   /** Result of parsing with optional validation message for AI feedback */
   public static class ParseResult<T> {
@@ -220,41 +215,16 @@ public class FilterHelper {
   }
 
   /**
-   * Format epoch milliseconds as ISO 8601 timestamp with timezone offset. Uses system default
-   * timezone (user's local timezone since MCP server runs locally). Always uses numeric timezone
-   * offsets (e.g., "+00:00" instead of "Z"). Returns null for null input.
-   *
-   * @param epochMillis Epoch timestamp in milliseconds
-   * @return ISO 8601 formatted timestamp (e.g., "2025-01-15T10:30:00-05:00"), or null if input is
-   *     null
-   * @example formatTimestamp(1705328400000L) → "2025-01-15T10:30:00-05:00"
-   * @example formatTimestamp(null) → null
+   * @see TimestampFormatter#formatTimestamp(Long)
    */
   public static String formatTimestamp(Long epochMillis) {
-    if (epochMillis == null) {
-      return null;
-    }
-    // Use lowercase 'xxx' pattern which always outputs numeric offsets, never "Z"
-    // Uppercase 'XXX' would output "Z" for UTC, but lowercase 'xxx' guarantees numeric format
-    return Instant.ofEpochMilli(epochMillis)
-        .atZone(ZoneId.systemDefault())
-        .format(TIMESTAMP_FORMATTER);
+    return TimestampFormatter.formatTimestamp(epochMillis);
   }
 
   /**
-   * Formats epoch milliseconds as a deterministic UTC ISO 8601 timestamp while retaining
-   * millisecond precision. Use this for public contracts whose backend value is meaningful at
-   * sub-second precision.
-   *
-   * @param epochMillis Epoch timestamp in milliseconds
-   * @return ISO 8601 timestamp with milliseconds and a numeric UTC offset, or null for null input
+   * @see TimestampFormatter#formatTimestampWithMillis(Long)
    */
   public static String formatTimestampWithMillis(Long epochMillis) {
-    if (epochMillis == null) {
-      return null;
-    }
-    return Instant.ofEpochMilli(epochMillis)
-        .atZone(ZoneOffset.UTC)
-        .format(TIMESTAMP_WITH_MILLIS_FORMATTER);
+    return TimestampFormatter.formatTimestampWithMillis(epochMillis);
   }
 }

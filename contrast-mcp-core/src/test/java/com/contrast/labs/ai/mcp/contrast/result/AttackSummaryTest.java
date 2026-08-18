@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.adr.Attack;
-import com.contrast.labs.ai.mcp.contrast.tool.base.FilterHelper;
+import com.contrast.labs.ai.mcp.contrast.util.TimestampFormatter;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -33,7 +33,7 @@ class AttackSummaryTest {
       LocalDateTime.of(2025, 1, 15, 10, 30).toInstant(ZoneOffset.UTC).toEpochMilli();
 
   @Test
-  void testFromAttack_FormatsTimestampsWithFilterHelper() {
+  void testFromAttack_FormatsTimestampsWithTimestampFormatter() {
     // Given: A mock Attack object with known timestamps
     var attack = createMockAttack();
 
@@ -60,19 +60,19 @@ class AttackSummaryTest {
         .as("lastEventTime should match ISO 8601 format: " + summary.lastEventTime())
         .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}");
 
-    // Verify timestamps match expected FilterHelper output
+    // Verify timestamps match expected TimestampFormatter output
     assertThat(summary.startTime())
-        .as("startTime should match FilterHelper.formatTimestamp output")
-        .isEqualTo(FilterHelper.formatTimestamp(attack.getStart_time()));
+        .as("startTime should match TimestampFormatter.formatTimestamp output")
+        .isEqualTo(TimestampFormatter.formatTimestamp(attack.getStart_time()));
     assertThat(summary.endTime())
-        .as("endTime should match FilterHelper.formatTimestamp output")
-        .isEqualTo(FilterHelper.formatTimestamp(attack.getEnd_time()));
+        .as("endTime should match TimestampFormatter.formatTimestamp output")
+        .isEqualTo(TimestampFormatter.formatTimestamp(attack.getEnd_time()));
     assertThat(summary.firstEventTime())
-        .as("firstEventTime should match FilterHelper.formatTimestamp output")
-        .isEqualTo(FilterHelper.formatTimestamp(attack.getFirst_event_time()));
+        .as("firstEventTime should match TimestampFormatter.formatTimestamp output")
+        .isEqualTo(TimestampFormatter.formatTimestamp(attack.getFirst_event_time()));
     assertThat(summary.lastEventTime())
-        .as("lastEventTime should match FilterHelper.formatTimestamp output")
-        .isEqualTo(FilterHelper.formatTimestamp(attack.getLast_event_time()));
+        .as("lastEventTime should match TimestampFormatter.formatTimestamp output")
+        .isEqualTo(TimestampFormatter.formatTimestamp(attack.getLast_event_time()));
   }
 
   @Test
@@ -99,7 +99,7 @@ class AttackSummaryTest {
   }
 
   @Test
-  void testApplicationAttackInfo_FormatsTimestampsWithFilterHelper() {
+  void testApplicationAttackInfo_FormatsTimestampsWithTimestampFormatter() {
     // Given: A mock Attack.ApplicationAttackInfo object
     var attackApp = createMockApplicationAttackInfo();
 
@@ -118,13 +118,13 @@ class AttackSummaryTest {
         .as("endTime should match ISO 8601 format: " + appInfo.endTime())
         .matches("\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[+-]\\d{2}:\\d{2}");
 
-    // Verify timestamps match expected FilterHelper output
+    // Verify timestamps match expected TimestampFormatter output
     assertThat(appInfo.startTime())
-        .as("startTime should match FilterHelper.formatTimestamp output")
-        .isEqualTo(FilterHelper.formatTimestamp(attackApp.getStartTime()));
+        .as("startTime should match TimestampFormatter.formatTimestamp output")
+        .isEqualTo(TimestampFormatter.formatTimestamp(attackApp.getStartTime()));
     assertThat(appInfo.endTime())
-        .as("endTime should match FilterHelper.formatTimestamp output")
-        .isEqualTo(FilterHelper.formatTimestamp(attackApp.getEndTime()));
+        .as("endTime should match TimestampFormatter.formatTimestamp output")
+        .isEqualTo(TimestampFormatter.formatTimestamp(attackApp.getEndTime()));
   }
 
   @Test
@@ -180,9 +180,10 @@ class AttackSummaryTest {
     // When: Creating AttackSummary
     var summary = AttackSummary.fromAttack(attack);
 
-    // Then: Format should be consistent with FilterHelper (same as VulnLight, ApplicationData,
+    // Then: Format should be consistent with TimestampFormatter (same as VulnLight,
+    // ApplicationData,
     // etc.)
-    var expectedFormat = FilterHelper.formatTimestamp(TEST_TIMESTAMP);
+    var expectedFormat = TimestampFormatter.formatTimestamp(TEST_TIMESTAMP);
 
     // Verify the format matches the pattern used throughout the codebase
     assertThat(

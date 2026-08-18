@@ -18,6 +18,18 @@
     ]
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read|Write|Edit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/archunit-store-guard.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Write|Edit",
@@ -27,6 +39,16 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/checkstyle.sh",
             "timeout": 60,
             "statusMessage": "Running Checkstyle..."
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/archunit-reminder.sh",
+            "timeout": 5
           }
         ]
       }

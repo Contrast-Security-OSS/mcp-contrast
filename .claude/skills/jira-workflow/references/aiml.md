@@ -28,7 +28,7 @@ issueTypeName: "Task"   (or Story, Bug, Epic)
 summary: "Your ticket title"
 description: "markdown body"
 contentFormat: "markdown"
-additional_fields: {"components": [{"name": "Contrast MCP Server"}]}
+additional_fields: {"components": [{"name": "Contrast MCP Server"}], "labels": ["repo:mcp-contrast"]}
 ```
 
 To assign, look up the account ID first with `lookupJiraAccountId` (searchString = name), then pass `assignee_account_id` on the create call. For yourself, use `atlassianUserInfo`.
