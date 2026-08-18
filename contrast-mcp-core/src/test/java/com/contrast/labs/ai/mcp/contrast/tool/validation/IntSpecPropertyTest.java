@@ -14,6 +14,8 @@ class IntSpecPropertyTest {
       @ForAll int value,
       @ForAll @IntRange(min = -1000, max = 1000) int min,
       @ForAll @IntRange(min = -1000, max = 1000) int max) {
+    // min <= max is a caller precondition: IntSpec.range() does not define behavior
+    // for inverted bounds. See bead for the inverted-bounds edge case.
     Assume.that(min <= max);
     var ctx = new ToolValidationContext();
     var result = ctx.intParam(value, "x").range(min, max).get();
@@ -26,7 +28,7 @@ class IntSpecPropertyTest {
       @ForAll Integer value,
       @ForAll @IntRange(min = -1000, max = 1000) int min,
       @ForAll @IntRange(min = -1000, max = 1000) int max) {
-    Assume.that(min <= max);
+    Assume.that(min <= max); // see output_should_be_in_range WHY comment
     var ctx = new ToolValidationContext();
     ctx.intParam(value, "x").range(min, max).get();
 
@@ -34,7 +36,7 @@ class IntSpecPropertyTest {
   }
 
   @Property
-  void no_notice_when_value_in_range(@ForAll @IntRange(min = 1, max = 100) int value) {
+  void notice_should_be_empty_when_value_in_range(@ForAll @IntRange(min = 1, max = 100) int value) {
     var ctx = new ToolValidationContext();
     ctx.intParam(value, "x").range(1, 100).get();
 
@@ -42,7 +44,7 @@ class IntSpecPropertyTest {
   }
 
   @Property
-  void notice_emitted_when_value_below_min(
+  void notice_should_be_emitted_when_value_below_min(
       @ForAll @IntRange(min = Integer.MIN_VALUE, max = 0) int value) {
     var ctx = new ToolValidationContext();
     ctx.intParam(value, "x").range(1, 100).get();
@@ -52,7 +54,7 @@ class IntSpecPropertyTest {
   }
 
   @Property
-  void notice_emitted_when_value_above_max(@ForAll @IntRange(min = 101) int value) {
+  void notice_should_be_emitted_when_value_above_max(@ForAll @IntRange(min = 101) int value) {
     var ctx = new ToolValidationContext();
     ctx.intParam(value, "x").range(1, 100).get();
 
@@ -61,7 +63,7 @@ class IntSpecPropertyTest {
   }
 
   @Property
-  void default_used_when_null(@ForAll int defaultVal) {
+  void default_should_be_used_when_null(@ForAll int defaultVal) {
     var ctx = new ToolValidationContext();
     var result = ctx.intParam(null, "x").defaultTo(defaultVal, "fallback").get();
 
@@ -70,7 +72,7 @@ class IntSpecPropertyTest {
   }
 
   @Property
-  void null_when_no_value_and_no_default() {
+  void result_should_be_null_when_no_value_and_no_default() {
     var ctx = new ToolValidationContext();
     var result = ctx.intParam(null, "x").get();
 
@@ -79,7 +81,7 @@ class IntSpecPropertyTest {
   }
 
   @Property
-  void value_returned_unchanged_when_no_range(@ForAll int value) {
+  void value_should_be_returned_unchanged_when_no_range(@ForAll int value) {
     var ctx = new ToolValidationContext();
     var result = ctx.intParam(value, "x").get();
 
@@ -88,11 +90,11 @@ class IntSpecPropertyTest {
   }
 
   @Property
-  void no_errors_added_for_any_input(
+  void errors_should_be_empty_for_any_input(
       @ForAll Integer value,
       @ForAll @IntRange(min = -1000, max = 1000) int min,
       @ForAll @IntRange(min = -1000, max = 1000) int max) {
-    Assume.that(min <= max);
+    Assume.that(min <= max); // see output_should_be_in_range WHY comment
     var ctx = new ToolValidationContext();
     ctx.intParam(value, "x").range(min, max).get();
 

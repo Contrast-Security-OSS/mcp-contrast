@@ -31,11 +31,12 @@ class EnumSetSpecPropertyTest {
   }
 
   @Property
-  void case_insensitive_parsing(@ForAll("colorInRandomCase") String csv) {
+  void parsing_should_be_case_insensitive(@ForAll("colorInRandomCase") String csv) {
     var ctx = new ToolValidationContext();
     var result = ctx.enumSetParam(csv, Color.class, "colors").get();
 
-    assertThat(result).isNotNull().isNotEmpty();
+    assertThat(result).isNotNull().hasSize(1);
+    assertThat(result.iterator().next().name()).isEqualToIgnoringCase(csv);
     assertThat(ctx.isValid()).isTrue();
   }
 

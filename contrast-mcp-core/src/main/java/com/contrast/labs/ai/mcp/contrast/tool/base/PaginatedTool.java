@@ -66,7 +66,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
    * for tool-specific logic. This method is FINAL to enforce consistent processing.
    *
    * @param page requested page number (1-based), null defaults to 1
-   * @param pageSize requested page size, null defaults to 50
+   * @param pageSize requested page size, null defaults to 50 unless getMaxPageSize() is narrower
    * @param paramsSupplier lazy supplier of tool-specific parameters
    * @return paginated response with items or errors
    */

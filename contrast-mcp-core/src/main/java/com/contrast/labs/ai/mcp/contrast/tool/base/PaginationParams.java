@@ -26,7 +26,7 @@ import java.util.List;
  * graceful degradation (soft failures only).
  *
  * @param page Validated 1-based page number (min: 1)
- * @param pageSize Validated page size (range: 1-100, default: 50)
+ * @param pageSize Validated page size (range: 1-maxPageSize, default: min(50, maxPageSize))
  * @param offset Calculated 0-based offset for SDK
  * @param limit Same as pageSize, for SDK clarity
  * @param notices Validation notices (soft failures - execution continues with corrected values)
@@ -51,12 +51,13 @@ public record PaginationParams(
    * to acceptable defaults with notices.
    *
    * @param page Requested page number (1-based), null defaults to 1
-   * @param pageSize Requested page size, null defaults to 50
+   * @param pageSize Requested page size, null defaults to 50 unless maxPageSize is narrower
    * @param maxPageSize Tool-specific maximum page size (e.g., 50 for APIs with stricter limits)
    * @return PaginationParams with validated values and notices
    */
   public static PaginationParams of(Integer page, Integer pageSize, int maxPageSize) {
     List<String> notices = new ArrayList<>();
+    maxPageSize = Math.max(1, maxPageSize);
 
     // Soft failure: invalid page → clamp to 1
     int actualPage = page != null && page > 0 ? page : 1;
@@ -78,8 +79,9 @@ public record PaginationParams(
       actualSize = maxPageSize;
     }
 
-    // Cap page so (page-1)*pageSize never overflows int
-    int maxPage = Integer.MAX_VALUE / actualSize;
+    // Cap page so (page-1)*pageSize never overflows int.
+    // Use long to avoid +1 overflow when actualSize is 1.
+    int maxPage = (int) Math.min((long) Integer.MAX_VALUE / actualSize + 1L, Integer.MAX_VALUE);
     if (actualPage > maxPage) {
       notices.add(
           String.format(

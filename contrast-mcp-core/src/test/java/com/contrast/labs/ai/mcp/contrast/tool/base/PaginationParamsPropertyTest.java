@@ -3,6 +3,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.base;
 import static com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants.DEFAULT_PAGE_SIZE;
 import static com.contrast.labs.ai.mcp.contrast.tool.validation.ValidationConstants.MAX_PAGE_SIZE;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
@@ -115,7 +116,7 @@ class PaginationParamsPropertyTest {
   void notices_should_be_immutable(@ForAll Integer page, @ForAll Integer pageSize) {
     var params = PaginationParams.of(page, pageSize);
 
-    org.assertj.core.api.Assertions.assertThatThrownBy(() -> params.notices().add("boom"))
+    assertThatThrownBy(() -> params.notices().add("boom"))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 }

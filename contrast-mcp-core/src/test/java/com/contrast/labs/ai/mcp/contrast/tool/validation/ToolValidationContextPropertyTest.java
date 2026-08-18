@@ -1,11 +1,14 @@
 package com.contrast.labs.ai.mcp.contrast.tool.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.UUID;
 import net.jqwik.api.Arbitraries;
 import net.jqwik.api.Arbitrary;
+import net.jqwik.api.Assume;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.Provide;
@@ -89,7 +92,7 @@ class ToolValidationContextPropertyTest {
       ctx.addError("e" + i);
     }
 
-    org.assertj.core.api.Assertions.assertThatThrownBy(() -> ctx.errors().add("injected"))
+    assertThatThrownBy(() -> ctx.errors().add("injected"))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 
@@ -100,7 +103,7 @@ class ToolValidationContextPropertyTest {
       ctx.addNotice("n" + i);
     }
 
-    org.assertj.core.api.Assertions.assertThatThrownBy(() -> ctx.notices().add("injected"))
+    assertThatThrownBy(() -> ctx.notices().add("injected"))
         .isInstanceOf(UnsupportedOperationException.class);
   }
 
@@ -140,6 +143,67 @@ class ToolValidationContextPropertyTest {
     ctx.errorIf(condition, "conditional error");
 
     assertThat(ctx.isValid()).isEqualTo(!condition);
+  }
+
+  @Property
+  void validateDateRange_should_add_error_when_start_after_end(
+      @ForAll int endMillis, @ForAll @IntRange(min = 1) int gap) {
+    var end = new Date(endMillis);
+    var start = new Date((long) endMillis + gap);
+    var ctx = new ToolValidationContext();
+    ctx.validateDateRange(start, end, "startDate", "endDate");
+
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors()).hasSize(1);
+    assertThat(ctx.errors().getFirst()).contains("startDate").contains("endDate");
+  }
+
+  @Property
+  void validateDateRange_should_accept_valid_range(
+      @ForAll int startMillis, @ForAll @IntRange(min = 0) int gap) {
+    var start = new Date(startMillis);
+    var end = new Date((long) startMillis + gap);
+    var ctx = new ToolValidationContext();
+    ctx.validateDateRange(start, end, "startDate", "endDate");
+
+    assertThat(ctx.isValid()).isTrue();
+    assertThat(ctx.errors()).isEmpty();
+  }
+
+  @Property
+  void validateDateRange_should_accept_nulls(@ForAll boolean startNull, @ForAll boolean endNull) {
+    Assume.that(startNull || endNull);
+    var start = startNull ? null : new Date(0);
+    var end = endNull ? null : new Date(0);
+    var ctx = new ToolValidationContext();
+    ctx.validateDateRange(start, end, "startDate", "endDate");
+
+    assertThat(ctx.isValid()).isTrue();
+  }
+
+  @Property
+  void validateTimestampRange_should_add_error_when_start_after_end(
+      @ForAll int endMillis, @ForAll @IntRange(min = 1) int gap) {
+    var end = new Date(endMillis);
+    var start = new Date((long) endMillis + gap);
+    var ctx = new ToolValidationContext();
+    ctx.validateTimestampRange(start, end, "startTs", "endTs");
+
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors()).hasSize(1);
+    assertThat(ctx.errors().getFirst()).contains("startTs").contains("endTs");
+  }
+
+  @Property
+  void validateTimestampRange_should_accept_valid_range(
+      @ForAll int startMillis, @ForAll @IntRange(min = 0) int gap) {
+    var start = new Date(startMillis);
+    var end = new Date((long) startMillis + gap);
+    var ctx = new ToolValidationContext();
+    ctx.validateTimestampRange(start, end, "startTs", "endTs");
+
+    assertThat(ctx.isValid()).isTrue();
+    assertThat(ctx.errors()).isEmpty();
   }
 
   @Provide

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 import net.jqwik.api.Arbitraries;
 import net.jqwik.api.Arbitrary;
+import net.jqwik.api.Assume;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.Provide;
@@ -19,9 +20,8 @@ class StringListSpecPropertyTest {
     var ctx = new ToolValidationContext();
     var result = ctx.stringListParam(csv, "statuses").allowedValues(ALLOWED).get();
 
-    if (result != null) {
-      assertThat(result).allSatisfy(item -> assertThat(ALLOWED).contains(item));
-    }
+    assertThat(result).as("valid CSV input should parse successfully").isNotNull();
+    assertThat(result).allSatisfy(item -> assertThat(ALLOWED).contains(item));
   }
 
   @Property
@@ -71,7 +71,7 @@ class StringListSpecPropertyTest {
   void normalization_should_be_idempotent(@ForAll("csvOfAllowed") String csv) {
     var ctx1 = new ToolValidationContext();
     var first = ctx1.stringListParam(csv, "s").allowedValues(ALLOWED).get();
-    if (first == null) return;
+    Assume.that(first != null);
 
     var recombined = String.join(",", first);
     var ctx2 = new ToolValidationContext();
@@ -85,9 +85,8 @@ class StringListSpecPropertyTest {
     var ctx = new ToolValidationContext();
     var result = ctx.stringListParam(csv, "tags").toUpperCase().get();
 
-    if (result != null) {
-      assertThat(result).allSatisfy(item -> assertThat(item).isEqualTo(item.toUpperCase()));
-    }
+    assertThat(result).as("valid CSV input should parse successfully").isNotNull();
+    assertThat(result).allSatisfy(item -> assertThat(item).isEqualTo(item.toUpperCase()));
   }
 
   @Provide

@@ -41,7 +41,7 @@ class ToolSortParserPropertyTest {
   }
 
   @Property
-  void case_insensitive_on_property(@ForAll("validPropertyRandomCase") String property) {
+  void property_should_be_case_insensitive(@ForAll("validPropertyRandomCase") String property) {
     var ctx = new ToolValidationContext();
     var sort = property + ",ASC";
     var result = ToolSortParser.parse(ctx, sort, FIELDS, DEFAULT_SORT);
@@ -51,7 +51,7 @@ class ToolSortParserPropertyTest {
   }
 
   @Property
-  void case_insensitive_on_direction(
+  void direction_should_be_case_insensitive(
       @ForAll("validProperty") String property, @ForAll("directionCase") String direction) {
     var ctx = new ToolValidationContext();
     var sort = property + "," + direction;
@@ -67,6 +67,8 @@ class ToolSortParserPropertyTest {
     var result = ToolSortParser.parse(ctx, sort, FIELDS, DEFAULT_SORT);
 
     assertThat(result).isEqualTo(DEFAULT_SORT);
+    assertThat(ctx.isValid()).isFalse();
+    assertThat(ctx.errors()).isNotEmpty();
   }
 
   @Property
