@@ -23,6 +23,7 @@ dependencies {
 
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'ch.qos.logback:logback-classic'
+    testImplementation "net.jqwik:jqwik:${jqwikVersion}"
 }
 
 def publicMavenReleaseRepositoryName = 'contrastPublicRelease'

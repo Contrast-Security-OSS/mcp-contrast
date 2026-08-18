@@ -347,6 +347,15 @@ When creating or modifying MCP tools:
 - Manual loop for sort/filter verification (e.g., `for (int i=1; i<list.size(); i++)`) — use `isSortedAccordingTo` / `allSatisfy` for clearer failure messages
 - `_populate_*` or `_return_*` test using `isNotNull()` on the claimed field — asserts shape, not content; use `isNotBlank` / `isNotEmpty` / content-level check
 
+**Property-based testing (jqwik, ADR 0005):**
+- Naming: `XxxPropertyTest` alongside existing `XxxTest`, same package. Never `*IT` / `*IntegrationTest` suffixes.
+- Each `@Property` method tests one invariant that holds for all inputs (e.g. "output is always in [min, max]"). Use `@Provide` methods for custom generators.
+- Default tries budget is 100 (`junit-platform.properties`). Keep it modest because PIT reruns tests per mutant.
+- Use `Assume.that(...)` to narrow generators to documented preconditions (e.g. `min <= max`), not to skip inconvenient failures.
+- A failing property is a bug until proven otherwise. Fix the bug, or narrow the generator to documented bounds with a WHY comment and a filed bead.
+- Property tests complement example-based tests. Do not replace existing `XxxTest` classes.
+- `.jqwik-database` is gitignored (jqwik writes a local failure-recording database).
+
 ### Security Considerations
 
 This codebase handles sensitive vulnerability data. The README contains critical warnings about data privacy when using with AI models. Never expose Contrast credentials or vulnerability data to untrusted AI services.
