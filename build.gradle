@@ -756,6 +756,20 @@ class PmdRuleControls {
   }
 }
 '''
+            def utilFile = pmdRuleControlSourceDir.get()
+                .file('com/contrast/labs/build/pmd/PmdUtilityControl.java').asFile
+            utilFile.parentFile.mkdirs()
+            utilFile.text = '''\
+package com.contrast.labs.build.pmd;
+
+final class PmdUtilityControl {
+  private PmdUtilityControl() {}
+
+  static String helper() {
+    return "use @NoArgsConstructor instead";
+  }
+}
+'''
         }
     }
 
@@ -790,9 +804,10 @@ class PmdRuleControls {
                 .collectEntries { k, v -> [(k): v.size()] }
 
             def expectedRuleCounts = [
-                'FluentLogInCatchRequiresCause': 1,
-                'AvoidInlineLoggingKeyLiteral' : 1,
-                'AvoidRawMockitoAny'           : 1,
+                'FluentLogInCatchRequiresCause'  : 1,
+                'AvoidInlineLoggingKeyLiteral'   : 1,
+                'AvoidRawMockitoAny'             : 1,
+                'PreferLombokNoArgsConstructor'  : 1,
             ]
             def mismatches = expectedRuleCounts.findAll { rule, expectedCount ->
                 (ruleCounts[rule] ?: 0) != expectedCount
