@@ -121,6 +121,36 @@ class EnvFileParserTest {
   }
 
   @Test
+  void resolve_should_prefer_env_variable_over_file_value() throws IOException {
+    Path envFile = tmp.resolve("resolve.env");
+    Files.writeString(envFile, "HOME=file-value\n");
+    var result = EnvFileParser.resolve(envFile.toFile(), List.of("HOME"));
+    assertThat(result.get("HOME"))
+        .as("real env var should win over file value")
+        .isEqualTo(System.getenv("HOME"));
+  }
+
+  @Test
+  void resolve_should_fall_back_to_file_when_env_variable_absent() throws IOException {
+    Path envFile = tmp.resolve("resolve.env");
+    Files.writeString(envFile, "UNLIKELY_TEST_KEY_CE_42=from-file\n");
+    var result = EnvFileParser.resolve(envFile.toFile(), List.of("UNLIKELY_TEST_KEY_CE_42"));
+    assertThat(result.get("UNLIKELY_TEST_KEY_CE_42"))
+        .as("file value should be used when env var is absent")
+        .isEqualTo("from-file");
+  }
+
+  @Test
+  void resolve_should_return_null_when_absent_from_both() throws IOException {
+    Path envFile = tmp.resolve("resolve.env");
+    Files.writeString(envFile, "OTHER=value\n");
+    var result = EnvFileParser.resolve(envFile.toFile(), List.of("ABSENT_TEST_KEY_CE_42"));
+    assertThat(result.get("ABSENT_TEST_KEY_CE_42"))
+        .as("null when key is absent from both env and file")
+        .isNull();
+  }
+
+  @Test
   void parseLines_should_handle_template_format() {
     var result =
         EnvFileParser.parseLines(

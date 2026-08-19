@@ -97,10 +97,10 @@ class ToolSortParserPropertyTest {
     var ctx = new ToolValidationContext();
     var result = ToolSortParser.parse(ctx, sort, FIELDS, DEFAULT_SORT);
 
-    if (ctx.isValid() && result != null) {
-      var bare = result.startsWith("-") ? result.substring(1) : result;
-      assertThat(bare).isIn(WIRE_VALUES);
-    }
+    assertThat(ctx.isValid()).isTrue();
+    assertThat(result).isNotNull();
+    var bare = result.startsWith("-") ? result.substring(1) : result;
+    assertThat(bare).isIn(WIRE_VALUES);
   }
 
   @Provide
