@@ -44,6 +44,8 @@
     <description>Raw Mockito any() matchers hide type expectations in tests.</description>
     <priority>3</priority>
     <properties>
+      <!-- Intentionally broad: PMD XPath lacks type resolution, so we match any zero-arg any().
+           Only Mockito uses this pattern in this codebase; accept the false-positive risk. -->
       <property name="xpath">
         <value>
 <![CDATA[

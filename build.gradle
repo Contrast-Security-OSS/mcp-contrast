@@ -602,7 +602,9 @@ subprojects {
                     '--skip-duplicate-files',
                     '--ignore-literals',
                 )
-                ignoreExitValue = true
+                // --no-fail-on-violation makes CPD exit 0 even when duplications exist.
+                // Let Gradle's default (ignoreExitValue=false) fail on any other exit code
+                // (e.g. 1 = internal error), so a CPD crash cannot silently pass the gate.
             }.result.get()
         }
     }

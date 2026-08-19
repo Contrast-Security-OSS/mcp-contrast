@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
@@ -87,6 +88,13 @@ class PmdBaselineVerificationTest {
     File absent = tempDir.resolve("cpd-absent.xml").toFile();
 
     assertThat(PmdBaselineVerification.cpdFindings(absent, tempDir.toFile())).isEmpty();
+  }
+
+  @Test
+  void cpdFindings_should_return_empty_for_clean_report() throws IOException {
+    File report = cpdReport();
+
+    assertThat(PmdBaselineVerification.cpdFindings(report, tempDir.toFile())).isEmpty();
   }
 
   @Test
@@ -182,6 +190,12 @@ class PmdBaselineVerificationTest {
     String content = Files.readString(baselineFile.toPath());
     assertThat(content).startsWith("# PMD baseline for my-module.");
     assertThat(content).contains("./gradlew :my-module:writePmdBaseline");
+
+    List<String> nonCommentLines =
+        Files.readAllLines(baselineFile.toPath()).stream()
+            .filter(l -> !l.startsWith("#") && !l.isBlank())
+            .toList();
+    assertThat(nonCommentLines).isSortedAccordingTo(Comparator.naturalOrder());
 
     Set<String> roundTripped = PmdBaselineVerification.readBaseline(baselineFile);
     assertThat(roundTripped).containsExactlyInAnyOrderElementsOf(findings);
