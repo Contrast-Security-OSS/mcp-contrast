@@ -96,6 +96,8 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
+    - name: Validate Gradle wrapper
+      uses: gradle/actions/wrapper-validation@889dc537cf3672c0c060560c9ead940a2b8b7077 # v6
 
     - name: Set up JDK 21
       uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
@@ -111,4 +113,4 @@ jobs:
         CONTRAST_SERVICE_KEY: ${{ secrets.CONTRAST_SERVICE_KEY }}
         CONTRAST_USERNAME: ${{ secrets.CONTRAST_USERNAME }}
         CONTRAST_ORG_ID: ${{ secrets.CONTRAST_ORG_ID }}
-      run: ./gradlew :contrast-mcp-stdio-app:integrationTest --no-daemon
+      run: ./gradlew :contrast-mcp-stdio-app:requireIntegrationTestCredentials :contrast-mcp-stdio-app:integrationTest --no-daemon

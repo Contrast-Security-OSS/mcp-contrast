@@ -119,7 +119,7 @@ test -f contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar
 
 Then create a GitHub release for the tag and attach `contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar`. Note that these manual instructions do not publish to Artifactory, sign the Docker image, generate SBOMs, or create attestations. Use the workflow whenever possible.
 
-**Validation gate:** the release runs `verify`, which is the full `check` lifecycle (static analysis, unit tests, coverage floors, CRAP gate, PIT) plus the integration tests against the org named by the `CONTRAST_*` repo secrets. Because releases only run from `main`, and `check` already gated the commit in `build.yml`, only the integration tests are genuinely new here. If a floor fires anyway, run `make check` locally for the per-module numbers, or read the `test-reports` artifact from that commit's build run.
+**Validation gate:** the release runs `verify`, which is the full `check` lifecycle (static analysis, unit tests, coverage floors, CRAP gate, PIT) plus the integration tests against the org named by the `CONTRAST_*` repo secrets. Because releases only run from `main`, and `check` plus integration tests already gated the commit in `build.yml` for internal PRs, release verify mainly re-confirms the same contract and covers the fork-PR case where CI never ran integration tests before merge. If a floor fires anyway, run `make check` locally for the per-module numbers, or read the `test-reports` artifact from that commit's build run.
 
 ## Verify the Release
 
