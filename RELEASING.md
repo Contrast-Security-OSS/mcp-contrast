@@ -110,7 +110,7 @@ Use this only if the workflow cannot run:
 ```bash
 git switch main
 git pull
-./gradlew clean spotlessCheck check :contrast-mcp-stdio-app:integrationTest :contrast-mcp-stdio-app:bootJar
+./gradlew clean verify :contrast-mcp-stdio-app:bootJar
 ./gradlew release -Prelease.forceVersion=X.Y.Z
 git checkout vX.Y.Z
 ./gradlew clean :contrast-mcp-stdio-app:bootJar -x test
@@ -119,7 +119,7 @@ test -f contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar
 
 Then create a GitHub release for the tag and attach `contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar`. Note that these manual instructions do not publish to Artifactory, sign the Docker image, generate SBOMs, or create attestations. Use the workflow whenever possible.
 
-**Coverage gate:** `check` runs `jacocoTestCoverageVerification`, so a release aborts if either module falls below its floor in `ext.coverageMinimums`. Because releases only run from `main`, and the same task and floors already gated the commit in `build.yml`, this should not fire in practice. If it does, run `make coverage` locally for the per-module numbers, or read the `test-reports` artifact (JaCoCo coverage plus PIT mutation reports) from that commit's build run.
+**Validation gate:** the release runs `verify`, which is the full `check` lifecycle (static analysis, unit tests, coverage floors, CRAP gate, PIT) plus the integration tests against the org named by the `CONTRAST_*` repo secrets. Because releases only run from `main`, and `check` already gated the commit in `build.yml`, only the integration tests are genuinely new here. If a floor fires anyway, run `make check` locally for the per-module numbers, or read the `test-reports` artifact from that commit's build run.
 
 ## Verify the Release
 

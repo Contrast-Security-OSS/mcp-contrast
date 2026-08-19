@@ -73,8 +73,16 @@ jobs:
           git diff --quiet
           git diff --cached --quiet
 
+      # verify = check + integration tests (ADR 0003/0004). Without the CONTRAST_* secrets
+      # every IT silently skips. AIML-1408 migrates them to a service account.
       - name: Run release validation build
-        run: ./gradlew clean spotlessCheck check :contrast-mcp-stdio-app:integrationTest :contrast-mcp-stdio-app:bootJar --no-daemon
+        env:
+          CONTRAST_HOST_NAME: ${{ secrets.CONTRAST_HOST_NAME }}
+          CONTRAST_API_KEY: ${{ secrets.CONTRAST_API_KEY }}
+          CONTRAST_SERVICE_KEY: ${{ secrets.CONTRAST_SERVICE_KEY }}
+          CONTRAST_USERNAME: ${{ secrets.CONTRAST_USERNAME }}
+          CONTRAST_ORG_ID: ${{ secrets.CONTRAST_ORG_ID }}
+        run: ./gradlew clean verify :contrast-mcp-stdio-app:bootJar --no-daemon
 
       - name: Create or reuse release tag
         id: versions

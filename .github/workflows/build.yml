@@ -41,9 +41,10 @@ jobs:
     - name: Run buildSrc checks and tests
       run: ./gradlew -p buildSrc check --no-daemon
 
-    # `test` is omitted deliberately: jacocoTestReport already pulls it in.
-    - name: Run checks, tests, coverage, and build
-      run: ./gradlew spotlessCheck checkstyleMain checkstyleTest jacocoTestCoverageVerification :contrast-mcp-stdio-app:bootJar --no-daemon
+    # check is the single verification gate (ADR 0003); new verifications attached to it
+    # are picked up here with no workflow change.
+    - name: Run check lifecycle and build
+      run: ./gradlew check :contrast-mcp-stdio-app:bootJar --no-daemon
 
     # Pull requests only. With no base the task falls back to the working tree, which is
     # clean on a fresh checkout and would pass vacuously.
@@ -56,10 +57,6 @@ jobs:
         ./gradlew jacocoChangedFileCoverageVerification
         -PjacocoChangedBase="$BASE_SHA"
         --no-daemon
-
-    - name: Run mutation testing
-      if: github.event_name == 'pull_request'
-      run: ./gradlew :contrast-mcp-core:pitest --no-daemon
 
     # Runs even when the coverage floor fails, since that is exactly when the
     # numbers and the HTML report are needed to diagnose the failure. coverageSummary

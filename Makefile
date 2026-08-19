@@ -1,9 +1,9 @@
 GRADLE ?= ./gradlew
 
-.PHONY: help build test test-verbose check check-verbose check-test buildsrc-check buildsrc-check-verbose coverage coverage-verbose coverage-changed coverage-changed-verbose test-coverage test-coverage-verbose mutation mutation-verbose install-hooks format clean verify verify-verbose
+.PHONY: help build lint lint-verbose format check check-verbose verify verify-verbose buildsrc-check buildsrc-check-verbose coverage-changed coverage-changed-verbose install-hooks clean
 
 help: ## Display available make targets
-	@awk 'BEGIN {FS=":.*##"; printf "\nUsage: make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_\-]+:.*##/ {printf "  %-12s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS=":.*##"; printf "\nUsage: make <target>\n\nTargets:\n"} /^[a-zA-Z0-9_\-]+:.*##/ {printf "  %-16s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 build: ## Build the project (compile + package)
 	@if [ -n "$$VERBOSE" ]; then \
@@ -12,26 +12,76 @@ build: ## Build the project (compile + package)
 		. ./hack/run_silent.sh && run_silent "Building mcp-contrast" "$(GRADLE) :contrast-mcp-stdio-app:bootJar -x test"; \
 	fi
 
-## Check targets (formatting and static analysis)
+# check and verify are defined in Gradle (ADR 0003); make adds only quiet output and
+# auto-formatting. Attach new verifications to the Gradle check lifecycle, not here.
 
-check: format ## Run format and static analysis checks (quiet output)
+## Lint (fast inner loop, deliberately NOT a gate)
+
+lint: ## Auto-format and run style checks only (fast, no tests)
 	@if [ -n "$$VERBOSE" ]; then \
-		$(GRADLE) spotlessCheck checkstyleMain checkstyleTest; \
+		$(GRADLE) spotlessApply checkstyleMain checkstyleTest; \
+	else \
+		$(MAKE) lint-quiet; \
+	fi
+
+lint-quiet:
+	@. ./hack/run_silent.sh && print_main_header "Linting"
+	@. ./hack/run_silent.sh && run_silent "Formatting code" "$(GRADLE) spotlessApply"
+	@. ./hack/run_silent.sh && print_header "mcp-contrast" "Checkstyle"
+	@. ./hack/run_silent.sh && run_with_quiet "Lint passed" "$(GRADLE) checkstyleMain checkstyleTest"
+
+lint-verbose: ## Run lint with verbose output
+	@VERBOSE=1 $(MAKE) lint
+
+## Check (the standard local gate: everything provable from the repo alone)
+
+check: ## Auto-format, then run the full Gradle check lifecycle and print the coverage summary
+	@if [ -n "$$VERBOSE" ]; then \
+		$(GRADLE) spotlessApply && $(GRADLE) --continue check coverageSummary; \
 	else \
 		$(MAKE) check-quiet; \
 	fi
 
+# Summary prints even when check fails (held exit code): a breached floor is when the
+# numbers are wanted.
 check-quiet:
-	@. ./hack/run_silent.sh && print_main_header "Running Checks"
-	@. ./hack/run_silent.sh && print_header "mcp-contrast" "Static analysis"
-	@. ./hack/run_silent.sh && run_with_quiet "All checks passed" "$(GRADLE) spotlessCheck checkstyleMain checkstyleTest"
+	@. ./hack/run_silent.sh && print_main_header "Running Check"
+	@. ./hack/run_silent.sh && run_silent "Formatting code" "$(GRADLE) spotlessApply"
+	@. ./hack/run_silent.sh && print_header "mcp-contrast" "check (static analysis, tests, coverage, CRAP, mutation)"
+	@status=0; \
+	. ./hack/run_silent.sh && run_silent_with_test_count "check passed" "$(GRADLE) check" "gradle" || status=$$?; \
+	$(GRADLE) --quiet coverageSummary; \
+	exit $$status
 
-check-verbose: ## Run checks with verbose output
+check-verbose: ## Run check with verbose output
 	@VERBOSE=1 $(MAKE) check
 
-# buildSrc is a separate Gradle build, so `gradlew test` and `gradlew check` in the root
-# build never schedule its tests. The changed-file coverage gate lives here, so it needs
-# its own invocation or nothing verifies it.
+## Verify (check plus the credential-gated integration tests)
+
+verify: ## Run check plus integration tests (requires Contrast credentials, fails loudly without them)
+	@if [ -n "$$VERBOSE" ]; then \
+		$(GRADLE) spotlessApply && $(GRADLE) --continue verify coverageSummary; \
+	else \
+		$(MAKE) verify-quiet; \
+	fi
+
+verify-quiet:
+	@. ./hack/run_silent.sh && print_main_header "Running Verify"
+	@. ./hack/run_silent.sh && run_silent "Formatting code" "$(GRADLE) spotlessApply"
+	@. ./hack/run_silent.sh && print_header "mcp-contrast" "verify (check + integration tests)"
+	@status=0; \
+	. ./hack/run_silent.sh && run_silent_with_test_count "verify passed" "$(GRADLE) verify" "gradle" || status=$$?; \
+	$(GRADLE) --quiet coverageSummary; \
+	exit $$status
+
+verify-verbose: ## Run verify with verbose output
+	@VERBOSE=1 $(MAKE) verify
+
+## Gates that genuinely cannot live in the check lifecycle
+
+# buildSrc is a separate Gradle build, so `gradlew check` in the root build never schedules
+# its tests. The changed-file coverage gate's logic lives here, so it needs its own
+# invocation or nothing verifies it.
 buildsrc-check: ## Run buildSrc static analysis and tests
 	@if [ -n "$$VERBOSE" ]; then \
 		$(GRADLE) -p buildSrc check; \
@@ -47,63 +97,7 @@ buildsrc-check-quiet:
 buildsrc-check-verbose: ## Run buildSrc checks with verbose output
 	@VERBOSE=1 $(MAKE) buildsrc-check
 
-## Test targets
-
-test: ## Run unit tests (quiet output)
-	@if [ -n "$$VERBOSE" ]; then \
-		$(GRADLE) test; \
-	else \
-		$(MAKE) test-quiet; \
-	fi
-
-test-quiet:
-	@. ./hack/run_silent.sh && print_main_header "Running Tests"
-	@. ./hack/run_silent.sh && print_header "mcp-contrast" "Unit tests"
-	@. ./hack/run_silent.sh && run_silent_with_test_count "Unit tests passed" "$(GRADLE) test" "gradle"
-
-test-verbose: ## Run tests with verbose output
-	@VERBOSE=1 $(MAKE) test
-
-## Verify targets (complete local gate including integration tests)
-
-verify: check-test ## Run all local verification including integration tests (quiet output)
-	@if [ -n "$$VERBOSE" ]; then \
-		$(GRADLE) :contrast-mcp-stdio-app:integrationTest; \
-	else \
-		$(MAKE) verify-quiet; \
-	fi
-
-verify-quiet:
-	@. ./hack/run_silent.sh && print_main_header "Running Integration Tests"
-	@. ./hack/run_silent.sh && print_header "contrast-mcp-stdio-app" "Integration tests"
-	@. ./hack/run_silent.sh && run_silent_with_test_count "Integration tests passed" "$(GRADLE) :contrast-mcp-stdio-app:integrationTest" "gradle"
-
-verify-verbose: ## Run all local verification including integration tests with verbose output
-	@VERBOSE=1 $(MAKE) verify
-
-## Coverage targets
-
-coverage: ## Verify coverage floors and print the summary
-	@if [ -n "$$VERBOSE" ]; then \
-		$(GRADLE) --continue jacocoTestCoverageVerification coverageSummary; \
-	else \
-		$(MAKE) coverage-quiet; \
-	fi
-
-# The summary runs after verification and regardless of its result, because a breached
-# floor is exactly when the numbers are wanted. The verification exit code is held and
-# re-raised at the end so a failure still fails the target.
-coverage-quiet:
-	@. ./hack/run_silent.sh && print_main_header "Checking Coverage"
-	@. ./hack/run_silent.sh && print_header "mcp-contrast" "Coverage floors"
-	@status=0; \
-	. ./hack/run_silent.sh && run_with_quiet "Coverage floors met" "$(GRADLE) jacocoTestCoverageVerification" || status=$$?; \
-	$(GRADLE) --quiet coverageSummary; \
-	exit $$status
-
-coverage-verbose: ## Run coverage with verbose output
-	@VERBOSE=1 $(MAKE) coverage
-
+# Needs a base ref, so it cannot join check (a working-tree run in CI would pass vacuously).
 # Measures the working tree by default. Pass BASE to compare against a ref instead, which is
 # what the pre-push hook does: make coverage-changed BASE=origin/main
 coverage-changed: ## Check changed src/main/java files meet the changed-file coverage minimum
@@ -121,53 +115,6 @@ coverage-changed-quiet:
 
 coverage-changed-verbose: ## Run changed-file coverage with verbose output
 	@VERBOSE=1 $(MAKE) coverage-changed
-
-# One invocation on purpose. bootBuildInfo rewrites build-info.properties every run, so the
-# app's test task is never UP-TO-DATE and separate `make test` + `make coverage` runs it twice.
-test-coverage: ## Run unit tests and verify coverage floors in one invocation
-	@if [ -n "$$VERBOSE" ]; then \
-		$(GRADLE) --continue test jacocoTestCoverageVerification coverageSummary; \
-	else \
-		$(MAKE) test-coverage-quiet; \
-	fi
-
-# Held exit code as in coverage-quiet: the summary is wanted precisely when a floor breaks.
-test-coverage-quiet:
-	@. ./hack/run_silent.sh && print_main_header "Running Tests and Coverage"
-	@. ./hack/run_silent.sh && print_header "mcp-contrast" "Unit tests + coverage floors"
-	@status=0; \
-	. ./hack/run_silent.sh && run_silent_with_test_count "Tests passed, coverage floors met" \
-		"$(GRADLE) test jacocoTestCoverageVerification" "gradle" || status=$$?; \
-	$(GRADLE) --quiet coverageSummary; \
-	exit $$status
-
-test-coverage-verbose: ## Run tests and coverage with verbose output
-	@VERBOSE=1 $(MAKE) test-coverage
-
-## Combined targets
-
-check-test: ## Run all checks, unit tests, coverage, and mutation testing
-	@$(MAKE) check
-	@$(MAKE) buildsrc-check
-	@$(MAKE) test-coverage
-	@$(MAKE) mutation
-
-## Mutation testing
-
-mutation: ## Run PIT mutation testing on contrast-mcp-core
-	@if [ -n "$$VERBOSE" ]; then \
-		$(GRADLE) :contrast-mcp-core:pitest; \
-	else \
-		$(MAKE) mutation-quiet; \
-	fi
-
-mutation-quiet:
-	@. ./hack/run_silent.sh && print_main_header "Running Mutation Tests"
-	@. ./hack/run_silent.sh && print_header "contrast-mcp-core" "PIT mutation testing"
-	@. ./hack/run_silent.sh && run_with_quiet "Mutation test strength floor met" "$(GRADLE) :contrast-mcp-core:pitest"
-
-mutation-verbose: ## Run mutation testing with verbose output
-	@VERBOSE=1 $(MAKE) mutation
 
 ## Other targets
 

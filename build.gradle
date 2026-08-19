@@ -4,6 +4,7 @@ import org.gradle.api.plugins.quality.Checkstyle
 
 plugins {
     id 'base'
+    id 'com.architester.crap4j' version "${crap4jPluginVersion}" apply false
     id 'pl.allegro.tech.build.axion-release' version "${axionReleasePluginVersion}"
     id 'com.diffplug.spotless' version "${spotlessGradlePluginVersion}" apply false
     id 'org.springframework.boot' version "${springBootVersion}" apply false
@@ -32,7 +33,7 @@ allprojects {
 // Deliberately below those numbers to retain headroom. Flush against 622/698, one further
 // uncovered branch gives 0.88984 and reddens main on an unrelated PR.
 ext.coverageMinimums = [
-    'contrast-mcp-core'     : [line: 0.95, branch: 0.87],
+    'contrast-mcp-core'     : [line: 0.95, branch: 0.89],
     'contrast-mcp-stdio-app': [line: 0.95, branch: 0.94],
 ]
 
@@ -487,6 +488,26 @@ subprojects {
             testImplementation "com.tngtech.archunit:archunit-junit5:${archunitVersion}"
         }
     }
+
+    // Apply after the existing JaCoCo report configuration so crap4j can finalize the XML output
+    // without preventing this build from declaring its report requirements first.
+    apply plugin: 'com.architester.crap4j'
+
+    // The plugin defaults attachToCheck to false; check is the single verification gate (ADR 0003).
+    crap4j {
+        attachToCheck = true
+    }
+}
+
+// check + the credential-gated integration tests (ADR 0003/0004). buildSrc is a separate
+// Gradle build and cannot be wired in here.
+tasks.register('verify') {
+    group = 'verification'
+    description = 'Runs check in every project plus the integration tests.'
+    dependsOn tasks.named('check')
+    dependsOn subprojects.collect { ":${it.name}:check" }
+    dependsOn ':contrast-mcp-stdio-app:requireIntegrationTestCredentials'
+    dependsOn ':contrast-mcp-stdio-app:integrationTest'
 }
 
 tasks.register('coverageSummary') {

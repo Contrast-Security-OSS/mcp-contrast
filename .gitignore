@@ -74,3 +74,6 @@ todos/
 .bv/
 
 .orca/
+
+# jqwik failure-recording database
+.jqwik-database

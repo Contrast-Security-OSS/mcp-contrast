@@ -17,6 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -149,8 +150,7 @@ class FilterHelperTest {
 
     // Then: Should use system default timezone
     var expected =
-        ZonedDateTime.ofInstant(
-            java.time.Instant.ofEpochMilli(epochMillis), ZoneId.systemDefault());
+        ZonedDateTime.ofInstant(Instant.ofEpochMilli(epochMillis), ZoneId.systemDefault());
     // Use the same formatter pattern as production code (lowercase 'xxx' always uses numeric
     // offsets)
     var formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssxxx");

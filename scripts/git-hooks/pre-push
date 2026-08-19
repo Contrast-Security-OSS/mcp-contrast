@@ -1,5 +1,5 @@
 #!/bin/bash
-# Pre-push hook to block changed-file coverage failures before review.
+# Pre-push hook: runs the Gradle check lifecycle, then changed-file coverage verification.
 
 set -euo pipefail
 
@@ -141,8 +141,9 @@ main() {
   local -a remote_refs=()
   local -a remote_shas=()
 
-  if [[ "${SKIP_COVERAGE_HOOK:-}" == "1" ]]; then
-    printf "SKIP_COVERAGE_HOOK=1 set; skipping changed-file coverage verification.\n" >&2
+  # Umbrella bypass, humans only.
+  if [[ "${SKIP_PUSH_GATE:-}" == "1" ]]; then
+    printf "SKIP_PUSH_GATE set; skipping the pre-push gate (check + changed-file coverage).\n" >&2
     return
   fi
 
@@ -160,9 +161,12 @@ main() {
 
   # If every stdin row was a deletion, there are no pushed commits to analyze.
   if (( ${#local_refs[@]} == 0 )); then
-    printf "No pushed commit refs; skipping changed-file coverage verification.\n"
+    printf "No pushed commit refs; skipping the pre-push gate.\n"
     return
   fi
+
+  # Once per push. Verifies the working tree, not the pushed commits; CI stays authoritative.
+  perform_check "running the Gradle check lifecycle" ./gradlew -q check
 
   head_sha=$(git rev-parse HEAD)
 

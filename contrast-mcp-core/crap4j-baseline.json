@@ -1,0 +1,9 @@
+{
+  "formatVersion": 1,
+  "toolVersion": "1.0.0",
+  "generated": "2026-08-19T03:59:40.794450Z",
+  "coverageSelection": "branch-preferred",
+  "threshold": 15.0,
+  "complexityCap": 15,
+  "entries": [  ]
+}

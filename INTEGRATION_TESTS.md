@@ -17,26 +17,18 @@ This project includes integration tests that run against a real Contrast TeamSer
    - `CONTRAST_USERNAME` - Your username
    - `CONTRAST_ORG_ID` - Your organization ID
 
-3. **Source the environment file:**
-   ```bash
-   source .env.integration-test
-   ```
+That's it. Gradle sources `.env.integration-test` itself; no `source` step is needed. Real environment variables override file values, so CI secrets and one-off shells win without editing the file.
 
 ## Running Integration Tests
+
+### Full gate plus integration tests (the pre-review command):
+```bash
+make verify
+```
 
 ### Run integration tests only:
 ```bash
 ./gradlew :contrast-mcp-stdio-app:integrationTest
-```
-
-### Run all tests (unit + integration):
-```bash
-./gradlew clean test :contrast-mcp-stdio-app:integrationTest
-```
-
-### Skip integration tests:
-```bash
-./gradlew test
 ```
 
 ### Run only unit tests (default):
@@ -48,8 +40,9 @@ This project includes integration tests that run against a real Contrast TeamSer
 
 - **Unit tests** (`*Test.java`) run with the Gradle `test` task
 - **Integration tests** (`*IT.java`) run with the Gradle `:contrast-mcp-stdio-app:integrationTest` task
-- Integration tests only execute if `CONTRAST_HOST_NAME` environment variable is set
-- If environment variables are missing, integration tests are automatically skipped
+- Credentials resolve from real environment variables first, then `.env.integration-test`
+- `verify` fails loudly when no credentials are available (ADR 0004) — a verify that ran zero integration tests has not verified
+- Bare `integrationTest` skips instead when `CONTRAST_HOST_NAME` is unset, so forks and credential-less checkouts still build
 
 ## GitHub Actions / CI
 

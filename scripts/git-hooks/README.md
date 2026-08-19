@@ -22,9 +22,12 @@ so. Merge the two by hand if both are wanted.
   (re-staging any reformatted files), runs unit tests, and runs Checkstyle. Skips entirely
   when no Java files are staged.
 
-* `pre-push` runs `jacocoChangedFileCoverageVerification`, which fails when a changed
-  `src/main/java` file has less than the line coverage required by
+* `pre-push` runs the Gradle `check` lifecycle, then `jacocoChangedFileCoverageVerification`,
+  which fails when a changed `src/main/java` file has less than the line coverage required by
   `changedFileCoverageMinimum` in the root `build.gradle`.
+
+  `check` runs once per push against the working tree. Gradle's up-to-date checking makes it
+  a few seconds when `make check` already ran; the full cost lands on pushes that skipped it.
 
   It compares against the remote ref being pushed when there is one, then
   `COVERAGE_BASE_REF` when explicitly set, the pushed branch's own upstream, and finally
@@ -49,7 +52,7 @@ so. Merge the two by hand if both are wanted.
   files do not produce a warning. Refs that change no Java files skip Gradle entirely, since
   Gradle startup is most of the hook's cost.
 
-  Set `SKIP_COVERAGE_HOOK=1` to bypass the gate for a push.
+  Set `SKIP_PUSH_GATE=1` to bypass the whole gate for a push (humans only, emergencies only).
 
 ## Running the gate by hand
 

@@ -32,7 +32,7 @@ bounded, representative job before starting.
    expected effect.
 
 5. Implement the smallest reversible change at the earliest owner, then verify
-   both layers. Run this repo's native checks (`make check-test`, plus
+   both layers. Run this repo's native checks (`make check`, plus
    `make verify` when credentials allow), and exercise the user or operational
    journey that establishes the accepted outcome.
 

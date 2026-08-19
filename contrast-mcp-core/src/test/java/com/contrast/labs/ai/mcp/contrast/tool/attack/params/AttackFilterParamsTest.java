@@ -339,6 +339,131 @@ class AttackFilterParamsTest {
     assertThat(filterBody.isIncludeSuppressed()).isFalse(); // Default
   }
 
+  @Nested
+  @DisplayName("toAttacksFilterBody optional field coverage")
+  class ToAttacksFilterBodyFieldTests {
+
+    @Test
+    void toAttacksFilterBody_should_set_quickFilter_when_provided() {
+      var params = AttackFilterParams.of("MANUAL", null, null, null, null, null, null, null);
+
+      var body = params.toAttacksFilterBody();
+
+      assertThat(body.getQuickFilter()).isEqualTo("MANUAL");
+    }
+
+    @Test
+    void toAttacksFilterBody_should_set_statusFilter_when_provided() {
+      var params =
+          AttackFilterParams.of(null, "EXPLOITED,PROBED", null, null, null, null, null, null);
+
+      var body = params.toAttacksFilterBody();
+
+      assertThat(body.getStatusFilter()).containsExactly("EXPLOITED", "PROBED");
+    }
+
+    @Test
+    void toAttacksFilterBody_should_leave_statusFilter_empty_when_null() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, null, null);
+
+      var body = params.toAttacksFilterBody();
+
+      assertThat(body.getStatusFilter()).isEmpty();
+    }
+
+    @Test
+    void toAttacksFilterBody_should_set_keyword_when_provided() {
+      var params = AttackFilterParams.of(null, null, "search term", null, null, null, null, null);
+
+      var body = params.toAttacksFilterBody();
+
+      assertThat(body.getKeyword()).isEqualTo("search term");
+    }
+
+    @Test
+    void toAttacksFilterBody_should_use_builder_default_keyword_when_blank() {
+      var params = AttackFilterParams.of(null, null, "  ", null, null, null, null, null);
+
+      var body = params.toAttacksFilterBody();
+
+      assertThat(body.getKeyword()).isEmpty();
+    }
+
+    @Test
+    void toAttacksFilterBody_should_set_includeSuppressed_true_when_provided() {
+      var params = AttackFilterParams.of(null, null, null, true, null, null, null, null);
+
+      var body = params.toAttacksFilterBody();
+
+      assertThat(body.isIncludeSuppressed()).isTrue();
+    }
+
+    @Test
+    void toAttacksFilterBody_should_set_includeSuppressed_false_when_null_defaults() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, null, null);
+
+      var body = params.toAttacksFilterBody();
+
+      assertThat(body.isIncludeSuppressed()).isFalse();
+    }
+
+    @Test
+    void toAttacksFilterBody_should_set_includeBotBlockers_true_when_provided() {
+      var params = AttackFilterParams.of(null, null, null, null, true, null, null, null);
+
+      var body = params.toAttacksFilterBody();
+
+      assertThat(body.isIncludeBotBlockers()).isTrue();
+    }
+
+    @Test
+    void toAttacksFilterBody_should_default_includeBotBlockers_false_when_null() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, null, null);
+
+      var body = params.toAttacksFilterBody();
+
+      assertThat(body.isIncludeBotBlockers()).isFalse();
+    }
+
+    @Test
+    void toAttacksFilterBody_should_set_includeIpBlacklist_true_when_provided() {
+      var params = AttackFilterParams.of(null, null, null, null, null, true, null, null);
+
+      var body = params.toAttacksFilterBody();
+
+      assertThat(body.isIncludeIpBlacklist()).isTrue();
+    }
+
+    @Test
+    void toAttacksFilterBody_should_default_includeIpBlacklist_false_when_null() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, null, null);
+
+      var body = params.toAttacksFilterBody();
+
+      assertThat(body.isIncludeIpBlacklist()).isFalse();
+    }
+
+    @Test
+    void toAttacksFilterBody_should_set_protectionRules_when_rules_provided() {
+      var params =
+          AttackFilterParams.of(
+              null, null, null, null, null, null, null, "sql-injection,reflected-xss");
+
+      var body = params.toAttacksFilterBody();
+
+      assertThat(body.getProtectionRules()).containsExactly("sql-injection", "reflected-xss");
+    }
+
+    @Test
+    void toAttacksFilterBody_should_leave_protectionRules_empty_when_rules_null() {
+      var params = AttackFilterParams.of(null, null, null, null, null, null, null, null);
+
+      var body = params.toAttacksFilterBody();
+
+      assertThat(body.getProtectionRules()).isEmpty();
+    }
+  }
+
   // ========== Keyword Encoding Tests ==========
 
   @Nested
