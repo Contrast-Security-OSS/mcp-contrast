@@ -33,7 +33,7 @@ allprojects {
 // Deliberately below those numbers to retain headroom. Flush against 622/698, one further
 // uncovered branch gives 0.88984 and reddens main on an unrelated PR.
 ext.coverageMinimums = [
-    'contrast-mcp-core'     : [line: 0.95, branch: 0.87],
+    'contrast-mcp-core'     : [line: 0.95, branch: 0.89],
     'contrast-mcp-stdio-app': [line: 0.95, branch: 0.94],
 ]
 
