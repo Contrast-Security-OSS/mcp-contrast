@@ -53,26 +53,10 @@ For GitHub Actions, add these secrets to your repository:
 - `CONTRAST_USERNAME`
 - `CONTRAST_ORG_ID`
 
-Example GitHub Actions workflow:
+Integration tests run in two CI contexts:
 
-```yaml
-- name: Run integration tests
-  run: ./gradlew :contrast-mcp-stdio-app:integrationTest
-  env:
-    CONTRAST_HOST_NAME: ${{ secrets.CONTRAST_HOST_NAME }}
-    CONTRAST_API_KEY: ${{ secrets.CONTRAST_API_KEY }}
-    CONTRAST_SERVICE_KEY: ${{ secrets.CONTRAST_SERVICE_KEY }}
-    CONTRAST_USERNAME: ${{ secrets.CONTRAST_USERNAME }}
-    CONTRAST_ORG_ID: ${{ secrets.CONTRAST_ORG_ID }}
-```
-
-## Current Integration Tests
-
-### EnvironmentsIT.java
-
-Tests that environments and tags are properly populated from TeamServer API:
-- `testEnvironmentsAndTagsArePopulated()` - Verifies vulnerability responses include environments and tags
-- `testVulnerabilitiesHaveBasicFields()` - Verifies basic vulnerability fields are present
+- **PR builds** (`build.yml`): The `integration-test` job runs on every internal PR (fork PRs are skipped because they have no access to secrets). It runs after the `build` job passes.
+- **Release builds** (`gradle-release.yml`): The `verify` lifecycle runs integration tests as part of the release validation build.
 
 ## Adding New Integration Tests
 

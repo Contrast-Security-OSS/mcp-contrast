@@ -79,3 +79,36 @@ jobs:
         if-no-files-found: warn
         # Diagnostic output for a failed run, not a durable artifact.
         retention-days: 7
+
+  # Run integration tests against a live TeamServer on internal PRs only.
+  # Fork PRs never receive secrets, so the guard prevents a noisy failure.
+  integration-test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork != true
+    needs: build
+
+    steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+      with:
+        egress-policy: audit
+
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+
+    - name: Set up JDK 21
+      uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Run integration tests
+      env:
+        CONTRAST_HOST_NAME: ${{ secrets.CONTRAST_HOST_NAME }}
+        CONTRAST_API_KEY: ${{ secrets.CONTRAST_API_KEY }}
+        CONTRAST_SERVICE_KEY: ${{ secrets.CONTRAST_SERVICE_KEY }}
+        CONTRAST_USERNAME: ${{ secrets.CONTRAST_USERNAME }}
+        CONTRAST_ORG_ID: ${{ secrets.CONTRAST_ORG_ID }}
+      run: ./gradlew :contrast-mcp-stdio-app:integrationTest --no-daemon
