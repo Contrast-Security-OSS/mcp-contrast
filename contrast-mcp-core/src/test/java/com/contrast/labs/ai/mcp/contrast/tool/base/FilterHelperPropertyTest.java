@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import net.jqwik.api.Arbitraries;
 import net.jqwik.api.Arbitrary;
+import net.jqwik.api.Combinators;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
 import net.jqwik.api.Provide;
@@ -125,31 +126,24 @@ class FilterHelperPropertyTest {
 
   @Provide
   Arbitrary<String> commaSeparatedInput() {
-    return Arbitraries.of(
-        "a,b,c",
-        " CRITICAL , HIGH ",
-        "one,,two",
-        ",,",
-        "  ,  ,  ",
-        "single",
-        "a, , b, ,c",
-        " leading,trailing ");
+    var token = Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(8);
+    var padding = Arbitraries.of("", " ", "  ");
+    var segment = Combinators.combine(padding, token, padding).as((pre, t, post) -> pre + t + post);
+    var emptySegment = Arbitraries.of("", " ");
+    var mixed = Arbitraries.oneOf(segment, emptySegment);
+    return mixed.list().ofMinSize(1).ofMaxSize(6).map(parts -> String.join(",", parts));
   }
 
   @Provide
   Arbitrary<String> commaSeparatedWithContent() {
-    return Arbitraries.of(
-        "a,b,c",
-        "CRITICAL,HIGH",
-        "one,two",
-        "single",
-        "a,b",
-        "x, y, z",
-        " CRITICAL , HIGH ",
-        "one,,two",
-        "a, , b, ,c",
-        " leading,trailing ",
-        "a,b,c,");
+    return Arbitraries.strings()
+        .alpha()
+        .ofMinLength(1)
+        .ofMaxLength(8)
+        .list()
+        .ofMinSize(1)
+        .ofMaxSize(5)
+        .map(tokens -> String.join(",", tokens));
   }
 
   @Provide
@@ -159,8 +153,15 @@ class FilterHelperPropertyTest {
 
   @Provide
   Arbitrary<String> invalidDateString() {
-    return Arbitraries.of(
-        "not-a-date", "2025/01/15", "abc123", "12-31-2025", "yesterday", "2025.01.15");
+    return Arbitraries.oneOf(
+        Arbitraries.strings().alpha().ofMinLength(2).ofMaxLength(12),
+        Arbitraries.integers()
+            .between(1, 12)
+            .flatMap(
+                m ->
+                    Arbitraries.integers()
+                        .between(1, 28)
+                        .map(d -> String.format("%02d-%02d-2025", m, d))));
   }
 
   @Provide
