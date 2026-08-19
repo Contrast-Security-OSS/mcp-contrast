@@ -6,7 +6,7 @@ All work on this repo files into the **AIML** Jira project. Use the Atlassian MC
 
 | Field | Value |
 |-------|-------|
-| **Cloud ID** | `https://contrast.atlassian.net` (the MCP tools accept the site URL) |
+| **Cloud ID** | `35f55002-5211-4f07-ae86-25b46703fe59` (UUID, not the site URL) |
 | **Project Key** | `AIML` |
 | **Component** | `Contrast MCP Server` (always, for work on this repo) |
 
@@ -22,7 +22,7 @@ All work on this repo files into the **AIML** Jira project. Use the Atlassian MC
 ## Creating a ticket
 
 ```
-cloudId: "https://contrast.atlassian.net"
+cloudId: "35f55002-5211-4f07-ae86-25b46703fe59"
 projectKey: "AIML"
 issueTypeName: "Task"   (or Story, Bug, Epic)
 summary: "Your ticket title"
