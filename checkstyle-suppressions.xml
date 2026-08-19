@@ -4,4 +4,7 @@
   "https://checkstyle.org/dtds/suppressions_1_2.dtd">
 <suppressions>
   <suppress checks="MagicNumber" files="src[\\/]test[\\/]"/>
+  <!-- String literals containing FQCN-like text that RegexpSinglelineJava cannot distinguish from code -->
+  <suppress checks="RegexpSinglelineJava" files="RuleHints\.java" message="fully-qualified"/>
+  <suppress checks="RegexpSinglelineJava" files="contrast-mcp-stdio-app[\\/].*VulnerabilityMapperTest\.java" message="fully-qualified"/>
 </suppressions>

@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import com.contrastsecurity.sdk.scan.Scan;
 import com.contrastsecurity.sdk.scan.ScanStatus;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
@@ -96,7 +97,7 @@ public class AnonymousScanBuilder {
    * Build the Scan mock with all configured values. Uses lenient stubbing to avoid
    * UnnecessaryStubbingException for fields not accessed in specific tests.
    */
-  public Scan build() throws java.io.IOException {
+  public Scan build() throws IOException {
     lenient().when(scan.id()).thenReturn(id);
     lenient().when(scan.projectId()).thenReturn(projectId);
     lenient().when(scan.organizationId()).thenReturn(organizationId);

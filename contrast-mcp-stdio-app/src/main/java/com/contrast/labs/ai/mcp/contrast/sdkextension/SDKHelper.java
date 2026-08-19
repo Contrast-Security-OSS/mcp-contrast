@@ -27,6 +27,8 @@ import com.contrastsecurity.sdk.UserAgentProduct;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -264,9 +266,7 @@ public class SDKHelper {
       int port = resolveProxyPort(httpProxyPort);
       log.debug("Configuring HTTP proxy: {}:{}", httpProxyHost, port);
 
-      var proxy =
-          new java.net.Proxy(
-              java.net.Proxy.Type.HTTP, new java.net.InetSocketAddress(httpProxyHost, port));
+      var proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(httpProxyHost, port));
 
       builder.withProxy(proxy);
     }

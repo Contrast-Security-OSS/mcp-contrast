@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import net.jqwik.api.Arbitraries;
 import net.jqwik.api.Arbitrary;
 import net.jqwik.api.ForAll;
@@ -77,7 +78,7 @@ class EnumSetSpecPropertyTest {
   void deduplication_should_produce_set_semantics(@ForAll("colorSubset") Set<Color> subset) {
     var duplicated =
         subset.stream()
-            .flatMap(c -> java.util.stream.Stream.of(c.name(), c.name()))
+            .flatMap(c -> Stream.of(c.name(), c.name()))
             .collect(Collectors.joining(","));
     var ctx = new ToolValidationContext();
     var result = ctx.enumSetParam(duplicated, Color.class, "colors").get();

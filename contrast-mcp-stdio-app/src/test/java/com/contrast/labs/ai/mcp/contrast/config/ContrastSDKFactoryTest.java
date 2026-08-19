@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrastsecurity.sdk.ContrastSDK;
@@ -99,7 +100,7 @@ class ContrastSDKFactoryTest {
                 TEST_PROPS.httpProxyHost(),
                 TEST_PROPS.httpProxyPort(),
                 TEST_PROPS.protocol()),
-        org.mockito.Mockito.times(1));
+        times(1));
   }
 
   @Test

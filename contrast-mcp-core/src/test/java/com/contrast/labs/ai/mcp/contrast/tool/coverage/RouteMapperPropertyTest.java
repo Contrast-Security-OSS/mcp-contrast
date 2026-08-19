@@ -1,6 +1,7 @@
 package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
@@ -47,7 +48,7 @@ class RouteMapperPropertyTest {
     var shifted = result.coveragePercent() * 100.0;
     assertThat(shifted)
         .as("coverage %s should have at most 2 decimal places", result.coveragePercent())
-        .isCloseTo(Math.round(shifted), org.assertj.core.data.Offset.offset(1e-9));
+        .isCloseTo(Math.round(shifted), within(1e-9));
   }
 
   @Property
