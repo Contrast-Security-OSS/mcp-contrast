@@ -138,7 +138,18 @@ class FilterHelperPropertyTest {
 
   @Provide
   Arbitrary<String> commaSeparatedWithContent() {
-    return Arbitraries.of("a,b,c", "CRITICAL,HIGH", "one,two", "single", "a,b", "x, y, z");
+    return Arbitraries.of(
+        "a,b,c",
+        "CRITICAL,HIGH",
+        "one,two",
+        "single",
+        "a,b",
+        "x, y, z",
+        " CRITICAL , HIGH ",
+        "one,,two",
+        "a, , b, ,c",
+        " leading,trailing ",
+        "a,b,c,");
   }
 
   @Provide

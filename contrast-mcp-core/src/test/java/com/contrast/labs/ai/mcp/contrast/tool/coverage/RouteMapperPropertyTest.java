@@ -44,10 +44,10 @@ class RouteMapperPropertyTest {
 
     var result = mapper.toResponseLight(response);
 
-    var scaled = result.coveragePercent() * 100.0;
-    assertThat(Math.round(scaled))
+    var shifted = result.coveragePercent() * 100.0;
+    assertThat(shifted)
         .as("coverage %s should have at most 2 decimal places", result.coveragePercent())
-        .isEqualTo(Math.round(scaled));
+        .isCloseTo(Math.round(shifted), org.assertj.core.data.Offset.offset(1e-9));
   }
 
   @Property
