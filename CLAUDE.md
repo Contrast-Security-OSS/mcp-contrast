@@ -52,8 +52,8 @@ The workflows below use the **pr-tools** plugin (`/pr-tools:*` commands). If tho
 The Gradle `check` and `verify` lifecycles are the single source of truth for verification (ADR 0003, ADR 0004; Check/Verify/Lint defined in CONTEXT.md). Make targets are thin quiet-output wrappers:
 
 ```bash
-make check       # Auto-format, then the full Gradle check lifecycle: static analysis,
-                 # unit tests, coverage floors, CRAP gate, PIT mutation testing
+make check       # Auto-format, then the full Gradle check lifecycle: static analysis
+                 # (checkstyle, PMD, CPD), unit tests, coverage floors, CRAP gate, PIT
 make verify      # check + integration tests (needs Contrast credentials, fails loudly without)
 make lint        # Fast inner loop: auto-format + checkstyle only. Not a gate
 make format      # Auto-format code with Spotless (also runs inside check/verify/lint)
@@ -74,14 +74,17 @@ Never re-enumerate Gradle task names in make targets, CI, or hooks; attach new v
 
 **CRAP gate:** part of `check` (`attachToCheck = true`). `./gradlew crapReport` for advisory per-module reports, `./gradlew crapCheck` to run the gate alone. Existing violations live in each module's `crap4j-baseline.json`; use `./gradlew crapBaseline` to generate or regenerate a baseline, and `./gradlew crapBaselineTighten` to remove baseline slack after improving code.
 
+**PMD gate:** part of `check` (ADR 0007). PMD and CPD run on all sources, gated through per-module baseline files (`pmd-baseline.txt`). New findings outside the baseline fail the build. `./gradlew :<module>:writePmdBaseline` regenerates the baseline (user-sanctioned). `./gradlew :<module>:pmdBaselineTighten` removes slack after fixing violations. Custom XPath rules have positive controls verified in `check`. Config lives in `config/pmd/`. Changed-file PMD (`verifyPmdChangedFilesBaseline`) runs from the pre-push hook and PR CI alongside changed-file coverage, using the same `staticAnalysisChangedBase` property.
+
 **After a compilation failure**, stale `.class` files may remain and cause confusing follow-up failures. Always run `make clean` then `./gradlew test` to recover before continuing.
 
 **Direct Gradle commands** (verbose output, use make targets above for quiet output):
 - **Build**: `./gradlew :contrast-mcp-stdio-app:bootJar`
 - **Test (unit)**: `./gradlew test`
-- **Full gate**: `./gradlew check` (static analysis, unit tests, coverage floors, CRAP, PIT)
+- **Full gate**: `./gradlew check` (static analysis, unit tests, coverage floors, CRAP, PIT, PMD)
 - **Full gate + integration tests**: `./gradlew verify` (credentials auto-sourced from `.env.integration-test`; real env vars win)
-- **Changed-file coverage**: `./gradlew jacocoChangedFileCoverageVerification -PjacocoChangedBase=origin/main`
+- **Changed-file coverage**: `./gradlew jacocoChangedFileCoverageVerification -PstaticAnalysisChangedBase=origin/main`
+- **Changed-file PMD**: `./gradlew verifyPmdChangedFilesBaseline -PstaticAnalysisChangedBase=origin/main`
 - **Core publication metadata**: `./gradlew :contrast-mcp-core:verifyCorePublicationMetadata`
 - **Mutation testing alone**: `./gradlew :contrast-mcp-core:pitest`
 - **Format code**: `./gradlew spotlessApply`
@@ -285,7 +288,7 @@ When creating or modifying MCP tools:
 - **Style:** `SimplifyBooleanExpression`, `SimplifyBooleanReturn`
 - **Codebase conventions (regex):** ban `Collectors.toList()` (use `.toList()`), `mock(X.class)` (use `mock()` with explicit-type LHS for assignments; extract to a typed local variable when at argument position — `mock()` without the class arg won't compile there), `.size() > 0` (use `isEmpty()`), JUnit assertions in tests (use AssertJ), `Assumptions.assume*` (fail loudly), manual `Logger` fields (use `@Slf4j`)
 
-> ⛔ **PROHIBITED:** Modifying checkstyle rules, Spotless config, or any other linter/constraint config is **expressly forbidden** without explicit user permission. This includes adding entries to `checkstyle-suppressions.xml` or to the ArchUnit freeze store (`archunit-store`) — a suppression is relaxing a rule at a site, which is equally prohibited. When code fails a check, fix the code — never relax the rule.
+> ⛔ **PROHIBITED:** Modifying checkstyle rules, PMD rulesets, Spotless config, or any other linter/constraint config is **expressly forbidden** without explicit user permission. This includes adding entries to `checkstyle-suppressions.xml`, `pmd-baseline.txt`, or to the ArchUnit freeze store (`archunit-store`) — a suppression or baseline addition is relaxing a rule at a site, which is equally prohibited. When code fails a check, fix the code — never relax the rule.
 
 **String Validation:**
 - `StringUtils.hasText()` or `isNotBlank()` over manual null/empty checks

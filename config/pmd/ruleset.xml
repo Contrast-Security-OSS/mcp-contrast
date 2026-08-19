@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset
+    name="Contrast MCP PMD Rules"
+    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.github.io/schema/ruleset_2_0_0.xsd">
+
+  <description>
+    Static-analysis rules shared by main and test sources. Main sources add
+    production-only rules from main-ruleset.xml.
+  </description>
+
+  <rule ref="category/java/codestyle.xml/UnnecessaryFullyQualifiedName"/>
+  <rule ref="category/java/codestyle.xml/UnnecessaryImport"/>
+  <rule ref="category/java/design.xml/UseUtilityClass"/>
+  <rule ref="category/java/errorprone.xml/EmptyCatchBlock"/>
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateField"/>
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateMethod"/>
+  <rule ref="category/java/bestpractices.xml/UnusedLocalVariable"/>
+  <rule ref="category/java/bestpractices.xml/UnusedFormalParameter"/>
+
+  <rule ref="category/java/design.xml/CyclomaticComplexity">
+    <properties>
+      <property name="methodReportLevel" value="10"/>
+      <property name="classReportLevel" value="80"/>
+    </properties>
+  </rule>
+  <rule ref="category/java/design.xml/NPathComplexity">
+    <properties>
+      <property name="reportLevel" value="200"/>
+    </properties>
+  </rule>
+  <rule ref="category/java/design.xml/ExcessiveParameterList">
+    <properties>
+      <property name="minimum" value="8"/>
+    </properties>
+  </rule>
+
+  <rule
+      name="AvoidRawMockitoAny"
+      language="java"
+      message="Use a typed Mockito matcher instead of raw any()."
+      class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+    <description>Raw Mockito any() matchers hide type expectations in tests.</description>
+    <priority>3</priority>
+    <properties>
+      <property name="xpath">
+        <value>
+<![CDATA[
+//MethodCall[@MethodName = 'any' and count(ArgumentList/*) = 0]
+]]>
+        </value>
+      </property>
+    </properties>
+  </rule>
+
+  <rule
+      name="AvoidInlineLoggingKeyLiteral"
+      language="java"
+      message="Declare logging keys in LoggingKeys instead of inline literals."
+      class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+    <description>Structured log key names must be constants defined in LoggingKeys.</description>
+    <priority>3</priority>
+    <properties>
+      <property name="xpath">
+        <value>
+<![CDATA[
+//MethodCall[
+  (@MethodName = 'addKeyValue' or @MethodName = 'keyValue')
+  and ArgumentList/*[1][self::StringLiteral]
+]
+]]>
+        </value>
+      </property>
+    </properties>
+  </rule>
+
+  <rule
+      name="PreferLombokNoArgsConstructor"
+      language="java"
+      message="Use @NoArgsConstructor(access = AccessLevel.PRIVATE) instead of a hand-written private constructor."
+      class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+    <description>Utility classes should use Lombok for private constructor boilerplate.</description>
+    <priority>3</priority>
+    <properties>
+      <property name="xpath">
+        <value>
+<![CDATA[
+//ClassDeclaration[
+  @Final = true()
+  and ClassBody/ConstructorDeclaration[
+    @Visibility = 'private'
+    and count(FormalParameters/FormalParameter) = 0
+    and count(Block/*) = 0
+  ]
+  and not(.//Annotation/ClassType[@SimpleName = 'NoArgsConstructor'])
+  and not(ClassBody/FieldDeclaration[@Static = false()])
+  and not(ClassBody/MethodDeclaration[@Static = false()])
+]
+]]>
+        </value>
+      </property>
+    </properties>
+  </rule>
+
+  <rule
+      name="FluentLogInCatchRequiresCause"
+      language="java"
+      message="SLF4J fluent logging inside catch blocks must call setCause(exception)."
+      class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+    <description>log.at*().log() in a catch block drops the stack trace unless setCause is present.</description>
+    <priority>2</priority>
+    <properties>
+      <property name="xpath">
+        <value>
+<![CDATA[
+//CatchClause//MethodCall[
+  @MethodName = 'log'
+  and descendant::MethodCall[starts-with(@MethodName, 'at')]
+  and not(descendant::MethodCall[@MethodName = 'setCause'])
+]
+]]>
+        </value>
+      </property>
+    </properties>
+  </rule>
+</ruleset>

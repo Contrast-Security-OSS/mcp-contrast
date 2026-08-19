@@ -1,6 +1,8 @@
 import com.contrast.labs.build.ChangedJavaFiles
 import com.contrast.labs.build.JacocoChangedFileCoverage
+import com.contrast.labs.build.PmdBaselineVerification
 import org.gradle.api.plugins.quality.Checkstyle
+import org.gradle.api.plugins.quality.Pmd
 
 plugins {
     id 'base'
@@ -168,6 +170,7 @@ tasks.named('check') {
 subprojects {
     apply plugin: 'java-library'
     apply plugin: 'checkstyle'
+    apply plugin: 'pmd'
     apply plugin: 'com.diffplug.spotless'
     apply plugin: 'jacoco'
 
@@ -463,6 +466,355 @@ subprojects {
         inputs.file rootProject.file('checkstyle-suppressions.xml')
     }
 
+    // -- PMD static analysis (ADR 0007) --
+
+    def pmdSharedRulesetFile = rootProject.file('config/pmd/ruleset.xml')
+    def pmdMainRulesetFile = rootProject.file('config/pmd/main-ruleset.xml')
+    def pmdBaselineFile = project.file('pmd-baseline.txt')
+    def pmdReportDir = layout.buildDirectory.dir('reports/pmd')
+    def pmdChangedReportDir = layout.buildDirectory.dir('reports/pmd-changed')
+    def pmdRuleControlSourceDir = layout.buildDirectory.dir('pmd-rule-controls/src/main/java')
+    def pmdRuleControlReportDir = layout.buildDirectory.dir('reports/pmd-rule-controls')
+
+    configurations {
+        pmdCpd {
+            canBeConsumed = false
+            canBeResolved = true
+        }
+    }
+
+    pmd {
+        toolVersion = pmdVersion
+        ruleSetFiles = files(pmdSharedRulesetFile, pmdMainRulesetFile)
+        ruleSets = []
+        consoleOutput = true
+    }
+
+    tasks.withType(Pmd).configureEach {
+        reports {
+            xml.required = true
+            html.required = true
+        }
+        ignoreFailures = true
+    }
+
+    sourceSets.configureEach { sourceSet ->
+        tasks.named("pmd${sourceSet.name.capitalize()}") {
+            ruleSetFiles = sourceSet.name == 'test'
+                ? files(pmdSharedRulesetFile)
+                : files(pmdSharedRulesetFile, pmdMainRulesetFile)
+            classpath = sourceSet.output + sourceSet.compileClasspath
+        }
+    }
+
+    // -- PMD changed-file tasks --
+
+    def pmdChangedBase = changedRefProperty(['pmdChangedBase', 'staticAnalysisChangedBase'])
+    def pmdChangedHead = changedRefProperty(['staticAnalysisChangedHead', 'pmdChangedHead'])
+    def pmdMainSourceRoot = project.file('src/main/java')
+    def pmdTestSourceRoot = project.file('src/test/java')
+    def pmdRepoRoot = rootProject.projectDir
+    def pmdChangedMainHolder = []
+    def pmdChangedMainFiles = providers.provider {
+        if (pmdChangedMainHolder.isEmpty()) {
+            pmdChangedMainHolder.add(ChangedJavaFiles.forSourceSet(
+                pmdRepoRoot, pmdMainSourceRoot, pmdChangedBase.get(), pmdChangedHead.get()))
+        }
+        pmdChangedMainHolder.first()
+    }
+    def pmdChangedTestHolder = []
+    def pmdChangedTestFiles = providers.provider {
+        if (pmdChangedTestHolder.isEmpty()) {
+            pmdChangedTestHolder.add(ChangedJavaFiles.forSourceSet(
+                pmdRepoRoot, pmdTestSourceRoot, pmdChangedBase.get(), pmdChangedHead.get()))
+        }
+        pmdChangedTestHolder.first()
+    }
+
+    tasks.register('pmdChangedMainFiles', Pmd) {
+        group = 'verification'
+        description = 'Runs PMD on changed main Java files.'
+        ruleSetFiles = files(pmdSharedRulesetFile, pmdMainRulesetFile)
+        ruleSets = []
+        classpath = sourceSets.main.output + sourceSets.main.compileClasspath
+        source = files(providers.provider { pmdChangedMainFiles.get().present() }).asFileTree
+        reports {
+            xml.required = true
+            xml.outputLocation = pmdChangedReportDir.map { it.file('changed-main-files.xml') }
+            html.required = true
+            html.outputLocation = pmdChangedReportDir.map { it.file('changed-main-files.html') }
+        }
+        ignoreFailures = true
+        onlyIf { !pmdChangedMainFiles.get().isEmpty() && !pmdChangedMainFiles.get().present().isEmpty() }
+    }
+
+    tasks.register('pmdChangedTestFiles', Pmd) {
+        group = 'verification'
+        description = 'Runs PMD on changed test Java files.'
+        ruleSetFiles = files(pmdSharedRulesetFile)
+        ruleSets = []
+        classpath = sourceSets.test.output + sourceSets.test.compileClasspath
+        source = files(providers.provider { pmdChangedTestFiles.get().present() }).asFileTree
+        reports {
+            xml.required = true
+            xml.outputLocation = pmdChangedReportDir.map { it.file('changed-test-files.xml') }
+            html.required = true
+            html.outputLocation = pmdChangedReportDir.map { it.file('changed-test-files.html') }
+        }
+        ignoreFailures = true
+        onlyIf { !pmdChangedTestFiles.get().isEmpty() && !pmdChangedTestFiles.get().present().isEmpty() }
+    }
+
+    tasks.register('pmdChangedFiles') {
+        group = 'verification'
+        description = 'Runs PMD on changed Java files.'
+        dependsOn 'pmdChangedMainFiles'
+        dependsOn 'pmdChangedTestFiles'
+    }
+
+    // -- CPD copy-paste detection --
+
+    def cpdReportFile = pmdReportDir.map { it.file('cpd.xml') }
+    def cpdMainJavaDir = project.file('src/main/java')
+
+    tasks.register('cpdMain') {
+        group = 'verification'
+        description = 'Runs PMD CPD copy-paste detection on main Java sources.'
+        inputs.files(sourceSets.main.allJava)
+        outputs.file(cpdReportFile)
+
+        doLast {
+            cpdReportFile.get().asFile.parentFile.mkdirs()
+            if (!cpdMainJavaDir.isDirectory()) {
+                cpdReportFile.get().asFile.text = '<pmd-cpd/>'
+                return
+            }
+            providers.javaexec {
+                classpath = configurations.pmdCpd
+                mainClass.set('net.sourceforge.pmd.cli.PmdCli')
+                args(
+                    'cpd',
+                    '--minimum-tokens', '80',
+                    '--dir', cpdMainJavaDir.absolutePath,
+                    '--format', 'xml',
+                    '--report-file', cpdReportFile.get().asFile.absolutePath,
+                    '--no-fail-on-violation',
+                    '--skip-duplicate-files',
+                    '--ignore-literals',
+                )
+                ignoreExitValue = true
+            }.result.get()
+        }
+    }
+
+    // -- PMD baseline tasks --
+
+    def rootDirForPmd = rootProject.projectDir
+    def pmdModuleName = project.name
+
+    tasks.register('verifyPmdBaseline') {
+        group = 'verification'
+        description = 'Fails when PMD or CPD reports findings outside the baseline.'
+        dependsOn 'pmdMain'
+        dependsOn 'pmdTest'
+        dependsOn 'cpdMain'
+        inputs.file(pmdBaselineFile).optional()
+        inputs.files(pmdReportDir)
+
+        doLast {
+            def reports = project.fileTree(pmdReportDir.get().asFile) { include '*.xml' }.files
+            def findings = PmdBaselineVerification.allFindings(reports, rootDirForPmd)
+            def baseline = PmdBaselineVerification.readBaseline(pmdBaselineFile)
+            def newViolations = PmdBaselineVerification.newFindings(findings, baseline)
+            if (!newViolations.isEmpty()) {
+                throw new GradleException(
+                    "PMD found ${newViolations.size()} new finding(s) in ${pmdModuleName}:" +
+                    System.lineSeparator() +
+                    newViolations.join(System.lineSeparator()))
+            }
+        }
+    }
+
+    tasks.register('writePmdBaseline') {
+        group = 'verification'
+        description = 'Rewrites the PMD baseline from current PMD and CPD reports.'
+        dependsOn 'pmdMain'
+        dependsOn 'pmdTest'
+        dependsOn 'cpdMain'
+        inputs.files(pmdReportDir)
+        outputs.file(pmdBaselineFile)
+
+        doLast {
+            def reports = project.fileTree(pmdReportDir.get().asFile) { include '*.xml' }.files
+            def findings = PmdBaselineVerification.allFindings(reports, rootDirForPmd)
+            PmdBaselineVerification.writeBaseline(pmdBaselineFile, findings, pmdModuleName)
+            logger.lifecycle("Wrote ${findings.size()} PMD baseline entries for ${pmdModuleName}")
+        }
+    }
+
+    tasks.register('pmdBaselineTighten') {
+        group = 'verification'
+        description = 'Removes stale entries from the PMD baseline.'
+        dependsOn 'pmdMain'
+        dependsOn 'pmdTest'
+        dependsOn 'cpdMain'
+        inputs.files(pmdReportDir)
+        inputs.file(pmdBaselineFile).optional()
+        outputs.file(pmdBaselineFile)
+
+        doLast {
+            def reports = project.fileTree(pmdReportDir.get().asFile) { include '*.xml' }.files
+            def findings = PmdBaselineVerification.allFindings(reports, rootDirForPmd)
+            def removed = PmdBaselineVerification.tightenBaseline(pmdBaselineFile, findings, pmdModuleName)
+            if (removed.isEmpty()) {
+                logger.lifecycle("PMD baseline for ${pmdModuleName} is already tight.")
+            } else {
+                logger.lifecycle(
+                    "Removed ${removed.size()} stale PMD baseline entry(ies) from ${pmdModuleName}:" +
+                    System.lineSeparator() +
+                    removed.join(System.lineSeparator()))
+            }
+        }
+    }
+
+    tasks.register('verifyPmdChangedFilesBaseline') {
+        group = 'verification'
+        description = 'Runs PMD on changed Java files and fails for findings outside the baseline.'
+        dependsOn 'pmdChangedFiles'
+        inputs.file(pmdBaselineFile).optional()
+        inputs.files(pmdChangedReportDir)
+        onlyIf {
+            (!pmdChangedMainFiles.get().isEmpty() && !pmdChangedMainFiles.get().present().isEmpty()) ||
+            (!pmdChangedTestFiles.get().isEmpty() && !pmdChangedTestFiles.get().present().isEmpty())
+        }
+
+        doLast {
+            def reports = [] as Set
+            if (!pmdChangedMainFiles.get().isEmpty() && !pmdChangedMainFiles.get().present().isEmpty()) {
+                reports.add(pmdChangedReportDir.get().file('changed-main-files.xml').asFile)
+            }
+            if (!pmdChangedTestFiles.get().isEmpty() && !pmdChangedTestFiles.get().present().isEmpty()) {
+                reports.add(pmdChangedReportDir.get().file('changed-test-files.xml').asFile)
+            }
+            def findings = PmdBaselineVerification.allFindings(reports, rootDirForPmd)
+            def baseline = PmdBaselineVerification.readBaseline(pmdBaselineFile)
+            def newViolations = PmdBaselineVerification.newFindings(findings, baseline)
+            if (!newViolations.isEmpty()) {
+                throw new GradleException(
+                    "PMD found ${newViolations.size()} new finding(s) in changed files of ${pmdModuleName}:" +
+                    System.lineSeparator() +
+                    newViolations.join(System.lineSeparator()))
+            }
+        }
+    }
+
+    // -- PMD positive controls --
+
+    tasks.register('writePmdRuleControlSources') {
+        group = 'verification'
+        description = 'Writes positive-control sources for custom PMD rules.'
+        outputs.dir(pmdRuleControlSourceDir)
+
+        doLast {
+            def sourceFile = pmdRuleControlSourceDir.get()
+                .file('com/contrast/labs/build/pmd/PmdRuleControls.java').asFile
+            sourceFile.parentFile.mkdirs()
+            sourceFile.text = '''\
+package com.contrast.labs.build.pmd;
+
+import org.slf4j.Logger;
+
+class PmdRuleControls {
+  private static final Logger log = null;
+
+  void fluentLogWithoutCause() {
+    try {
+      risky();
+    } catch (IllegalStateException exception) {
+      log.atError().log("failed");
+    }
+  }
+
+  void fluentLogWithCause() {
+    try {
+      risky();
+    } catch (IllegalStateException exception) {
+      log.atError().setCause(exception).log("failed");
+    }
+  }
+
+  void inlineLoggingKey() {
+    log.atInfo().addKeyValue("inlineKey", "value").log();
+  }
+
+  void rawMockitoAny() {
+    org.mockito.Mockito.when(null).thenReturn(org.mockito.ArgumentMatchers.any());
+  }
+
+  private void risky() {
+    throw new IllegalStateException("failed");
+  }
+}
+'''
+        }
+    }
+
+    tasks.register('pmdRuleControls', Pmd) {
+        group = 'verification'
+        description = 'Runs custom PMD rules against positive-control sources.'
+        dependsOn 'writePmdRuleControlSources'
+        ruleSetFiles = files(pmdSharedRulesetFile)
+        ruleSets = []
+        classpath = sourceSets.main.compileClasspath
+        source = files(pmdRuleControlSourceDir).asFileTree
+        reports {
+            xml.required = true
+            xml.outputLocation = pmdRuleControlReportDir.map { it.file('controls.xml') }
+            html.required = true
+            html.outputLocation = pmdRuleControlReportDir.map { it.file('controls.html') }
+        }
+        ignoreFailures = true
+    }
+
+    tasks.register('verifyPmdRuleControls') {
+        group = 'verification'
+        description = 'Fails if custom PMD positive controls stop firing.'
+        dependsOn 'pmdRuleControls'
+        inputs.file(pmdRuleControlReportDir.map { it.file('controls.xml') })
+
+        doLast {
+            def controlReport = pmdRuleControlReportDir.get().file('controls.xml').asFile
+            def findings = PmdBaselineVerification.pmdFindings(controlReport, rootDirForPmd)
+            def ruleCounts = findings.collect { it.split('\\|').last() }
+                .groupBy { it }
+                .collectEntries { k, v -> [(k): v.size()] }
+
+            def expectedRuleCounts = [
+                'FluentLogInCatchRequiresCause': 1,
+                'AvoidInlineLoggingKeyLiteral' : 1,
+                'AvoidRawMockitoAny'           : 1,
+            ]
+            def mismatches = expectedRuleCounts.findAll { rule, expectedCount ->
+                (ruleCounts[rule] ?: 0) != expectedCount
+            }.collect { rule, expectedCount ->
+                "${rule} expected ${expectedCount} finding(s), found ${ruleCounts[rule] ?: 0}"
+            }
+            if (!mismatches.isEmpty()) {
+                throw new GradleException(
+                    "Custom PMD positive controls failed:" +
+                    System.lineSeparator() +
+                    mismatches.join(System.lineSeparator()))
+            }
+        }
+    }
+
+    // -- Wire PMD into check lifecycle --
+
+    tasks.named('check') {
+        dependsOn 'verifyPmdBaseline'
+        dependsOn 'verifyPmdRuleControls'
+    }
+
     dependencies {
         if (project.name == 'contrast-mcp-core') {
             // Published libraries should not force Spring-managed dependency versions on consumers.
@@ -472,6 +824,9 @@ subprojects {
             // Deployable modules run with the exact Spring Boot dependency set tested by this repo.
             implementation enforcedPlatform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}")
         }
+
+        pmdCpd "net.sourceforge.pmd:pmd-cli:${pmdVersion}"
+        pmdCpd "net.sourceforge.pmd:pmd-java:${pmdVersion}"
 
         compileOnly "org.projectlombok:lombok:${lombokVersion}"
         annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
