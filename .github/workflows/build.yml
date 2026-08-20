@@ -78,6 +78,8 @@ jobs:
           **/build/reports/jacoco/test/jacocoTestReport.xml
           **/build/reports/pitest/**
           **/build/reports/pmd/**
+          **/build/reports/pmd-changed/**
+          **/build/reports/pmd-rule-controls/**
         if-no-files-found: warn
         # Diagnostic output for a failed run, not a durable artifact.
         retention-days: 7
