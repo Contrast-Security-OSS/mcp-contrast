@@ -82,7 +82,7 @@ class ContrastApiClientContractTest {
   @Test
   void contrastApiClient_should_expose_transport_neutral_server_search() {
     assertThat(ContrastApiClient.class.getDeclaredMethods())
-        .filteredOn(method -> method.getName().equals("searchServers"))
+        .filteredOn(method -> "searchServers".equals(method.getName()))
         .singleElement()
         .satisfies(
             method -> {

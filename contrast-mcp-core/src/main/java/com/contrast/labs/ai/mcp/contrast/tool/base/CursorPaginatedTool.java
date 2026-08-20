@@ -86,9 +86,9 @@ public abstract class CursorPaginatedTool<P extends ToolParams, R> extends BaseT
       return handleException(e, pagination, requestId, RESOURCE_NOT_FOUND_MESSAGE);
     } catch (HttpResponseException e) {
       return handleHttpResponseException(e, pagination, requestId, collector);
-    } catch (ActionableToolErrorException e) {
-      return handleException(e, pagination, requestId, e.getMessage());
-    } catch (IllegalArgumentException e) {
+    } catch (ActionableToolErrorException | IllegalArgumentException e) {
+      // User-input rejection raised mid-execution. The exception message is the actionable user
+      // message.
       return handleException(e, pagination, requestId, e.getMessage());
     } catch (Exception e) {
       log.atError()

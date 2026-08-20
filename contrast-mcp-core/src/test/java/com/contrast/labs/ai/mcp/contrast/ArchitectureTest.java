@@ -260,11 +260,11 @@ class ArchitectureTest {
                           .filter(m -> !m.getName().startsWith("get"))
                           .filter(m -> !m.getName().startsWith("set"))
                           .filter(m -> !m.getName().startsWith("is"))
-                          .filter(m -> !m.getName().equals("toString"))
-                          .filter(m -> !m.getName().equals("hashCode"))
-                          .filter(m -> !m.getName().equals("equals"))
-                          .filter(m -> !m.getName().equals("builder"))
-                          .filter(m -> !m.getName().equals("of"))
+                          .filter(m -> !"toString".equals(m.getName()))
+                          .filter(m -> !"hashCode".equals(m.getName()))
+                          .filter(m -> !"equals".equals(m.getName()))
+                          .filter(m -> !"builder".equals(m.getName()))
+                          .filter(m -> !"of".equals(m.getName()))
                           .count();
 
                   if (count > MAX_NON_ACCESSOR_METHODS) {

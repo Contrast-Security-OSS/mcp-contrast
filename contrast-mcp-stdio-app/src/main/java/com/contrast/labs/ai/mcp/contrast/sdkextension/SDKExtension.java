@@ -112,19 +112,16 @@ public class SDKExtension {
   }
 
   public ProtectData getProtectConfig(String orgId, String appId) throws IOException {
-    try (InputStream is =
-        contrastSDK.makeRequest(HttpMethod.GET, getProtectDataURL(orgId, appId)); ) {
-
-      var reader = new InputStreamReader(is, StandardCharsets.UTF_8);
+    try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, getProtectDataURL(orgId, appId));
+        Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
       return gson.fromJson(reader, ProtectData.class);
     }
   }
 
   public CveData getAppsForCVE(String organizationId, String cveID) throws IOException {
     try (InputStream is =
-        contrastSDK.makeRequest(HttpMethod.GET, getCVEDataURL(organizationId, cveID)); ) {
-
-      var reader = new InputStreamReader(is, StandardCharsets.UTF_8);
+            contrastSDK.makeRequest(HttpMethod.GET, getCVEDataURL(organizationId, cveID));
+        Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
       return gson.fromJson(reader, CveData.class);
     }
   }
@@ -157,9 +154,8 @@ public class SDKExtension {
   public List<LibraryObservation> getLibraryObservations(
       String organizationId, String applicationId, String libraryId, int pageSize)
       throws IOException, UnauthorizedException {
-    if (pageSize <= 0) {
-      pageSize = ValidationConstants.DEFAULT_LIBRARY_OBS_PAGE_SIZE;
-    }
+    var effectivePageSize =
+        pageSize <= 0 ? ValidationConstants.DEFAULT_LIBRARY_OBS_PAGE_SIZE : pageSize;
 
     var allObservations = new ArrayList<LibraryObservation>();
     int offset = 0;
@@ -167,7 +163,8 @@ public class SDKExtension {
 
     do {
       var url =
-          getLibraryObservationsUrl(organizationId, applicationId, libraryId, offset, pageSize);
+          getLibraryObservationsUrl(
+              organizationId, applicationId, libraryId, offset, effectivePageSize);
 
       try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
           Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
@@ -179,7 +176,7 @@ public class SDKExtension {
         }
 
         total = response.getTotal();
-        offset += pageSize;
+        offset += effectivePageSize;
       }
     } while (offset < total);
 
@@ -590,24 +587,23 @@ public class SDKExtension {
       String sort)
       throws IOException, UnauthorizedException {
 
-    // Set default values if not provided
-    if (limit == null) limit = DEFAULT_ATTACKS_LIMIT;
-    if (offset == null) offset = 0;
-    if (sort == null) sort = "-startTime";
-    if (filterBody == null) filterBody = AttacksFilterBody.builder().build();
+    var effectiveLimit = limit != null ? limit : DEFAULT_ATTACKS_LIMIT;
+    var effectiveOffset = offset != null ? offset : 0;
+    var effectiveSort = sort != null ? sort : "-startTime";
+    var effectiveFilterBody = filterBody != null ? filterBody : AttacksFilterBody.builder().build();
 
     var url =
         new URIBuilder()
             .appendPathSegments("ng", organizationId, "attacks")
             .appendQueryParam("expand", "skip_links")
-            .appendQueryParam("limit", String.valueOf(limit))
-            .appendQueryParam("offset", String.valueOf(offset))
-            .appendQueryParam("sort", sort)
+            .appendQueryParam("limit", String.valueOf(effectiveLimit))
+            .appendQueryParam("offset", String.valueOf(effectiveOffset))
+            .appendQueryParam("sort", effectiveSort)
             .toURIString();
 
     try (InputStream is =
             contrastSDK.makeRequestWithBody(
-                HttpMethod.POST, url, this.gson.toJson(filterBody), MediaType.JSON);
+                HttpMethod.POST, url, this.gson.toJson(effectiveFilterBody), MediaType.JSON);
         Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
 
       // Parse complete JSON response including metadata

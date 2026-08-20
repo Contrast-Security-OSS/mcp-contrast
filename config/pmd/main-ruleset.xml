@@ -7,9 +7,9 @@
 
   <description>
     Production-only PMD rules. The Gradle build combines this file with
-    ruleset.xml for main sources, while tests skip duplicate-literal checks
-    because fixtures and expected payload fields are often repeated for
-    readability.
+    ruleset.xml for main sources. Tests skip these rules because fixtures
+    repeat literals for readability and throw raw exceptions to stub
+    failures.
   </description>
 
   <rule ref="category/java/errorprone.xml/AvoidDuplicateLiterals">
@@ -19,4 +19,8 @@
       <property name="exceptionList" value="GET,POST,PUT,PATCH,DELETE,UTF-8"/>
     </properties>
   </rule>
+
+  <!-- Main-only: tests idiomatically throw new RuntimeException("boom") to stub
+       failures, so this rule applies to production sources only. -->
+  <rule ref="category/java/design.xml/AvoidThrowingRawExceptionTypes"/>
 </ruleset>

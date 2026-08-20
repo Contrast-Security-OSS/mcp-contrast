@@ -194,18 +194,17 @@ public class SDKHelper {
       return null;
     }
 
-    // Trim whitespace
-    hostName = hostName.trim();
+    var trimmedHostName = hostName.trim();
 
     // Return null for empty strings (consistent with null handling)
-    if (hostName.isEmpty()) {
+    if (trimmedHostName.isEmpty()) {
       return null;
     }
 
     var result =
-        hostName.contains("://")
-            ? validateEmbeddedScheme(hostName)
-            : normalizeProtocol(protocol) + "://" + hostName;
+        trimmedHostName.contains("://")
+            ? validateEmbeddedScheme(trimmedHostName)
+            : normalizeProtocol(protocol) + "://" + trimmedHostName;
 
     // Remove trailing slash to prevent double slashes in URLs
     if (result.endsWith("/")) {
