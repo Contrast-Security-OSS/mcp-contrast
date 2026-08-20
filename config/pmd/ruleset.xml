@@ -25,8 +25,12 @@
   <rule ref="category/java/errorprone.xml/MisplacedNullCheck"/>
   <rule ref="category/java/errorprone.xml/InvalidLogMessageFormat"/>
   <rule ref="category/java/errorprone.xml/UnnecessaryBooleanAssertion"/>
-  <rule ref="category/java/errorprone.xml/AvoidCatchingThrowable"/>
-  <rule ref="category/java/errorprone.xml/AvoidCatchingNPE"/>
+  <rule ref="category/java/errorprone.xml/AvoidCatchingGenericException">
+    <properties>
+      <property name="typesThatShouldNotBeCaught"
+                value="java.lang.NullPointerException,java.lang.Throwable"/>
+    </properties>
+  </rule>
   <rule ref="category/java/errorprone.xml/DoNotThrowExceptionInFinally"/>
   <rule ref="category/java/errorprone.xml/ConstructorCallsOverridableMethod"/>
   <rule ref="category/java/errorprone.xml/CloseResource"/>

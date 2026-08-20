@@ -230,4 +230,22 @@ class PaginationParamsTest {
     assertThat(params.notices()).hasSize(1);
     assertThat(params.notices().getFirst()).contains("Invalid pageSize -1, using default 25");
   }
+
+  @Test
+  void testZeroMaxPageSizeClampsToOne() {
+    var params = PaginationParams.of(1, null, 0);
+
+    assertThat(params.page()).isEqualTo(1);
+    assertThat(params.pageSize()).isEqualTo(1);
+    assertThat(params.notices()).isEmpty();
+  }
+
+  @Test
+  void testNegativeMaxPageSizeClampsToOne() {
+    var params = PaginationParams.of(1, null, -5);
+
+    assertThat(params.page()).isEqualTo(1);
+    assertThat(params.pageSize()).isEqualTo(1);
+    assertThat(params.notices()).isEmpty();
+  }
 }
