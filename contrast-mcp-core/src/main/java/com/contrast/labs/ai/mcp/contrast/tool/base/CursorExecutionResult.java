@@ -16,7 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import java.util.List;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Intermediate result from cursor-backed tool execution before final response building.

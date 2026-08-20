@@ -16,7 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import java.util.List;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Generic paginated response wrapper for all list-returning MCP tools. Provides consistent

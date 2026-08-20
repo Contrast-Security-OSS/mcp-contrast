@@ -15,8 +15,8 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
+import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.model.ToolContext;
-import org.springframework.lang.Nullable;
 
 /** Binds transport-specific authentication context for one tool execution. */
 @FunctionalInterface

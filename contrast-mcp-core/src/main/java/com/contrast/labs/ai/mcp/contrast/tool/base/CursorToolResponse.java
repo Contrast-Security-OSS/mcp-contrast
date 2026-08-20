@@ -16,7 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import java.util.List;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Response wrapper for cursor-backed MCP list tools. It intentionally exposes only cursor

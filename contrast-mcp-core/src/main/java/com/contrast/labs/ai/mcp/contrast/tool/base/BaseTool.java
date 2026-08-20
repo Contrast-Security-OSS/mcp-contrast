@@ -16,9 +16,9 @@
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.lang.Nullable;
 
 /**
  * Base class for all Contrast MCP tools. Provides common infrastructure shared across paginated and
