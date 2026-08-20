@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -45,6 +47,7 @@ import lombok.extern.slf4j.Slf4j;
  * values are safe to share across tests because the SDK objects are treated as read-only.
  */
 @Slf4j
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class IntegrationTestDataCache {
 
   private static final ConcurrentMap<String, List<Application>> APPLICATIONS =
@@ -57,8 +60,6 @@ public final class IntegrationTestDataCache {
       ROUTE_COVERAGE = new ConcurrentHashMap<>();
   private static final ConcurrentMap<SessionMetadataKey, Optional<SessionMetadataResponse>>
       SESSION_METADATA = new ConcurrentHashMap<>();
-
-  private IntegrationTestDataCache() {}
 
   /**
    * Returns a cached list of applications for the given organization.

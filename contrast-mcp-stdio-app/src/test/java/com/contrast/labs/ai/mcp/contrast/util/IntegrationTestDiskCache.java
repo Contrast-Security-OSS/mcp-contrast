@@ -33,6 +33,8 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -51,6 +53,7 @@ import lombok.extern.slf4j.Slf4j;
  * </ul>
  */
 @Slf4j
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class IntegrationTestDiskCache {
 
   private static final Path CACHE_DIR = Path.of("test-cache");
@@ -61,8 +64,6 @@ public final class IntegrationTestDiskCache {
   private static final boolean CLEAR_REQUESTED =
       Boolean.parseBoolean(resolveEnvOrProperty("CONTRAST_TEST_CACHE_CLEAR", null, "false"));
   private static final AtomicBoolean CLEARED = new AtomicBoolean(false);
-
-  private IntegrationTestDiskCache() {}
 
   /**
    * Loads cached data for the given test if present and not expired.

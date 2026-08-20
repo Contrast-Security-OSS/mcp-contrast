@@ -1,11 +1,13 @@
 package com.contrast.labs.ai.mcp.contrast.hints;
 
+import lombok.experimental.UtilityClass;
 import org.springframework.util.StringUtils;
 
 /**
  * Generator for vulnerability remediation hints. This class uses the RuleHints enum to generate
  * appropriate hints based on rule types.
  */
+@UtilityClass
 public class HintGenerator {
 
   /**

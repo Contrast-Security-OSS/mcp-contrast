@@ -564,10 +564,7 @@ public class SDKExtension {
             .toURIString();
     try (InputStream is = contrastSDK.makeRequest(HttpMethod.GET, url);
         Reader reader = new InputStreamReader(is, StandardCharsets.UTF_8)) {
-      return this.gson.fromJson(
-          reader,
-          com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata
-              .SessionMetadataResponse.class);
+      return this.gson.fromJson(reader, SessionMetadataResponse.class);
     }
   }
 

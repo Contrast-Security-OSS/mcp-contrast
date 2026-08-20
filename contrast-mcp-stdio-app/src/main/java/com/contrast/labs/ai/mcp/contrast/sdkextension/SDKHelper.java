@@ -255,7 +255,7 @@ public class SDKHelper {
     var apiUrl = baseUrl + "/Contrast/api";
     log.info("API URL will be : {}", apiUrl);
 
-    var mcpVersion = SDKHelper.environment.getProperty("spring.ai.mcp.server.version", "unknown");
+    var mcpVersion = environment.getProperty("spring.ai.mcp.server.version", "unknown");
 
     var builder =
         new ContrastSDK.Builder(userName, serviceKey, apiKey)

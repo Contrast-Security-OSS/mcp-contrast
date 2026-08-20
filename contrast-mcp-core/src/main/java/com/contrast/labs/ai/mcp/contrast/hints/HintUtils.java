@@ -2,9 +2,11 @@ package com.contrast.labs.ai.mcp.contrast.hints;
 
 import java.util.ArrayList;
 import java.util.List;
+import lombok.experimental.UtilityClass;
 import org.springframework.util.CollectionUtils;
 
 /** Utility class for hint manipulation operations. */
+@UtilityClass
 public class HintUtils {
 
   /**
