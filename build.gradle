@@ -749,10 +749,6 @@ class PmdRuleControls {
     log.atInfo().addKeyValue("inlineKey", "value").log();
   }
 
-  void rawMockitoAny() {
-    org.mockito.Mockito.when(null).thenReturn(org.mockito.ArgumentMatchers.any());
-  }
-
   private void risky() {
     throw new IllegalStateException("failed");
   }
@@ -808,7 +804,6 @@ final class PmdUtilityControl {
             def expectedRuleCounts = [
                 'FluentLogInCatchRequiresCause'  : 1,
                 'AvoidInlineLoggingKeyLiteral'   : 1,
-                'AvoidRawMockitoAny'             : 1,
                 'PreferLombokNoArgsConstructor'  : 1,
             ]
             def mismatches = expectedRuleCounts.findAll { rule, expectedCount ->

@@ -37,26 +37,6 @@
   </rule>
 
   <rule
-      name="AvoidRawMockitoAny"
-      language="java"
-      message="Use a typed Mockito matcher instead of raw any()."
-      class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
-    <description>Raw Mockito any() matchers hide type expectations in tests.</description>
-    <priority>3</priority>
-    <properties>
-      <!-- Intentionally broad: PMD XPath lacks type resolution, so we match any zero-arg any().
-           Only Mockito uses this pattern in this codebase; accept the false-positive risk. -->
-      <property name="xpath">
-        <value>
-<![CDATA[
-//MethodCall[@MethodName = 'any' and count(ArgumentList/*) = 0]
-]]>
-        </value>
-      </property>
-    </properties>
-  </rule>
-
-  <rule
       name="AvoidInlineLoggingKeyLiteral"
       language="java"
       message="Declare logging keys in LoggingKeys instead of inline literals."

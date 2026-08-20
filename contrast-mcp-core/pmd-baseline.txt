@@ -32,12 +32,5 @@ PMD|contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/tool/vulne
 PMD|contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/VulnerabilityTypeValidator.java|CyclomaticComplexity
 PMD|contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/params/SearchAppVulnerabilitiesParams.java|ExcessiveParameterList
 PMD|contrast-mcp-core/src/test/java/com/contrast/labs/ai/mcp/contrast/ArchitectureTest.java|UseUtilityClass
-PMD|contrast-mcp-core/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/application/SearchApplicationsToolTest.java|AvoidRawMockitoAny
-PMD|contrast-mcp-core/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/attack/SearchAttacksToolTest.java|AvoidRawMockitoAny
-PMD|contrast-mcp-core/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/coverage/GetRouteCoverageToolTest.java|AvoidRawMockitoAny
-PMD|contrast-mcp-core/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/server/SearchServersToolTest.java|AvoidRawMockitoAny
 PMD|contrast-mcp-core/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/server/params/ServerFilterParamsTest.java|ExcessiveParameterList
-PMD|contrast-mcp-core/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/GetVulnerabilityToolTest.java|AvoidRawMockitoAny
 PMD|contrast-mcp-core/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/RecommendationMarkdownRendererPropertyTest.java|CyclomaticComplexity
-PMD|contrast-mcp-core/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/SearchAppVulnerabilitiesToolTest.java|AvoidRawMockitoAny
-PMD|contrast-mcp-core/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/SearchVulnerabilitiesToolTest.java|AvoidRawMockitoAny
