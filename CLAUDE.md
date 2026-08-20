@@ -101,7 +101,7 @@ Never re-enumerate Gradle task names in make targets, CI, or hooks; attach new v
 
 The gate fails closed. A changed file absent from the JaCoCo report fails unless it is listed in `ext.coverageExcludedClassFiles`; a missing or empty report fails. A file that is in the report with no `LINE` counter has nothing countable to measure, so it passes and is named in the output. That covers roughly 49 of the 128 `contrast-mcp-core` sources, mostly interfaces and Lombok-only types.
 
-**Integration Tests:** Require Contrast credentials. Gradle sources `.env.integration-test` itself (copy from `.env.integration-test.template`); real environment variables override file values. `verify` fails loudly when no credentials are available; bare `integrationTest` skips instead, so forks and credential-less checkouts still build. `verify` is the maintainer gate — contributors without credentials run `check` and rely on CI. Release CI runs `verify` with credentials from repo secrets. See INTEGRATION_TESTS.md and ADR 0004.
+**Integration Tests:** Require Contrast credentials. Gradle sources `.env.integration-test` itself (copy from `.env.integration-test.template`); real environment variables override file values. `verify` fails loudly when no credentials are available; bare `integrationTest` skips instead, so forks and credential-less checkouts still build. `verify` is the maintainer gate — contributors without credentials run `check` and rely on CI. PR builds run `integrationTest` with credentials on every internal PR (fork PRs skipped). Release CI runs `verify` with credentials from repo secrets. See INTEGRATION_TESTS.md and ADR 0004.
 
 ### Docker Commands
 - **Build Docker image**: `docker build -t mcp-contrast .`

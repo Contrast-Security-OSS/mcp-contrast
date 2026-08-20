@@ -16,3 +16,7 @@ We decided:
 - **Drop `integrationTest` from release validation** and keep `verify` local-only. Rejected: a release is precisely when the live TeamServer contract should be tested.
 - **A GitHub environment with protection rules** instead of plain repo secrets. Rejected: the release workflow is already gated on manual dispatch by maintainers, and fork PRs can never read repo secrets, so the extra layer duplicates an existing control.
 - **`verify` in a git hook.** Rejected: live-API tests are minutes long, network- and credential-dependent, and occasionally flaky for reasons unrelated to the change. Hooks that fail spuriously teach people to bypass hooks.
+
+## Update
+
+ADR 0006 extends this decision to run integration tests on the PR merge path, not just at release time.

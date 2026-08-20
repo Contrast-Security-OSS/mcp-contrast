@@ -84,7 +84,9 @@ This atomically sets the assignee and status to `in_progress`. Record the branch
 
 ## 5. Closing a bead
 
-**Always ask the user before closing a bead.** Parent beads cannot close while children are open, and typically stay `in_progress` (with `in-review`) until the PR merges.
+**Finding beads by Jira key.** `br list --all | grep` is unreliable for matching Jira keys. Use `br list --status in_progress` to find active beads, then grep. When closing beads for merged PRs, always search by status first.
+
+**Always ask the user before closing a bead.** Parent beads cannot close while children are open, and typically stay `in_progress` (with `in-review`) until the PR merges. Close children before parents.
 
 Closing follows a strict sequence:
 
