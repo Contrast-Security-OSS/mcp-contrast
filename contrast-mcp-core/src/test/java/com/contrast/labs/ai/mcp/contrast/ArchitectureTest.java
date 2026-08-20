@@ -50,6 +50,8 @@ import java.util.stream.Collectors;
     importOptions = ImportOption.DoNotIncludeTests.class)
 class ArchitectureTest {
 
+  private ArchitectureTest() {}
+
   private static final String BASE = "com.contrast.labs.ai.mcp.contrast";
 
   // ── Layer enforcement ──────────────────────────────────────────────────────

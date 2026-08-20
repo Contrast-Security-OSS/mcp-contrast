@@ -22,4 +22,3 @@ PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/
 PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/util/IntegrationTestDiskCache.java|CyclomaticComplexity
 PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/util/TestDataDiscoveryHelper.java|CyclomaticComplexity
 PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/util/TestDataDiscoveryHelper.java|NPathComplexity
-PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/util/TestDataDiscoveryHelper.java|UseUtilityClass

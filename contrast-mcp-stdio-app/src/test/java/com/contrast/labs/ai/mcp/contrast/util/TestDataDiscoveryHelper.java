@@ -24,6 +24,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCo
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -32,6 +33,7 @@ import lombok.extern.slf4j.Slf4j;
  * <p>Provides reusable discovery patterns that leverage SDK caching for efficiency.
  */
 @Slf4j
+@UtilityClass
 public class TestDataDiscoveryHelper {
 
   /**
