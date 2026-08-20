@@ -158,8 +158,7 @@ class SearchApplicationsToolIT extends AbstractIntegrationTest<SearchApplication
     return data;
   }
 
-  /** Captures the first non-blank tag (and its app) into {@code data}, once. */
-  private void captureTag(Application app, TestData data) {
+  private static void captureTag(Application app, TestData data) {
     if (data.sampleTag != null || app.getTags() == null || app.getTags().isEmpty()) {
       return;
     }
@@ -170,8 +169,7 @@ class SearchApplicationsToolIT extends AbstractIntegrationTest<SearchApplication
     }
   }
 
-  /** Captures the first fully-populated metadata (field, value) pair into {@code data}, once. */
-  private void captureMetadata(Application app, TestData data) {
+  private static void captureMetadata(Application app, TestData data) {
     if (data.sampleMetadataField != null
         || app.getMetadataEntities() == null
         || app.getMetadataEntities().isEmpty()) {
