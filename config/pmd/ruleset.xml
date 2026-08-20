@@ -21,13 +21,13 @@
 
   <rule ref="category/java/design.xml/CyclomaticComplexity">
     <properties>
-      <property name="methodReportLevel" value="10"/>
+      <!-- 13, not the PMD default 10: audited every method in the 10-12 band and all were
+           idiomatic flat guard chains, state machines, or exhaustive switches that degrade
+           when split. Genuine decomposition wins started at 13. NPathComplexity was removed
+           for the same reason: every real catch co-occurred with a CyclomaticComplexity hit,
+           while its unique flags were 2^n over independent null-checked filter appends. -->
+      <property name="methodReportLevel" value="13"/>
       <property name="classReportLevel" value="80"/>
-    </properties>
-  </rule>
-  <rule ref="category/java/design.xml/NPathComplexity">
-    <properties>
-      <property name="reportLevel" value="200"/>
     </properties>
   </rule>
   <rule ref="category/java/design.xml/ExcessiveParameterList">

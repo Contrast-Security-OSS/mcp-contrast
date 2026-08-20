@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
+import static com.contrast.labs.ai.mcp.contrast.tool.base.BaseTool.RESOURCE_NOT_FOUND_MESSAGE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrastsecurity.exceptions.HttpResponseException;
@@ -78,7 +79,7 @@ class SingleToolTest {
     assertThat(result.isSuccess()).isTrue(); // Not found is not an error
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
-    assertThat(result.notices()).contains("Resource not found");
+    assertThat(result.notices()).contains(RESOURCE_NOT_FOUND_MESSAGE);
   }
 
   @Test

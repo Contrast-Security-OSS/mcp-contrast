@@ -202,34 +202,10 @@ public class SDKHelper {
       return null;
     }
 
-    String result;
-
-    // Check if hostname contains a protocol separator
-    if (hostName.contains("://")) {
-      var lowerHostName = hostName.toLowerCase();
-      if (lowerHostName.startsWith(HTTP_PROTOCOL)) {
-        throw new IllegalArgumentException(
-            "Insecure protocol in hostname: '" + hostName + "'. Use https:// instead.");
-      }
-      if (!lowerHostName.startsWith(HTTPS_PROTOCOL)) {
-        throw new IllegalArgumentException(
-            "Invalid protocol in hostname: '" + hostName + "'. Only https:// is supported.");
-      }
-      result = hostName;
-    } else {
-      // No protocol specified, prepend provided protocol (default to https if not specified)
-      var effectiveProtocol = StringUtils.hasText(protocol) ? protocol.strip() : "https";
-      var normalizedProtocol = effectiveProtocol.toLowerCase();
-      if (normalizedProtocol.contains("://")) {
-        throw new IllegalArgumentException(
-            "Invalid protocol: '" + protocol + "'. Use 'https', not 'https://'.");
-      }
-      if (!"https".equals(normalizedProtocol)) {
-        throw new IllegalArgumentException(
-            "Insecure protocol: '" + protocol + "'. Only 'https' is supported.");
-      }
-      result = effectiveProtocol + "://" + hostName;
-    }
+    var result =
+        hostName.contains("://")
+            ? validateEmbeddedScheme(hostName)
+            : normalizeProtocol(protocol) + "://" + hostName;
 
     // Remove trailing slash to prevent double slashes in URLs
     if (result.endsWith("/")) {
@@ -237,6 +213,35 @@ public class SDKHelper {
     }
 
     return result;
+  }
+
+  /** Validates a hostname that already carries a scheme; only https:// is accepted. */
+  private static String validateEmbeddedScheme(String hostName) {
+    var lowerHostName = hostName.toLowerCase();
+    if (lowerHostName.startsWith(HTTP_PROTOCOL)) {
+      throw new IllegalArgumentException(
+          "Insecure protocol in hostname: '" + hostName + "'. Use https:// instead.");
+    }
+    if (!lowerHostName.startsWith(HTTPS_PROTOCOL)) {
+      throw new IllegalArgumentException(
+          "Invalid protocol in hostname: '" + hostName + "'. Only https:// is supported.");
+    }
+    return hostName;
+  }
+
+  /** Validates the protocol argument (defaulting to https) and returns it scheme-cased. */
+  private static String normalizeProtocol(String protocol) {
+    var effectiveProtocol = StringUtils.hasText(protocol) ? protocol.strip() : "https";
+    var normalizedProtocol = effectiveProtocol.toLowerCase();
+    if (normalizedProtocol.contains("://")) {
+      throw new IllegalArgumentException(
+          "Invalid protocol: '" + protocol + "'. Use 'https', not 'https://'.");
+    }
+    if (!"https".equals(normalizedProtocol)) {
+      throw new IllegalArgumentException(
+          "Insecure protocol: '" + protocol + "'. Only 'https' is supported.");
+    }
+    return effectiveProtocol;
   }
 
   // The withUserAgentProduct will generate a user agent header that looks like

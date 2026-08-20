@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Helper utility for discovering suitable test data in integration tests.
@@ -110,39 +111,23 @@ public class TestDataDiscoveryHelper {
 
       try {
         var libraries = IntegrationTestDataCache.getLibraries(orgId, app.getAppId(), sdkExtension);
-        if (libraries == null || libraries.isEmpty()) {
+        if (CollectionUtils.isEmpty(libraries)) {
           continue;
         }
 
-        boolean hasVulnerableLibrary = false;
-        String vulnerableCveId = null;
-        for (LibraryExtended lib : libraries) {
-          if (lib.getVulnerabilities() == null || lib.getVulnerabilities().isEmpty()) {
-            continue;
-          }
-          hasVulnerableLibrary = true;
-          for (var vuln : lib.getVulnerabilities()) {
-            if (vuln.getName() != null && vuln.getName().startsWith("CVE-")) {
-              vulnerableCveId = vuln.getName();
-              break;
-            }
-          }
-          if (vulnerableCveId != null) {
-            break;
-          }
-        }
+        var probe = probeForVulnerableLibrary(libraries);
 
-        if (hasVulnerableLibrary && vulnerableCveId != null) {
+        if (probe.hasCveMatch()) {
           log.info(
               "✓ Found application with {} library/libraries (vulnerable, CVE={}): {} (ID: {})",
               libraries.size(),
-              vulnerableCveId,
+              probe.cveId(),
               app.getName(),
               app.getAppId());
-          return Optional.of(new ApplicationWithLibraries(app, libraries, true, vulnerableCveId));
+          return Optional.of(new ApplicationWithLibraries(app, libraries, true, probe.cveId()));
         }
 
-        if (hasVulnerableLibrary) {
+        if (probe.hasVulnerableLibrary()) {
           if (firstVulnerableNoCveMatch == null) {
             log.debug(
                 "Remembering vulnerable app without CVE-named vuln as fallback: {} (ID: {})",
@@ -197,6 +182,30 @@ public class TestDataDiscoveryHelper {
   public static Optional<ApplicationWithLibraries> findApplicationWithLibraries(
       String orgId, SDKExtension sdkExtension) throws IOException {
     return findApplicationWithLibraries(orgId, sdkExtension, 50);
+  }
+
+  /** Probes a library list for vulnerable libraries and a CVE-prefixed vulnerability name. */
+  private static VulnerableLibraryProbe probeForVulnerableLibrary(List<LibraryExtended> libraries) {
+    boolean hasVulnerableLibrary = false;
+    for (LibraryExtended lib : libraries) {
+      if (lib.getVulnerabilities() == null || lib.getVulnerabilities().isEmpty()) {
+        continue;
+      }
+      hasVulnerableLibrary = true;
+      for (var vuln : lib.getVulnerabilities()) {
+        if (vuln.getName() != null && vuln.getName().startsWith("CVE-")) {
+          return new VulnerableLibraryProbe(true, vuln.getName());
+        }
+      }
+    }
+    return new VulnerableLibraryProbe(hasVulnerableLibrary, null);
+  }
+
+  /** Result of probing a library list for vulnerable libraries and CVE-named vulnerabilities. */
+  private record VulnerableLibraryProbe(boolean hasVulnerableLibrary, String cveId) {
+    private boolean hasCveMatch() {
+      return hasVulnerableLibrary && cveId != null;
+    }
   }
 
   /**
@@ -334,32 +343,16 @@ public class TestDataDiscoveryHelper {
               null);
 
       // Attempt to fetch session metadata for richer assertions
-      try {
-        var sessionMetadata =
-            IntegrationTestDataCache.getLatestSessionMetadata(orgId, app.getAppId(), sdkExtension);
-        if (sessionMetadata.isPresent()
-            && sessionMetadata.get().getAgentSession() != null
-            && sessionMetadata.get().getAgentSession().getMetadataSessions() != null
-            && !sessionMetadata.get().getAgentSession().getMetadataSessions().isEmpty()) {
-          var firstMetadata = sessionMetadata.get().getAgentSession().getMetadataSessions().get(0);
-          var metadataField = firstMetadata.getMetadataField();
-          if (metadataField != null
-              && metadataField.getAgentLabel() != null
-              && firstMetadata.getValue() != null) {
-            candidate =
-                candidate.withSessionMetadata(
-                    metadataField.getAgentLabel(), firstMetadata.getValue());
-            log.info(
-                "✓ Found application with routes ({}) and session metadata {}={}",
-                candidate.routeCount(),
-                candidate.sessionMetadataName(),
-                candidate.sessionMetadataValue());
-            return Optional.of(candidate);
-          }
-        }
-      } catch (IOException e) {
-        log.warn(
-            "Error retrieving session metadata for app {}: {}", app.getAppId(), e.getMessage());
+      var metadataPair = findSessionMetadataPair(orgId, app, sdkExtension);
+      if (metadataPair.isPresent()) {
+        candidate =
+            candidate.withSessionMetadata(metadataPair.get().label(), metadataPair.get().value());
+        log.info(
+            "✓ Found application with routes ({}) and session metadata {}={}",
+            candidate.routeCount(),
+            candidate.sessionMetadataName(),
+            candidate.sessionMetadataValue());
+        return Optional.of(candidate);
       }
 
       if (fallback == null) {
@@ -391,6 +384,36 @@ public class TestDataDiscoveryHelper {
       String orgId, SDKExtension sdkExtension) throws IOException {
     return findApplicationWithRouteCoverage(orgId, sdkExtension, 50);
   }
+
+  /** Fetches the first session metadata agent label/value pair for an application, if any. */
+  private static Optional<SessionMetadataPair> findSessionMetadataPair(
+      String orgId, Application app, SDKExtension sdkExtension) {
+    try {
+      var sessionMetadata =
+          IntegrationTestDataCache.getLatestSessionMetadata(orgId, app.getAppId(), sdkExtension);
+      if (sessionMetadata.isEmpty()
+          || sessionMetadata.get().getAgentSession() == null
+          || sessionMetadata.get().getAgentSession().getMetadataSessions() == null
+          || sessionMetadata.get().getAgentSession().getMetadataSessions().isEmpty()) {
+        return Optional.empty();
+      }
+      var firstMetadata = sessionMetadata.get().getAgentSession().getMetadataSessions().get(0);
+      var metadataField = firstMetadata.getMetadataField();
+      if (metadataField == null
+          || metadataField.getAgentLabel() == null
+          || firstMetadata.getValue() == null) {
+        return Optional.empty();
+      }
+      return Optional.of(
+          new SessionMetadataPair(metadataField.getAgentLabel(), firstMetadata.getValue()));
+    } catch (IOException e) {
+      log.warn("Error retrieving session metadata for app {}: {}", app.getAppId(), e.getMessage());
+      return Optional.empty();
+    }
+  }
+
+  /** Session metadata agent label/value pair discovered for an application. */
+  private record SessionMetadataPair(String label, String value) {}
 
   /**
    * Container class for an application with its libraries.

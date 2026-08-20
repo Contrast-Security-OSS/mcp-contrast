@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
+import static com.contrast.labs.ai.mcp.contrast.tool.base.BaseTool.RESOURCE_NOT_FOUND_MESSAGE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrastsecurity.exceptions.HttpResponseException;
@@ -187,7 +188,7 @@ class CursorPaginatedToolTest {
     var result = tool.executePipeline(OPAQUE_CURSOR, 25, TestParams::valid);
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly("Resource not found");
+    assertThat(result.errors()).containsExactly(RESOURCE_NOT_FOUND_MESSAGE);
     assertThat(result.errors()).noneMatch(error -> error.contains(OPAQUE_CURSOR));
   }
 

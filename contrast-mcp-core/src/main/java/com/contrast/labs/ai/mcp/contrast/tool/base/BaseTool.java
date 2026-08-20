@@ -30,6 +30,9 @@ public abstract class BaseTool {
       "Authentication failed or resource not found. Verify credentials and that the resource ID"
           + " is correct.";
 
+  /** Notice returned when a lookup resolves to no resource (distinct from the HTTP 404 text). */
+  public static final String RESOURCE_NOT_FOUND_MESSAGE = "Resource not found";
+
   private static final AutoCloseable NOOP_AUTHENTICATION_SCOPE = () -> {};
 
   private AuthenticationStrategy authenticationStrategy;

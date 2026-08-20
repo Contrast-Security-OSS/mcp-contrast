@@ -85,7 +85,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
 
       if (result == null) {
         logNotFound(requestId, duration);
-        return SingleToolResponse.notFound("Resource not found", collector.snapshot());
+        return SingleToolResponse.notFound(RESOURCE_NOT_FOUND_MESSAGE, collector.snapshot());
       }
 
       logSuccess(requestId, duration);
@@ -94,7 +94,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
     } catch (ResourceNotFoundException e) {
       var duration = System.currentTimeMillis() - startTime;
       logNotFound(requestId, duration);
-      return SingleToolResponse.notFound("Resource not found", collector.snapshot());
+      return SingleToolResponse.notFound(RESOURCE_NOT_FOUND_MESSAGE, collector.snapshot());
     } catch (UnauthorizedException e) {
       return handleException(e, requestId, mapHttpErrorCode(e.getCode()), collector);
     } catch (HttpResponseException e) {
@@ -163,7 +163,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
     log.atDebug()
         .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
         .addKeyValue(LoggingKeys.DURATION_MS, duration)
-        .setMessage("Resource not found")
+        .setMessage(RESOURCE_NOT_FOUND_MESSAGE)
         .log();
   }
 

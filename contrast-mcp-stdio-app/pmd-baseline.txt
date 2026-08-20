@@ -5,20 +5,10 @@
 # CPD entries are matched by participating files, not line number or token count.
 CPD|contrast-mcp-stdio-app/src/main/java/com/contrast/labs/ai/mcp/contrast/sdkextension/SDKExtension.java,contrast-mcp-stdio-app/src/main/java/com/contrast/labs/ai/mcp/contrast/sdkextension/SDKExtension.java
 PMD|contrast-mcp-stdio-app/src/main/java/com/contrast/labs/ai/mcp/contrast/McpContrastApplication.java|ExcessiveParameterList
-PMD|contrast-mcp-stdio-app/src/main/java/com/contrast/labs/ai/mcp/contrast/config/ContrastSDKFactory.java|CyclomaticComplexity
 PMD|contrast-mcp-stdio-app/src/main/java/com/contrast/labs/ai/mcp/contrast/sdkextension/SDKExtension.java|AvoidDuplicateLiterals
 PMD|contrast-mcp-stdio-app/src/main/java/com/contrast/labs/ai/mcp/contrast/sdkextension/SDKHelper.java|AvoidDuplicateLiterals
-PMD|contrast-mcp-stdio-app/src/main/java/com/contrast/labs/ai/mcp/contrast/sdkextension/SDKHelper.java|CyclomaticComplexity
-PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/application/GetSessionMetadataToolIT.java|CyclomaticComplexity
-PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/application/SearchApplicationsToolIT.java|CyclomaticComplexity
 PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/server/SearchServersToolIT.java|ExcessiveParameterList
 PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/GetVulnerabilityToolIT.java|AvoidInlineLoggingKeyLiteral
 PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/GetVulnerabilityToolIT.java|CyclomaticComplexity
-PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/GetVulnerabilityToolIT.java|NPathComplexity
 PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/SearchAppVulnerabilitiesToolIT.java|CyclomaticComplexity
-PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/SearchAppVulnerabilitiesToolIT.java|NPathComplexity
 PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/SearchVulnerabilitiesToolIT.java|CyclomaticComplexity
-PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/SearchVulnerabilitiesToolIT.java|NPathComplexity
-PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/util/IntegrationTestDiskCache.java|CyclomaticComplexity
-PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/util/TestDataDiscoveryHelper.java|CyclomaticComplexity
-PMD|contrast-mcp-stdio-app/src/test/java/com/contrast/labs/ai/mcp/contrast/util/TestDataDiscoveryHelper.java|NPathComplexity
