@@ -57,7 +57,7 @@ class McpContrastApplicationToolRegistrationTest {
   void toolsBean_should_explicitly_register_searchServersTool() throws Exception {
     var toolsMethod =
         Arrays.stream(McpContrastApplication.class.getDeclaredMethods())
-            .filter(method -> method.getName().equals("tools"))
+            .filter(method -> "tools".equals(method.getName()))
             .findFirst()
             .orElseThrow();
     var tools =

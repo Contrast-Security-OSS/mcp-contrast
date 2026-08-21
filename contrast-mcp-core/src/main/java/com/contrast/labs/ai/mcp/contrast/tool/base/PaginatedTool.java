@@ -25,8 +25,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.model.ToolContext;
-import org.springframework.lang.Nullable;
 
 /**
  * Abstract base class for paginated MCP search tools. Enforces a consistent processing pipeline via
@@ -113,14 +113,12 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
     } catch (UnauthorizedException e) {
       return handleException(e, pagination, requestId, mapHttpErrorCode(e.getCode()));
     } catch (ResourceNotFoundException e) {
-      return handleException(e, pagination, requestId, "Resource not found");
+      return handleException(e, pagination, requestId, RESOURCE_NOT_FOUND_MESSAGE);
     } catch (HttpResponseException e) {
       return handleHttpResponseException(e, pagination, requestId, collector);
-    } catch (ActionableToolErrorException e) {
-      return handleException(e, pagination, requestId, e.getMessage());
-    } catch (IllegalArgumentException e) {
-      // User-input rejection raised mid-execution (e.g., resolveAppMetadataFilters when an
-      // unknown field name is supplied). The exception message is the actionable user message.
+    } catch (ActionableToolErrorException | IllegalArgumentException e) {
+      // User-input rejection raised mid-execution. The exception message is the actionable user
+      // message.
       return handleException(e, pagination, requestId, e.getMessage());
     } catch (Exception e) {
       log.atError()

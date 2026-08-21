@@ -2409,7 +2409,7 @@ public enum RunBookEnum {
 
   public static Optional<RunBookEnum> getRunBookEnumForTypeID(String typeID) {
     if (typeID != null) {
-      for (RunBookEnum runbookEnum : RunBookEnum.values()) {
+      for (RunBookEnum runbookEnum : values()) {
         for (String runBookAttackType : runbookEnum.getAttackType()) {
           if (runBookAttackType.equalsIgnoreCase(typeID)) {
             return Optional.of(runbookEnum);

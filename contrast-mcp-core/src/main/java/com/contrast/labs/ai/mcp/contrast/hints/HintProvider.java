@@ -2,11 +2,13 @@ package com.contrast.labs.ai.mcp.contrast.hints;
 
 import java.util.Collections;
 import java.util.List;
+import lombok.experimental.UtilityClass;
 
 /**
  * Utility class to provide hints for vulnerability remediation based on rule types. This class
  * serves as a helper to retrieve hints from the RuleHints enum.
  */
+@UtilityClass
 public class HintProvider {
 
   /**

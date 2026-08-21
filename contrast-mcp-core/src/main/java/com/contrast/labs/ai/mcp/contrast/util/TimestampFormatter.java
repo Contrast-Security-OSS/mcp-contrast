@@ -19,11 +19,14 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /**
  * Epoch-millis to ISO 8601 timestamp formatting. Extracted from FilterHelper so that result models
  * can format timestamps without depending on the tool layer.
  */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class TimestampFormatter {
   // Lowercase 'xxx' always outputs numeric offsets (e.g. "+00:00"), never "Z".
   // Uppercase 'XXX' would output "Z" for UTC; lowercase guarantees numeric format.
@@ -31,8 +34,6 @@ public final class TimestampFormatter {
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssxxx");
   private static final DateTimeFormatter TIMESTAMP_WITH_MILLIS_FORMATTER =
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSxxx");
-
-  private TimestampFormatter() {}
 
   /**
    * Format epoch milliseconds as ISO 8601 timestamp with timezone offset. Uses system default

@@ -57,7 +57,7 @@ public record PaginationParams(
    */
   public static PaginationParams of(Integer page, Integer pageSize, int maxPageSize) {
     List<String> notices = new ArrayList<>();
-    maxPageSize = Math.max(1, maxPageSize);
+    int effectiveMaxPageSize = Math.max(1, maxPageSize);
 
     // Soft failure: invalid page → clamp to 1
     int actualPage = page != null && page > 0 ? page : 1;
@@ -66,17 +66,17 @@ public record PaginationParams(
     }
 
     // Soft failure: invalid pageSize → clamp to range with tool-specific max
-    int defaultSize = Math.min(DEFAULT_PAGE_SIZE, maxPageSize);
+    int defaultSize = Math.min(DEFAULT_PAGE_SIZE, effectiveMaxPageSize);
     int actualSize = pageSize != null && pageSize > 0 ? pageSize : defaultSize;
     if (pageSize != null && pageSize < 1) {
       notices.add(String.format("Invalid pageSize %d, using default %d", pageSize, defaultSize));
       actualSize = defaultSize;
-    } else if (pageSize != null && pageSize > maxPageSize) {
+    } else if (pageSize != null && pageSize > effectiveMaxPageSize) {
       notices.add(
           String.format(
               "Requested pageSize %d exceeds maximum %d, capped to %d",
-              pageSize, maxPageSize, maxPageSize));
-      actualSize = maxPageSize;
+              pageSize, effectiveMaxPageSize, effectiveMaxPageSize));
+      actualSize = effectiveMaxPageSize;
     }
 
     // Cap page so (page-1)*pageSize never overflows int.

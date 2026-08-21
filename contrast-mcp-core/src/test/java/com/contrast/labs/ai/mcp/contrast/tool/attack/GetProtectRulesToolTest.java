@@ -16,6 +16,7 @@
 package com.contrast.labs.ai.mcp.contrast.tool.attack;
 
 import static com.contrast.labs.ai.mcp.contrast.tool.attack.GetProtectRulesTool.VIRTUAL_PATCH_TYPE;
+import static com.contrast.labs.ai.mcp.contrast.tool.base.BaseTool.RESOURCE_NOT_FOUND_MESSAGE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -137,7 +138,7 @@ class GetProtectRulesToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.found()).isFalse();
     assertThat(result.data()).isNull();
-    assertThat(result.notices()).containsExactly("Resource not found");
+    assertThat(result.notices()).containsExactly(RESOURCE_NOT_FOUND_MESSAGE);
   }
 
   @Test

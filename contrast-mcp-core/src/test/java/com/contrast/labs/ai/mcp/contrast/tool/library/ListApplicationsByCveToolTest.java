@@ -537,10 +537,6 @@ class ListApplicationsByCveToolTest {
     return library;
   }
 
-  private static Server server(int serverId) {
-    return server(serverId, null);
-  }
-
   private static Server server(int serverId, String name) {
     var server = new Server();
     server.setServer_id(serverId);

@@ -180,12 +180,7 @@ class AttackSummaryTest {
     // When: Creating AttackSummary
     var summary = AttackSummary.fromAttack(attack);
 
-    // Then: Format should be consistent with TimestampFormatter (same as VulnLight,
-    // ApplicationData,
-    // etc.)
-    var expectedFormat = TimestampFormatter.formatTimestamp(TEST_TIMESTAMP);
-
-    // Verify the format matches the pattern used throughout the codebase
+    // Then: Verify the format matches the pattern used throughout the codebase
     assertThat(
             summary
                 .startTime()

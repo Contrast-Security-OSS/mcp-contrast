@@ -23,8 +23,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.model.ToolContext;
-import org.springframework.lang.Nullable;
 
 /**
  * Abstract base class for non-paginated MCP get tools. Enforces a consistent processing pipeline
@@ -85,7 +85,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
 
       if (result == null) {
         logNotFound(requestId, duration);
-        return SingleToolResponse.notFound("Resource not found", collector.snapshot());
+        return SingleToolResponse.notFound(RESOURCE_NOT_FOUND_MESSAGE, collector.snapshot());
       }
 
       logSuccess(requestId, duration);
@@ -94,16 +94,14 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
     } catch (ResourceNotFoundException e) {
       var duration = System.currentTimeMillis() - startTime;
       logNotFound(requestId, duration);
-      return SingleToolResponse.notFound("Resource not found", collector.snapshot());
+      return SingleToolResponse.notFound(RESOURCE_NOT_FOUND_MESSAGE, collector.snapshot());
     } catch (UnauthorizedException e) {
       return handleException(e, requestId, mapHttpErrorCode(e.getCode()), collector);
     } catch (HttpResponseException e) {
       return handleHttpResponseException(e, requestId, collector);
-    } catch (ActionableToolErrorException e) {
-      return handleException(e, requestId, e.getMessage(), collector);
-    } catch (IllegalArgumentException e) {
-      // User-input rejection raised mid-execution (e.g., resolveSessionMetadataFilters when an
-      // unknown field name is supplied). The exception message is the actionable user message.
+    } catch (ActionableToolErrorException | IllegalArgumentException e) {
+      // User-input rejection raised mid-execution. The exception message is the actionable user
+      // message.
       return handleException(e, requestId, e.getMessage(), collector);
     } catch (Exception e) {
       log.atError()
@@ -163,7 +161,7 @@ public abstract class SingleTool<P extends ToolParams, R> extends BaseTool {
     log.atDebug()
         .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
         .addKeyValue(LoggingKeys.DURATION_MS, duration)
-        .setMessage("Resource not found")
+        .setMessage(RESOURCE_NOT_FOUND_MESSAGE)
         .log();
   }
 

@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
 import com.contrast.labs.ai.mcp.contrast.result.ApplicationData;
+import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
 import com.contrast.labs.ai.mcp.contrast.util.IntegrationTestDataCache;
 import java.io.IOException;
@@ -146,29 +147,8 @@ class SearchApplicationsToolIT extends AbstractIntegrationTest<SearchApplication
     data.sampleAppId = firstApp.getAppId();
 
     for (var app : applications) {
-      if (data.sampleTag == null && app.getTags() != null && !app.getTags().isEmpty()) {
-        var firstTag = app.getTags().get(0);
-        if (firstTag != null && !firstTag.isBlank()) {
-          data.sampleTag = firstTag;
-          data.appIdWithSampleTag = app.getAppId();
-        }
-      }
-
-      if (data.sampleMetadataField == null
-          && app.getMetadataEntities() != null
-          && !app.getMetadataEntities().isEmpty()) {
-        for (var entry : app.getMetadataEntities()) {
-          if (entry != null
-              && entry.getName() != null
-              && !entry.getName().isBlank()
-              && entry.getValue() != null
-              && !entry.getValue().isBlank()) {
-            data.sampleMetadataField = entry.getName();
-            data.sampleMetadataValue = entry.getValue();
-            break;
-          }
-        }
-      }
+      captureTag(app, data);
+      captureMetadata(app, data);
 
       if (data.sampleTag != null && data.sampleMetadataField != null) {
         break;
@@ -176,6 +156,36 @@ class SearchApplicationsToolIT extends AbstractIntegrationTest<SearchApplication
     }
 
     return data;
+  }
+
+  private static void captureTag(Application app, TestData data) {
+    if (data.sampleTag != null || app.getTags() == null || app.getTags().isEmpty()) {
+      return;
+    }
+    var firstTag = app.getTags().get(0);
+    if (firstTag != null && !firstTag.isBlank()) {
+      data.sampleTag = firstTag;
+      data.appIdWithSampleTag = app.getAppId();
+    }
+  }
+
+  private static void captureMetadata(Application app, TestData data) {
+    if (data.sampleMetadataField != null
+        || app.getMetadataEntities() == null
+        || app.getMetadataEntities().isEmpty()) {
+      return;
+    }
+    for (var entry : app.getMetadataEntities()) {
+      if (entry != null
+          && entry.getName() != null
+          && !entry.getName().isBlank()
+          && entry.getValue() != null
+          && !entry.getValue().isBlank()) {
+        data.sampleMetadataField = entry.getName();
+        data.sampleMetadataValue = entry.getValue();
+        break;
+      }
+    }
   }
 
   // ---------- Discovery precondition ----------

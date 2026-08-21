@@ -34,15 +34,13 @@ import org.junit.jupiter.api.Test;
 class GetSessionMetadataLocalParityTest {
 
   private GetSessionMetadataTool tool;
-  private ContrastSDKFactory sdkFactory;
-  private SDKExtensionFactory sdkExtensionFactory;
   private ContrastSDK sdk;
 
   @BeforeEach
   void setUp() {
     sdk = mock();
-    sdkFactory = mock();
-    sdkExtensionFactory = mock();
+    ContrastSDKFactory sdkFactory = mock();
+    SDKExtensionFactory sdkExtensionFactory = mock();
 
     when(sdkFactory.getSDK()).thenReturn(sdk);
     when(sdkFactory.getOrgId()).thenReturn("test-org-id");

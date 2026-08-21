@@ -194,42 +194,17 @@ public class SDKHelper {
       return null;
     }
 
-    // Trim whitespace
-    hostName = hostName.trim();
+    var trimmedHostName = hostName.trim();
 
     // Return null for empty strings (consistent with null handling)
-    if (hostName.isEmpty()) {
+    if (trimmedHostName.isEmpty()) {
       return null;
     }
 
-    String result;
-
-    // Check if hostname contains a protocol separator
-    if (hostName.contains("://")) {
-      var lowerHostName = hostName.toLowerCase();
-      if (lowerHostName.startsWith(HTTP_PROTOCOL)) {
-        throw new IllegalArgumentException(
-            "Insecure protocol in hostname: '" + hostName + "'. Use https:// instead.");
-      }
-      if (!lowerHostName.startsWith(HTTPS_PROTOCOL)) {
-        throw new IllegalArgumentException(
-            "Invalid protocol in hostname: '" + hostName + "'. Only https:// is supported.");
-      }
-      result = hostName;
-    } else {
-      // No protocol specified, prepend provided protocol (default to https if not specified)
-      var effectiveProtocol = StringUtils.hasText(protocol) ? protocol.strip() : "https";
-      var normalizedProtocol = effectiveProtocol.toLowerCase();
-      if (normalizedProtocol.contains("://")) {
-        throw new IllegalArgumentException(
-            "Invalid protocol: '" + protocol + "'. Use 'https', not 'https://'.");
-      }
-      if (!"https".equals(normalizedProtocol)) {
-        throw new IllegalArgumentException(
-            "Insecure protocol: '" + protocol + "'. Only 'https' is supported.");
-      }
-      result = effectiveProtocol + "://" + hostName;
-    }
+    var result =
+        trimmedHostName.contains("://")
+            ? validateEmbeddedScheme(trimmedHostName)
+            : normalizeProtocol(protocol) + "://" + trimmedHostName;
 
     // Remove trailing slash to prevent double slashes in URLs
     if (result.endsWith("/")) {
@@ -237,6 +212,35 @@ public class SDKHelper {
     }
 
     return result;
+  }
+
+  /** Validates a hostname that already carries a scheme; only https:// is accepted. */
+  private static String validateEmbeddedScheme(String hostName) {
+    var lowerHostName = hostName.toLowerCase();
+    if (lowerHostName.startsWith(HTTP_PROTOCOL)) {
+      throw new IllegalArgumentException(
+          "Insecure protocol in hostname: '" + hostName + "'. Use https:// instead.");
+    }
+    if (!lowerHostName.startsWith(HTTPS_PROTOCOL)) {
+      throw new IllegalArgumentException(
+          "Invalid protocol in hostname: '" + hostName + "'. Only https:// is supported.");
+    }
+    return hostName;
+  }
+
+  /** Validates the protocol argument (defaulting to https) and returns it scheme-cased. */
+  private static String normalizeProtocol(String protocol) {
+    var effectiveProtocol = StringUtils.hasText(protocol) ? protocol.strip() : "https";
+    var normalizedProtocol = effectiveProtocol.toLowerCase();
+    if (normalizedProtocol.contains("://")) {
+      throw new IllegalArgumentException(
+          "Invalid protocol: '" + protocol + "'. Use 'https', not 'https://'.");
+    }
+    if (!"https".equals(normalizedProtocol)) {
+      throw new IllegalArgumentException(
+          "Insecure protocol: '" + protocol + "'. Only 'https' is supported.");
+    }
+    return effectiveProtocol;
   }
 
   // The withUserAgentProduct will generate a user agent header that looks like
@@ -255,7 +259,7 @@ public class SDKHelper {
     var apiUrl = baseUrl + "/Contrast/api";
     log.info("API URL will be : {}", apiUrl);
 
-    var mcpVersion = SDKHelper.environment.getProperty("spring.ai.mcp.server.version", "unknown");
+    var mcpVersion = environment.getProperty("spring.ai.mcp.server.version", "unknown");
 
     var builder =
         new ContrastSDK.Builder(userName, serviceKey, apiKey)
