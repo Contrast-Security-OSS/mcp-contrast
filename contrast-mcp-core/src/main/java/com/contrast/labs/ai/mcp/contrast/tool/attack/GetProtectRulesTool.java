@@ -40,15 +40,7 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
   static final String VIRTUAL_PATCH_TYPE = "Virtual Patch";
 
   static final Set<String> KNOWN_PROTECT_MODES =
-      Set.of(
-          "MONITORING",
-          "BLOCKING",
-          "BLOCK_AT_PERIMETER",
-          "OFF",
-          "NO_ACTION",
-          "PERMIT",
-          "MONITOR_BLOCK",
-          "DISABLED");
+      Set.of("OFF", "MONITORING", "BLOCKING", "BLOCKING_PERIMETER", "MONITOR_PERIMETER");
 
   private final ContrastApiClient contrastApiClient;
 
@@ -61,9 +53,9 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
       description =
           """
           Get Protect (ADR) rules for an application. Per-environment mode is one of
-          BLOCKING (blocked in-app), BLOCK_AT_PERIMETER (blocked at the perimeter before
-          reaching the application), MONITORING, MONITOR_BLOCK, OFF, NO_ACTION, PERMIT,
-          or DISABLED. Use search_applications to find application IDs.
+          BLOCKING (blocked in-app), BLOCKING_PERIMETER (blocked at the perimeter),
+          MONITORING, MONITOR_PERIMETER, or OFF. Use search_applications to find
+          application IDs.
           """)
   public SingleToolResponse<ProtectData> getProtectRules(
       @ToolParam(description = "Application ID") String appId, ToolContext toolContext) {
