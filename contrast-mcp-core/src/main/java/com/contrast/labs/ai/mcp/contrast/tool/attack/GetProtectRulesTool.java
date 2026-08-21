@@ -24,6 +24,7 @@ import com.contrast.labs.ai.mcp.contrast.tool.base.SingleTool;
 import com.contrast.labs.ai.mcp.contrast.tool.base.SingleToolResponse;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -38,6 +39,17 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
 
   static final String VIRTUAL_PATCH_TYPE = "Virtual Patch";
 
+  static final Set<String> KNOWN_PROTECT_MODES =
+      Set.of(
+          "MONITORING",
+          "BLOCKING",
+          "BLOCK_AT_PERIMETER",
+          "OFF",
+          "NO_ACTION",
+          "PERMIT",
+          "MONITOR_BLOCK",
+          "DISABLED");
+
   private final ContrastApiClient contrastApiClient;
 
   public GetProtectRulesTool(ContrastApiClient contrastApiClient) {
@@ -48,8 +60,9 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
       name = "get_protect_rules",
       description =
           """
-          Get Protect (ADR) rules for an application, including block/monitor/off mode per
-          environment. Use search_applications to find application IDs.
+          Get Protect (ADR) rules for an application. Per-environment mode is one of
+          BLOCKING, BLOCK_AT_PERIMETER, MONITORING, MONITOR_BLOCK, OFF, NO_ACTION, PERMIT,
+          or DISABLED. Use search_applications to find application IDs.
           """)
   public SingleToolResponse<ProtectData> getProtectRules(
       @ToolParam(description = "Application ID") String appId, ToolContext toolContext) {

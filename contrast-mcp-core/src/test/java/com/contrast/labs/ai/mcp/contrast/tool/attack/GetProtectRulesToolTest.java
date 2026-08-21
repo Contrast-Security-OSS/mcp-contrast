@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.attack;
 
+import static com.contrast.labs.ai.mcp.contrast.tool.attack.GetProtectRulesTool.KNOWN_PROTECT_MODES;
 import static com.contrast.labs.ai.mcp.contrast.tool.attack.GetProtectRulesTool.VIRTUAL_PATCH_TYPE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -193,6 +194,19 @@ class GetProtectRulesToolTest {
     assertThat(capturedContext.get()).isSameAs(toolContext);
     assertThat(toolMethod.getAnnotation(Tool.class).name()).isEqualTo("get_protect_rules");
     assertThat(toolMethod.getParameterTypes()).containsExactly(String.class, ToolContext.class);
+  }
+
+  @Test
+  void getProtectRules_should_document_all_known_protect_modes_in_tool_description()
+      throws Exception {
+    Method toolMethod =
+        GetProtectRulesTool.class.getDeclaredMethod(
+            "getProtectRules", String.class, ToolContext.class);
+    var description = toolMethod.getAnnotation(Tool.class).description();
+
+    assertThat(KNOWN_PROTECT_MODES)
+        .as("every known Protect mode must appear in the @Tool description")
+        .allSatisfy(mode -> assertThat(description).contains(mode));
   }
 
   private static ProtectData createProtectData() {
