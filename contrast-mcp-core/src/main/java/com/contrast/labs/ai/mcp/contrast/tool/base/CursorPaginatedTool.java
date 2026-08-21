@@ -95,6 +95,7 @@ public abstract class CursorPaginatedTool<P extends ToolParams, R> extends BaseT
           .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
           .addKeyValue(LoggingKeys.CURSOR, pagination.cursorPresence())
           .addKeyValue(LoggingKeys.EXCEPTION_TYPE, e.getClass().getSimpleName())
+          .setCause(e)
           .setMessage("Request failed unexpectedly")
           .log();
       return CursorToolResponse.error(

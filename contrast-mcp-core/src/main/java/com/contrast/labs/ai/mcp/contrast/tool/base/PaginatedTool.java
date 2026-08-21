@@ -124,6 +124,7 @@ public abstract class PaginatedTool<P extends ToolParams, R> extends BaseTool {
       log.atError()
           .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
           .addKeyValue(LoggingKeys.EXCEPTION_TYPE, e.getClass().getSimpleName())
+          .setCause(e)
           .setMessage("Request failed unexpectedly")
           .log();
       return PaginatedToolResponse.error(
