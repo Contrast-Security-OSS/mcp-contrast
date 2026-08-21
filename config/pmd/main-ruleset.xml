@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset
+    name="Contrast MCP PMD Main Rules"
+    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.github.io/schema/ruleset_2_0_0.xsd">
+
+  <description>
+    Production-only PMD rules. The Gradle build combines this file with
+    ruleset.xml for main sources. Tests skip these rules because fixtures
+    repeat literals for readability and throw raw exceptions to stub
+    failures.
+  </description>
+
+  <rule ref="category/java/errorprone.xml/AvoidDuplicateLiterals">
+    <properties>
+      <property name="maxDuplicateLiterals" value="3"/>
+      <property name="skipAnnotations" value="true"/>
+      <property name="exceptionList" value="GET,POST,PUT,PATCH,DELETE,UTF-8"/>
+    </properties>
+  </rule>
+
+  <!-- Main-only: tests idiomatically throw new RuntimeException("boom") to stub
+       failures, so this rule applies to production sources only. -->
+  <rule ref="category/java/design.xml/AvoidThrowingRawExceptionTypes"/>
+</ruleset>

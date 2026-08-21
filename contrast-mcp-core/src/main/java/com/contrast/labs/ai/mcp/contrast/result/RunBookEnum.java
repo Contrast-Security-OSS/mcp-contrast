@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -2409,7 +2409,7 @@ public enum RunBookEnum {
 
   public static Optional<RunBookEnum> getRunBookEnumForTypeID(String typeID) {
     if (typeID != null) {
-      for (RunBookEnum runbookEnum : RunBookEnum.values()) {
+      for (RunBookEnum runbookEnum : values()) {
         for (String runBookAttackType : runbookEnum.getAttackType()) {
           if (runBookAttackType.equalsIgnoreCase(typeID)) {
             return Optional.of(runbookEnum);

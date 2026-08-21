@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -180,12 +180,7 @@ class AttackSummaryTest {
     // When: Creating AttackSummary
     var summary = AttackSummary.fromAttack(attack);
 
-    // Then: Format should be consistent with TimestampFormatter (same as VulnLight,
-    // ApplicationData,
-    // etc.)
-    var expectedFormat = TimestampFormatter.formatTimestamp(TEST_TIMESTAMP);
-
-    // Verify the format matches the pattern used throughout the codebase
+    // Then: Verify the format matches the pattern used throughout the codebase
     assertThat(
             summary
                 .startTime()

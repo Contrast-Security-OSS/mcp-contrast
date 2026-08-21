@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -215,7 +215,7 @@ class SDKExtensionTest {
               eq(HttpMethod.GET),
               argThat(
                   url ->
-                      url.equals("/ng/org-123/protection/policy/app-456?expand=skip_links")
+                      "/ng/org-123/protection/policy/app-456?expand=skip_links".equals(url)
                           || (url.contains("/ng/org-123/protection/policy/app-456")
                               && url.contains("expand=skip_links"))));
     }

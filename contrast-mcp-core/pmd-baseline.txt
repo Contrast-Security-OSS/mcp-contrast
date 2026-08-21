@@ -1,0 +1,17 @@
+# PMD baseline for contrast-mcp-core.
+# Regenerate with ./gradlew :contrast-mcp-core:writePmdBaseline
+# PMD entries are matched by file and rule, not line number.
+# Multiple violations of the same PMD rule in one file share one entry.
+# CPD entries are matched by participating files, not line number or token count.
+CPD|contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/tool/base/CursorPaginatedTool.java,contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/tool/base/PaginatedTool.java
+CPD|contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/params/SearchAppVulnerabilitiesParams.java,contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/params/VulnerabilityFilterParams.java
+PMD|contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/hints/RuleHints.java|AvoidDuplicateLiterals
+PMD|contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/tool/attack/SearchAttacksTool.java|ExcessiveParameterList
+PMD|contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/tool/attack/params/AttackFilterParams.java|ExcessiveParameterList
+PMD|contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/tool/server/SearchServersTool.java|ExcessiveParameterList
+PMD|contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/tool/server/params/ServerFilterParams.java|ExcessiveParameterList
+PMD|contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/RecommendationMarkdownRenderer.java|AvoidDuplicateLiterals
+PMD|contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/SearchAppVulnerabilitiesTool.java|ExcessiveParameterList
+PMD|contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/SearchVulnerabilitiesTool.java|ExcessiveParameterList
+PMD|contrast-mcp-core/src/main/java/com/contrast/labs/ai/mcp/contrast/tool/vulnerability/params/SearchAppVulnerabilitiesParams.java|ExcessiveParameterList
+PMD|contrast-mcp-core/src/test/java/com/contrast/labs/ai/mcp/contrast/tool/server/params/ServerFilterParamsTest.java|ExcessiveParameterList

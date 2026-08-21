@@ -194,13 +194,13 @@ main() {
 
     # Gradle startup dominates this hook, so skip refs with no Java changes.
     if [[ -z "$changed_files" ]]; then
-      printf "No changed Java files for %s; skipping changed-file coverage verification.\n" "$local_ref"
+      printf "No changed Java files for %s; skipping changed-file verification.\n" "$local_ref"
       continue
     fi
 
     warn_if_coverage_tree_is_dirty
 
-    printf "Running changed-file coverage verification for %s -> %s against base %s.\n" \
+    printf "Running changed-file static analysis for %s -> %s against base %s.\n" \
       "$local_ref" "$remote_ref" "$base_ref"
 
     # Explicit base, because the gate has no ref of its own to diff against and the
@@ -208,12 +208,13 @@ main() {
     # the guard above, which is the only commit the working-tree report can describe.
     # No percentage here: changedFileCoverageMinimum in build.gradle is the source of truth.
     perform_check \
-      "checking changed Java files for line coverage" \
+      "checking changed Java files for line coverage and PMD" \
       ./gradlew \
       -q \
       "-PstaticAnalysisChangedBase=$base_ref" \
       "-PstaticAnalysisChangedHead=$local_sha" \
-      jacocoChangedFileCoverageVerification
+      jacocoChangedFileCoverageVerification \
+      verifyPmdChangedFilesBaseline
   done
 }
 

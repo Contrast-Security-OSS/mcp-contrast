@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,11 @@ package com.contrast.labs.ai.mcp.contrast.tool.validation;
 
 import java.util.List;
 import java.util.Set;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 /** Shared validation constants for MCP tools. */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ValidationConstants {
 
   /** Default page number for pagination (1-indexed). */
@@ -85,6 +88,4 @@ public final class ValidationConstants {
   /** Standing result semantics shared by vulnerability search tool descriptions. */
   public static final String VULN_STATUS_RESULT_SEMANTICS =
       "Result statuses use the same canonical vulnerability status values as the statuses filter.";
-
-  private ValidationConstants() {}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -229,5 +229,23 @@ class PaginationParamsTest {
     assertThat(params.pageSize()).isEqualTo(25);
     assertThat(params.notices()).hasSize(1);
     assertThat(params.notices().getFirst()).contains("Invalid pageSize -1, using default 25");
+  }
+
+  @Test
+  void testZeroMaxPageSizeClampsToOne() {
+    var params = PaginationParams.of(1, null, 0);
+
+    assertThat(params.page()).isEqualTo(1);
+    assertThat(params.pageSize()).isEqualTo(1);
+    assertThat(params.notices()).isEmpty();
+  }
+
+  @Test
+  void testNegativeMaxPageSizeClampsToOne() {
+    var params = PaginationParams.of(1, null, -5);
+
+    assertThat(params.page()).isEqualTo(1);
+    assertThat(params.pageSize()).isEqualTo(1);
+    assertThat(params.notices()).isEmpty();
   }
 }

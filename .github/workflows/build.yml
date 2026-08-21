@@ -16,7 +16,7 @@ jobs:
 
     steps:
     - name: Harden the runner (Audit all outbound calls)
-      uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+      uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
       with:
         egress-policy: audit
 
@@ -48,14 +48,15 @@ jobs:
 
     # Pull requests only. With no base the task falls back to the working tree, which is
     # clean on a fresh checkout and would pass vacuously.
-    - name: Verify changed-file coverage
+    - name: Verify changed-file coverage and PMD
       if: github.event_name == 'pull_request'
       # Via env so no workflow expression is parsed as shell.
       env:
         BASE_SHA: ${{ github.event.pull_request.base.sha }}
       run: >-
         ./gradlew jacocoChangedFileCoverageVerification
-        -PjacocoChangedBase="$BASE_SHA"
+        verifyPmdChangedFilesBaseline
+        -PstaticAnalysisChangedBase="$BASE_SHA"
         --no-daemon
 
     # Runs even when the coverage floor fails, since that is exactly when the
@@ -67,7 +68,7 @@ jobs:
       if: ${{ !cancelled() }}
       run: ./gradlew --quiet coverageSummary --no-daemon >> "$GITHUB_STEP_SUMMARY"
 
-    - name: Upload coverage reports
+    - name: Upload coverage and static analysis reports
       if: ${{ !cancelled() }}
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
@@ -76,6 +77,9 @@ jobs:
           **/build/reports/jacoco/test/html/**
           **/build/reports/jacoco/test/jacocoTestReport.xml
           **/build/reports/pitest/**
+          **/build/reports/pmd/**
+          **/build/reports/pmd-changed/**
+          **/build/reports/pmd-rule-controls/**
         if-no-files-found: warn
         # Diagnostic output for a failed run, not a durable artifact.
         retention-days: 7
@@ -97,7 +101,7 @@ jobs:
 
     steps:
     - name: Harden the runner (Audit all outbound calls)
-      uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+      uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
       with:
         egress-policy: audit
 

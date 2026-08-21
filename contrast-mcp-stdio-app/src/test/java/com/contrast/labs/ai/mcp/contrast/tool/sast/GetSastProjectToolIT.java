@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.sast;
 
+import static com.contrast.labs.ai.mcp.contrast.tool.base.BaseTool.RESOURCE_NOT_FOUND_MESSAGE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Instant;
@@ -52,9 +53,6 @@ class GetSastProjectToolIT {
   // Asserting the full shape (not just a "projectName" substring) prevents a false-positive match
   // against any unrelated message that happens to mention the parameter name.
   private static final String PROJECT_NAME_REQUIRED_ERROR = "projectName is required";
-
-  // Notice emitted by SingleTool when doExecute returns null (project not found).
-  private static final String RESOURCE_NOT_FOUND_NOTICE = "Resource not found";
 
   @BeforeEach
   void requireSeededProjectName() {
@@ -156,7 +154,7 @@ class GetSastProjectToolIT {
     assertThat(response.data()).as("notFound response must not carry data").isNull();
     assertThat(response.notices())
         .as("notFound path must surface the documented notice")
-        .contains(RESOURCE_NOT_FOUND_NOTICE);
+        .contains(RESOURCE_NOT_FOUND_MESSAGE);
   }
 
   @Test

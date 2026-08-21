@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -82,7 +82,7 @@ class ContrastApiClientContractTest {
   @Test
   void contrastApiClient_should_expose_transport_neutral_server_search() {
     assertThat(ContrastApiClient.class.getDeclaredMethods())
-        .filteredOn(method -> method.getName().equals("searchServers"))
+        .filteredOn(method -> "searchServers".equals(method.getName()))
         .singleElement()
         .satisfies(
             method -> {

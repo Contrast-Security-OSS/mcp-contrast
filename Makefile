@@ -99,10 +99,10 @@ buildsrc-check-verbose: ## Run buildSrc checks with verbose output
 
 # Needs a base ref, so it cannot join check (a working-tree run in CI would pass vacuously).
 # Measures the working tree by default. Pass BASE to compare against a ref instead, which is
-# what the pre-push hook does: make coverage-changed BASE=origin/main
+# what the pre-push hook does: make coverage-changed BASE=origin/main + PMD changed-file verification
 coverage-changed: ## Check changed src/main/java files meet the changed-file coverage minimum
 	@if [ -n "$$VERBOSE" ]; then \
-		$(GRADLE) jacocoChangedFileCoverageVerification $(if $(BASE),-PjacocoChangedBase=$(BASE)); \
+		$(GRADLE) jacocoChangedFileCoverageVerification $(if $(BASE),-PstaticAnalysisChangedBase=$(BASE)); \
 	else \
 		$(MAKE) coverage-changed-quiet; \
 	fi
@@ -111,7 +111,7 @@ coverage-changed-quiet:
 	@. ./hack/run_silent.sh && print_main_header "Checking Changed-File Coverage"
 	@. ./hack/run_silent.sh && print_header "mcp-contrast" "Changed-file coverage"
 	@. ./hack/run_silent.sh && run_with_quiet "Changed-file coverage met" \
-		"$(GRADLE) jacocoChangedFileCoverageVerification $(if $(BASE),-PjacocoChangedBase=$(BASE))"
+		"$(GRADLE) jacocoChangedFileCoverageVerification $(if $(BASE),-PstaticAnalysisChangedBase=$(BASE))"
 
 coverage-changed-verbose: ## Run changed-file coverage with verbose output
 	@VERBOSE=1 $(MAKE) coverage-changed

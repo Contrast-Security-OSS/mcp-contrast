@@ -16,13 +16,14 @@
 package com.contrast.labs.ai.mcp.contrast.sdkextension.data.server;
 
 import java.io.IOException;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /** Validates server-filter envelopes and normalizes TeamServer's empty-tag response quirk. */
 @Slf4j
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ServersResponseEnvelope {
-
-  private ServersResponseEnvelope() {}
 
   /**
    * Validates a server-filter response without treating downstream failures as empty results.

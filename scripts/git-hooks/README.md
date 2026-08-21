@@ -22,9 +22,11 @@ so. Merge the two by hand if both are wanted.
   (re-staging any reformatted files), runs unit tests, and runs Checkstyle. Skips entirely
   when no Java files are staged.
 
-* `pre-push` runs the Gradle `check` lifecycle, then `jacocoChangedFileCoverageVerification`,
-  which fails when a changed `src/main/java` file has less than the line coverage required by
-  `changedFileCoverageMinimum` in the root `build.gradle`.
+* `pre-push` runs the Gradle `check` lifecycle, then `jacocoChangedFileCoverageVerification`
+  and `verifyPmdChangedFilesBaseline` together. The coverage gate fails when a changed
+  `src/main/java` file has less than the line coverage required by `changedFileCoverageMinimum`
+  in the root `build.gradle`. The PMD gate fails when a changed Java file has new PMD findings
+  outside the per-module `pmd-baseline.txt`.
 
   `check` runs once per push against the working tree. Gradle's up-to-date checking makes it
   a few seconds when `make check` already ran; the full cost lands on pushes that skipped it.
@@ -65,7 +67,7 @@ make coverage-changed
 Against a specific base, matching what the hook does:
 
 ```shell
-./gradlew jacocoChangedFileCoverageVerification -PjacocoChangedBase=origin/main
+./gradlew jacocoChangedFileCoverageVerification verifyPmdChangedFilesBaseline -PstaticAnalysisChangedBase=origin/main
 ```
 
 ## What counts as a pass
