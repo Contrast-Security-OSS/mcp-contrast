@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.attack;
 
+import static com.contrast.labs.ai.mcp.contrast.tool.attack.GetProtectRulesTool.KNOWN_PROTECT_MODES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
@@ -25,7 +26,6 @@ import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper.Applicatio
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -47,20 +47,6 @@ import org.springframework.context.annotation.Import;
 class GetProtectRulesToolIT extends AbstractIntegrationTest<GetProtectRulesToolIT.TestData> {
 
   @Autowired private GetProtectRulesTool getProtectRulesTool;
-
-  // Contrast Protect rule mode enumeration as returned by the TeamServer API (uppercase).
-  // If a real response yields a value outside this set, the mode-assertion test below fails
-  // loudly and this constant is updated after confirming the new mode is legitimate.
-  private static final Set<String> KNOWN_PROTECT_MODES =
-      Set.of(
-          "MONITORING",
-          "BLOCKING",
-          "BLOCK_AT_PERIMETER",
-          "OFF",
-          "NO_ACTION",
-          "PERMIT",
-          "MONITOR_BLOCK",
-          "DISABLED");
 
   // Rule.type values discriminating response shape. Standard Protect rules populate uuid, modes,
   // and perimeter capability flags; Virtual Patches populate enabledDev/Qa/Prod instead.
