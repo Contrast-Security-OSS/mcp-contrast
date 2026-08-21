@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.model.ToolContext;
@@ -206,7 +207,11 @@ class GetProtectRulesToolTest {
 
     assertThat(KNOWN_PROTECT_MODES)
         .as("every known Protect mode must appear in the @Tool description")
-        .allSatisfy(mode -> assertThat(description).contains(mode));
+        .allSatisfy(
+            mode ->
+                assertThat(Pattern.compile("\\b" + mode + "\\b").matcher(description).find())
+                    .as("mode %s must appear as a whole word, not just a substring", mode)
+                    .isTrue());
     assertThat(description).contains("perimeter");
   }
 
