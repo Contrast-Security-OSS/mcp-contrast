@@ -61,7 +61,8 @@ public class GetProtectRulesTool extends SingleTool<GetProtectRulesParams, Prote
       description =
           """
           Get Protect (ADR) rules for an application. Per-environment mode is one of
-          BLOCKING, BLOCK_AT_PERIMETER, MONITORING, MONITOR_BLOCK, OFF, NO_ACTION, PERMIT,
+          BLOCKING (blocked in-app), BLOCK_AT_PERIMETER (blocked at the perimeter before
+          reaching the application), MONITORING, MONITOR_BLOCK, OFF, NO_ACTION, PERMIT,
           or DISABLED. Use search_applications to find application IDs.
           """)
   public SingleToolResponse<ProtectData> getProtectRules(

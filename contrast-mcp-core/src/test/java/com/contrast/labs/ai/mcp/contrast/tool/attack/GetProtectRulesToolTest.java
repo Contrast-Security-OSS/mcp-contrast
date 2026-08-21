@@ -207,6 +207,7 @@ class GetProtectRulesToolTest {
     assertThat(KNOWN_PROTECT_MODES)
         .as("every known Protect mode must appear in the @Tool description")
         .allSatisfy(mode -> assertThat(description).contains(mode));
+    assertThat(description).contains("perimeter");
   }
 
   private static ProtectData createProtectData() {
