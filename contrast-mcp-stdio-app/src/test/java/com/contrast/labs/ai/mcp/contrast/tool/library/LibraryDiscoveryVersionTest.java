@@ -21,13 +21,13 @@ import org.junit.jupiter.api.Test;
 
 class LibraryDiscoveryVersionTest {
 
-  private static final int ORG_LEVEL_LIBRARY_DISCOVERY_VERSION = 2;
+  private static final int CACHEABLE_LIBRARY_DISCOVERY_VERSION = 3;
 
   @Test
-  void discoveryVersion_should_invalidate_pre_org_query_cache_entries() {
+  void discoveryVersion_should_invalidate_degraded_cache_entries() {
     assertThat(new ListApplicationsByCveToolIT().discoveryVersion())
-        .isEqualTo(ORG_LEVEL_LIBRARY_DISCOVERY_VERSION);
+        .isEqualTo(CACHEABLE_LIBRARY_DISCOVERY_VERSION);
     assertThat(new ListApplicationLibrariesToolIT().discoveryVersion())
-        .isEqualTo(ORG_LEVEL_LIBRARY_DISCOVERY_VERSION);
+        .isEqualTo(CACHEABLE_LIBRARY_DISCOVERY_VERSION);
   }
 }

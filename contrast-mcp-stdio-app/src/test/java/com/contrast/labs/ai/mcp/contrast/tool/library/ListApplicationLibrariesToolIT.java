@@ -55,7 +55,7 @@ class ListApplicationLibrariesToolIT
   private static final int API_MAX_PAGE_SIZE = 50;
   private static final int PAGINATION_PROBE_SIZE = 5;
   private static final int MIN_LIBS_FOR_PAGINATION = PAGINATION_PROBE_SIZE + 1;
-  private static final int DISCOVERY_VERSION = 2;
+  private static final int DISCOVERY_VERSION = 3;
 
   @Getter
   static class TestData {

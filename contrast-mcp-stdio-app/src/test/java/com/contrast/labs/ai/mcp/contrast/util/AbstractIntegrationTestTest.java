@@ -18,6 +18,7 @@ package com.contrast.labs.ai.mcp.contrast.util;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 import org.junit.jupiter.api.Test;
 
@@ -39,6 +40,44 @@ class AbstractIntegrationTestTest {
                   any(String.class), any(String.class), any(String.class)),
           never());
     }
+  }
+
+  @Test
+  void setUpTestData_should_cache_when_isCacheable_returns_true() {
+    var integrationTest = new CacheableDiscoveryIntegrationTest();
+    integrationTest.orgId = ORG_ID;
+
+    try (var cache = mockStatic(IntegrationTestDiskCache.class)) {
+      integrationTest.setUpTestData();
+
+      cache.verify(
+          () ->
+              IntegrationTestDiskCache.write(
+                  any(String.class), any(String.class), any(String.class)),
+          times(1));
+    }
+  }
+
+  private static final class CacheableDiscoveryIntegrationTest
+      extends AbstractIntegrationTest<String> {
+
+    @Override
+    protected String testDisplayName() {
+      return "Cacheable Discovery Integration Test";
+    }
+
+    @Override
+    protected Class<String> testDataType() {
+      return String.class;
+    }
+
+    @Override
+    protected String performDiscovery() {
+      return "cacheable";
+    }
+
+    @Override
+    protected void logTestDataDetails(String data) {}
   }
 
   private static final class DegradedDiscoveryIntegrationTest
