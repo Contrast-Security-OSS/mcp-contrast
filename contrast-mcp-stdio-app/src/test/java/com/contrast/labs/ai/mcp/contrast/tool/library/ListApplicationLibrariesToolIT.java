@@ -25,6 +25,7 @@ import com.contrastsecurity.http.RuleSeverity;
 import java.io.IOException;
 import java.util.Set;
 import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -62,6 +63,8 @@ class ListApplicationLibrariesToolIT
     String appId;
     String appName;
     int expectedLibraryCount;
+
+    @Accessors(fluent = true)
     boolean hasVulnerableLibrary;
 
     @Override
@@ -118,7 +121,7 @@ class ListApplicationLibrariesToolIT
 
   @Override
   protected boolean isCacheable(TestData data) {
-    return data.isHasVulnerableLibrary();
+    return data.hasVulnerableLibrary();
   }
 
   @Test

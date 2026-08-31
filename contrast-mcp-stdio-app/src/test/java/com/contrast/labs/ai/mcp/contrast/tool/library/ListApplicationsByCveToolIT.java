@@ -22,6 +22,7 @@ import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import java.io.IOException;
 import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -62,6 +63,8 @@ class ListApplicationsByCveToolIT
     String appId;
     String appName;
     String vulnerableCveId;
+
+    @Accessors(fluent = true)
     boolean hasVulnerableLibrary;
 
     @Override
@@ -129,7 +132,7 @@ class ListApplicationsByCveToolIT
 
   @Override
   protected boolean isCacheable(TestData data) {
-    return data.isHasVulnerableLibrary() && StringUtils.hasText(data.getVulnerableCveId());
+    return data.hasVulnerableLibrary() && StringUtils.hasText(data.getVulnerableCveId());
   }
 
   private void warnIfNoVulnerableLibraries(TestData data) {
