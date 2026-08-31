@@ -85,6 +85,18 @@ public class TestDataDiscoveryHelper {
    */
   public static Optional<ApplicationWithLibraries> findApplicationWithLibraries(
       String orgId, SDKExtension sdkExtension, int maxAppsToCheck) throws IOException {
+    return findApplicationWithLibraries(
+        orgId, sdkExtension, maxAppsToCheck, PinnedSeedApplicationDiscovery.seedAppId());
+  }
+
+  static Optional<ApplicationWithLibraries> findApplicationWithLibraries(
+      String orgId, SDKExtension sdkExtension, int maxAppsToCheck, String seedAppId)
+      throws IOException {
+    var pinnedApplication = PinnedSeedApplicationDiscovery.find(orgId, sdkExtension, seedAppId);
+    if (pinnedApplication.isPresent()) {
+      return pinnedApplication;
+    }
+
     log.info("Finding application through organization-wide vulnerable libraries...");
 
     var candidates = findVulnerableLibraryCandidates(orgId, sdkExtension);

@@ -19,6 +19,31 @@ This project includes integration tests that run against a real Contrast TeamSer
 
 That's it. Gradle sources `.env.integration-test` itself; no `source` step is needed. Real environment variables override file values, so CI secrets and one-off shells win without editing the file.
 
+## Library Test Seed Data
+
+The library integration tests require at least one application whose libraries contain all of the following:
+
+- A populated vulnerabilities array
+- A vulnerability whose name starts with `CVE-`
+- Actively used classes (`classesUsed > 0`)
+
+Discovery first queries `/ng/{orgId}/libraries/filter` across the organization with
+`quickFilter=VULNERABLE` and `expand=vulns,apps`, then confirms candidate data through the
+application-scoped library endpoint. Set `CONTRAST_TEST_SEED_APP_ID` to check a known-good
+application before that organization-wide query. The pinned application is used only when it
+satisfies the full seed-data contract; otherwise discovery logs a warning and continues normally.
+
+Discovery responses are cached under `contrast-mcp-stdio-app/test-cache/`. Use these controls when
+troubleshooting changing seed data:
+
+- `CONTRAST_TEST_CACHE_DISABLE=true` disables the disk cache.
+- `CONTRAST_TEST_CACHE_CLEAR=true` clears cached entries before the next run.
+- `CONTRAST_TEST_CACHE_TTL_HOURS=N` overrides the cache lifetime.
+
+If discovery reports `requires seeded app with vulnerable CVE - see INTEGRATION_TESTS.md`, seed the
+organization with a qualifying application or set `CONTRAST_TEST_SEED_APP_ID` to one that already
+qualifies. Editing or weakening the tests does not fix this missing-data precondition.
+
 ## Running Integration Tests
 
 ### Full gate plus integration tests (the pre-review command):

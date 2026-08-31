@@ -22,8 +22,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKExtension;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibrariesExtended;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.LibraryExtended;
@@ -38,6 +43,7 @@ import java.util.List;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.LoggerFactory;
 
 class TestDataDiscoveryHelperTest {
 
@@ -45,6 +51,76 @@ class TestDataDiscoveryHelperTest {
   private static final String UNUSED_APP_ID = "app-unused";
   private static final String USED_APP_ID = "app-used";
   private static final int PAGE_SIZE = 25;
+  private static final int MAX_APPS_TO_CHECK = 50;
+
+  @Test
+  void findApplicationWithLibraries_should_use_valid_pinned_seed_app_before_org_query()
+      throws Exception {
+    SDKExtension sdkExtension = mock();
+    var pinnedLibrary = vulnerableLibrary("CVE-2026-3000");
+    pinnedLibrary.setClassesUsed(7);
+
+    try (var cache = mockStatic(IntegrationTestDataCache.class)) {
+      cache
+          .when(() -> IntegrationTestDataCache.getLibraries(ORG_ID, USED_APP_ID, sdkExtension))
+          .thenReturn(List.of(pinnedLibrary));
+
+      var result =
+          TestDataDiscoveryHelper.findApplicationWithLibraries(
+                  ORG_ID, sdkExtension, MAX_APPS_TO_CHECK, USED_APP_ID)
+              .orElseThrow();
+
+      assertThat(result.getApplication().getAppId()).isEqualTo(USED_APP_ID);
+      assertThat(result.getApplication().getName()).isEqualTo(USED_APP_ID);
+      assertThat(result.getLibraries()).containsExactly(pinnedLibrary);
+      assertThat(result.hasVulnerableLibrary()).isTrue();
+      assertThat(result.getVulnerableCveId()).isEqualTo("CVE-2026-3000");
+      cache.verify(() -> IntegrationTestDataCache.getLibraries(ORG_ID, USED_APP_ID, sdkExtension));
+    }
+    verifyNoInteractions(sdkExtension);
+  }
+
+  @Test
+  void findApplicationWithLibraries_should_warn_and_fall_back_when_pinned_app_is_not_seeded()
+      throws Exception {
+    SDKExtension sdkExtension = mock();
+    var invalidPinnedLibrary = vulnerableLibrary("CVE-2026-3000");
+    invalidPinnedLibrary.setClassesUsed(0);
+    var orgResponse = new LibrariesExtended();
+    orgResponse.setLibraries(List.of(orgLibrary(USED_APP_ID, "Used App", "CVE-2026-2000", 7)));
+    orgResponse.setCount(1L);
+    when(sdkExtension.getLibrariesWithFilter(any(), any())).thenReturn(orgResponse);
+
+    var confirmedLibrary = vulnerableLibrary("CVE-2026-2000");
+    Logger logger = (Logger) LoggerFactory.getLogger(PinnedSeedApplicationDiscovery.class);
+    var appender = new ListAppender<ILoggingEvent>();
+    appender.start();
+    logger.addAppender(appender);
+    try (var cache = mockStatic(IntegrationTestDataCache.class)) {
+      cache
+          .when(() -> IntegrationTestDataCache.getLibraries(ORG_ID, UNUSED_APP_ID, sdkExtension))
+          .thenReturn(List.of(invalidPinnedLibrary));
+      cache
+          .when(() -> IntegrationTestDataCache.getLibraries(ORG_ID, USED_APP_ID, sdkExtension))
+          .thenReturn(List.of(confirmedLibrary));
+
+      var result =
+          TestDataDiscoveryHelper.findApplicationWithLibraries(
+                  ORG_ID, sdkExtension, MAX_APPS_TO_CHECK, UNUSED_APP_ID)
+              .orElseThrow();
+
+      assertThat(result.getApplication().getAppId()).isEqualTo(USED_APP_ID);
+      assertThat(appender.list)
+          .filteredOn(event -> event.getLevel() == Level.WARN)
+          .extracting(ILoggingEvent::getFormattedMessage)
+          .anySatisfy(
+              message ->
+                  assertThat(message)
+                      .contains(UNUSED_APP_ID, "falling back to organization discovery"));
+    } finally {
+      logger.detachAppender(appender);
+    }
+  }
 
   @Test
   void findApplicationWithLibraries_should_prefer_used_vulnerable_library_from_org_query()
