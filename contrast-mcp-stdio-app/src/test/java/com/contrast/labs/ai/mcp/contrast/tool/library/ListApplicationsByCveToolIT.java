@@ -21,12 +21,14 @@ import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
 import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import java.io.IOException;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.util.StringUtils;
 
 /**
  * Integration tests for ListApplicationsByCveTool.
@@ -55,6 +57,7 @@ class ListApplicationsByCveToolIT
   private static final String CONTRAST_API_ERROR = "Contrast API error";
   private static final int DISCOVERY_VERSION = 2;
 
+  @Getter
   static class TestData {
     String appId;
     String appName;
@@ -122,6 +125,11 @@ class ListApplicationsByCveToolIT
   @Override
   protected void afterDiscovery(TestData data) {
     warnIfNoVulnerableLibraries(data);
+  }
+
+  @Override
+  protected boolean isCacheable(TestData data) {
+    return data.isHasVulnerableLibrary() && StringUtils.hasText(data.getVulnerableCveId());
   }
 
   private void warnIfNoVulnerableLibraries(TestData data) {
