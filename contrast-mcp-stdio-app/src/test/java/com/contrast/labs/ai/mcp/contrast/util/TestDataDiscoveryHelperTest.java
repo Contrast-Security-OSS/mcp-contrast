@@ -32,6 +32,7 @@ import com.contrastsecurity.http.LibraryFilterForm;
 import com.contrastsecurity.http.LibraryFilterForm.LibraryExpandValues;
 import com.contrastsecurity.http.LibraryFilterForm.LibraryQuickFilterType;
 import com.contrastsecurity.models.Application;
+import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -114,6 +115,38 @@ class TestDataDiscoveryHelperTest {
     assertThat(filterCaptor.getAllValues())
         .extracting(LibraryFilterForm::getOffset)
         .containsExactly(0, PAGE_SIZE);
+  }
+
+  @Test
+  void findApplicationWithLibraries_should_skip_candidate_when_confirmation_fails()
+      throws Exception {
+    SDKExtension sdkExtension = mock();
+    var failedLibrary = orgLibrary("app-fail", "Failed App", "CVE-2026-1000", 7);
+    var successfulLibrary = orgLibrary("app-ok", "Successful App", "CVE-2026-2000", 7);
+    var orgResponse = new LibrariesExtended();
+    orgResponse.setLibraries(List.of(failedLibrary, successfulLibrary));
+    orgResponse.setCount(2L);
+    when(sdkExtension.getLibrariesWithFilter(any(), any())).thenReturn(orgResponse);
+
+    var confirmedLibrary = vulnerableLibrary("CVE-2026-2000");
+    try (var cache = mockStatic(IntegrationTestDataCache.class)) {
+      cache
+          .when(() -> IntegrationTestDataCache.getLibraries(ORG_ID, "app-fail", sdkExtension))
+          .thenThrow(new IOException("confirmation failed"));
+      cache
+          .when(() -> IntegrationTestDataCache.getLibraries(ORG_ID, "app-ok", sdkExtension))
+          .thenReturn(List.of(confirmedLibrary));
+
+      var result =
+          TestDataDiscoveryHelper.findApplicationWithLibraries(ORG_ID, sdkExtension).orElseThrow();
+
+      assertThat(result.getApplication().getAppId()).isEqualTo("app-ok");
+      assertThat(result.getApplication().getName()).isEqualTo("Successful App");
+      assertThat(result.getLibraries()).containsExactly(confirmedLibrary);
+      assertThat(result.getVulnerableCveId()).isEqualTo("CVE-2026-2000");
+      cache.verify(() -> IntegrationTestDataCache.getLibraries(ORG_ID, "app-fail", sdkExtension));
+      cache.verify(() -> IntegrationTestDataCache.getLibraries(ORG_ID, "app-ok", sdkExtension));
+    }
   }
 
   private static LibraryExtended orgLibrary(
