@@ -92,6 +92,7 @@ class TestDataDiscoveryHelperTest {
     when(sdkExtension.getLibrariesWithFilter(any(), any())).thenReturn(orgResponse);
 
     var confirmedLibrary = vulnerableLibrary("CVE-2026-2000");
+    confirmedLibrary.setClassesUsed(7);
     Logger logger = (Logger) LoggerFactory.getLogger(PinnedSeedApplicationDiscovery.class);
     var appender = new ListAppender<ILoggingEvent>();
     appender.start();
@@ -110,6 +111,9 @@ class TestDataDiscoveryHelperTest {
               .orElseThrow();
 
       assertThat(result.getApplication().getAppId()).isEqualTo(USED_APP_ID);
+      assertThat(result.getLibraries()).containsExactly(confirmedLibrary);
+      assertThat(result.hasVulnerableLibrary()).isTrue();
+      assertThat(result.getVulnerableCveId()).isEqualTo("CVE-2026-2000");
       assertThat(appender.list)
           .filteredOn(event -> event.getLevel() == Level.WARN)
           .extracting(ILoggingEvent::getFormattedMessage)
@@ -117,6 +121,53 @@ class TestDataDiscoveryHelperTest {
               message ->
                   assertThat(message)
                       .contains(UNUSED_APP_ID, "falling back to organization discovery"));
+    } finally {
+      logger.detachAppender(appender);
+    }
+  }
+
+  @Test
+  void findApplicationWithLibraries_should_warn_and_fall_back_when_pinned_app_fetch_fails()
+      throws Exception {
+    SDKExtension sdkExtension = mock();
+    var orgResponse = new LibrariesExtended();
+    orgResponse.setLibraries(List.of(orgLibrary(USED_APP_ID, "Used App", "CVE-2026-2000", 7)));
+    orgResponse.setCount(1L);
+    when(sdkExtension.getLibrariesWithFilter(any(), any())).thenReturn(orgResponse);
+
+    var confirmedLibrary = vulnerableLibrary("CVE-2026-2000");
+    confirmedLibrary.setClassesUsed(7);
+    Logger logger = (Logger) LoggerFactory.getLogger(PinnedSeedApplicationDiscovery.class);
+    var appender = new ListAppender<ILoggingEvent>();
+    appender.start();
+    logger.addAppender(appender);
+    try (var cache = mockStatic(IntegrationTestDataCache.class)) {
+      cache
+          .when(() -> IntegrationTestDataCache.getLibraries(ORG_ID, UNUSED_APP_ID, sdkExtension))
+          .thenThrow(new IOException("pinned fetch failed"));
+      cache
+          .when(() -> IntegrationTestDataCache.getLibraries(ORG_ID, USED_APP_ID, sdkExtension))
+          .thenReturn(List.of(confirmedLibrary));
+
+      var result =
+          TestDataDiscoveryHelper.findApplicationWithLibraries(
+                  ORG_ID, sdkExtension, MAX_APPS_TO_CHECK, UNUSED_APP_ID)
+              .orElseThrow();
+
+      assertThat(result.getApplication().getAppId()).isEqualTo(USED_APP_ID);
+      assertThat(result.getLibraries()).containsExactly(confirmedLibrary);
+      assertThat(result.hasVulnerableLibrary()).isTrue();
+      assertThat(result.getVulnerableCveId()).isEqualTo("CVE-2026-2000");
+      assertThat(appender.list)
+          .filteredOn(event -> event.getLevel() == Level.WARN)
+          .extracting(ILoggingEvent::getFormattedMessage)
+          .anySatisfy(
+              message ->
+                  assertThat(message)
+                      .contains(
+                          UNUSED_APP_ID,
+                          "falling back to organization discovery",
+                          "pinned fetch failed"));
     } finally {
       logger.detachAppender(appender);
     }

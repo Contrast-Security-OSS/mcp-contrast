@@ -190,7 +190,14 @@ public abstract class AbstractIntegrationTest<T> {
   }
 
   private String cacheKey() {
-    return testDisplayName().replaceAll("\\s+", "") + "-v" + discoveryVersion();
+    return cacheKey(PinnedSeedApplicationDiscovery.seedAppId());
+  }
+
+  String cacheKey(String seedAppId) {
+    var baseKey = testDisplayName().replaceAll("\\s+", "") + "-v" + discoveryVersion();
+    return PinnedSeedApplicationDiscovery.normalizeSeedAppId(seedAppId)
+        .map(appId -> baseKey + "-seed-" + appId)
+        .orElse(baseKey);
   }
 
   /**

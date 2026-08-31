@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.StringUtils;
 
 /**
  * Resolves and validates the optional pinned seed application used by library integration tests.
@@ -38,29 +39,36 @@ class PinnedSeedApplicationDiscovery {
     return System.getenv(SEED_APP_ID_ENV);
   }
 
+  static Optional<String> normalizeSeedAppId(String seedAppId) {
+    if (!StringUtils.hasText(seedAppId)) {
+      return Optional.empty();
+    }
+    return Optional.of(seedAppId.trim());
+  }
+
   static Optional<TestDataDiscoveryHelper.ApplicationWithLibraries> find(
       String orgId, SDKExtension sdkExtension, String seedAppId) {
-    if (seedAppId == null || seedAppId.isBlank()) {
+    var normalizedSeedAppId = normalizeSeedAppId(seedAppId);
+    if (normalizedSeedAppId.isEmpty()) {
       return Optional.empty();
     }
 
-    var normalizedSeedAppId = seedAppId.trim();
+    var appId = normalizedSeedAppId.get();
     try {
-      var libraries =
-          IntegrationTestDataCache.getLibraries(orgId, normalizedSeedAppId, sdkExtension);
+      var libraries = IntegrationTestDataCache.getLibraries(orgId, appId, sdkExtension);
       var cveId = findUsedCve(libraries);
       if (cveId.isPresent()) {
-        return seededApplication(normalizedSeedAppId, libraries, cveId.orElseThrow());
+        return seededApplication(appId, libraries, cveId.get());
       }
       log.warn(
           "Pinned integration-test seed app {} does not contain an actively used library with a "
               + "CVE-named vulnerability; falling back to organization discovery",
-          normalizedSeedAppId);
+          appId);
     } catch (IOException e) {
       log.warn(
           "Could not verify pinned integration-test seed app {}; falling back to organization "
               + "discovery: {}",
-          normalizedSeedAppId,
+          appId,
           e.getMessage());
     }
     return Optional.empty();

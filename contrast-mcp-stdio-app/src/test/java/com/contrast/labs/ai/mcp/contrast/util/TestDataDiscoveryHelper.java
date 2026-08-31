@@ -75,7 +75,8 @@ public class TestDataDiscoveryHelper {
    * Finds an application that has third-party libraries.
    *
    * <p>This discovery pattern is useful for SCA (Software Composition Analysis) tests that need to
-   * test library-related functionality.
+   * test library-related functionality. When {@code CONTRAST_TEST_SEED_APP_ID} is set, discovery
+   * verifies that application before querying vulnerable libraries across the organization.
    *
    * @param orgId Organization ID
    * @param sdkExtension SDK extension instance
@@ -301,7 +302,8 @@ public class TestDataDiscoveryHelper {
   }
 
   /**
-   * Finds an application with vulnerable libraries, with a capped application-scan fallback.
+   * Finds an application with vulnerable libraries, with a capped application-scan fallback. Checks
+   * {@code CONTRAST_TEST_SEED_APP_ID} first when configured.
    *
    * @param orgId Organization ID
    * @param sdkExtension SDK extension instance

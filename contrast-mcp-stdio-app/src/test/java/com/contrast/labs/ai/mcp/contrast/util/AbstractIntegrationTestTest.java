@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.util;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -25,6 +26,18 @@ import org.junit.jupiter.api.Test;
 class AbstractIntegrationTestTest {
 
   private static final String ORG_ID = "org-1";
+
+  @Test
+  void cacheKey_should_distinguish_normalized_seed_app_ids() {
+    var integrationTest = new CacheableDiscoveryIntegrationTest();
+
+    assertThat(integrationTest.cacheKey(null)).isEqualTo("CacheableDiscoveryIntegrationTest-v1");
+    assertThat(integrationTest.cacheKey("  ")).isEqualTo("CacheableDiscoveryIntegrationTest-v1");
+    assertThat(integrationTest.cacheKey(" app-one "))
+        .isEqualTo("CacheableDiscoveryIntegrationTest-v1-seed-app-one");
+    assertThat(integrationTest.cacheKey("app-two"))
+        .isEqualTo("CacheableDiscoveryIntegrationTest-v1-seed-app-two");
+  }
 
   @Test
   void setUpTestData_should_not_cache_degraded_discovery_data() {

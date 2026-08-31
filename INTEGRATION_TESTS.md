@@ -32,6 +32,8 @@ Discovery first queries `/ng/{orgId}/libraries/filter` across the organization w
 application-scoped library endpoint. Set `CONTRAST_TEST_SEED_APP_ID` to check a known-good
 application before that organization-wide query. The pinned application is used only when it
 satisfies the full seed-data contract; otherwise discovery logs a warning and continues normally.
+The normalized pin is part of the disk-cache identity, so setting or changing it cannot reuse
+discovery data cached for another pin.
 
 Discovery responses are cached under `contrast-mcp-stdio-app/test-cache/`. Use these controls when
 troubleshooting changing seed data:
@@ -40,7 +42,7 @@ troubleshooting changing seed data:
 - `CONTRAST_TEST_CACHE_CLEAR=true` clears cached entries before the next run.
 - `CONTRAST_TEST_CACHE_TTL_HOURS=N` overrides the cache lifetime.
 
-If discovery reports `requires seeded app with vulnerable CVE - see INTEGRATION_TESTS.md`, seed the
+If discovery reports `requires seeded app with vulnerable CVE — see INTEGRATION_TESTS.md`, seed the
 organization with a qualifying application or set `CONTRAST_TEST_SEED_APP_ID` to one that already
 qualifies. Editing or weakening the tests does not fix this missing-data precondition.
 
