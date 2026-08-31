@@ -53,6 +53,7 @@ class ListApplicationsByCveToolIT
 
   // Shared substring for SingleTool's 5xx mapping — validation errors must never look like this.
   private static final String CONTRAST_API_ERROR = "Contrast API error";
+  private static final int DISCOVERY_VERSION = 2;
 
   static class TestData {
     String appId;
@@ -76,6 +77,11 @@ class ListApplicationsByCveToolIT
   @Override
   protected Class<TestData> testDataType() {
     return TestData.class;
+  }
+
+  @Override
+  protected int discoveryVersion() {
+    return DISCOVERY_VERSION;
   }
 
   /**
