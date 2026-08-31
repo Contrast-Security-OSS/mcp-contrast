@@ -45,9 +45,6 @@ def contrastIntegrationTestCredentialEnvVars = [
     'CONTRAST_USERNAME',
     'CONTRAST_ORG_ID'
 ]
-def contrastIntegrationTestOptionalEnvVars = [
-    'CONTRAST_TEST_SEED_APP_ID'
-]
 
 // Credentials come from real environment variables first, then .env.integration-test (ADR 0004).
 // Parsing logic lives in buildSrc (EnvFileParser) with unit tests.
@@ -55,12 +52,6 @@ import com.contrast.labs.build.EnvFileParser
 
 def resolveIntegrationTestCredentials = { ->
     EnvFileParser.resolve(rootProject.file('.env.integration-test'), contrastIntegrationTestCredentialEnvVars)
-}
-
-def resolveIntegrationTestEnvironment = { ->
-    EnvFileParser.resolve(
-        rootProject.file('.env.integration-test'),
-        contrastIntegrationTestCredentialEnvVars + contrastIntegrationTestOptionalEnvVars)
 }
 
 test {
@@ -78,10 +69,10 @@ tasks.register('integrationTest', Test) {
     shouldRunAfter test
     include '**/*IT.class'
     include '**/*IntegrationTest.class'
-    resolveIntegrationTestEnvironment().each { envVar, envValue ->
-        if (envValue) {
-            systemProperty envVar, envValue
-            environment envVar, envValue
+    resolveIntegrationTestCredentials().each { credentialEnvVar, credentialValue ->
+        if (credentialValue) {
+            systemProperty credentialEnvVar, credentialValue
+            environment credentialEnvVar, credentialValue
         }
     }
     mustRunAfter 'requireIntegrationTestCredentials'

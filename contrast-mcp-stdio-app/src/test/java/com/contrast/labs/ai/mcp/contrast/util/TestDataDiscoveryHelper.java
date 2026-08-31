@@ -75,8 +75,7 @@ public class TestDataDiscoveryHelper {
    * Finds an application that has third-party libraries.
    *
    * <p>This discovery pattern is useful for SCA (Software Composition Analysis) tests that need to
-   * test library-related functionality. When {@code CONTRAST_TEST_SEED_APP_ID} is set, discovery
-   * verifies that application before querying vulnerable libraries across the organization.
+   * test library-related functionality.
    *
    * @param orgId Organization ID
    * @param sdkExtension SDK extension instance
@@ -86,18 +85,6 @@ public class TestDataDiscoveryHelper {
    */
   public static Optional<ApplicationWithLibraries> findApplicationWithLibraries(
       String orgId, SDKExtension sdkExtension, int maxAppsToCheck) throws IOException {
-    return findApplicationWithLibraries(
-        orgId, sdkExtension, maxAppsToCheck, PinnedSeedApplicationDiscovery.seedAppId());
-  }
-
-  static Optional<ApplicationWithLibraries> findApplicationWithLibraries(
-      String orgId, SDKExtension sdkExtension, int maxAppsToCheck, String seedAppId)
-      throws IOException {
-    var pinnedApplication = PinnedSeedApplicationDiscovery.find(orgId, sdkExtension, seedAppId);
-    if (pinnedApplication.isPresent()) {
-      return pinnedApplication;
-    }
-
     log.info("Finding application through organization-wide vulnerable libraries...");
 
     var candidates = findVulnerableLibraryCandidates(orgId, sdkExtension);
@@ -302,8 +289,7 @@ public class TestDataDiscoveryHelper {
   }
 
   /**
-   * Finds an application with vulnerable libraries, with a capped application-scan fallback. Checks
-   * {@code CONTRAST_TEST_SEED_APP_ID} first when configured.
+   * Finds an application with vulnerable libraries, with a capped application-scan fallback.
    *
    * @param orgId Organization ID
    * @param sdkExtension SDK extension instance
