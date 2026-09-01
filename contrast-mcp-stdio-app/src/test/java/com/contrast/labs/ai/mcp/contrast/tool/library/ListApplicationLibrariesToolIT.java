@@ -24,6 +24,8 @@ import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import com.contrastsecurity.http.RuleSeverity;
 import java.io.IOException;
 import java.util.Set;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -54,17 +56,22 @@ class ListApplicationLibrariesToolIT
   private static final int API_MAX_PAGE_SIZE = 50;
   private static final int PAGINATION_PROBE_SIZE = 5;
   private static final int MIN_LIBS_FOR_PAGINATION = PAGINATION_PROBE_SIZE + 1;
+  private static final int DISCOVERY_VERSION = 3;
 
+  @Getter
   static class TestData {
     String appId;
     String appName;
     int expectedLibraryCount;
 
+    @Accessors(fluent = true)
+    boolean hasVulnerableLibrary;
+
     @Override
     public String toString() {
       return String.format(
-          "TestData{appId='%s', appName='%s', expectedLibraryCount=%d}",
-          appId, appName, expectedLibraryCount);
+          "TestData{appId='%s', appName='%s', expectedLibraryCount=%d, hasVulnerableLibrary=%s}",
+          appId, appName, expectedLibraryCount, hasVulnerableLibrary);
     }
   }
 
@@ -76,6 +83,11 @@ class ListApplicationLibrariesToolIT
   @Override
   protected Class<TestData> testDataType() {
     return TestData.class;
+  }
+
+  @Override
+  protected int discoveryVersion() {
+    return DISCOVERY_VERSION;
   }
 
   /**
@@ -98,12 +110,18 @@ class ListApplicationLibrariesToolIT
     data.appId = result.getApplication().getAppId();
     data.appName = result.getApplication().getName();
     data.expectedLibraryCount = result.getLibraries().size();
+    data.hasVulnerableLibrary = result.hasVulnerableLibrary();
     return data;
   }
 
   @Override
   protected void logTestDataDetails(TestData data) {
     log.info("Test data: {}", data);
+  }
+
+  @Override
+  protected boolean isCacheable(TestData data) {
+    return data.hasVulnerableLibrary();
   }
 
   @Test
