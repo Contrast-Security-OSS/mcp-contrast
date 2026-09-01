@@ -36,7 +36,7 @@ troubleshooting changing seed data:
 
 - `CONTRAST_TEST_CACHE_DISABLE=true` disables the disk cache.
 - `CONTRAST_TEST_CACHE_CLEAR=true` clears cached entries before the next run.
-- `CONTRAST_TEST_CACHE_TTL_HOURS=N` overrides the cache lifetime.
+- `CONTRAST_TEST_CACHE_TTL_HOURS=N` overrides the cache lifetime (default 12 hours).
 
 If discovery reports `requires seeded app with vulnerable CVE — see INTEGRATION_TESTS.md`, seed the
 organization with a qualifying application. Editing or weakening the tests does not fix this

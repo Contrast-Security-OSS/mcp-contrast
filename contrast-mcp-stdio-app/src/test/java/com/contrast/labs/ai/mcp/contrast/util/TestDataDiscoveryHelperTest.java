@@ -58,10 +58,14 @@ class TestDataDiscoveryHelperTest {
     when(sdkExtension.getLibrariesWithFilter(any(), any())).thenReturn(orgResponse);
 
     var confirmedLibrary = vulnerableLibrary("CVE-2026-2000");
+    var unusedConfirmable = List.of(vulnerableLibrary("CVE-2026-1000"));
     try (var cache = mockStatic(IntegrationTestDataCache.class)) {
       cache
           .when(() -> IntegrationTestDataCache.getLibraries(ORG_ID, USED_APP_ID, sdkExtension))
           .thenReturn(List.of(confirmedLibrary));
+      cache
+          .when(() -> IntegrationTestDataCache.getLibraries(ORG_ID, UNUSED_APP_ID, sdkExtension))
+          .thenReturn(unusedConfirmable);
 
       var result =
           TestDataDiscoveryHelper.findApplicationWithLibraries(ORG_ID, sdkExtension).orElseThrow();
