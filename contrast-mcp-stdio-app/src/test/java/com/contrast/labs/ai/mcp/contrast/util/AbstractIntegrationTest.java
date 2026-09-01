@@ -84,6 +84,11 @@ public abstract class AbstractIntegrationTest<T> {
   /** Optional hook invoked after new discovery completes successfully. */
   protected void afterDiscovery(T data) {}
 
+  /** Returns whether newly discovered test data is suitable for reuse from the disk cache. */
+  protected boolean isCacheable(T data) {
+    return true;
+  }
+
   /** Optional hook executed before discovery starts. */
   protected void onDiscoveryStart() {
     log.info("Starting test data discovery (using shared SDK)...");
@@ -112,7 +117,9 @@ public abstract class AbstractIntegrationTest<T> {
       testData = performDiscovery();
       discoveryDurationMs = System.currentTimeMillis() - startTime;
       logDiscoverySuccess(testData, discoveryDurationMs);
-      IntegrationTestDiskCache.write(cacheKey(), orgId, testData);
+      if (isCacheable(testData)) {
+        IntegrationTestDiskCache.write(cacheKey(), orgId, testData);
+      }
       afterDiscovery(testData);
     } catch (NoTestDataException e) {
       log.error(e.getMessage());
