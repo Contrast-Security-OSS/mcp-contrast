@@ -317,7 +317,7 @@ jobs:
           done
 
       - name: Create GitHub Release
-        uses: step-security/action-gh-release@d2093dbdaf0c6507874908247e14bbc4dee6a72d # v3.0.1
+        uses: step-security/action-gh-release@44319d37c8b7966bf07f89f0cbf63408141446df # v3.0.3
         with:
           tag_name: ${{ steps.versions.outputs.tag }}
           name: Release ${{ steps.versions.outputs.tag }}
