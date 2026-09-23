@@ -27,9 +27,6 @@ public class App {
   @SerializedName("app_id")
   private String appId;
 
-  @SerializedName("last_seen")
-  private long lastSeen;
-
   @SerializedName("last_reset")
   private Object lastReset;
 
