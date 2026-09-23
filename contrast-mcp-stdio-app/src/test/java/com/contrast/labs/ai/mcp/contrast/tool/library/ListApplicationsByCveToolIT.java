@@ -26,6 +26,7 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.springframework.ai.util.json.JsonParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -302,6 +303,8 @@ class ListApplicationsByCveToolIT
     assertThat(result.data().getApps())
         .as("at least one impacted app must carry a populated firstSeen timestamp")
         .anyMatch(app -> app.getFirstSeen() > 0);
+    assertThat(result.notices()).noneMatch(n -> n.contains("never been observed running"));
+    assertThat(JsonParser.toJson(result)).doesNotContain("lastSeen", "last_seen");
   }
 
   @Test

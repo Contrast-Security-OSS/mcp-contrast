@@ -305,8 +305,9 @@ class ListApplicationsByCveToolTest {
   }
 
   @Test
-  void listApplicationsByCve_should_omit_unreliable_last_seen_and_never_observed_notice()
-      throws Exception {
+  void
+      listApplicationsByCve_should_omit_unreliable_last_seen_and_never_observed_notice_when_teamserver_sends_last_seen_zero()
+          throws Exception {
     var cveData =
         GsonFactory.create()
             .fromJson(
