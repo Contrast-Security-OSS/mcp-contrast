@@ -26,6 +26,7 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.springframework.ai.util.json.JsonParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -283,12 +284,8 @@ class ListApplicationsByCveToolIT
         .as("known-vulnerable CVE must return at least one impacted app")
         .isNotEmpty();
 
-    // Every returned App must populate identity plus non-negative seen-timestamps. Enrichment
-    // counters are validated separately in the class-usage test.
-    //
-    // lastSeen==0 is a documented sentinel for "app has never been observed running" (common
-    // for SCA-only apps that are catalogued but have no runtime activity). Only enforce
-    // lastSeen >= firstSeen when lastSeen is populated.
+    // Every returned App must populate identity plus a non-negative first-seen timestamp.
+    // Enrichment counters are validated separately in the class-usage test.
     assertThat(result.data().getApps())
         .as("every impacted app must populate identity and timestamp fields")
         .allSatisfy(
@@ -298,14 +295,6 @@ class ListApplicationsByCveToolIT
               assertThat(app.getFirstSeen())
                   .as("%s.firstSeen must be non-negative", app.getAppId())
                   .isNotNegative();
-              assertThat(app.getLastSeen())
-                  .as("%s.lastSeen must be non-negative", app.getAppId())
-                  .isNotNegative();
-              if (app.getLastSeen() > 0) {
-                assertThat(app.getLastSeen())
-                    .as("%s.lastSeen must not precede firstSeen when populated", app.getAppId())
-                    .isGreaterThanOrEqualTo(app.getFirstSeen());
-              }
             });
 
     // Identity must actually be populated for every app — a real test of the payload, not just
@@ -314,6 +303,8 @@ class ListApplicationsByCveToolIT
     assertThat(result.data().getApps())
         .as("at least one impacted app must carry a populated firstSeen timestamp")
         .anyMatch(app -> app.getFirstSeen() > 0);
+    assertThat(result.notices()).noneMatch(n -> n.contains("never been observed running"));
+    assertThat(JsonParser.toJson(result)).doesNotContain("lastSeen", "last_seen");
   }
 
   @Test
