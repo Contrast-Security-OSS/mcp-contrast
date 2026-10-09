@@ -176,7 +176,7 @@ jobs:
       # syft-version input is not tracked by Dependabot and could silently
       # go stale.
       - name: Install Syft
-        uses: anchore/sbom-action/download-syft@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
 
       # Scan the packaged JAR here in both formats for ecosystem interoperability.
       - name: Generate release jar SBOMs
