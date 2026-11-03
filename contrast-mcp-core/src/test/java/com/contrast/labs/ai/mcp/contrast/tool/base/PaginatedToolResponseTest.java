@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -134,7 +135,7 @@ class PaginatedToolResponseTest {
 
   @Test
   void compactConstructor_should_makeListsImmutable() {
-    var mutableItems = new java.util.ArrayList<String>();
+    var mutableItems = new ArrayList<String>();
     mutableItems.add("item1");
 
     var response =

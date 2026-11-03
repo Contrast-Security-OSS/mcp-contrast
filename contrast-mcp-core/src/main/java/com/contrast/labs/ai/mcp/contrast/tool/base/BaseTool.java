@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.lang.Nullable;
 
 /**
  * Base class for all Contrast MCP tools. Provides common infrastructure shared across paginated and
@@ -29,6 +29,9 @@ public abstract class BaseTool {
   public static final String AUTHENTICATION_OR_NOT_FOUND_ERROR =
       "Authentication failed or resource not found. Verify credentials and that the resource ID"
           + " is correct.";
+
+  /** Notice returned when a lookup resolves to no resource (distinct from the HTTP 404 text). */
+  public static final String RESOURCE_NOT_FOUND_MESSAGE = "Resource not found";
 
   private static final AutoCloseable NOOP_AUTHENTICATION_SCOPE = () -> {};
 

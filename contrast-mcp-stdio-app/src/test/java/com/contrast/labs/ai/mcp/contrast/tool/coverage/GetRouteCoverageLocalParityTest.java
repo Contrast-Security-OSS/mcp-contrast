@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.AgentSession;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.sessionmetadata.SessionMetadataResponse;
-import com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator;
+import com.contrast.labs.ai.mcp.contrast.tool.base.ApplicationLicenseDiscriminator;
 import com.contrastsecurity.exceptions.UnauthorizedException;
 import com.contrastsecurity.models.RouteCoverageBySessionIDAndMetadataRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;

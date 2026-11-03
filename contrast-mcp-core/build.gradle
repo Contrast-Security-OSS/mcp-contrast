@@ -23,6 +23,7 @@ dependencies {
 
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'ch.qos.logback:logback-classic'
+    testImplementation "net.jqwik:jqwik:${jqwikVersion}"
 }
 
 def publicMavenReleaseRepositoryName = 'contrastPublicRelease'
@@ -179,10 +180,15 @@ pitest {
     junit5PluginVersion = pitestJunit5PluginVersion
     targetClasses = ['com.contrast.labs.ai.mcp.contrast.*']
     targetTests = ['com.contrast.labs.ai.mcp.contrast.*']
-    testStrengthThreshold = 92
+    testStrengthThreshold = 93
     outputFormats = ['HTML', 'XML']
     timestampedReports = false
     threads = Runtime.runtime.availableProcessors()
+}
+
+// PIT rides check (ADR 0003); up-to-date checking makes it free when core is unchanged.
+tasks.named('check') {
+    dependsOn tasks.named('pitest')
 }
 
 String mcpCoreArtifactProperty(String name) {

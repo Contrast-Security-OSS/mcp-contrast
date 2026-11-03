@@ -28,7 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.Getter;
-import org.springframework.lang.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /** Validated public parameters and wire translation for server searches. */
 @Getter

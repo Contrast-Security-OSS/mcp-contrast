@@ -43,3 +43,17 @@ _Avoid_: conflating with Recommendation or `howToFix`
 **Status display label**:
 The human-readable status text TeamServer returns on vulnerability records, for example "Remediated - Auto-Verified" for a vulnerability in the AutoRemediated status. Filters take canonical Vulnerability statuses, and this server's tool results carry canonical Vulnerability statuses, not display labels.
 _Avoid_: treating a display label as a valid filter value or exposing one in a tool result
+
+## Build verification
+
+**Check**:
+All verification provable from the repository alone, needing no external credentials or comparison ref. The Gradle `check` lifecycle task is its definition (ADR 0003); anything else claiming to be "the checks" is a subset or a drift.
+_Avoid_: check-test, "the checks" for hand-picked task lists
+
+**Verify**:
+Check plus the live TeamServer integration contract. Requires Contrast credentials and fails loudly without them, a Verify that ran zero integration tests has not verified (ADR 0004).
+_Avoid_: full build, treating a credential-less run as verified
+
+**Lint**:
+The fast inner-loop subset, formatting and style only. A convenience, never a gate.
+_Avoid_: calling a lint-only run a Check

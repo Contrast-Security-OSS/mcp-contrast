@@ -1,5 +1,5 @@
 #!/bin/bash
-# Pre-push hook to block changed-file coverage failures before review.
+# Pre-push hook: runs the Gradle check lifecycle, then changed-file coverage verification.
 
 set -euo pipefail
 
@@ -141,8 +141,9 @@ main() {
   local -a remote_refs=()
   local -a remote_shas=()
 
-  if [[ "${SKIP_COVERAGE_HOOK:-}" == "1" ]]; then
-    printf "SKIP_COVERAGE_HOOK=1 set; skipping changed-file coverage verification.\n" >&2
+  # Umbrella bypass, humans only.
+  if [[ "${SKIP_PUSH_GATE:-}" == "1" ]]; then
+    printf "SKIP_PUSH_GATE set; skipping the pre-push gate (check + changed-file coverage).\n" >&2
     return
   fi
 
@@ -160,9 +161,12 @@ main() {
 
   # If every stdin row was a deletion, there are no pushed commits to analyze.
   if (( ${#local_refs[@]} == 0 )); then
-    printf "No pushed commit refs; skipping changed-file coverage verification.\n"
+    printf "No pushed commit refs; skipping the pre-push gate.\n"
     return
   fi
+
+  # Once per push. Verifies the working tree, not the pushed commits; CI stays authoritative.
+  perform_check "running the Gradle check lifecycle" ./gradlew -q check
 
   head_sha=$(git rev-parse HEAD)
 
@@ -190,13 +194,13 @@ main() {
 
     # Gradle startup dominates this hook, so skip refs with no Java changes.
     if [[ -z "$changed_files" ]]; then
-      printf "No changed Java files for %s; skipping changed-file coverage verification.\n" "$local_ref"
+      printf "No changed Java files for %s; skipping changed-file verification.\n" "$local_ref"
       continue
     fi
 
     warn_if_coverage_tree_is_dirty
 
-    printf "Running changed-file coverage verification for %s -> %s against base %s.\n" \
+    printf "Running changed-file static analysis for %s -> %s against base %s.\n" \
       "$local_ref" "$remote_ref" "$base_ref"
 
     # Explicit base, because the gate has no ref of its own to diff against and the
@@ -204,12 +208,13 @@ main() {
     # the guard above, which is the only commit the working-tree report can describe.
     # No percentage here: changedFileCoverageMinimum in build.gradle is the source of truth.
     perform_check \
-      "checking changed Java files for line coverage" \
+      "checking changed Java files for line coverage and PMD" \
       ./gradlew \
       -q \
       "-PstaticAnalysisChangedBase=$base_ref" \
       "-PstaticAnalysisChangedHead=$local_sha" \
-      jacocoChangedFileCoverageVerification
+      jacocoChangedFileCoverageVerification \
+      verifyPmdChangedFilesBaseline
   done
 }
 

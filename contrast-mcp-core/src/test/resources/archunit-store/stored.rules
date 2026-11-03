@@ -1,0 +1,9 @@
+#Tue Aug 18 12:55:27 EDT 2026
+Client\ classes\ should\ live\ in\ the\ client\ package=23313d7c-6c63-41ab-ae0d-bde2a1aa14b0
+Data\ models\ should\ not\ depend\ on\ tool\ implementations=140bf7a4-013a-4bf7-9f04-529d4d72d3f5
+Domain-specific\ Params\ classes\ should\ live\ in\ a\ params\ sub-package=31ae6a92-3db8-4788-a6e4-1d4d441779d5
+Hints\ should\ not\ depend\ on\ tool\ implementations=3290dce8-000c-4d94-a1cf-f58d57484bc6
+Only\ client\ and\ sdkextension\ may\ depend\ on\ the\ Contrast\ SDK\ directly=99efc868-3313-4f9a-948d-23c14f9ac1e1
+Result\ models\ should\ not\ depend\ on\ tool\ implementations=c1555d93-b23c-4a7e-bdef-e6a7f88b3833
+Tool\ domains\ should\ not\ depend\ on\ sibling\ domains\ (extract\ shared\ code\ to\ tool.base)=b141356a-0184-40ad-b0c0-624576f073da
+Top-level\ packages\ should\ be\ free\ of\ dependency\ cycles=597ecc54-261b-4ce0-90a0-a9562d7fa38e

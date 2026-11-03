@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.base;
 
+import static com.contrast.labs.ai.mcp.contrast.tool.base.BaseTool.RESOURCE_NOT_FOUND_MESSAGE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.contrastsecurity.exceptions.HttpResponseException;
@@ -187,7 +188,7 @@ class CursorPaginatedToolTest {
     var result = tool.executePipeline(OPAQUE_CURSOR, 25, TestParams::valid);
 
     assertThat(result.isSuccess()).isFalse();
-    assertThat(result.errors()).containsExactly("Resource not found");
+    assertThat(result.errors()).containsExactly(RESOURCE_NOT_FOUND_MESSAGE);
     assertThat(result.errors()).noneMatch(error -> error.contains(OPAQUE_CURSOR));
   }
 
@@ -227,6 +228,28 @@ class CursorPaginatedToolTest {
         .as("ActionableToolErrorException message must surface verbatim")
         .containsExactly(actionableMessage);
     assertThat(result.items()).isEmpty();
+  }
+
+  @Test
+  void executePipeline_should_surface_illegalArgumentException_message_as_user_error() {
+    var iaeMessage =
+        "Metadata field(s) not found: never_a_real_field_zzq_123. Available fields can be"
+            + " discovered via the Contrast UI.";
+    tool.setDoExecuteHandler(
+        (pagination, params, collector) -> {
+          throw new IllegalArgumentException(iaeMessage);
+        });
+
+    var result = tool.executePipeline(OPAQUE_CURSOR, 25, TestParams::valid);
+
+    assertThat(result.isSuccess()).isFalse();
+    assertThat(result.errors())
+        .as("IllegalArgumentException message must surface verbatim as the user-facing error")
+        .singleElement()
+        .isEqualTo(iaeMessage);
+    assertThat(result.errors())
+        .as("IllegalArgumentException must not be masked as a generic internal error")
+        .noneMatch(e -> e.contains("An internal error occurred"));
   }
 
   @Test

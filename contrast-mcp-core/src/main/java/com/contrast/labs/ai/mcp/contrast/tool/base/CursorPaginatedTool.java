@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,8 +25,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import org.springframework.ai.chat.model.ToolContext;
-import org.springframework.lang.Nullable;
 
 /**
  * Abstract base class for cursor/keyset-backed MCP list tools. Subclasses must treat cursor values
@@ -83,18 +83,19 @@ public abstract class CursorPaginatedTool<P extends ToolParams, R> extends BaseT
     } catch (UnauthorizedException e) {
       return handleException(e, pagination, requestId, mapHttpErrorCode(e.getCode()));
     } catch (ResourceNotFoundException e) {
-      return handleException(e, pagination, requestId, "Resource not found");
+      return handleException(e, pagination, requestId, RESOURCE_NOT_FOUND_MESSAGE);
     } catch (HttpResponseException e) {
       return handleHttpResponseException(e, pagination, requestId, collector);
-    } catch (ActionableToolErrorException e) {
-      return handleException(e, pagination, requestId, e.getMessage());
-    } catch (IllegalArgumentException e) {
+    } catch (ActionableToolErrorException | IllegalArgumentException e) {
+      // User-input rejection raised mid-execution. The exception message is the actionable user
+      // message.
       return handleException(e, pagination, requestId, e.getMessage());
     } catch (Exception e) {
       log.atError()
           .addKeyValue(LoggingKeys.REQUEST_ID, requestId)
           .addKeyValue(LoggingKeys.CURSOR, pagination.cursorPresence())
           .addKeyValue(LoggingKeys.EXCEPTION_TYPE, e.getClass().getSimpleName())
+          .setCause(e)
           .setMessage("Request failed unexpectedly")
           .log();
       return CursorToolResponse.error(

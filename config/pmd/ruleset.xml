@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset
+    name="Contrast MCP PMD Rules"
+    xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.github.io/schema/ruleset_2_0_0.xsd">
+
+  <description>
+    Static-analysis rules shared by main and test sources. Main sources add
+    production-only rules from main-ruleset.xml.
+  </description>
+
+  <rule ref="category/java/codestyle.xml/UnnecessaryFullyQualifiedName"/>
+  <rule ref="category/java/codestyle.xml/UnnecessaryImport"/>
+  <rule ref="category/java/design.xml/UseUtilityClass"/>
+  <rule ref="category/java/errorprone.xml/EmptyCatchBlock"/>
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateField"/>
+  <rule ref="category/java/bestpractices.xml/UnusedPrivateMethod"/>
+  <rule ref="category/java/bestpractices.xml/UnusedLocalVariable"/>
+  <rule ref="category/java/bestpractices.xml/UnusedFormalParameter"/>
+
+  <!-- Error-prone: latent bugs, broken null handling, and exception mishandling -->
+  <rule ref="category/java/errorprone.xml/CompareObjectsWithEquals"/>
+  <rule ref="category/java/errorprone.xml/BrokenNullCheck"/>
+  <rule ref="category/java/errorprone.xml/MisplacedNullCheck"/>
+  <rule ref="category/java/errorprone.xml/InvalidLogMessageFormat"/>
+  <rule ref="category/java/errorprone.xml/UnnecessaryBooleanAssertion"/>
+  <rule ref="category/java/errorprone.xml/AvoidCatchingGenericException">
+    <properties>
+      <property name="typesThatShouldNotBeCaught"
+                value="java.lang.NullPointerException,java.lang.Throwable"/>
+    </properties>
+  </rule>
+  <rule ref="category/java/errorprone.xml/DoNotThrowExceptionInFinally"/>
+  <rule ref="category/java/errorprone.xml/ConstructorCallsOverridableMethod"/>
+  <rule ref="category/java/errorprone.xml/CloseResource"/>
+
+  <!-- Best practices: dead assignments, mutation of inputs, and modern idioms -->
+  <rule ref="category/java/bestpractices.xml/UnusedAssignment"/>
+  <rule ref="category/java/bestpractices.xml/AvoidReassigningLoopVariables"/>
+  <rule ref="category/java/bestpractices.xml/AvoidReassigningParameters"/>
+  <rule ref="category/java/bestpractices.xml/UseTryWithResources"/>
+  <rule ref="category/java/bestpractices.xml/UseCollectionIsEmpty"/>
+  <rule ref="category/java/bestpractices.xml/UseStandardCharsets"/>
+  <rule ref="category/java/bestpractices.xml/PrimitiveWrapperInstantiation"/>
+  <rule ref="category/java/bestpractices.xml/ForLoopCanBeForeach"/>
+  <rule ref="category/java/bestpractices.xml/SimplifiableTestAssertion"/>
+  <rule ref="category/java/bestpractices.xml/LiteralsFirstInComparisons"/>
+
+  <!-- Design: exception hygiene and needless structure -->
+  <rule ref="category/java/design.xml/AvoidRethrowingException"/>
+  <rule ref="category/java/design.xml/AvoidThrowingNullPointerException"/>
+  <rule ref="category/java/design.xml/CollapsibleIfStatements"/>
+  <rule ref="category/java/design.xml/SimplifyConditional"/>
+  <rule ref="category/java/design.xml/SingularField"/>
+
+  <!-- Performance: needless allocation and string handling -->
+  <rule ref="category/java/performance.xml/StringInstantiation"/>
+  <rule ref="category/java/performance.xml/OptimizableToArrayCall"/>
+  <rule ref="category/java/performance.xml/AddEmptyString"/>
+  <rule ref="category/java/performance.xml/InefficientStringBuffering"/>
+
+  <!-- Code style: redundant syntax -->
+  <rule ref="category/java/codestyle.xml/EmptyControlStatement"/>
+  <rule ref="category/java/codestyle.xml/UnnecessaryReturn"/>
+  <rule ref="category/java/codestyle.xml/UnnecessaryBoxing"/>
+  <rule ref="category/java/codestyle.xml/UnnecessaryCast"/>
+  <rule ref="category/java/codestyle.xml/UnnecessaryModifier"/>
+  <rule ref="category/java/codestyle.xml/IdenticalCatchBranches"/>
+
+  <!-- Multithreading: unsafe concurrency patterns -->
+  <rule ref="category/java/multithreading.xml/DoubleCheckedLocking"/>
+  <rule ref="category/java/multithreading.xml/DontCallThreadRun"/>
+  <rule ref="category/java/multithreading.xml/UnsynchronizedStaticFormatter"/>
+
+  <rule ref="category/java/design.xml/CyclomaticComplexity">
+    <properties>
+      <!-- 13, not the PMD default 10: audited every method in the 10-12 band and all were
+           idiomatic flat guard chains, state machines, or exhaustive switches that degrade
+           when split. Genuine decomposition wins started at 13. NPathComplexity was removed
+           for the same reason: every real catch co-occurred with a CyclomaticComplexity hit,
+           while its unique flags were 2^n over independent null-checked filter appends. -->
+      <property name="methodReportLevel" value="13"/>
+      <property name="classReportLevel" value="80"/>
+    </properties>
+  </rule>
+  <rule ref="category/java/design.xml/ExcessiveParameterList">
+    <properties>
+      <property name="minimum" value="8"/>
+    </properties>
+  </rule>
+
+  <rule
+      name="AvoidInlineLoggingKeyLiteral"
+      language="java"
+      message="Declare logging keys in LoggingKeys instead of inline literals."
+      class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+    <description>Structured log key names must be constants defined in LoggingKeys.</description>
+    <priority>3</priority>
+    <properties>
+      <property name="xpath">
+        <value>
+<![CDATA[
+//MethodCall[
+  (@MethodName = 'addKeyValue' or @MethodName = 'keyValue')
+  and ArgumentList/*[1][self::StringLiteral]
+]
+]]>
+        </value>
+      </property>
+    </properties>
+  </rule>
+
+  <rule
+      name="PreferLombokNoArgsConstructor"
+      language="java"
+      message="Use @NoArgsConstructor(access = AccessLevel.PRIVATE) instead of a hand-written private constructor."
+      class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+    <description>Utility classes should use Lombok for private constructor boilerplate.</description>
+    <priority>3</priority>
+    <properties>
+      <property name="xpath">
+        <value>
+<![CDATA[
+//ClassDeclaration[
+  @Final = true()
+  and ClassBody/ConstructorDeclaration[
+    @Visibility = 'private'
+    and count(FormalParameters/FormalParameter) = 0
+    and count(Block/*) = 0
+  ]
+  and not(.//Annotation/ClassType[@SimpleName = 'NoArgsConstructor'])
+  and not(ClassBody/FieldDeclaration[@Static = false()])
+  and not(ClassBody/MethodDeclaration[@Static = false()])
+]
+]]>
+        </value>
+      </property>
+    </properties>
+  </rule>
+
+  <rule
+      name="FluentLogInCatchRequiresCause"
+      language="java"
+      message="SLF4J fluent logging inside catch blocks must call setCause(exception)."
+      class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+    <description>log.at*().log() in a catch block drops the stack trace unless setCause is present.</description>
+    <priority>2</priority>
+    <properties>
+      <property name="xpath">
+        <value>
+<![CDATA[
+//CatchClause//MethodCall[
+  @MethodName = 'log'
+  and descendant::MethodCall[starts-with(@MethodName, 'at')]
+  and not(descendant::MethodCall[@MethodName = 'setCause'])
+]
+]]>
+        </value>
+      </property>
+    </properties>
+  </rule>
+</ruleset>

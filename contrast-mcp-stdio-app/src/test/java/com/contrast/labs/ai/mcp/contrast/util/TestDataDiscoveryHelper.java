@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,17 @@ import com.contrast.labs.ai.mcp.contrast.sdkextension.data.ProtectData;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.application.Application;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.Route;
 import com.contrast.labs.ai.mcp.contrast.sdkextension.data.routecoverage.RouteCoverageResponse;
+import com.contrastsecurity.http.LibraryFilterForm;
+import com.contrastsecurity.http.LibraryFilterForm.LibraryExpandValues;
+import com.contrastsecurity.http.LibraryFilterForm.LibraryQuickFilterType;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Helper utility for discovering suitable test data in integration tests.
@@ -32,7 +39,11 @@ import lombok.extern.slf4j.Slf4j;
  * <p>Provides reusable discovery patterns that leverage SDK caching for efficiency.
  */
 @Slf4j
+@UtilityClass
 public class TestDataDiscoveryHelper {
+
+  private static final int VULNERABLE_LIBRARY_PAGE_SIZE = 25;
+  private static final int MAX_VULNERABLE_LIBRARY_PAGES = 4;
 
   /**
    * Finds the first available application in the organization.
@@ -68,13 +79,122 @@ public class TestDataDiscoveryHelper {
    *
    * @param orgId Organization ID
    * @param sdkExtension SDK extension instance
-   * @param maxAppsToCheck Maximum number of applications to check (default: 50)
+   * @param maxAppsToCheck Maximum number of applications to inspect if the org query has no match
    * @return Optional containing an application with libraries, or empty if none found
    * @throws IOException If an error occurs during discovery
    */
   public static Optional<ApplicationWithLibraries> findApplicationWithLibraries(
       String orgId, SDKExtension sdkExtension, int maxAppsToCheck) throws IOException {
-    log.info("Finding application with libraries (checking up to {} apps)...", maxAppsToCheck);
+    log.info("Finding application through organization-wide vulnerable libraries...");
+
+    var candidates = findVulnerableLibraryCandidates(orgId, sdkExtension);
+    for (var candidate : candidates) {
+      var confirmed = confirmCandidate(orgId, sdkExtension, candidate);
+      if (confirmed.isPresent()) {
+        return confirmed;
+      }
+    }
+
+    log.info("No org-level vulnerable-library candidate confirmed; trying app scan fallback");
+    return findApplicationByScanning(orgId, sdkExtension, maxAppsToCheck);
+  }
+
+  private static List<VulnerableLibraryCandidate> findVulnerableLibraryCandidates(
+      String orgId, SDKExtension sdkExtension) throws IOException {
+    var usedCveCandidates = new ArrayList<VulnerableLibraryCandidate>();
+    var otherCveCandidates = new ArrayList<VulnerableLibraryCandidate>();
+    var vulnerableNoCveCandidates = new ArrayList<VulnerableLibraryCandidate>();
+
+    for (int page = 0; page < MAX_VULNERABLE_LIBRARY_PAGES; page++) {
+      var filter = vulnerableLibraryFilter(page * VULNERABLE_LIBRARY_PAGE_SIZE);
+      var response = sdkExtension.getLibrariesWithFilter(orgId, filter);
+      var libraries = response == null ? null : response.getLibraries();
+      if (CollectionUtils.isEmpty(libraries)) {
+        break;
+      }
+
+      for (var library : libraries) {
+        addCandidates(library, usedCveCandidates, otherCveCandidates, vulnerableNoCveCandidates);
+      }
+
+      var count = response.getCount();
+      int nextOffset = filter.getOffset() + libraries.size();
+      if (libraries.size() < VULNERABLE_LIBRARY_PAGE_SIZE
+          || (count != null && nextOffset >= count)) {
+        break;
+      }
+    }
+
+    usedCveCandidates.addAll(otherCveCandidates);
+    usedCveCandidates.addAll(vulnerableNoCveCandidates);
+    return usedCveCandidates;
+  }
+
+  private static LibraryFilterForm vulnerableLibraryFilter(int offset) {
+    var filter = new LibraryFilterForm();
+    filter.setLimit(VULNERABLE_LIBRARY_PAGE_SIZE);
+    filter.setOffset(offset);
+    filter.setQuickFilter(LibraryQuickFilterType.VULNERABLE);
+    filter.setExpand(EnumSet.of(LibraryExpandValues.VULNS, LibraryExpandValues.APPS));
+    return filter;
+  }
+
+  private static void addCandidates(
+      LibraryExtended library,
+      List<VulnerableLibraryCandidate> usedCveCandidates,
+      List<VulnerableLibraryCandidate> otherCveCandidates,
+      List<VulnerableLibraryCandidate> vulnerableNoCveCandidates) {
+    if (library == null || CollectionUtils.isEmpty(library.getApplications())) {
+      return;
+    }
+
+    var probe = probeForVulnerableLibrary(List.of(library));
+    if (!probe.hasVulnerableLibrary()) {
+      return;
+    }
+
+    for (var sdkApplication : library.getApplications()) {
+      var candidate =
+          new VulnerableLibraryCandidate(
+              sdkApplication.getId(), sdkApplication.getName(), probe.cveId());
+      if (!probe.hasCveMatch()) {
+        vulnerableNoCveCandidates.add(candidate);
+      } else if (library.getClassesUsed() > 0) {
+        usedCveCandidates.add(candidate);
+      } else {
+        otherCveCandidates.add(candidate);
+      }
+    }
+  }
+
+  private static Optional<ApplicationWithLibraries> confirmCandidate(
+      String orgId, SDKExtension sdkExtension, VulnerableLibraryCandidate candidate) {
+    try {
+      var libraries = IntegrationTestDataCache.getLibraries(orgId, candidate.appId(), sdkExtension);
+      var probe = probeForVulnerableLibrary(libraries);
+      if (!probe.hasVulnerableLibrary()) {
+        return Optional.empty();
+      }
+
+      var application = new Application();
+      application.setAppId(candidate.appId());
+      application.setName(candidate.appName());
+      var cveId = candidate.cveId() == null ? probe.cveId() : candidate.cveId();
+      log.info(
+          "Found application through vulnerable library query (CVE={}): {} (ID: {})",
+          cveId,
+          candidate.appName(),
+          candidate.appId());
+      return Optional.of(new ApplicationWithLibraries(application, libraries, true, cveId));
+    } catch (IOException e) {
+      log.warn("Error confirming libraries for app {}: {}", candidate.appId(), e.getMessage());
+      return Optional.empty();
+    }
+  }
+
+  private static Optional<ApplicationWithLibraries> findApplicationByScanning(
+      String orgId, SDKExtension sdkExtension, int maxAppsToCheck) throws IOException {
+    log.info("Scanning up to {} applications for a library fallback...", maxAppsToCheck);
 
     var applications = IntegrationTestDataCache.getApplications(orgId, sdkExtension);
 
@@ -108,39 +228,23 @@ public class TestDataDiscoveryHelper {
 
       try {
         var libraries = IntegrationTestDataCache.getLibraries(orgId, app.getAppId(), sdkExtension);
-        if (libraries == null || libraries.isEmpty()) {
+        if (CollectionUtils.isEmpty(libraries)) {
           continue;
         }
 
-        boolean hasVulnerableLibrary = false;
-        String vulnerableCveId = null;
-        for (LibraryExtended lib : libraries) {
-          if (lib.getVulnerabilities() == null || lib.getVulnerabilities().isEmpty()) {
-            continue;
-          }
-          hasVulnerableLibrary = true;
-          for (var vuln : lib.getVulnerabilities()) {
-            if (vuln.getName() != null && vuln.getName().startsWith("CVE-")) {
-              vulnerableCveId = vuln.getName();
-              break;
-            }
-          }
-          if (vulnerableCveId != null) {
-            break;
-          }
-        }
+        var probe = probeForVulnerableLibrary(libraries);
 
-        if (hasVulnerableLibrary && vulnerableCveId != null) {
+        if (probe.hasCveMatch()) {
           log.info(
               "✓ Found application with {} library/libraries (vulnerable, CVE={}): {} (ID: {})",
               libraries.size(),
-              vulnerableCveId,
+              probe.cveId(),
               app.getName(),
               app.getAppId());
-          return Optional.of(new ApplicationWithLibraries(app, libraries, true, vulnerableCveId));
+          return Optional.of(new ApplicationWithLibraries(app, libraries, true, probe.cveId()));
         }
 
-        if (hasVulnerableLibrary) {
+        if (probe.hasVulnerableLibrary()) {
           if (firstVulnerableNoCveMatch == null) {
             log.debug(
                 "Remembering vulnerable app without CVE-named vuln as fallback: {} (ID: {})",
@@ -185,7 +289,7 @@ public class TestDataDiscoveryHelper {
   }
 
   /**
-   * Finds an application with libraries, checking up to 50 applications.
+   * Finds an application with vulnerable libraries, with a capped application-scan fallback.
    *
    * @param orgId Organization ID
    * @param sdkExtension SDK extension instance
@@ -196,6 +300,32 @@ public class TestDataDiscoveryHelper {
       String orgId, SDKExtension sdkExtension) throws IOException {
     return findApplicationWithLibraries(orgId, sdkExtension, 50);
   }
+
+  /** Probes a library list for vulnerable libraries and a CVE-prefixed vulnerability name. */
+  private static VulnerableLibraryProbe probeForVulnerableLibrary(List<LibraryExtended> libraries) {
+    boolean hasVulnerableLibrary = false;
+    for (LibraryExtended lib : libraries) {
+      if (lib.getVulnerabilities() == null || lib.getVulnerabilities().isEmpty()) {
+        continue;
+      }
+      hasVulnerableLibrary = true;
+      for (var vuln : lib.getVulnerabilities()) {
+        if (vuln.getName() != null && vuln.getName().startsWith("CVE-")) {
+          return new VulnerableLibraryProbe(true, vuln.getName());
+        }
+      }
+    }
+    return new VulnerableLibraryProbe(hasVulnerableLibrary, null);
+  }
+
+  /** Result of probing a library list for vulnerable libraries and CVE-named vulnerabilities. */
+  private record VulnerableLibraryProbe(boolean hasVulnerableLibrary, String cveId) {
+    private boolean hasCveMatch() {
+      return hasVulnerableLibrary && cveId != null;
+    }
+  }
+
+  private record VulnerableLibraryCandidate(String appId, String appName, String cveId) {}
 
   /**
    * Finds an application that has Protect/ADR rules configured.
@@ -332,32 +462,16 @@ public class TestDataDiscoveryHelper {
               null);
 
       // Attempt to fetch session metadata for richer assertions
-      try {
-        var sessionMetadata =
-            IntegrationTestDataCache.getLatestSessionMetadata(orgId, app.getAppId(), sdkExtension);
-        if (sessionMetadata.isPresent()
-            && sessionMetadata.get().getAgentSession() != null
-            && sessionMetadata.get().getAgentSession().getMetadataSessions() != null
-            && !sessionMetadata.get().getAgentSession().getMetadataSessions().isEmpty()) {
-          var firstMetadata = sessionMetadata.get().getAgentSession().getMetadataSessions().get(0);
-          var metadataField = firstMetadata.getMetadataField();
-          if (metadataField != null
-              && metadataField.getAgentLabel() != null
-              && firstMetadata.getValue() != null) {
-            candidate =
-                candidate.withSessionMetadata(
-                    metadataField.getAgentLabel(), firstMetadata.getValue());
-            log.info(
-                "✓ Found application with routes ({}) and session metadata {}={}",
-                candidate.routeCount(),
-                candidate.sessionMetadataName(),
-                candidate.sessionMetadataValue());
-            return Optional.of(candidate);
-          }
-        }
-      } catch (IOException e) {
-        log.warn(
-            "Error retrieving session metadata for app {}: {}", app.getAppId(), e.getMessage());
+      var metadataPair = findSessionMetadataPair(orgId, app, sdkExtension);
+      if (metadataPair.isPresent()) {
+        candidate =
+            candidate.withSessionMetadata(metadataPair.get().label(), metadataPair.get().value());
+        log.info(
+            "✓ Found application with routes ({}) and session metadata {}={}",
+            candidate.routeCount(),
+            candidate.sessionMetadataName(),
+            candidate.sessionMetadataValue());
+        return Optional.of(candidate);
       }
 
       if (fallback == null) {
@@ -389,6 +503,36 @@ public class TestDataDiscoveryHelper {
       String orgId, SDKExtension sdkExtension) throws IOException {
     return findApplicationWithRouteCoverage(orgId, sdkExtension, 50);
   }
+
+  /** Fetches the first session metadata agent label/value pair for an application, if any. */
+  private static Optional<SessionMetadataPair> findSessionMetadataPair(
+      String orgId, Application app, SDKExtension sdkExtension) {
+    try {
+      var sessionMetadata =
+          IntegrationTestDataCache.getLatestSessionMetadata(orgId, app.getAppId(), sdkExtension);
+      if (sessionMetadata.isEmpty()
+          || sessionMetadata.get().getAgentSession() == null
+          || sessionMetadata.get().getAgentSession().getMetadataSessions() == null
+          || sessionMetadata.get().getAgentSession().getMetadataSessions().isEmpty()) {
+        return Optional.empty();
+      }
+      var firstMetadata = sessionMetadata.get().getAgentSession().getMetadataSessions().get(0);
+      var metadataField = firstMetadata.getMetadataField();
+      if (metadataField == null
+          || metadataField.getAgentLabel() == null
+          || firstMetadata.getValue() == null) {
+        return Optional.empty();
+      }
+      return Optional.of(
+          new SessionMetadataPair(metadataField.getAgentLabel(), firstMetadata.getValue()));
+    } catch (IOException e) {
+      log.warn("Error retrieving session metadata for app {}: {}", app.getAppId(), e.getMessage());
+      return Optional.empty();
+    }
+  }
+
+  /** Session metadata agent label/value pair discovered for an application. */
+  private record SessionMetadataPair(String label, String value) {}
 
   /**
    * Container class for an application with its libraries.

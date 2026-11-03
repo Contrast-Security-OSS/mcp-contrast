@@ -13,9 +13,9 @@ Domain terms live in [CONTEXT.md](./CONTEXT.md). Read it before touching tool co
 
 **Build and verify:**
 ```bash
-make check-test    # static analysis + unit tests + coverage + mutation (standard local gate)
-make verify        # complete local gate + integration tests (integration requires .env.integration-test)
-make mutation      # PIT mutation testing on contrast-mcp-core
+make check         # standard local gate: static analysis + unit tests + coverage + CRAP + mutation
+make verify        # check + integration tests (requires credentials, fails loudly without)
+make lint          # fast inner loop: format + checkstyle only, not a gate
 ```
 
 **Run locally:**

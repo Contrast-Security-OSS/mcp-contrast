@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,9 @@ public final class LoggingKeys {
   public static final String HTTP_STATUS = "httpStatus";
   public static final String ITEM_COUNT = "itemCount";
   public static final String REQUEST_ID = "requestId";
+  public static final String STATUS = "status";
+  public static final String TAG = "tag";
   public static final String TOTAL_ITEMS = "totalItems";
+  public static final String VARIABLE = "variable";
   public static final String VULN_ID = "vulnId";
 }

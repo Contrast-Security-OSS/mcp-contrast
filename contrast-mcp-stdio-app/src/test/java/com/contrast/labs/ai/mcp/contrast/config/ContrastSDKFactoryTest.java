@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 
 import com.contrast.labs.ai.mcp.contrast.sdkextension.SDKHelper;
 import com.contrastsecurity.sdk.ContrastSDK;
@@ -99,7 +100,7 @@ class ContrastSDKFactoryTest {
                 TEST_PROPS.httpProxyHost(),
                 TEST_PROPS.httpProxyPort(),
                 TEST_PROPS.protocol()),
-        org.mockito.Mockito.times(1));
+        times(1));
   }
 
   @Test

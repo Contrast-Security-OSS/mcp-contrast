@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,12 +21,16 @@ import com.contrast.labs.ai.mcp.contrast.config.IntegrationTestConfig;
 import com.contrast.labs.ai.mcp.contrast.util.AbstractIntegrationTest;
 import com.contrast.labs.ai.mcp.contrast.util.TestDataDiscoveryHelper;
 import java.io.IOException;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.springframework.ai.util.json.JsonParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.util.StringUtils;
 
 /**
  * Integration tests for ListApplicationsByCveTool.
@@ -53,11 +57,15 @@ class ListApplicationsByCveToolIT
 
   // Shared substring for SingleTool's 5xx mapping — validation errors must never look like this.
   private static final String CONTRAST_API_ERROR = "Contrast API error";
+  private static final int DISCOVERY_VERSION = 3;
 
+  @Getter
   static class TestData {
     String appId;
     String appName;
     String vulnerableCveId;
+
+    @Accessors(fluent = true)
     boolean hasVulnerableLibrary;
 
     @Override
@@ -76,6 +84,11 @@ class ListApplicationsByCveToolIT
   @Override
   protected Class<TestData> testDataType() {
     return TestData.class;
+  }
+
+  @Override
+  protected int discoveryVersion() {
+    return DISCOVERY_VERSION;
   }
 
   /**
@@ -116,6 +129,11 @@ class ListApplicationsByCveToolIT
   @Override
   protected void afterDiscovery(TestData data) {
     warnIfNoVulnerableLibraries(data);
+  }
+
+  @Override
+  protected boolean isCacheable(TestData data) {
+    return data.hasVulnerableLibrary() && StringUtils.hasText(data.getVulnerableCveId());
   }
 
   private void warnIfNoVulnerableLibraries(TestData data) {
@@ -266,12 +284,8 @@ class ListApplicationsByCveToolIT
         .as("known-vulnerable CVE must return at least one impacted app")
         .isNotEmpty();
 
-    // Every returned App must populate identity plus non-negative seen-timestamps. Enrichment
-    // counters are validated separately in the class-usage test.
-    //
-    // lastSeen==0 is a documented sentinel for "app has never been observed running" (common
-    // for SCA-only apps that are catalogued but have no runtime activity). Only enforce
-    // lastSeen >= firstSeen when lastSeen is populated.
+    // Every returned App must populate identity plus a non-negative first-seen timestamp.
+    // Enrichment counters are validated separately in the class-usage test.
     assertThat(result.data().getApps())
         .as("every impacted app must populate identity and timestamp fields")
         .allSatisfy(
@@ -281,14 +295,6 @@ class ListApplicationsByCveToolIT
               assertThat(app.getFirstSeen())
                   .as("%s.firstSeen must be non-negative", app.getAppId())
                   .isNotNegative();
-              assertThat(app.getLastSeen())
-                  .as("%s.lastSeen must be non-negative", app.getAppId())
-                  .isNotNegative();
-              if (app.getLastSeen() > 0) {
-                assertThat(app.getLastSeen())
-                    .as("%s.lastSeen must not precede firstSeen when populated", app.getAppId())
-                    .isGreaterThanOrEqualTo(app.getFirstSeen());
-              }
             });
 
     // Identity must actually be populated for every app — a real test of the payload, not just
@@ -297,6 +303,8 @@ class ListApplicationsByCveToolIT
     assertThat(result.data().getApps())
         .as("at least one impacted app must carry a populated firstSeen timestamp")
         .anyMatch(app -> app.getFirstSeen() > 0);
+    assertThat(result.notices()).noneMatch(n -> n.contains("never been observed running"));
+    assertThat(JsonParser.toJson(result)).doesNotContain("lastSeen", "last_seen");
   }
 
   @Test

@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run Contrast SCA Fingerprint
         id: fingerprint
-        uses: Contrast-Security-OSS/contrast-sca-action@c953b1def9b16036e6aa1775daf9030f40f80de6 # v3.2.6
+        uses: Contrast-Security-OSS/contrast-sca-action@97648769191162cb3b6d07f25f694e9e7607fe54 # v3.2.7
         with:
           apiKey: ${{ secrets.CONTRAST_GITHUB_APP_API_KEY }}
           authHeader: ${{ secrets.CONTRAST_GITHUB_APP_AUTH_HEADER }}
@@ -49,14 +49,14 @@ jobs:
           - ${{ fromJson(needs.fingerprint_repo.outputs.fingerprint) }}
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
       - name: Clone repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run Contrast SCA Audit
-        uses: Contrast-Security-OSS/contrast-sca-action@c953b1def9b16036e6aa1775daf9030f40f80de6 # v3.2.6
+        uses: Contrast-Security-OSS/contrast-sca-action@97648769191162cb3b6d07f25f694e9e7607fe54 # v3.2.7
         with:
           apiKey: ${{ secrets.CONTRAST_GITHUB_APP_API_KEY }}
           authHeader: ${{ secrets.CONTRAST_GITHUB_APP_AUTH_HEADER }}

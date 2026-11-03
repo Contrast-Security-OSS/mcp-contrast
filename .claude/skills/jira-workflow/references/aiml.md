@@ -6,7 +6,7 @@ All work on this repo files into the **AIML** Jira project. Use the Atlassian MC
 
 | Field | Value |
 |-------|-------|
-| **Cloud ID** | `https://contrast.atlassian.net` (the MCP tools accept the site URL) |
+| **Cloud ID** | `35f55002-5211-4f07-ae86-25b46703fe59` (UUID, not the site URL) |
 | **Project Key** | `AIML` |
 | **Component** | `Contrast MCP Server` (always, for work on this repo) |
 
@@ -22,13 +22,13 @@ All work on this repo files into the **AIML** Jira project. Use the Atlassian MC
 ## Creating a ticket
 
 ```
-cloudId: "https://contrast.atlassian.net"
+cloudId: "35f55002-5211-4f07-ae86-25b46703fe59"
 projectKey: "AIML"
 issueTypeName: "Task"   (or Story, Bug, Epic)
 summary: "Your ticket title"
 description: "markdown body"
 contentFormat: "markdown"
-additional_fields: {"components": [{"name": "Contrast MCP Server"}]}
+additional_fields: {"components": [{"name": "Contrast MCP Server"}], "labels": ["repo:mcp-contrast"]}
 ```
 
 To assign, look up the account ID first with `lookupJiraAccountId` (searchString = name), then pass `assignee_account_id` on the create call. For yourself, use `atlassianUserInfo`.

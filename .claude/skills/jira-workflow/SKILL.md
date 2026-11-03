@@ -16,6 +16,7 @@ All work on this repo files into the **AIML** Jira project with component **Cont
 - Issue type: `Story` for features, `Task` for simple non-feature changes (refactoring, docs, bug fixes), `Epic` for large multi-ticket efforts (typically managed by Product Management).
 - Look up an assignee with `lookupJiraAccountId`, link related tickets with `createIssueLink`.
 - When starting work, assign the ticket to the current user (`atlassianUserInfo`) and transition it to In Progress (`21`).
+- **Repo label.** Add a `repo:<name>` Jira label for each repo the ticket touches. For work in this repo, always add `repo:mcp-contrast`. Work spanning multiple repos (e.g. mcp-contrast and aiml-services) gets both labels. Set the label at creation via `additional_fields`, or add it with `editJiraIssue` if the ticket already exists.
 
 ## 2. Keep a bead in parity (every time)
 

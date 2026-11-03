@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -200,6 +200,52 @@ class PaginationParamsTest {
 
     assertThat(params.page()).isEqualTo(1);
     assertThat(params.pageSize()).isEqualTo(50);
+    assertThat(params.notices()).isEmpty();
+  }
+
+  @Test
+  void testPageCappedToPreventOffsetOverflow() {
+    var params = PaginationParams.of(Integer.MAX_VALUE, 100);
+
+    assertThat(params.page()).isEqualTo(Integer.MAX_VALUE / 100 + 1);
+    assertThat(params.offset()).isGreaterThanOrEqualTo(0);
+    assertThat(params.notices()).anyMatch(n -> n.contains("exceeds maximum"));
+  }
+
+  @Test
+  void testCustomMaxPageSizeBelowDefaultClampsDefault() {
+    var params = PaginationParams.of(1, null, 25);
+
+    assertThat(params.page()).isEqualTo(1);
+    assertThat(params.pageSize()).isEqualTo(25);
+    assertThat(params.notices()).isEmpty();
+  }
+
+  @Test
+  void testCustomMaxPageSizeBelowDefaultClampsInvalidPageSize() {
+    var params = PaginationParams.of(1, -1, 25);
+
+    assertThat(params.page()).isEqualTo(1);
+    assertThat(params.pageSize()).isEqualTo(25);
+    assertThat(params.notices()).hasSize(1);
+    assertThat(params.notices().getFirst()).contains("Invalid pageSize -1, using default 25");
+  }
+
+  @Test
+  void testZeroMaxPageSizeClampsToOne() {
+    var params = PaginationParams.of(1, null, 0);
+
+    assertThat(params.page()).isEqualTo(1);
+    assertThat(params.pageSize()).isEqualTo(1);
+    assertThat(params.notices()).isEmpty();
+  }
+
+  @Test
+  void testNegativeMaxPageSizeClampsToOne() {
+    var params = PaginationParams.of(1, null, -5);
+
+    assertThat(params.page()).isEqualTo(1);
+    assertThat(params.pageSize()).isEqualTo(1);
     assertThat(params.notices()).isEmpty();
   }
 }

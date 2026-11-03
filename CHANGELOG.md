@@ -7,12 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-09-24
+
 ### Bug Fixes
 
 **`get_vulnerability` now returns clean Markdown remediation content**: TeamServer Recommendation
 markup in `howToFix` is now rendered as Markdown, including links, code, paragraphs, and emphasis,
 with a scrubbed plain-text fallback. Unmapped or missing Vulnerability types now receive the full
 general `remediationHint` guidance without the type being concatenated onto the final sentence.
+
+**`list_applications_by_cve` no longer claims affected applications were never observed**:
+TeamServer's CVE endpoint always reports `last_seen` as zero (TS-42938), so the tool warned that
+every affected application "has never been observed running". The false notice and the
+always-zero `lastSeen` field are removed. Use `search_applications` for an application's
+`lastSeenAt` and `search_servers` for current server state.
+
+**Very large `page` values no longer overflow the result offset**: On page-numbered search tools,
+a very large `page` combined with a small `pageSize` could wrap the computed offset to a negative
+number. The page is now capped at the highest safe value, and the response carries a notice.
+
+### Improvements
+
+**`get_protect_rules` documents every Protect rule mode**: The tool description listed only
+block, monitor, and off. It now lists all eight modes TeamServer returns, `BLOCKING`,
+`BLOCK_AT_PERIMETER`, `MONITORING`, `MONITOR_BLOCK`, `OFF`, `NO_ACTION`, `PERMIT`, and `DISABLED`,
+so agents can explain any mode they receive.
+
+**Unexpected tool errors now log their stack trace**: When a tool fails with an unexpected error,
+the server log now includes the exception cause and stack trace. The response to the agent is
+unchanged and still carries no internal detail.
+
+### Documentation
+
+**README lists every tool in one availability table**: The separate hosted and local tool lists
+are merged into one table with Hosted and Local columns, grouped by domain. The hosted list now
+matches the hosted server, adding `search_servers`, `search_cves`, `list_cve_issues`, and
+`get_cve_impact`, and removing four tools that no longer exist. New sample prompts cover servers,
+attacks, and the hosted-only NorthStar tools.
 
 ## [2.5.0] - 2026-08-11
 

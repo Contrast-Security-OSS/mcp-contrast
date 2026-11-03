@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package com.contrast.labs.ai.mcp.contrast.tool.coverage;
 
-import static com.contrast.labs.ai.mcp.contrast.tool.application.ApplicationLicenseDiscriminator.LICENSED_LEVEL;
+import static com.contrast.labs.ai.mcp.contrast.tool.base.ApplicationLicenseDiscriminator.LICENSED_LEVEL;
 import static com.contrast.labs.ai.mcp.contrast.tool.coverage.GetRouteCoverageTool.UNLICENSED_APPLICATION_ERROR;
 import static org.assertj.core.api.Assertions.assertThat;
 

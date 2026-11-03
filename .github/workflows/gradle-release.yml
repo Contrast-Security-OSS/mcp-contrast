@@ -28,7 +28,7 @@ jobs:
 
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
@@ -73,8 +73,16 @@ jobs:
           git diff --quiet
           git diff --cached --quiet
 
+      # verify = check + integration tests (ADR 0003/0004). Without the CONTRAST_* secrets
+      # every IT silently skips. AIML-1408 migrates them to a service account.
       - name: Run release validation build
-        run: ./gradlew clean spotlessCheck check :contrast-mcp-stdio-app:integrationTest :contrast-mcp-stdio-app:bootJar --no-daemon
+        env:
+          CONTRAST_HOST_NAME: ${{ secrets.CONTRAST_HOST_NAME }}
+          CONTRAST_API_KEY: ${{ secrets.CONTRAST_API_KEY }}
+          CONTRAST_SERVICE_KEY: ${{ secrets.CONTRAST_SERVICE_KEY }}
+          CONTRAST_USERNAME: ${{ secrets.CONTRAST_USERNAME }}
+          CONTRAST_ORG_ID: ${{ secrets.CONTRAST_ORG_ID }}
+        run: ./gradlew clean verify :contrast-mcp-stdio-app:bootJar --no-daemon
 
       - name: Create or reuse release tag
         id: versions
@@ -168,7 +176,7 @@ jobs:
       # syft-version input is not tracked by Dependabot and could silently
       # go stale.
       - name: Install Syft
-        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
 
       # Scan the packaged JAR here in both formats for ecosystem interoperability.
       - name: Generate release jar SBOMs
@@ -203,7 +211,7 @@ jobs:
 
       - name: Set up JFrog CLI
         id: setup-jfrog-cli
-        uses: step-security/setup-jfrog-cli@53aeacb709fce45d0baf69a13ec3342f7e2d71a9 # v5.1.0
+        uses: step-security/setup-jfrog-cli@f67dd6dcfe5fab8d1ebd695c456631275009a39d # v5.2.0
         env:
           JF_URL: ${{ vars.CONTRAST_JFROG_URL }}
         with:
@@ -309,7 +317,7 @@ jobs:
           done
 
       - name: Create GitHub Release
-        uses: step-security/action-gh-release@d2093dbdaf0c6507874908247e14bbc4dee6a72d # v3.0.1
+        uses: step-security/action-gh-release@44319d37c8b7966bf07f89f0cbf63408141446df # v3.0.3
         with:
           tag_name: ${{ steps.versions.outputs.tag }}
           name: Release ${{ steps.versions.outputs.tag }}

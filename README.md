@@ -27,9 +27,8 @@ It comes in two forms.
   - [Connection details](#connection-details)
   - [Supported clients](#supported-clients)
   - [Security and privacy](#security-and-privacy)
-  - [Available tools](#available-tools-hosted)
+- [Available tools](#available-tools)
 - [Local MCP Server](#local-mcp-server)
-  - [Available tools](#available-tools-local)
   - [Quick start](#quick-start)
   - [More setup and troubleshooting](#more-setup-and-troubleshooting)
 - [Sample prompts](#sample-prompts)
@@ -102,129 +101,81 @@ The hosted server changes how access works without changing what you are allowed
 
 The shared warning above still applies. Tool results become part of your AI conversation, so follow your organization's policy on what security data can be sent to your chosen AI client and model.
 
-### Available tools (hosted)
+## Available tools
 
-The hosted server provides read-only tools across the domains below. Your agent calls them automatically based on your questions.
-
-<details>
-<summary>Show hosted tools</summary>
+Both servers share the same core tools, so the table below covers them together. The **Hosted** and **Local** columns show which server provides each tool. Your agent calls the tools automatically based on your questions.
 
 #### Authentication
-| Tool | Description |
-|------|-------------|
-| `get_user_info` | Show who you are signed in as and which organization is active |
+| Tool | Description | Hosted | Local |
+|------|-------------|:------:|:-----:|
+| `get_user_info` | Show who you are signed in as and which organization is active | ✅ | — |
 
 #### Vulnerabilities (Assess)
-| Tool | Description |
-|------|-------------|
-| `search_vulnerabilities` | Search vulnerabilities across all applications |
-| `search_app_vulnerabilities` | Search vulnerabilities within a specific application with session filtering |
-| `get_vulnerability` | Get detailed vulnerability info including remediation guidance |
-| `list_vulnerability_types` | List all available vulnerability types for filtering |
+| Tool | Description | Hosted | Local |
+|------|-------------|:------:|:-----:|
+| `search_vulnerabilities` | Search vulnerabilities across all applications (org-level) | ✅ | ✅ |
+| `search_app_vulnerabilities` | Search vulnerabilities within a specific application with session filtering | ✅ | ✅ |
+| `get_vulnerability` | Get detailed vulnerability info including stack trace and remediation guidance | ✅ | ✅ |
+| `list_vulnerability_types` | List all available vulnerability types for filtering | ✅ | ✅ |
 
 #### Applications
-| Tool | Description |
-|------|-------------|
-| `search_applications` | Search applications by name, tag, or metadata filters |
-| `get_session_metadata` | Get session metadata fields available for an application |
+| Tool | Description | Hosted | Local |
+|------|-------------|:------:|:-----:|
+| `search_applications` | Search applications by name, tag, or metadata filters | ✅ | ✅ |
+| `get_session_metadata` | Get session metadata fields available for an application | ✅ | ✅ |
 
 #### Servers
-| Tool | Description |
-|------|-------------|
-| `search_servers` | Search the server inventory for agent health and Protect coverage |
+| Tool | Description | Hosted | Local |
+|------|-------------|:------:|:-----:|
+| `search_servers` | Search the server inventory for agent health and Protect coverage | ✅ | ✅ |
 
 #### Libraries (SCA)
-| Tool | Description |
-|------|-------------|
-| `list_application_libraries` | List libraries used by an application with class usage statistics and vulnerability counts |
-| `list_applications_by_cve` | Find applications affected by a specific CVE |
+| Tool | Description | Hosted | Local |
+|------|-------------|:------:|:-----:|
+| `list_application_libraries` | List libraries used by an application with class usage statistics and vulnerability counts | ✅ | ✅ |
+| `list_applications_by_cve` | Find applications affected by a specific CVE | ✅ | ✅ |
 
 #### Protection (ADR/Protect)
-| Tool | Description |
-|------|-------------|
-| `search_attacks` | Search attack events with filtering by status, type, and rules |
-| `get_protect_rules` | Get protection rules configured for an application |
+| Tool | Description | Hosted | Local |
+|------|-------------|:------:|:-----:|
+| `search_attacks` | Search attack events with filtering by status, type, and rules | ✅ | ✅ |
+| `get_protect_rules` | Get protection rules configured for an application | ✅ | ✅ |
 
 #### Coverage
-| Tool | Description |
-|------|-------------|
-| `get_route_coverage` | Get route coverage data showing exercised vs discovered routes |
+| Tool | Description | Hosted | Local |
+|------|-------------|:------:|:-----:|
+| `get_route_coverage` | Get route coverage data showing exercised vs discovered routes | ✅ | ✅ |
 
 #### SAST (Scan)
-| Tool | Description |
-|------|-------------|
-| `get_scan_project` | Get SAST project details and vulnerability counts |
+| Tool | Description | Hosted | Local |
+|------|-------------|:------:|:-----:|
+| `get_scan_project` | Get SAST project details and vulnerability counts | ✅ | ✅ |
+| `get_scan_results` | Get SAST scan results in SARIF format | — | ✅ |
 
 #### CVEs, Issues, Incidents, and Observations
-These tools require the Contrast unified data platform (NorthStar) to be enabled for your organization.
+These tools are available only on the hosted server and require the Contrast unified data platform (NorthStar) to be enabled for your organization.
 
-| Tool | Description |
-|------|-------------|
-| `search_cves` | Search CVEs across your organization for CVE Shield exposure and risk |
-| `list_cve_issues` | List affected applications and libraries for a CVE, one issue per pair |
-| `get_cve_impact` | Get CVE risk, exposure, and shield protection posture across your organization |
-| `search_issues` | Search and filter security issues across your organization |
-| `get_issue` | Get full details for a specific issue |
-| `list_issue_incidents` | List incidents linked to an issue |
-| `list_issues_by_library` | List open issues associated with an application library |
-| `search_incidents` | Search and filter incidents |
-| `get_incident` | Get full details for a specific incident |
-| `list_incident_issues` | List issues linked to an incident |
-| `get_observation` | Get full details for a specific observation |
-| `list_issue_observations` | List observations linked to an issue (cursor-paginated) |
-| `list_incident_observations` | List observations linked to an incident (cursor-paginated) |
-
-</details>
+| Tool | Description | Hosted | Local |
+|------|-------------|:------:|:-----:|
+| `search_cves` | Search CVEs across your organization for CVE Shield exposure and risk | ✅ | — |
+| `list_cve_issues` | List affected applications and libraries for a CVE, one issue per pair | ✅ | — |
+| `get_cve_impact` | Get CVE risk, exposure, and shield protection posture across your organization | ✅ | — |
+| `search_issues` | Search and filter security issues across your organization | ✅ | — |
+| `get_issue` | Get full details for a specific issue | ✅ | — |
+| `list_issue_incidents` | List incidents linked to an issue | ✅ | — |
+| `list_issues_by_library` | List open issues associated with an application library | ✅ | — |
+| `search_incidents` | Search and filter incidents | ✅ | — |
+| `get_incident` | Get full details for a specific incident | ✅ | — |
+| `list_incident_issues` | List issues linked to an incident | ✅ | — |
+| `get_observation` | Get full details for a specific observation | ✅ | — |
+| `list_issue_observations` | List observations linked to an issue (cursor-paginated) | ✅ | — |
+| `list_incident_observations` | List observations linked to an incident (cursor-paginated) | ✅ | — |
 
 ## Local MCP Server
 
 The Local MCP Server is the open-source server in this repository. Your MCP client launches it as a local process over stdio, it authenticates with Contrast API and service keys, and it connects to your own Contrast instance, including on-premises and EOP. Use it when you cannot use the hosted server, or when you need raw SARIF scan output.
 
-### Available tools (local)
-
-The Local MCP Server provides 14 tools for security analysis and vulnerability management.
-
-#### Applications
-| Tool | Description |
-|------|-------------|
-| `search_applications` | Search applications by name, tag, or metadata filters |
-| `get_session_metadata` | Get session metadata fields available for an application |
-
-#### Servers
-| Tool | Description |
-|------|-------------|
-| `search_servers` | Search the server inventory for agent health and Protect coverage |
-
-#### Vulnerabilities
-| Tool | Description |
-|------|-------------|
-| `search_vulnerabilities` | Search vulnerabilities across all applications (org-level) |
-| `search_app_vulnerabilities` | Search vulnerabilities within a specific application with session filtering |
-| `get_vulnerability` | Get detailed vulnerability info including stack trace and remediation guidance |
-| `list_vulnerability_types` | List all available vulnerability types for filtering |
-
-#### Libraries (SCA)
-| Tool | Description |
-|------|-------------|
-| `list_application_libraries` | List libraries used by an application with class usage statistics and vulnerability counts |
-| `list_applications_by_cve` | Find applications affected by a specific CVE |
-
-#### Protection (ADR/Protect)
-| Tool | Description |
-|------|-------------|
-| `search_attacks` | Search attack events with filtering by status, type, and rules |
-| `get_protect_rules` | Get protection rules configured for an application |
-
-#### Coverage
-| Tool | Description |
-|------|-------------|
-| `get_route_coverage` | Get route coverage data showing exercised vs discovered routes |
-
-#### SAST (Scan)
-| Tool | Description |
-|------|-------------|
-| `get_scan_project` | Get SAST project details and vulnerability counts |
-| `get_scan_results` | Get SAST scan results in SARIF format |
+The local server provides the tools marked **Local** in [Available tools](#available-tools) above.
 
 ### Quick start
 

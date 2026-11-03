@@ -76,7 +76,7 @@ This atomically sets the assignee and status to `in_progress`. Record the branch
 
 **Read the full context.** Run `br show <id>` for the bead. If it has a Jira `external-ref`, also fetch the ticket body and comments with `getJiraIssue` so both descriptions and any ticket discussion inform the work.
 
-**Do the work.** Write tests for all code changes. `make check-test` must pass, and `make verify` (integration tests) must pass before review, see CLAUDE.md Testing Requirements.
+**Do the work.** Write tests for all code changes. `make check` must pass, and `make verify` (integration tests) must pass before review, see CLAUDE.md Testing Requirements.
 
 **Commit and push before closing.** A bead that produced code changes must not be closed until those changes are committed and pushed. This is non-negotiable.
 
@@ -84,7 +84,9 @@ This atomically sets the assignee and status to `in_progress`. Record the branch
 
 ## 5. Closing a bead
 
-**Always ask the user before closing a bead.** Parent beads cannot close while children are open, and typically stay `in_progress` (with `in-review`) until the PR merges.
+**Finding beads by Jira key.** `br list --all | grep` is unreliable for matching Jira keys. Use `br list --status in_progress` to find active beads, then grep. When closing beads for merged PRs, always search by status first.
+
+**Always ask the user before closing a bead.** Parent beads cannot close while children are open, and typically stay `in_progress` (with `in-review`) until the PR merges. Close children before parents.
 
 Closing follows a strict sequence:
 

@@ -46,6 +46,14 @@ def contrastIntegrationTestCredentialEnvVars = [
     'CONTRAST_ORG_ID'
 ]
 
+// Credentials come from real environment variables first, then .env.integration-test (ADR 0004).
+// Parsing logic lives in buildSrc (EnvFileParser) with unit tests.
+import com.contrast.labs.build.EnvFileParser
+
+def resolveIntegrationTestCredentials = { ->
+    EnvFileParser.resolve(rootProject.file('.env.integration-test'), contrastIntegrationTestCredentialEnvVars)
+}
+
 test {
     exclude '**/*IT.class'
     exclude '**/*IntegrationTest.class'
@@ -61,11 +69,29 @@ tasks.register('integrationTest', Test) {
     shouldRunAfter test
     include '**/*IT.class'
     include '**/*IntegrationTest.class'
-    contrastIntegrationTestCredentialEnvVars.each { credentialEnvVar ->
-        def credentialValue = System.getenv(credentialEnvVar)
+    resolveIntegrationTestCredentials().each { credentialEnvVar, credentialValue ->
         if (credentialValue) {
             systemProperty credentialEnvVar, credentialValue
             environment credentialEnvVar, credentialValue
+        }
+    }
+    mustRunAfter 'requireIntegrationTestCredentials'
+}
+
+// Depended on only by the root verify task; bare integrationTest keeps its skip behavior
+// for credential-less checkouts (ADR 0004).
+tasks.register('requireIntegrationTestCredentials') {
+    group = 'verification'
+    description = 'Fails when no Contrast credentials are available for the integration tests.'
+    doLast {
+        def credentials = resolveIntegrationTestCredentials()
+        def missing = credentials.findAll { name, value -> !value }.keySet()
+        if (!missing.isEmpty()) {
+            throw new GradleException(
+                "verify requires Contrast integration-test credentials, but these are unset: " +
+                    "${missing.join(', ')}. Export them or create .env.integration-test from " +
+                    ".env.integration-test.template (see INTEGRATION_TESTS.md). Contributors " +
+                    "without credentials run `check`; pull-request CI stays authoritative.")
         }
     }
 }

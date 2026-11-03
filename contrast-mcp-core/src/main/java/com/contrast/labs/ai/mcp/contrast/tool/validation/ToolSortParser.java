@@ -20,16 +20,17 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import org.jspecify.annotations.Nullable;
 import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
 /** Parses the shared public {@code property,DIRECTION} sort contract into wire syntax. */
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ToolSortParser {
 
   private static final Set<String> VALID_DIRECTIONS = Set.of("ASC", "DESC");
-
-  private ToolSortParser() {}
 
   /**
    * Validates and translates a public sort value.

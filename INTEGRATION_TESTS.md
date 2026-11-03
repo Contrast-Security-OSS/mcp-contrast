@@ -17,26 +17,41 @@ This project includes integration tests that run against a real Contrast TeamSer
    - `CONTRAST_USERNAME` - Your username
    - `CONTRAST_ORG_ID` - Your organization ID
 
-3. **Source the environment file:**
-   ```bash
-   source .env.integration-test
-   ```
+That's it. Gradle sources `.env.integration-test` itself; no `source` step is needed. Real environment variables override file values, so CI secrets and one-off shells win without editing the file.
+
+## Library Test Seed Data
+
+The library integration tests require at least one application whose libraries contain all of the following:
+
+- A populated vulnerabilities array
+- A vulnerability whose name starts with `CVE-`
+- Actively used classes (`classesUsed > 0`)
+
+Discovery queries `/ng/{orgId}/libraries/filter` across the organization with
+`quickFilter=VULNERABLE` and `expand=vulns,apps`, then confirms candidate data through the
+application-scoped library endpoint.
+
+Discovery responses are cached under `contrast-mcp-stdio-app/test-cache/`. Use these controls when
+troubleshooting changing seed data:
+
+- `CONTRAST_TEST_CACHE_DISABLE=true` disables the disk cache.
+- `CONTRAST_TEST_CACHE_CLEAR=true` clears cached entries before the next run.
+- `CONTRAST_TEST_CACHE_TTL_HOURS=N` overrides the cache lifetime (default 12 hours).
+
+If discovery reports `requires seeded app with vulnerable CVE — see INTEGRATION_TESTS.md`, seed the
+organization with a qualifying application. Editing or weakening the tests does not fix this
+missing-data precondition.
 
 ## Running Integration Tests
+
+### Full gate plus integration tests (the pre-review command):
+```bash
+make verify
+```
 
 ### Run integration tests only:
 ```bash
 ./gradlew :contrast-mcp-stdio-app:integrationTest
-```
-
-### Run all tests (unit + integration):
-```bash
-./gradlew clean test :contrast-mcp-stdio-app:integrationTest
-```
-
-### Skip integration tests:
-```bash
-./gradlew test
 ```
 
 ### Run only unit tests (default):
@@ -48,8 +63,9 @@ This project includes integration tests that run against a real Contrast TeamSer
 
 - **Unit tests** (`*Test.java`) run with the Gradle `test` task
 - **Integration tests** (`*IT.java`) run with the Gradle `:contrast-mcp-stdio-app:integrationTest` task
-- Integration tests only execute if `CONTRAST_HOST_NAME` environment variable is set
-- If environment variables are missing, integration tests are automatically skipped
+- Credentials resolve from real environment variables first, then `.env.integration-test`
+- `verify` fails loudly when no credentials are available (ADR 0004) — a verify that ran zero integration tests has not verified
+- Bare `integrationTest` skips instead when `CONTRAST_HOST_NAME` is unset, so forks and credential-less checkouts still build
 
 ## GitHub Actions / CI
 
@@ -60,26 +76,10 @@ For GitHub Actions, add these secrets to your repository:
 - `CONTRAST_USERNAME`
 - `CONTRAST_ORG_ID`
 
-Example GitHub Actions workflow:
+Integration tests run in two CI contexts:
 
-```yaml
-- name: Run integration tests
-  run: ./gradlew :contrast-mcp-stdio-app:integrationTest
-  env:
-    CONTRAST_HOST_NAME: ${{ secrets.CONTRAST_HOST_NAME }}
-    CONTRAST_API_KEY: ${{ secrets.CONTRAST_API_KEY }}
-    CONTRAST_SERVICE_KEY: ${{ secrets.CONTRAST_SERVICE_KEY }}
-    CONTRAST_USERNAME: ${{ secrets.CONTRAST_USERNAME }}
-    CONTRAST_ORG_ID: ${{ secrets.CONTRAST_ORG_ID }}
-```
-
-## Current Integration Tests
-
-### EnvironmentsIT.java
-
-Tests that environments and tags are properly populated from TeamServer API:
-- `testEnvironmentsAndTagsArePopulated()` - Verifies vulnerability responses include environments and tags
-- `testVulnerabilitiesHaveBasicFields()` - Verifies basic vulnerability fields are present
+- **PR builds** (`build.yml`): The `integration-test` job runs on every internal PR (fork PRs are skipped because they have no access to secrets). It runs after the `build` job passes.
+- **Release builds** (`gradle-release.yml`): The `verify` lifecycle runs integration tests as part of the release validation build.
 
 ## Adding New Integration Tests
 

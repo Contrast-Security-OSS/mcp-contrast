@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.contrast.labs.ai.mcp.contrast.tool.application;
+package com.contrast.labs.ai.mcp.contrast.tool.base;
 
+import com.contrast.labs.ai.mcp.contrast.client.ContrastAccessDeniedException;
 import com.contrast.labs.ai.mcp.contrast.client.ContrastApiClient;
-import com.contrastsecurity.exceptions.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -36,9 +36,10 @@ public class ApplicationLicenseDiscriminator {
    * @param appId application identifier from the denied request
    * @param originalForbidden original HTTP 403 to preserve when discrimination fails
    * @return the application's access-relevant state
-   * @throws UnauthorizedException the original denial when the discriminator lookup fails
+   * @throws ContrastAccessDeniedException the original denial when the discriminator lookup fails
    */
-  public ApplicationState discriminate(String appId, UnauthorizedException originalForbidden) {
+  public ApplicationState discriminate(
+      String appId, ContrastAccessDeniedException originalForbidden) {
     try {
       var application = contrastApiClient.getApplicationWithLicense(appId);
       if (application == null) {

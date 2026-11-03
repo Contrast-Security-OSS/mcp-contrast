@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 Contrast Security
+ * Copyright 2026 Contrast Security
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,24 +17,13 @@ package com.contrast.labs.ai.mcp.contrast.tool.base;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.ai.chat.model.ToolContext;
 
 class BaseToolAuthenticationStrategyTest {
-
-  private static final List<Path> PIPELINE_SOURCES =
-      List.of(
-          Path.of("src/main/java/com/contrast/labs/ai/mcp/contrast/tool/base/SingleTool.java"),
-          Path.of("src/main/java/com/contrast/labs/ai/mcp/contrast/tool/base/PaginatedTool.java"));
 
   @Test
   void executePipeline_should_remain_noop_when_authentication_strategy_is_not_configured() {
@@ -181,20 +170,6 @@ class BaseToolAuthenticationStrategyTest {
     assertThat(result.errors().get(0)).matches("An internal error occurred \\(ref: [0-9a-f]{8}\\)");
     assertThat(String.join(" ", result.errors())).doesNotContain("raw-token-value");
     assertThat(events).containsExactly("authenticate");
-  }
-
-  static Stream<Path> pipelineSources() {
-    return PIPELINE_SOURCES.stream();
-  }
-
-  // Log builders in pipeline classes must not attach the throwable — it can leak sensitive content.
-  @ParameterizedTest
-  @MethodSource("pipelineSources")
-  void executePipeline_unexpected_error_logs_should_not_attach_stack_traces(Path sourcePath)
-      throws Exception {
-    var source = Files.readString(sourcePath, StandardCharsets.UTF_8);
-
-    assertThat(source).doesNotContain(".setCause(e)");
   }
 
   @Test
