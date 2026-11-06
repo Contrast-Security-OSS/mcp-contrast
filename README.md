@@ -153,7 +153,7 @@ Both servers share the same core tools, so the table below covers them together.
 | `get_scan_results` | Get SAST scan results in SARIF format | — | ✅ |
 
 #### CVEs, Issues, Incidents, and Observations
-These tools are available only on the hosted server and require the Contrast unified data platform (NorthStar) to be enabled for your organization.
+These tools are available only on the hosted server and require the Contrast unified data platform (Northstar) to be enabled for your organization.
 
 | Tool | Description | Hosted | Local |
 |------|-------------|:------:|:-----:|
@@ -277,8 +277,8 @@ These prompts work with either server, except where a section says otherwise.
 * Show me servers whose agents are out of date.
 * Show me attack events from the last 7 days and tell me which were exploited.
 
-### Hosted server with the unified data platform (NorthStar)
-These prompts require the hosted server and the Contrast unified data platform (NorthStar) to be enabled for your organization.
+### Hosted server with the unified data platform (Northstar)
+These prompts require the hosted server and the Contrast unified data platform (Northstar) to be enabled for your organization.
 * Which CVEs pose the highest risk across my organization?
 * Is my organization shielded from CVE-xxxx-xxxx?
 * Which applications and libraries are affected by CVE-xxxx-xxxx?
@@ -297,7 +297,7 @@ Depending on what questions you ask the following information will be provided t
 * Route Coverage data
 * ADR/Protect Attack Event Details
 * Server inventory and agent details (hostnames, paths, agent versions, environments, log levels, and tags)
-* Issue, incident, observation, and CVE Shield data (hosted server with NorthStar)
+* Issue, incident, observation, and CVE Shield data (hosted server with Northstar)
 
 ## Changelog
 
