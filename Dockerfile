@@ -1,9 +1,9 @@
-FROM eclipse-temurin:21-jdk-alpine@sha256:4fb80de7aeb277ad949cfbe89b4f504e50bb34c57fd908c5825236473d71e986 AS builder
+FROM eclipse-temurin:21.0.13_9-jdk-alpine@sha256:b78a1d385da875588e21207f07dddf9a1418849971ae857fb24c8f3a7d441a72 AS builder
 WORKDIR /app
 COPY . .
 RUN ./gradlew clean :contrast-mcp-stdio-app:bootJar -x test --no-daemon
 
-FROM eclipse-temurin:21-jre-alpine@sha256:704db3c40204a44f471191446ddd9cda5d60dab40f0e15c6507b815ed897238b
+FROM eclipse-temurin:21.0.13_9-jre-alpine@sha256:82cf3d9ccbe1ed46252008d51b2f2329e6b9e8a2f4394c4bebefc3ea7f4b1372
 WORKDIR /app
 
 # Upgrade all packages to get security patches, then install shadow for user management
