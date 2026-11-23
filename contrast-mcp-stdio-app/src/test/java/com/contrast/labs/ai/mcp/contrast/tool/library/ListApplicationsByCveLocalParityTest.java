@@ -42,6 +42,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.ai.util.json.JsonParser;
 
 @ExtendWith(MockitoExtension.class)
 class ListApplicationsByCveLocalParityTest {
@@ -94,6 +95,8 @@ class ListApplicationsByCveLocalParityTest {
     assertThat(result.data()).isNotNull();
     assertThat(result.data().getApps()).isNotEmpty();
     assertThat(result.errors()).isEmpty();
+    assertThat(result.notices()).noneMatch(n -> n.contains("never been observed running"));
+    assertThat(JsonParser.toJson(result)).doesNotContain("lastSeen", "last_seen");
     verify(sdkExtension).getAppsForCVE(eq(TEST_ORG_ID), eq(TEST_CVE_ID));
     mockedSDKHelper.verify(
         () -> SDKHelper.getLibsForID(eq(TEST_APP_ID), eq(TEST_ORG_ID), eq(sdkExtension)));
