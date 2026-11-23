@@ -49,7 +49,7 @@ Before claiming a bead for implementation, run `br show <id>` and verify:
 1. **No unresolved blocking dependencies.** If the bead is blocked, surface the blockers to the user. Exception, a `blocks` edge on a stacked-branch bead pointing at its base bead blocks the *merge*, not the work, see section 3.
 2. **No blocking labels.** Check for `needs-decision`, `needs-triage`, `needs-human-review`, `needs-info`, `human-security-review`, `external-approval`. If present, tell the user. `human-reviewed` is the cleared marker.
 3. **No existing assignee.** If someone else is assigned, ask the user before taking it over.
-4. **Branch requirement.** If the bead has an `external-ref` pointing to a Jira ticket, work happens on a branch named `{JIRA-KEY}-{kebab-case-description}` (e.g. `AIML-1304-improve-ai-skills`). Check the current branch:
+4. **Branch requirement.** If the bead has an `external-ref` pointing to a Jira ticket, work happens on a branch named `{JIRA-KEY}-{kebab-case-description}` (e.g. `PL-1304-improve-ai-skills`). Check the current branch:
    - Already on the correct branch, proceed.
    - On another feature branch, offer to use `pr-tools:create-stacked-branch` to create the `{JIRA-KEY}-...` branch stacked on the current one.
    - On `main`, create the `{JIRA-KEY}-...` branch, or ask the user which branch to base it on if stacking is plausible.
@@ -72,7 +72,7 @@ br update <id> --claim
 ```
 This atomically sets the assignee and status to `in_progress`. Record the branch name in the bead so it is easy to find later.
 
-**Transition the Jira ticket.** If the bead has an `external-ref` pointing to a Jira ticket, transition it to In Progress (transition ID `21`) and assign it to the current user, per the `jira-workflow` skill.
+**Transition the Jira ticket.** If the bead has an `external-ref` pointing to a Jira ticket, transition it to In Progress (transition ID `31`) and assign it to the current user, per the `jira-workflow` skill.
 
 **Read the full context.** Run `br show <id>` for the bead. If it has a Jira `external-ref`, also fetch the ticket body and comments with `getJiraIssue` so both descriptions and any ticket discussion inform the work.
 
@@ -80,7 +80,7 @@ This atomically sets the assignee and status to `in_progress`. Record the branch
 
 **Commit and push before closing.** A bead that produced code changes must not be closed until those changes are committed and pushed. This is non-negotiable.
 
-**Open the PR.** After pushing, create the PR with `pr-tools:create-pr`. Non-stacked beads get a ready PR targeting `main`, apply `pr-created` and `in-review` to the bead and transition Jira to In Review (`41`). Stacked beads get a draft PR, apply `pr-created` only and keep Jira at In Progress.
+**Open the PR.** After pushing, create the PR with `pr-tools:create-pr`. Non-stacked beads get a ready PR targeting `main`, apply `pr-created` and `in-review` to the bead and transition Jira to In Review (`4`). Stacked beads get a draft PR, apply `pr-created` only and keep Jira at In Progress.
 
 ## 5. Closing a bead
 
@@ -101,7 +101,7 @@ Closing follows a strict sequence:
    br close <id> --reason "Brief closure reason"
    ```
    The `--reason`/`-r` flag is required, a positional argument fails.
-4. **Transition the Jira ticket.** After the PR merges to `main`, transition the ticket to Ready to Deploy (`51`), per the `jira-workflow` skill. Closed (`81`) is reserved for when the code actually ships.
+4. **Transition the Jira ticket.** After the PR merges to `main`, transition the ticket to Ready to Deploy (`3`), per the `jira-workflow` skill. Closed (`41`) is reserved for when the code actually ships.
 5. **Sync:**
    ```bash
    br sync --flush-only
@@ -120,4 +120,4 @@ When triaging a bead (updating status, labels, priority, or assignments during r
 
 ## 7. Jira integration
 
-This skill does not own Jira ticket creation. When Jira work is needed, invoke the `jira-workflow` skill, which handles ticket creation and all bead-to-Jira parity rules (title prefixing, external-ref, relationship mirroring). When a Jira ticket is created for a bead, the bead's title gets the `AIML-<id>: ` prefix and its `external-ref` gets the ticket key, no exceptions.
+This skill does not own Jira ticket creation. When Jira work is needed, invoke the `jira-workflow` skill, which handles ticket creation and all bead-to-Jira parity rules (title prefixing, external-ref, relationship mirroring). When a Jira ticket is created for a bead, the bead's title gets the `PL-<id>: ` prefix and its `external-ref` gets the ticket key, no exceptions.

@@ -31,9 +31,9 @@ See [REPO-CONTEXT.md](./REPO-CONTEXT.md) for domain definitions, architecture no
 
 Use `/pr-tools:create-pr` for pull requests.
 
-Branch naming: `AIML-<ticket-id>-<short-description>` (e.g., `AIML-391-add-medium-low-note-counts`)
+Branch naming: `PL-<ticket-id>-<short-description>` (e.g., `PL-1419-bump-temurin-21.0.13.1`)
 
-PR Titles: `<Jira Issue Id> <Title>` (e.g., `AIML-573 Generate and attach release SBOMs`)
+PR Titles: `<Jira Issue Id> <Title>` (e.g., `PL-1419 Bump Docker base images to Temurin 21.0.13.1`)
 
 ## Required Plugins
 
@@ -391,7 +391,7 @@ Quick reference (full detail in `docs/agents/issue-tracker.md`):
 
 ### Jira Issue Tracking
 
-This project is tracked in Jira under the **AIML** project, component **Contrast MCP Server**. **All Jira lifecycle operations — ticket creation, bead-to-Jira parity (title prefix + `external-ref`), and status transitions — are governed by the `jira-workflow` skill.** Metadata (issue types, transition IDs, creation example) lives in `.claude/skills/jira-workflow/references/aiml.md`.
+This project is tracked in Jira under the **PL** project, component **MCP Server** (AIML is deprecated). Every Story belongs to an Epic. **All Jira lifecycle operations — ticket creation, bead-to-Jira parity (title prefix + `external-ref`), and status transitions — are governed by the `jira-workflow` skill.** Metadata (issue types, transition IDs, creation example) lives in `.claude/skills/jira-workflow/references/pl.md`.
 
 ----
 
@@ -476,7 +476,7 @@ Jira ticket creation, bead parity, and status transitions follow the `jira-workf
 
 ### Issue tracker
 
-Issues are tracked in Jira (AIML project) and Beads (`br`), not GitHub Issues. Beads is the working store, Jira the external reference. See `docs/agents/issue-tracker.md`.
+Issues are tracked in Jira (PL project) and Beads (`br`), not GitHub Issues. Beads is the working store, Jira the external reference. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
