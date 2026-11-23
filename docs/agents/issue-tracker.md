@@ -1,8 +1,8 @@
 # Issue tracker (beads + Jira)
 
-Issues for this repo run on a dual model. **Beads (`br`) is the working issue store** and **Jira (the AIML project, component `Contrast MCP Server`) is the external reference**. The `gh` CLI is used for pull requests, not for issues. GitHub Issues is not the tracker for this repo.
+Issues for this repo run on a dual model. **Beads (`br`) is the working issue store** and **Jira (the PL project) is the external reference**. The `gh` CLI is used for pull requests, not for issues. GitHub Issues is not the tracker for this repo.
 
-When a skill says "the issue tracker", it means beads first, with Jira as the linked external ticket for anything that needs one. Most code changes need a Jira ticket and a feature branch (`AIML-<id>-<desc>`) before merging.
+When a skill says "the issue tracker", it means beads first, with Jira as the linked external ticket for anything that needs one. Most code changes need a Jira ticket and a feature branch (`PL-<id>-<desc>`) before merging.
 
 The **`bead-workflow`** skill governs every bead mutation and the **`jira-workflow`** skill governs ticket creation, bead-to-Jira parity, and status transitions. This doc is the quick reference.
 
@@ -21,14 +21,14 @@ The database lives in this repo's `.beads/`, which is **gitignored and local-onl
 
 ## Jira is the external reference
 
-Significant beads get a Jira ticket in the **AIML** project (cloudId `https://contrast.atlassian.net`), issue types `Story` (features), `Task` (refactors/docs/bugfixes), `Epic` (large multi-ticket efforts). Use the Atlassian MCP tools to read and write Jira. Full metadata lives in `.claude/skills/jira-workflow/references/aiml.md`.
+Significant beads get a Jira ticket in the **PL** project (cloudId `https://contrast.atlassian.net`, AIML is deprecated), issue types `Story` (features, always under an Epic), `Task` (refactors/docs/bugfixes), `Epic` (large multi-ticket efforts). Use the Atlassian MCP tools to read and write Jira. Full metadata lives in `.claude/skills/jira-workflow/references/pl.md`.
 
 When a Jira ticket is created for a bead, do two things.
 
 1. Set the bead's `external-ref` to the Jira ticket ID.
-2. Prefix the bead's `title` with the Jira ticket ID (for example `AIML-1304: ...`).
+2. Prefix the bead's `title` with the Jira ticket ID (for example `PL-1304: ...`).
 
-AIML transition IDs for `transitionJiraIssue`: `11` To Do, `21` In Progress, `41` In Review, `51` Ready to Deploy, `61` Blocked, `71` Backlog, `81` Closed. The `jira-workflow` skill maps repo events (PR opened, stacked PR promoted, PR merged) onto these transitions.
+PL transition IDs for `transitionJiraIssue`: `2` Blocked, `11` Backlog, `21` To Do, `31` In Progress, `4` In Review, `3` Ready to Deploy, `41` Closed. The `jira-workflow` skill maps repo events (PR opened, stacked PR promoted, PR merged) onto these transitions.
 
 ## When a skill says "publish to the issue tracker"
 
