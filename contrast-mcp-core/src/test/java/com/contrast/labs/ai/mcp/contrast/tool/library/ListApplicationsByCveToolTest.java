@@ -41,6 +41,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.util.json.JsonParser;
 
 class ListApplicationsByCveToolTest {
 
@@ -50,10 +51,6 @@ class ListApplicationsByCveToolTest {
   private static final String SECRET_BODY = "token=raw-token-value&apiKey=secret";
   private static final String CVSS_V2_NOTICE =
       "score is omitted for CVEs with only CVSS v2 data; use severity and the cvssv2 metrics.";
-  private static final long LAST_SEEN_MILLIS = 1721000000000L;
-  private static final String NEVER_OBSERVED_NOTICE_PREFIX =
-      "lastSeen of 0 means the application has never been observed running, typically a static or"
-          + " SCA-only upload: ";
   private static final String CVSS_V3_CVE_RESPONSE =
       """
       {
@@ -258,6 +255,9 @@ class ListApplicationsByCveToolTest {
     assertThat(result.isSuccess()).isTrue();
     assertThat(capturedContext.get()).isSameAs(toolContext);
     assertThat(method.getAnnotation(Tool.class).name()).isEqualTo("list_applications_by_cve");
+    assertThat(method.getAnnotation(Tool.class).description())
+        .contains("search_applications", "search_servers")
+        .doesNotContain("lastSeen and server status");
   }
 
   @Test
@@ -305,29 +305,19 @@ class ListApplicationsByCveToolTest {
   }
 
   @Test
-  void listApplicationsByCve_should_notice_never_observed_apps_when_lastSeen_is_zero()
-      throws Exception {
-    var neverObserved = app("StaticUpload", "app-static");
-    neverObserved.setLastSeen(0);
-    var running = app("Orders", APP_ID);
-    var cveData = new CveData();
-    cveData.setApps(List.of(neverObserved, running));
-    cveData.setLibraries(List.of(vulnerableLibrary(LIBRARY_HASH)));
-
-    when(contrastApiClient.getApplicationsByCve(eq(CVE_ID))).thenReturn(cveData);
-    when(contrastApiClient.getAllLibraries(eq("app-static"))).thenReturn(List.of());
-    when(contrastApiClient.getAllLibraries(eq(APP_ID))).thenReturn(List.of());
-
-    var result = tool.listApplicationsByCve(CVE_ID, null);
-
-    assertThat(result.isSuccess()).isTrue();
-    assertThat(result.notices()).contains(NEVER_OBSERVED_NOTICE_PREFIX + "StaticUpload");
-  }
-
-  @Test
-  void listApplicationsByCve_should_not_notice_never_observed_apps_when_lastSeen_is_populated()
-      throws Exception {
-    var cveData = cveData(app("Orders", APP_ID), vulnerableLibrary(LIBRARY_HASH));
+  void
+      listApplicationsByCve_should_omit_unreliable_last_seen_and_never_observed_notice_when_teamserver_sends_last_seen_zero()
+          throws Exception {
+    var cveData =
+        GsonFactory.create()
+            .fromJson(
+                """
+                {
+                  "apps": [{"name": "Orders", "app_id": "app-123", "last_seen": 0}],
+                  "libraries": []
+                }
+                """,
+                CveData.class);
 
     when(contrastApiClient.getApplicationsByCve(eq(CVE_ID))).thenReturn(cveData);
     when(contrastApiClient.getAllLibraries(eq(APP_ID))).thenReturn(List.of());
@@ -336,6 +326,7 @@ class ListApplicationsByCveToolTest {
 
     assertThat(result.isSuccess()).isTrue();
     assertThat(result.notices()).noneMatch(n -> n.contains("never been observed running"));
+    assertThat(JsonParser.toJson(result)).doesNotContain("lastSeen", "last_seen");
   }
 
   @Test
@@ -519,7 +510,6 @@ class ListApplicationsByCveToolTest {
     var app = new App();
     app.setName(name);
     app.setAppId(appId);
-    app.setLastSeen(LAST_SEEN_MILLIS);
     return app;
   }
 
