@@ -22,7 +22,9 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
+import com.contrastsecurity.exceptions.HttpResponseException;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -91,7 +93,7 @@ class AbstractIntegrationTestTest {
     try (var cache = mockStatic(IntegrationTestDiskCache.class)) {
       assertThatThrownBy(integrationTest::setUpTestData)
           .isInstanceOf(AssertionError.class)
-          .hasMessageContaining("test data discovery")
+          .hasMessageStartingWith(AbstractIntegrationTest.DISCOVERY_ERROR_PREFIX)
           .hasMessageContaining("java.net.SocketTimeoutException: Read timed out")
           .hasCause(cause);
       cache.verify(
@@ -122,6 +124,35 @@ class AbstractIntegrationTestTest {
     }
 
     assertThat(integrationTest.discoveryCalls).hasValue(1);
+  }
+
+  @Test
+  void setUpTestData_should_report_http_method_path_and_status_when_discovery_gets_http_error() {
+    var cause =
+        new HttpResponseException(
+            "failed",
+            "GET",
+            "/ng/org/applications",
+            HttpURLConnection.HTTP_UNAVAILABLE,
+            "Service Unavailable");
+    var integrationTest = new FlakyDiscoveryIntegrationTest(cause, Integer.MAX_VALUE);
+    integrationTest.orgId = ORG_ID;
+
+    try (var cache = mockStatic(IntegrationTestDiskCache.class)) {
+      assertThatThrownBy(integrationTest::setUpTestData)
+          .isInstanceOf(AssertionError.class)
+          .hasMessageStartingWith(AbstractIntegrationTest.DISCOVERY_ERROR_PREFIX)
+          .hasMessageContaining("GET /ng/org/applications")
+          .hasMessageContaining("503 Service Unavailable")
+          .hasCause(cause);
+      cache.verify(
+          () ->
+              IntegrationTestDiskCache.write(
+                  any(String.class), any(String.class), any(String.class)),
+          never());
+    }
+
+    assertThat(integrationTest.discoveryCalls).hasValue(TransientRetry.MAX_ATTEMPTS);
   }
 
   private static final class FlakyDiscoveryIntegrationTest extends AbstractIntegrationTest<String> {

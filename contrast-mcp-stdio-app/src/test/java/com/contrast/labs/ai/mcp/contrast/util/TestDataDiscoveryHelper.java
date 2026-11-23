@@ -25,6 +25,7 @@ import com.contrastsecurity.http.LibraryFilterForm;
 import com.contrastsecurity.http.LibraryFilterForm.LibraryExpandValues;
 import com.contrastsecurity.http.LibraryFilterForm.LibraryQuickFilterType;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -187,6 +188,7 @@ public class TestDataDiscoveryHelper {
           candidate.appId());
       return Optional.of(new ApplicationWithLibraries(application, libraries, true, cveId));
     } catch (IOException e) {
+      rethrowIfTransient(e);
       log.warn("Error confirming libraries for app {}: {}", candidate.appId(), e.getMessage());
       return Optional.empty();
     }
@@ -263,6 +265,7 @@ public class TestDataDiscoveryHelper {
           firstAnyLibMatch = new ApplicationWithLibraries(app, libraries, false, null);
         }
       } catch (IOException e) {
+        rethrowIfTransient(e);
         log.warn("Error checking libraries for app {}: {}", app.getAppId(), e.getMessage());
         // Continue to next app
       }
@@ -378,6 +381,7 @@ public class TestDataDiscoveryHelper {
           return Optional.of(new ApplicationWithProtectRules(app, config));
         }
       } catch (IOException e) {
+        rethrowIfTransient(e);
         log.warn("Error retrieving Protect config for app {}: {}", app.getAppId(), e.getMessage());
       }
     }
@@ -441,6 +445,7 @@ public class TestDataDiscoveryHelper {
         routeCoverageOptional =
             IntegrationTestDataCache.getRouteCoverage(orgId, app.getAppId(), sdkExtension);
       } catch (IOException e) {
+        rethrowIfTransient(e);
         log.warn("Error retrieving route coverage for app {}: {}", app.getAppId(), e.getMessage());
         continue;
       }
@@ -526,8 +531,20 @@ public class TestDataDiscoveryHelper {
       return Optional.of(
           new SessionMetadataPair(metadataField.getAgentLabel(), firstMetadata.getValue()));
     } catch (IOException e) {
+      rethrowIfTransient(e);
       log.warn("Error retrieving session metadata for app {}: {}", app.getAppId(), e.getMessage());
       return Optional.empty();
+    }
+  }
+
+  /**
+   * Per-app lookups skip an app that fails, but a transient error (timeout, connection reset) says
+   * nothing about the app. Swallowing it would turn a network blip into a misleading missing-data
+   * failure that {@link TransientRetry} deliberately never retries, so it is rethrown instead.
+   */
+  private static void rethrowIfTransient(IOException e) {
+    if (TransientRetry.isTransient(e)) {
+      throw new UncheckedIOException(e);
     }
   }
 

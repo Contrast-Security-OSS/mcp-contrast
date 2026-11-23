@@ -43,6 +43,8 @@ import org.springframework.beans.factory.annotation.Value;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractIntegrationTest<T> {
 
+  static final String DISCOVERY_ERROR_PREFIX = "❌ ERROR during test data discovery: ";
+
   @Autowired protected SDKExtension sdkExtension;
 
   @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
@@ -135,8 +137,11 @@ public abstract class AbstractIntegrationTest<T> {
     } catch (Exception e) {
       // e.toString() keeps the exception type, and the cause keeps the stack. The SDK's
       // HttpResponseException message already carries the HTTP method, path and status.
-      String message = "❌ ERROR during test data discovery: " + e;
+      // That message can include the response body, so CI echoes only the allowlisted
+      // summary line instead (see DiscoveryFailureSummary and integrationTest in build.gradle).
+      String message = DISCOVERY_ERROR_PREFIX + e;
       log.error("\n{}", message, e);
+      log.error(DiscoveryFailureSummary.of(e));
       fail(message, e);
     }
   }

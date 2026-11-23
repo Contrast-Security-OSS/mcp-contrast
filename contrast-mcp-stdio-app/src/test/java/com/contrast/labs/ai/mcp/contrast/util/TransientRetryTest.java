@@ -41,6 +41,8 @@ class TransientRetryTest {
   private static final long BASE_MS = 100L;
   private static final long MAX_MS = 500L;
   private static final long JITTERED_MS = 7L;
+  private static final long DEFAULT_BASE_MS = 1_000L;
+  private static final long DEFAULT_CAP_MS = 8_000L;
 
   private static final List<Integer> CODES =
       List.of(
@@ -61,6 +63,17 @@ class TransientRetryTest {
   @Test
   void withDefaults_should_allow_three_attempts_in_total() {
     assertThat(TransientRetry.withDefaults().maxAttempts()).isEqualTo(EXPECTED_DEFAULT_ATTEMPTS);
+  }
+
+  @Test
+  void withDefaults_should_double_from_one_second_up_to_an_eight_second_cap() {
+    var defaults = TransientRetry.withDefaults();
+
+    assertThat(defaults.delayCeilingMs(1)).isEqualTo(DEFAULT_BASE_MS);
+    assertThat(defaults.delayCeilingMs(2)).isEqualTo(DEFAULT_BASE_MS * 2);
+    assertThat(defaults.delayCeilingMs(3)).isEqualTo(DEFAULT_BASE_MS * 4);
+    assertThat(defaults.delayCeilingMs(4)).isEqualTo(DEFAULT_CAP_MS);
+    assertThat(defaults.delayCeilingMs(5)).isEqualTo(DEFAULT_CAP_MS);
   }
 
   @Test
@@ -105,7 +118,14 @@ class TransientRetryTest {
             HttpResponseException.class,
             last -> {
               assertThat(last.getCode()).isEqualTo(HttpURLConnection.HTTP_GATEWAY_TIMEOUT);
+              // Each failure carries the one before it, so the whole history survives.
               assertThat(last.getSuppressed()).hasSize(1);
+              var second = (HttpResponseException) last.getSuppressed()[0];
+              assertThat(second.getCode()).isEqualTo(HttpURLConnection.HTTP_UNAVAILABLE);
+              assertThat(second.getSuppressed()).hasSize(1);
+              var first = (HttpResponseException) second.getSuppressed()[0];
+              assertThat(first.getCode()).isEqualTo(HttpURLConnection.HTTP_BAD_GATEWAY);
+              assertThat(first.getSuppressed()).isEmpty();
             });
 
     assertThat(attempts).hasValue(EXPECTED_DEFAULT_ATTEMPTS);
