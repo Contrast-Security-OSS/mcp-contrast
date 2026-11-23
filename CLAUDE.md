@@ -391,7 +391,7 @@ Quick reference (full detail in `docs/agents/issue-tracker.md`):
 
 ### Jira Issue Tracking
 
-This project is tracked in Jira under the **PL** project (AIML is deprecated). Every Story belongs to an Epic. **All Jira lifecycle operations — ticket creation, bead-to-Jira parity (title prefix + `external-ref`), and status transitions — are governed by the `jira-workflow` skill.** Metadata (issue types, transition IDs, creation example) lives in `.claude/skills/jira-workflow/references/pl.md`.
+This project is tracked in Jira under the **PL** project, component **MCP Server** (AIML is deprecated). Every Story belongs to an Epic. **All Jira lifecycle operations — ticket creation, bead-to-Jira parity (title prefix + `external-ref`), and status transitions — are governed by the `jira-workflow` skill.** Metadata (issue types, transition IDs, creation example) lives in `.claude/skills/jira-workflow/references/pl.md`.
 
 ----
 

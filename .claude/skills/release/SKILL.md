@@ -66,16 +66,16 @@ naming, only the Phase 6 loop-back can reopen it.
 
 ## Phase 4 — Release ticket, branch, and landing
 
-1. Create the release Jira ticket via the `jira-workflow` skill: AIML Task,
-   component `Contrast MCP Server`, summary `Release mcp-contrast X.Y.Z`, assigned
+1. Create the release Jira ticket via the `jira-workflow` skill: PL Task,
+   component `MCP Server`, summary `Release mcp-contrast X.Y.Z`, assigned
    to the current user, transitioned to In Progress. Create the matching bead per
    `bead-workflow` (title prefix, external-ref, Jira URL comment).
-2. Create the release branch from `origin/main`: `AIML-<id>-release-X.Y.Z`.
+2. Create the release branch from `origin/main`: `PL-<id>-release-X.Y.Z`.
 3. Land two commits: the approved changelog draft
-   (`AIML-<id> Update changelog for X.Y.Z release`), then the stamp, insert
+   (`PL-<id> Update changelog for X.Y.Z release`), then the stamp, insert
    `## [X.Y.Z] - <today>` directly below `## [Unreleased]`, moving the unreleased
    content under the new heading and leaving `[Unreleased]` empty
-   (`AIML-<id> Stamp vX.Y.Z release heading`). Two commits, matching the
+   (`PL-<id> Stamp vX.Y.Z release heading`). Two commits, matching the
    established pattern (e.g. v2.4.0).
 4. Push, open the PR with `pr-tools:create-pr`, and wait for the human to merge.
    The PR is the human's second look at the changelog.
@@ -143,16 +143,18 @@ gh release edit vX.Y.Z --notes-file <file containing the [X.Y.Z] section>
 
 ## Phase 9 — Tracker sweep
 
-1. Derive shipped AIML ids from two sources, union and deduplicate the results.
+1. Derive shipped ticket ids from two sources, union and deduplicate the results.
    First, `gh pr list --state merged --json number,title,mergeCommit --limit 200`,
    keep PRs whose merge SHA appears in `git rev-list vLAST..vX.Y.Z`, extract
-   `AIML-\d+` from their titles. Second, scan every commit subject in
-   `vLAST..vX.Y.Z` for `AIML-\d+` to catch direct commits and collapsed stack
-   merges. Skip dependabot PRs.
+   `(PL|AIML)-\d+` from their titles. Second, scan every commit subject in
+   `vLAST..vX.Y.Z` for `(PL|AIML)-\d+` to catch direct commits and collapsed stack
+   merges. Skip dependabot PRs. Older releases carry `AIML-` keys from the
+   deprecated AIML project, new work uses `PL-`.
 2. Show the human the full list with each ticket's current status and let them pick
-   the set to transition. Transition the chosen tickets to Closed (`81`) via the
+   the set to transition. Transition the chosen PL tickets to Closed (`41`) via the
    `jira-workflow` skill, the release ticket included. Closed is reserved for code
-   released to production, which is now true.
+   released to production, which is now true. Leave any `AIML-` ticket for the
+   human to handle, its workflow and transition IDs differ from PL.
 3. Close the matching beads per `bead-workflow` after one batch confirmation showing
    the full list, then `br sync --flush-only`.
 

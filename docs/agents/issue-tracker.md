@@ -1,6 +1,6 @@
 # Issue tracker (beads + Jira)
 
-Issues for this repo run on a dual model. **Beads (`br`) is the working issue store** and **Jira (the PL project) is the external reference**. The `gh` CLI is used for pull requests, not for issues. GitHub Issues is not the tracker for this repo.
+Issues for this repo run on a dual model. **Beads (`br`) is the working issue store** and **Jira (the PL project, component `MCP Server`) is the external reference**. The `gh` CLI is used for pull requests, not for issues. GitHub Issues is not the tracker for this repo.
 
 When a skill says "the issue tracker", it means beads first, with Jira as the linked external ticket for anything that needs one. Most code changes need a Jira ticket and a feature branch (`PL-<id>-<desc>`) before merging.
 
@@ -21,7 +21,7 @@ The database lives in this repo's `.beads/`, which is **gitignored and local-onl
 
 ## Jira is the external reference
 
-Significant beads get a Jira ticket in the **PL** project (cloudId `https://contrast.atlassian.net`, AIML is deprecated), issue types `Story` (features, always under an Epic), `Task` (refactors/docs/bugfixes), `Epic` (large multi-ticket efforts). Use the Atlassian MCP tools to read and write Jira. Full metadata lives in `.claude/skills/jira-workflow/references/pl.md`.
+Significant beads get a Jira ticket in the **PL** project, component `MCP Server` (cloudId `https://contrast.atlassian.net`, AIML is deprecated), issue types `Story` (features, always under an Epic), `Task` (refactors/docs/bugfixes), `Epic` (large multi-ticket efforts). Use the Atlassian MCP tools to read and write Jira. Full metadata lives in `.claude/skills/jira-workflow/references/pl.md`.
 
 When a Jira ticket is created for a bead, do two things.
 

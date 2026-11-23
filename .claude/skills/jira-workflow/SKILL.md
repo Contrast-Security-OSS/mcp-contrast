@@ -11,7 +11,7 @@ Beads (`br`) is the working issue store for this repo and Jira is the external r
 
 ## 1. Create the ticket
 
-All work on this repo files into the **PL** Jira project. The old AIML project is deprecated, never file there. Use the Atlassian MCP tools (load via ToolSearch if needed). Metadata and a creation example are in `references/pl.md`.
+All work on this repo files into the **PL** Jira project with component **MCP Server**. The old AIML project is deprecated, never file there. Use the Atlassian MCP tools (load via ToolSearch if needed). Metadata and a creation example are in `references/pl.md`.
 
 - Issue type: `Story` for features, `Task` for simple non-feature changes (refactoring, docs, bug fixes), `Epic` for large multi-ticket efforts (typically managed by Product Management).
 - **Every Story belongs to an Epic.** Never create a Story without a parent Epic, and never start work on an existing Story that has none. Set the parent at creation (`parent` on `createJiraIssue`, or `editJiraIssue` for an existing ticket). If you do not know the Epic, find candidates with `searchJiraIssuesUsingJql` (`project = PL AND issuetype = Epic AND resolution = Unresolved`) and ask the user which one. Do not guess, and do not create an Epic on your own, they are managed by Product Management. Tasks and Bugs do not require one.

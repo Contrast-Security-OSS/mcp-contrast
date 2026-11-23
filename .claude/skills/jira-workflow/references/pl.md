@@ -8,6 +8,7 @@ All work on this repo files into the **PL** (PLATFORM) Jira project. Use the Atl
 |-------|-------|
 | **Cloud ID** | `35f55002-5211-4f07-ae86-25b46703fe59` (UUID, not the site URL) |
 | **Project Key** | `PL` |
+| **Component** | `MCP Server` (always, for work on this repo) |
 | **Label** | `repo:mcp-contrast` (always, for work on this repo) |
 
 ## Issue types
@@ -30,7 +31,7 @@ summary: "Your ticket title"
 description: "markdown body"
 contentFormat: "markdown"
 parent: "PL-123"        (the Epic key, required for a Story)
-additional_fields: {"labels": ["repo:mcp-contrast"]}
+additional_fields: {"components": [{"name": "MCP Server"}], "labels": ["repo:mcp-contrast"]}
 ```
 
 To assign, look up the account ID first with `lookupJiraAccountId` (searchString = name), then pass `assignee_account_id` on the create call. For yourself, use `atlassianUserInfo`.
