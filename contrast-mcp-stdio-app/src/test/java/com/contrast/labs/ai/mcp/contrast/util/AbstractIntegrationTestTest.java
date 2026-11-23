@@ -15,11 +15,16 @@
  */
 package com.contrast.labs.ai.mcp.contrast.util;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
+import java.io.IOException;
+import java.net.SocketTimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 class AbstractIntegrationTestTest {
@@ -56,6 +61,110 @@ class AbstractIntegrationTestTest {
                   any(String.class), any(String.class), any(String.class)),
           times(1));
     }
+  }
+
+  @Test
+  void setUpTestData_should_retry_transient_discovery_failure_and_use_the_recovered_data() {
+    var integrationTest =
+        new FlakyDiscoveryIntegrationTest(new SocketTimeoutException("Read timed out"), 1);
+    integrationTest.orgId = ORG_ID;
+
+    try (var cache = mockStatic(IntegrationTestDiskCache.class)) {
+      integrationTest.setUpTestData();
+      cache.verify(
+          () ->
+              IntegrationTestDiskCache.write(
+                  any(String.class), any(String.class), any(String.class)),
+          never());
+    }
+
+    assertThat(integrationTest.discoveryCalls).hasValue(2);
+    assertThat(integrationTest.testData).isEqualTo("recovered");
+  }
+
+  @Test
+  void setUpTestData_should_fail_with_exception_type_and_cause_when_retries_are_exhausted() {
+    var cause = new SocketTimeoutException("Read timed out");
+    var integrationTest = new FlakyDiscoveryIntegrationTest(cause, Integer.MAX_VALUE);
+    integrationTest.orgId = ORG_ID;
+
+    try (var cache = mockStatic(IntegrationTestDiskCache.class)) {
+      assertThatThrownBy(integrationTest::setUpTestData)
+          .isInstanceOf(AssertionError.class)
+          .hasMessageContaining("test data discovery")
+          .hasMessageContaining("java.net.SocketTimeoutException: Read timed out")
+          .hasCause(cause);
+      cache.verify(
+          () ->
+              IntegrationTestDiskCache.write(
+                  any(String.class), any(String.class), any(String.class)),
+          never());
+    }
+
+    assertThat(integrationTest.discoveryCalls).hasValue(TransientRetry.MAX_ATTEMPTS);
+  }
+
+  @Test
+  void setUpTestData_should_not_retry_a_non_transient_discovery_failure() {
+    var cause = new IOException("disk full");
+    var integrationTest = new FlakyDiscoveryIntegrationTest(cause, Integer.MAX_VALUE);
+    integrationTest.orgId = ORG_ID;
+
+    try (var cache = mockStatic(IntegrationTestDiskCache.class)) {
+      assertThatThrownBy(integrationTest::setUpTestData)
+          .isInstanceOf(AssertionError.class)
+          .hasCause(cause);
+      cache.verify(
+          () ->
+              IntegrationTestDiskCache.write(
+                  any(String.class), any(String.class), any(String.class)),
+          never());
+    }
+
+    assertThat(integrationTest.discoveryCalls).hasValue(1);
+  }
+
+  private static final class FlakyDiscoveryIntegrationTest extends AbstractIntegrationTest<String> {
+
+    private final AtomicInteger discoveryCalls = new AtomicInteger();
+    private final Exception failure;
+    private final int failuresBeforeSuccess;
+
+    private FlakyDiscoveryIntegrationTest(Exception failure, int failuresBeforeSuccess) {
+      this.failure = failure;
+      this.failuresBeforeSuccess = failuresBeforeSuccess;
+    }
+
+    @Override
+    protected TransientRetry discoveryRetry() {
+      return new TransientRetry(TransientRetry.MAX_ATTEMPTS, 0L, 0L, ms -> {}, ceiling -> 0L);
+    }
+
+    @Override
+    protected String testDisplayName() {
+      return "Flaky Discovery Integration Test";
+    }
+
+    @Override
+    protected Class<String> testDataType() {
+      return String.class;
+    }
+
+    @Override
+    protected String performDiscovery() throws Exception {
+      if (discoveryCalls.incrementAndGet() <= failuresBeforeSuccess) {
+        throw failure;
+      }
+      return "recovered";
+    }
+
+    @Override
+    protected boolean isCacheable(String data) {
+      return false;
+    }
+
+    @Override
+    protected void logTestDataDetails(String data) {}
   }
 
   private static final class CacheableDiscoveryIntegrationTest

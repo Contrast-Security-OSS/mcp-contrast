@@ -69,6 +69,13 @@ tasks.register('integrationTest', Test) {
     shouldRunAfter test
     include '**/*IT.class'
     include '**/*IntegrationTest.class'
+    // Without this CI prints only "AssertionError at File.java:N" and the real cause is lost.
+    testLogging {
+        events 'failed'
+        exceptionFormat 'full'
+        showCauses true
+        showStackTraces true
+    }
     resolveIntegrationTestCredentials().each { credentialEnvVar, credentialValue ->
         if (credentialValue) {
             systemProperty credentialEnvVar, credentialValue
