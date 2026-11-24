@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+**Docker image runs on Temurin 21.0.13.1**: This is the first published Docker image and release
+jar with the JRE security fix listed under 2.6.1. The 2.6.1 release published `contrast-mcp-core`
+only, its Docker image and GitHub Release were never created.
+
+**Docker images are signed with GitHub attestations instead of Docker Content Trust**: Docker is
+retiring Content Trust, and its signing service shuts down on December 8, 2026. Each published
+image now carries a Sigstore-backed build provenance attestation instead. Verify an image with
+`gh attestation verify oci://docker.io/contrast/mcp-contrast:X.Y.Z --repo Contrast-Security-OSS/mcp-contrast`.
+
 ## [2.6.1] - 2026-11-24
+
+The 2.6.1 Docker image and release jar were not published. Use 2.6.2 or later.
 
 ### Security
 

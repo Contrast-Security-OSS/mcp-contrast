@@ -22,6 +22,16 @@ gh attestation verify mcp-contrast-X.X.X.jar --repo Contrast-Security-OSS/mcp-co
 
 A successful check confirms the JAR was produced by the official release workflow and has not been altered. No key import or fingerprint comparison is required. The GitHub CLI validates the attestation against the public Sigstore transparency log.
 
+### Verifying the Docker Image
+
+The `contrast/mcp-contrast` image on DockerHub carries the same kind of build provenance attestation, starting with 2.6.2. Verify a release tag with:
+
+```bash
+gh attestation verify oci://docker.io/contrast/mcp-contrast:X.X.X --repo Contrast-Security-OSS/mcp-contrast
+```
+
+Images are no longer signed with Docker Content Trust, which Docker retires on December 8, 2026.
+
 ### Build from Source
 
 Alternatively, you can build from source if you need the latest development version. Requires Java 21+:

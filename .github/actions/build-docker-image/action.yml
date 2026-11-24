@@ -12,8 +12,8 @@ name: Build Docker image
 description: >-
   Set up Buildx and QEMU, resolve image tags, log in to DockerHub, and build
   the release image locally (loaded, not pushed). The push stays in the
-  workflow because Docker Content Trust signing needs the trust key material
-  staged there first.
+  workflow so the image SBOMs can scan the loaded image first, and so the
+  image attestation binds to the digest the push produces.
 
 inputs:
   image:

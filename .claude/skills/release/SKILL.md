@@ -123,7 +123,8 @@ human decides at the next gate.
    jar plus four SBOMs (jar and Docker image, CycloneDX and SPDX each).
 2. Attestation: `gh release download vX.Y.Z --pattern '*.jar'` to a temp dir, then
    `gh attestation verify mcp-contrast-X.Y.Z.jar --repo Contrast-Security-OSS/mcp-contrast`.
-3. DockerHub: `curl -sf https://hub.docker.com/v2/repositories/contrast/mcp-contrast/tags/X.Y.Z`.
+3. DockerHub: `curl -sf https://hub.docker.com/v2/repositories/contrast/mcp-contrast/tags/X.Y.Z`,
+   then `gh attestation verify oci://docker.io/contrast/mcp-contrast:X.Y.Z --repo Contrast-Security-OSS/mcp-contrast`.
 4. Artifactory: `curl -sfI https://contrastsecurity.jfrog.io/artifactory/contrast-mcp-release/com/contrast/labs/ai/mcp/contrast-mcp-core/X.Y.Z/contrast-mcp-core-X.Y.Z.pom`.
    If anonymous read is refused, note it and rely on the workflow's publish step
    having succeeded.

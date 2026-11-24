@@ -71,7 +71,7 @@ The first Axion-managed release must be run with `release_version=2.0.0`. After 
 9. Publishes `contrast-mcp-core` to Artifactory (signed with PGP).
 10. Attests build provenance and both SBOM formats for the release JAR.
 11. Builds the Docker image and generates CycloneDX and SPDX JSON SBOM release assets from the loaded image.
-12. Signs the Docker image with Docker Content Trust and publishes the release and `latest` tags.
+12. Publishes the Docker image release and `latest` tags, then attests the pushed image digest with a GitHub build provenance attestation stored in DockerHub. Docker Content Trust is not used, Docker retired it (Notary v1 shuts down 2026-12-08).
 13. Creates the GitHub release and attaches the JAR plus all four JAR and Docker image SBOM files.
 
 The workflow does not commit release-version or next-snapshot changes to `main`.
@@ -128,7 +128,8 @@ This checklist describes an automated workflow release. For a manual recovery re
 - GitHub release exists with the expected tag, attached JAR, and CycloneDX and SPDX JSON SBOMs for both the JAR and Docker image.
 - All four downloaded SBOM files are non-empty and pass `jq empty <file>`.
 - `gh attestation verify mcp-contrast-X.Y.Z.jar --repo Contrast-Security-OSS/mcp-contrast` succeeds.
-- DockerHub has the version tag and updated `latest` tag (signed with DCT).
+- DockerHub has the version tag and updated `latest` tag.
+- `gh attestation verify oci://docker.io/contrast/mcp-contrast:X.Y.Z --repo Contrast-Security-OSS/mcp-contrast` succeeds.
 - `contrast-mcp-core` artifact is available in Artifactory at the release version.
 - `main` has no release-version or next-snapshot commits from the workflow.
 - `./gradlew -q printVersion` on the release tag prints `X.Y.Z`.

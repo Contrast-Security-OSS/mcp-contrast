@@ -246,30 +246,6 @@ jobs:
           subject-path: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
           sbom-path: ${{ env.SBOM_DIR }}/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json
 
-      - name: Create the trust keys folder
-        shell: sh
-        run: mkdir -p ~/.docker/trust/private/
-
-      - name: Save PKEY to file
-        shell: sh
-        env:
-          DIGICERT_PKEY: ${{ secrets.DIGICERT_PKEY }}
-          DOCKER_CONTENT_TRUST_KEY_FILENAME: ${{ secrets.DIGICERT_PKEY_FILENAME }}
-        run: printf '%s\n' "$DIGICERT_PKEY" > ~/.docker/trust/private/"$DOCKER_CONTENT_TRUST_KEY_FILENAME"
-
-      - name: Chmod key
-        shell: sh
-        env:
-          DOCKER_CONTENT_TRUST_KEY_FILENAME: ${{ secrets.DIGICERT_PKEY_FILENAME }}
-        run: chmod 600 ~/.docker/trust/private/"$DOCKER_CONTENT_TRUST_KEY_FILENAME"
-
-      - name: Docker load PKEY
-        env:
-          DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: ${{ secrets.DIGICERT_PKEY_PASSPHRASE }}
-          DOCKER_CONTENT_TRUST_KEY_FILENAME: ${{ secrets.DIGICERT_PKEY_FILENAME }}
-          DOCKER_CONTENT_TRUST_PKEY_ROLE: ${{ secrets.DIGICERT_PKEY_ROLE }}
-        run: docker trust key load ~/.docker/trust/private/"$DOCKER_CONTENT_TRUST_KEY_FILENAME" --name "$DOCKER_CONTENT_TRUST_PKEY_ROLE"
-
       # The buildx/QEMU/metadata/login/build steps live in a local composite so
       # Dependabot bumps to their pins edit that action.yml, not this workflow
       # file. Dependabot PRs that modify workflow files get no pull_request
@@ -305,16 +281,47 @@ jobs:
           jq -e '(.packages // []) | length > 1' \
             "$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json"
 
-      - name: Push and sign Docker image with DCT
+      # Docker Content Trust is gone: Docker CLI 29 (ubuntu-latest since the
+      # Ubuntu 26.04 rollout) dropped `docker trust` and ignores
+      # DOCKER_CONTENT_TRUST on push, and Docker shuts down Notary v1 on
+      # 2026-12-08 (https://docs.docker.com/retired/). The image is signed with
+      # a Sigstore-backed GitHub attestation in the next step instead (PL-1453).
+      - name: Push Docker image
+        id: docker-push
         env:
-          DOCKER_CONTENT_TRUST: 1
-          DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: ${{ secrets.DIGICERT_PKEY_PASSPHRASE }}
+          IMAGE: contrast/mcp-contrast
+          RELEASE_VERSION: ${{ steps.versions.outputs.release }}
         run: |
           # The tags are newline-separated, not comma-separated
           echo "${{ steps.docker-build.outputs.tags }}" | while read -r tag; do
-            echo "Pushing and signing $tag"
+            echo "Pushing $tag"
             docker push "$tag"
           done
+          # Read the digest back from the registry so the attestation binds to
+          # exactly what DockerHub serves for the release tag.
+          digest="$(docker buildx imagetools inspect "docker.io/${IMAGE}:${RELEASE_VERSION}" --format '{{ .Manifest.Digest }}')"
+          latest_digest="$(docker buildx imagetools inspect "docker.io/${IMAGE}:latest" --format '{{ .Manifest.Digest }}')"
+          if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "Unexpected digest for ${IMAGE}:${RELEASE_VERSION}: '${digest}'"
+            exit 1
+          fi
+          if [[ "$digest" != "$latest_digest" ]]; then
+            echo "latest (${latest_digest}) does not match ${RELEASE_VERSION} (${digest})"
+            exit 1
+          fi
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+
+      - name: Attest Docker image build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          # Docker Hub needs the docker.io registry prefix, and no tag; the
+          # digest identifies the image.
+          subject-name: docker.io/contrast/mcp-contrast
+          subject-digest: ${{ steps.docker-push.outputs.digest }}
+          push-to-registry: true
+          # Storage records need the artifact-metadata permission and are not
+          # used here.
+          create-storage-record: false
 
       - name: Create GitHub Release
         uses: step-security/action-gh-release@44319d37c8b7966bf07f89f0cbf63408141446df # v3.0.3
