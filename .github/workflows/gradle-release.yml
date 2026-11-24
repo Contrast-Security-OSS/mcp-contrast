@@ -282,31 +282,26 @@ jobs:
             "$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json"
 
       # Docker Content Trust is gone: Docker CLI 29 (ubuntu-latest since the
-      # Ubuntu 26.04 rollout) dropped `docker trust` and ignores
-      # DOCKER_CONTENT_TRUST on push, and Docker shuts down Notary v1 on
-      # 2026-12-08 (https://docs.docker.com/retired/). The image is signed with
-      # a Sigstore-backed GitHub attestation in the next step instead (PL-1453).
-      - name: Push Docker image
+      # Ubuntu 26.04 rollout) moved `docker trust` to a plugin (docker/cli
+      # c9bb291154) and ignores DOCKER_CONTENT_TRUST on push (docker/cli
+      # ad776d1e10), and Docker shuts down Notary v1 on 2026-12-08
+      # (https://docs.docker.com/retired/). The image is signed with a
+      # Sigstore-backed GitHub attestation instead (PL-1453).
+      # Only the release tag goes out before the attestation, so a failed
+      # attestation never moves `latest` to an unattested image.
+      - name: Push Docker release tag
         id: docker-push
+        shell: bash
         env:
           IMAGE: contrast/mcp-contrast
           RELEASE_VERSION: ${{ steps.versions.outputs.release }}
         run: |
-          # The tags are newline-separated, not comma-separated
-          echo "${{ steps.docker-build.outputs.tags }}" | while read -r tag; do
-            echo "Pushing $tag"
-            docker push "$tag"
-          done
+          docker push "${IMAGE}:${RELEASE_VERSION}"
           # Read the digest back from the registry so the attestation binds to
           # exactly what DockerHub serves for the release tag.
           digest="$(docker buildx imagetools inspect "docker.io/${IMAGE}:${RELEASE_VERSION}" --format '{{ .Manifest.Digest }}')"
-          latest_digest="$(docker buildx imagetools inspect "docker.io/${IMAGE}:latest" --format '{{ .Manifest.Digest }}')"
           if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
             echo "Unexpected digest for ${IMAGE}:${RELEASE_VERSION}: '${digest}'"
-            exit 1
-          fi
-          if [[ "$digest" != "$latest_digest" ]]; then
-            echo "latest (${latest_digest}) does not match ${RELEASE_VERSION} (${digest})"
             exit 1
           fi
           echo "digest=${digest}" >> "$GITHUB_OUTPUT"
@@ -322,6 +317,19 @@ jobs:
           # Storage records need the artifact-metadata permission and are not
           # used here.
           create-storage-record: false
+
+      - name: Push Docker latest tag
+        shell: bash
+        env:
+          IMAGE: contrast/mcp-contrast
+          RELEASE_DIGEST: ${{ steps.docker-push.outputs.digest }}
+        run: |
+          docker push "${IMAGE}:latest"
+          latest_digest="$(docker buildx imagetools inspect "docker.io/${IMAGE}:latest" --format '{{ .Manifest.Digest }}')"
+          if [[ "$latest_digest" != "$RELEASE_DIGEST" ]]; then
+            echo "latest (${latest_digest}) does not match the attested release digest (${RELEASE_DIGEST})"
+            exit 1
+          fi
 
       - name: Create GitHub Release
         uses: step-security/action-gh-release@44319d37c8b7966bf07f89f0cbf63408141446df # v3.0.3

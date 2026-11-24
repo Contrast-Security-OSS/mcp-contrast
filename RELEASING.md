@@ -71,7 +71,7 @@ The first Axion-managed release must be run with `release_version=2.0.0`. After 
 9. Publishes `contrast-mcp-core` to Artifactory (signed with PGP).
 10. Attests build provenance and both SBOM formats for the release JAR.
 11. Builds the Docker image and generates CycloneDX and SPDX JSON SBOM release assets from the loaded image.
-12. Publishes the Docker image release and `latest` tags, then attests the pushed image digest with a GitHub build provenance attestation stored in DockerHub. Docker Content Trust is not used, Docker retired it (Notary v1 shuts down 2026-12-08).
+12. Publishes the Docker image release tag, attests the pushed image digest with a GitHub build provenance attestation stored in DockerHub, then moves `latest` to the same digest. Docker Content Trust is not used, Docker retired it (Notary v1 shuts down 2026-12-08).
 13. Creates the GitHub release and attaches the JAR plus all four JAR and Docker image SBOM files.
 
 The workflow does not commit release-version or next-snapshot changes to `main`.
@@ -117,7 +117,7 @@ git checkout vX.Y.Z
 test -f contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar
 ```
 
-Then create a GitHub release for the tag and attach `contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar`. Note that these manual instructions do not publish to Artifactory, sign the Docker image, generate SBOMs, or create attestations. Use the workflow whenever possible.
+Then create a GitHub release for the tag and attach `contrast-mcp-stdio-app/build/libs/mcp-contrast-X.Y.Z.jar`. Note that these manual instructions do not publish to Artifactory, publish the Docker image, generate SBOMs, or create attestations. Use the workflow whenever possible.
 
 **Validation gate:** the release runs `verify`, which is the full `check` lifecycle (static analysis, unit tests, coverage floors, CRAP gate, PIT) plus the integration tests against the org named by the `CONTRAST_*` repo secrets. Because releases only run from `main`, and `check` plus integration tests already gated the commit in `build.yml` for internal PRs, release verify mainly re-confirms the same contract and covers the fork-PR case where CI never ran integration tests before merge. If a floor fires anyway, run `make check` locally for the per-module numbers, or read the `test-reports` artifact from that commit's build run.
 
@@ -145,13 +145,19 @@ The release workflow expects tracked files to stay clean before tagging and befo
 
 If a run fails after creating `vX.Y.Z`, rerun the workflow from `main` with `release_version=X.Y.Z`. The workflow reuses the tag only if it already points at the current `main` commit; it fails if the tag points somewhere else.
 
+If a run fails after the Docker release tag is pushed (the image attestation or a later step), do not rerun the workflow. A rerun republishes `contrast-mcp-core` and rebuilds the image, which overwrites the public `X.Y.Z` tag with a different digest. Instead, finish the remaining steps by hand against the image already on DockerHub:
+
+1. Run `gh attestation verify oci://docker.io/contrast/mcp-contrast:X.Y.Z --repo Contrast-Security-OSS/mcp-contrast`. The attestation is written to GitHub before it is pushed to DockerHub, so this can pass even when the step failed. If it fails, record the missing image attestation in the release notes.
+2. If `latest` was not moved, run `docker buildx imagetools create -t docker.io/contrast/mcp-contrast:latest docker.io/contrast/mcp-contrast:X.Y.Z`.
+3. Create the GitHub release for `vX.Y.Z` with the jar rebuilt from the tag, as described under Manual Release above. The workflow does not keep its jar or SBOMs after a failed run, so note the missing SBOM and jar attestation assets in the release notes.
+
 **Version is not reflected in the app**
 
 Confirm `contrast-mcp-stdio-app/src/main/resources/application.properties` still uses the `@project.version@` placeholder and `:contrast-mcp-stdio-app:processResources` is configured to replace it.
 
 **Docker publishing fails in a fork**
 
-DockerHub credentials and signing keys are only available in the main repository. A fork can validate the JAR release path, but Docker publishing is expected to fail without those secrets.
+DockerHub credentials are only available in the main repository. A fork can validate the JAR release path, but Docker publishing is expected to fail without those secrets.
 
 ## Testing the Release Workflow in a Fork
 
