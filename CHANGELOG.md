@@ -20,6 +20,12 @@ retiring Content Trust, and its signing service shuts down on December 8, 2026. 
 image now carries a Sigstore-backed build provenance attestation instead. Verify an image with
 `gh attestation verify oci://docker.io/contrast/mcp-contrast:X.Y.Z --repo Contrast-Security-OSS/mcp-contrast`.
 
+## [2.6.1] - 2026-11-24
+
+Internal-only release with no customer-facing changes. It published `contrast-mcp-core` 2.6.1 to
+Artifactory. No Docker image or GitHub Release was published, so the Docker image changes planned
+for 2.6.1 ship in the next release.
+
 ## [2.6.0] - 2026-09-24
 
 ### Bug Fixes

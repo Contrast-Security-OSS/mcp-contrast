@@ -24,7 +24,7 @@ A successful check confirms the JAR was produced by the official release workflo
 
 ### Verifying the Docker Image
 
-The `contrast/mcp-contrast` image on DockerHub carries the same kind of build provenance attestation, starting with 2.6.2. Verify a release tag with:
+The `contrast/mcp-contrast` image on DockerHub carries the same kind of build provenance attestation on every release image published after 2.6.0. Verify a release tag with:
 
 ```bash
 gh attestation verify oci://docker.io/contrast/mcp-contrast:X.X.X --repo Contrast-Security-OSS/mcp-contrast

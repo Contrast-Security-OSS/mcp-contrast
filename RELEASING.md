@@ -143,12 +143,14 @@ The release workflow expects tracked files to stay clean before tagging and befo
 
 **Recovering from a failed run after tag creation**
 
-If a run fails after creating `vX.Y.Z`, rerun the workflow from `main` with `release_version=X.Y.Z`. The workflow reuses the tag only if it already points at the current `main` commit; it fails if the tag points somewhere else.
+The safe recovery depends on the last step that succeeded. Find "Publish contrast-mcp-core to public Artifactory" and "Push Docker release tag" in the failed run's log.
 
-If a run fails after the Docker release tag is pushed (the image attestation or a later step), do not rerun the workflow. A rerun republishes `contrast-mcp-core` and rebuilds the image, which overwrites the public `X.Y.Z` tag with a different digest. Instead, finish the remaining steps by hand against the image already on DockerHub:
+- **Failed before the core publish.** Rerun the workflow from `main` with `release_version=X.Y.Z`. The workflow reuses the tag only if it already points at the current `main` commit. It fails if the tag points somewhere else.
+- **Failed after the core publish, before the Docker release tag push** (the jar attestations, the Docker build, or the image SBOMs). Do not rerun the workflow, because a rerun republishes `contrast-mcp-core` X.Y.Z. Fix the cause and release it as the next patch version. Give X.Y.Z its own CHANGELOG.md heading that records it as a library-only release, as 2.6.1 does.
+- **Failed after the Docker release tag push** (the image attestation or a later step). Do not rerun the workflow. A rerun republishes `contrast-mcp-core` and rebuilds the image, which overwrites the public `X.Y.Z` tag with a different digest. Finish the remaining steps by hand against the image already on DockerHub, in the order below.
 
-1. Run `gh attestation verify oci://docker.io/contrast/mcp-contrast:X.Y.Z --repo Contrast-Security-OSS/mcp-contrast`. The attestation is written to GitHub before it is pushed to DockerHub, so this can pass even when the step failed. If it fails, record the missing image attestation in the release notes.
-2. If `latest` was not moved, run `docker buildx imagetools create -t docker.io/contrast/mcp-contrast:latest docker.io/contrast/mcp-contrast:X.Y.Z`.
+1. Run `gh attestation verify oci://docker.io/contrast/mcp-contrast:X.Y.Z --repo Contrast-Security-OSS/mcp-contrast`. The attestation is written to GitHub before it is pushed to DockerHub, so this can pass even when the step failed. If it fails, do not move `latest`. Leave it on the previous attested release, skip step 2, and record the missing image attestation in the release notes.
+2. If step 1 passed and `latest` was not moved, run `docker buildx imagetools create --prefer-index=false -t docker.io/contrast/mcp-contrast:latest docker.io/contrast/mcp-contrast:X.Y.Z`. Without `--prefer-index=false`, a single-manifest image is wrapped in a new index, and `latest` gets a digest that has no attestation. Confirm with `gh attestation verify oci://docker.io/contrast/mcp-contrast:latest --repo Contrast-Security-OSS/mcp-contrast`.
 3. Create the GitHub release for `vX.Y.Z` with the jar rebuilt from the tag, as described under Manual Release above. The workflow does not keep its jar or SBOMs after a failed run, so note the missing SBOM and jar attestation assets in the release notes.
 
 **Version is not reflected in the app**
@@ -166,7 +168,7 @@ DockerHub credentials are only available in the main repository. A fork can vali
 3. Push the branch containing `.github/workflows/gradle-release.yml` to the fork's `main` branch.
 4. Run **Gradle Release** from the Actions tab.
 5. Verify the release tag, JAR build, and JAR CycloneDX and SPDX SBOM generation.
-6. Without equivalent Artifactory, DockerHub, and signing configuration, expect the workflow to stop before Docker SBOM generation and the GitHub release. If the fork is fully configured, verify the attached JAR and all four SBOM files.
+6. Without equivalent Artifactory (including PGP signing) and DockerHub configuration, expect the workflow to stop before Docker SBOM generation and the GitHub release. If the fork is fully configured, verify the attached JAR and all four SBOM files.
 7. Delete any test release and tag created by the run when done.
 
 ## Support
