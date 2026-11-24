@@ -69,6 +69,22 @@ tasks.register('integrationTest', Test) {
     shouldRunAfter test
     include '**/*IT.class'
     include '**/*IntegrationTest.class'
+    // This repo is public, so CI logs are too, and exception messages can carry org data
+    // (response bodies, assertion values). CI gets the short format, which prints exception
+    // classes and locations but no messages. Local runs get full detail.
+    testLogging {
+        events 'failed'
+        exceptionFormat System.getenv('CI') ? 'short' : 'full'
+        showCauses true
+        showStackTraces true
+    }
+    // Test stdout stays captured, except the allowlisted discovery summary line. Keep the
+    // marker in sync with DiscoveryFailureSummary.MARKER.
+    onOutput { descriptor, event ->
+        if (event.message.contains('[discovery-failure]')) {
+            logger.lifecycle(event.message.trim())
+        }
+    }
     resolveIntegrationTestCredentials().each { credentialEnvVar, credentialValue ->
         if (credentialValue) {
             systemProperty credentialEnvVar, credentialValue

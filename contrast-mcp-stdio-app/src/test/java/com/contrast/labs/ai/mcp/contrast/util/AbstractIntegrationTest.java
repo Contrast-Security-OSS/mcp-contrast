@@ -43,6 +43,8 @@ import org.springframework.beans.factory.annotation.Value;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class AbstractIntegrationTest<T> {
 
+  static final String DISCOVERY_ERROR_PREFIX = "❌ ERROR during test data discovery: ";
+
   @Autowired protected SDKExtension sdkExtension;
 
   @Value("${contrast.org-id:${CONTRAST_ORG_ID:}}")
@@ -89,6 +91,14 @@ public abstract class AbstractIntegrationTest<T> {
     return true;
   }
 
+  /**
+   * Retry policy applied to {@link #performDiscovery()} only, never to test bodies. Transient
+   * connectivity errors and HTTP 429/500/502/503/504 are retried, everything else fails at once.
+   */
+  protected TransientRetry discoveryRetry() {
+    return TransientRetry.withDefaults();
+  }
+
   /** Optional hook executed before discovery starts. */
   protected void onDiscoveryStart() {
     log.info("Starting test data discovery (using shared SDK)...");
@@ -114,7 +124,7 @@ public abstract class AbstractIntegrationTest<T> {
     onDiscoveryStart();
     long startTime = System.currentTimeMillis();
     try {
-      testData = performDiscovery();
+      testData = discoveryRetry().call(this::performDiscovery);
       discoveryDurationMs = System.currentTimeMillis() - startTime;
       logDiscoverySuccess(testData, discoveryDurationMs);
       if (isCacheable(testData)) {
@@ -125,9 +135,14 @@ public abstract class AbstractIntegrationTest<T> {
       log.error(e.getMessage());
       fail(e.getMessage());
     } catch (Exception e) {
-      String message = "❌ ERROR during test data discovery: " + e.getMessage();
+      // e.toString() keeps the exception type, and the cause keeps the stack. The SDK's
+      // HttpResponseException message already carries the HTTP method, path and status.
+      // That message can include the response body, so CI echoes only the allowlisted
+      // summary line instead (see DiscoveryFailureSummary and integrationTest in build.gradle).
+      String message = DISCOVERY_ERROR_PREFIX + e;
       log.error("\n{}", message, e);
-      fail(message);
+      log.error(DiscoveryFailureSummary.of(e));
+      fail(message, e);
     }
   }
 

@@ -42,6 +42,16 @@ If discovery reports `requires seeded app with vulnerable CVE — see INTEGRATIO
 organization with a qualifying application. Editing or weakening the tests does not fix this
 missing-data precondition.
 
+Discovery retries transient failures (timeouts, connection errors, HTTP 429/500/502/503/504) up to
+3 attempts with exponential backoff. 4xx responses and missing data fail at once, and test bodies
+are never retried.
+
+CI logs are public because this repository is public, and exception messages can contain org data.
+When `CI` is set, `integrationTest` prints failures in Gradle's short format (exception classes and
+locations, no messages) plus one allowlisted `[discovery-failure]` line naming the cause chain and
+HTTP status. Local runs print full exceptions. Do not enable `showStandardStreams` or full exception
+output for CI.
+
 ## Running Integration Tests
 
 ### Full gate plus integration tests (the pre-review command):

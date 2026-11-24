@@ -16,10 +16,12 @@
 package com.contrast.labs.ai.mcp.contrast.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,6 +35,8 @@ import com.contrastsecurity.http.LibraryFilterForm.LibraryExpandValues;
 import com.contrastsecurity.http.LibraryFilterForm.LibraryQuickFilterType;
 import com.contrastsecurity.models.Application;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.SocketTimeoutException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -150,6 +154,33 @@ class TestDataDiscoveryHelperTest {
       assertThat(result.getVulnerableCveId()).isEqualTo("CVE-2026-2000");
       cache.verify(() -> IntegrationTestDataCache.getLibraries(ORG_ID, "app-fail", sdkExtension));
       cache.verify(() -> IntegrationTestDataCache.getLibraries(ORG_ID, "app-ok", sdkExtension));
+    }
+  }
+
+  @Test
+  void findApplicationWithLibraries_should_rethrow_when_confirmation_fails_transiently()
+      throws Exception {
+    SDKExtension sdkExtension = mock();
+    var timedOutLibrary = orgLibrary("app-timeout", "Timed Out App", "CVE-2026-1000", 7);
+    var successfulLibrary = orgLibrary("app-ok", "Successful App", "CVE-2026-2000", 7);
+    var orgResponse = new LibrariesExtended();
+    orgResponse.setLibraries(List.of(timedOutLibrary, successfulLibrary));
+    orgResponse.setCount(2L);
+    when(sdkExtension.getLibrariesWithFilter(any(), any())).thenReturn(orgResponse);
+
+    var timeout = new SocketTimeoutException("Read timed out");
+    try (var cache = mockStatic(IntegrationTestDataCache.class)) {
+      cache
+          .when(() -> IntegrationTestDataCache.getLibraries(ORG_ID, "app-timeout", sdkExtension))
+          .thenThrow(timeout);
+
+      assertThatThrownBy(
+              () -> TestDataDiscoveryHelper.findApplicationWithLibraries(ORG_ID, sdkExtension))
+          .isInstanceOf(UncheckedIOException.class)
+          .hasCause(timeout)
+          .satisfies(e -> assertThat(TransientRetry.isTransient(e)).isTrue());
+      cache.verify(
+          () -> IntegrationTestDataCache.getLibraries(ORG_ID, "app-ok", sdkExtension), never());
     }
   }
 
