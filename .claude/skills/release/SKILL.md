@@ -21,8 +21,10 @@ gate in Phase 3.
 
 Releases fail mid-flight more than anywhere else. On re-entry, detect completed work
 from the repo and skip it: stamped changelog already on `origin/main` → go to Phase 5
-or 6; release workflow already succeeded → go to Phase 7. The workflow itself is safe
-to re-dispatch because it reuses an existing `vX.Y.Z` tag at HEAD.
+or 6; release workflow already succeeded → go to Phase 7. Re-dispatching the workflow
+is safe only if the failed run never reached "Publish contrast-mcp-core to public
+Artifactory". Otherwise follow RELEASING.md "Recovering from a failed run after tag
+creation".
 
 ## Phase 1 — Preflight (read-only)
 
@@ -130,7 +132,8 @@ human decides at the next gate.
    having succeeded.
 
 For any failed check, report it together with a suggested remediation path (which
-workflow step to inspect, whether re-dispatch is safe). Do not attempt remediation
+workflow step to inspect, whether re-dispatch is safe per RELEASING.md "Recovering
+from a failed run after tag creation"). Do not attempt remediation
 yourself, a half-published release is exactly where automation causes damage.
 
 ## Phase 8 — Release notes
