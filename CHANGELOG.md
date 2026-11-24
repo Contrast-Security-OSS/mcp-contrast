@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+**Docker image runs on Temurin 21.0.13.1**: The builder and runtime base images now pin explicit
+Temurin versions by digest instead of the floating `21-alpine` tags, moving the runtime JRE from
+21.0.11 to 21.0.13.1. This picks up the OpenJDK security updates through 2026-11-17, fixing the
+critical and high JRE vulnerabilities flagged by container scans, including CVE-2026-91403, where
+the JDK truststore still trusted the distrusted emSign G3 root certificates.
+
 ## [2.6.0] - 2026-09-24
 
 ### Bug Fixes
