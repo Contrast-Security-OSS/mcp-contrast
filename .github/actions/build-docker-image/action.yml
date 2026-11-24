@@ -29,11 +29,6 @@ inputs:
     description: DockerHub access token
     required: true
 
-outputs:
-  tags:
-    description: Newline-separated fully qualified image tags to push
-    value: ${{ steps.meta.outputs.tags }}
-
 runs:
   using: composite
   steps:

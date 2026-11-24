@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SBOM_DIR: build/release-sboms
+      IMAGE: contrast/mcp-contrast
     permissions:
       contents: write
       id-token: write
@@ -252,10 +253,9 @@ jobs:
       # runs, so pins kept here could never pass the required build check
       # (PRs #196-#199, AIML-1245). See the comment in the action itself.
       - name: Build Docker image (without pushing)
-        id: docker-build
         uses: ./.github/actions/build-docker-image
         with:
-          image: contrast/mcp-contrast
+          image: ${{ env.IMAGE }}
           version: ${{ steps.versions.outputs.release }}
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -266,8 +266,8 @@ jobs:
       - name: Generate release Docker image SBOMs
         run: |
           mkdir -p "$SBOM_DIR"
-          docker image inspect "contrast/mcp-contrast:${{ steps.versions.outputs.release }}" >/dev/null
-          syft scan docker:contrast/mcp-contrast:${{ steps.versions.outputs.release }} \
+          docker image inspect "${IMAGE}:${{ steps.versions.outputs.release }}" >/dev/null
+          syft scan "docker:${IMAGE}:${{ steps.versions.outputs.release }}" \
             -o "cyclonedx-json=$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json" \
             -o "spdx-json=$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json"
           for sbom in \
@@ -293,7 +293,6 @@ jobs:
         id: docker-push
         shell: bash
         env:
-          IMAGE: contrast/mcp-contrast
           RELEASE_VERSION: ${{ steps.versions.outputs.release }}
         run: |
           docker push "${IMAGE}:${RELEASE_VERSION}"
@@ -311,7 +310,7 @@ jobs:
         with:
           # Docker Hub needs the docker.io registry prefix, and no tag; the
           # digest identifies the image.
-          subject-name: docker.io/contrast/mcp-contrast
+          subject-name: docker.io/${{ env.IMAGE }}
           subject-digest: ${{ steps.docker-push.outputs.digest }}
           push-to-registry: true
           # Storage records need the artifact-metadata permission and are not
@@ -321,10 +320,15 @@ jobs:
       - name: Push Docker latest tag
         shell: bash
         env:
-          IMAGE: contrast/mcp-contrast
           RELEASE_DIGEST: ${{ steps.docker-push.outputs.digest }}
         run: |
-          docker push "${IMAGE}:latest"
+          # Point latest at the attested digest on the registry rather than
+          # pushing the local tag, so latest cannot land on anything else.
+          # --prefer-index=false keeps a single-manifest image as-is; without
+          # it imagetools wraps it in a new index whose digest has no
+          # attestation.
+          docker buildx imagetools create --prefer-index=false \
+            -t "docker.io/${IMAGE}:latest" "docker.io/${IMAGE}@${RELEASE_DIGEST}"
           latest_digest="$(docker buildx imagetools inspect "docker.io/${IMAGE}:latest" --format '{{ .Manifest.Digest }}')"
           if [[ "$latest_digest" != "$RELEASE_DIGEST" ]]; then
             echo "latest (${latest_digest}) does not match the attested release digest (${RELEASE_DIGEST})"
