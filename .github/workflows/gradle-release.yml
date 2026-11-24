@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SBOM_DIR: build/release-sboms
+      IMAGE: contrast/mcp-contrast
     permissions:
       contents: write
       id-token: write
@@ -246,40 +247,15 @@ jobs:
           subject-path: contrast-mcp-stdio-app/build/libs/mcp-contrast-${{ steps.versions.outputs.release }}.jar
           sbom-path: ${{ env.SBOM_DIR }}/mcp-contrast-${{ steps.versions.outputs.release }}.sbom.spdx.json
 
-      - name: Create the trust keys folder
-        shell: sh
-        run: mkdir -p ~/.docker/trust/private/
-
-      - name: Save PKEY to file
-        shell: sh
-        env:
-          DIGICERT_PKEY: ${{ secrets.DIGICERT_PKEY }}
-          DOCKER_CONTENT_TRUST_KEY_FILENAME: ${{ secrets.DIGICERT_PKEY_FILENAME }}
-        run: printf '%s\n' "$DIGICERT_PKEY" > ~/.docker/trust/private/"$DOCKER_CONTENT_TRUST_KEY_FILENAME"
-
-      - name: Chmod key
-        shell: sh
-        env:
-          DOCKER_CONTENT_TRUST_KEY_FILENAME: ${{ secrets.DIGICERT_PKEY_FILENAME }}
-        run: chmod 600 ~/.docker/trust/private/"$DOCKER_CONTENT_TRUST_KEY_FILENAME"
-
-      - name: Docker load PKEY
-        env:
-          DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: ${{ secrets.DIGICERT_PKEY_PASSPHRASE }}
-          DOCKER_CONTENT_TRUST_KEY_FILENAME: ${{ secrets.DIGICERT_PKEY_FILENAME }}
-          DOCKER_CONTENT_TRUST_PKEY_ROLE: ${{ secrets.DIGICERT_PKEY_ROLE }}
-        run: docker trust key load ~/.docker/trust/private/"$DOCKER_CONTENT_TRUST_KEY_FILENAME" --name "$DOCKER_CONTENT_TRUST_PKEY_ROLE"
-
       # The buildx/QEMU/metadata/login/build steps live in a local composite so
       # Dependabot bumps to their pins edit that action.yml, not this workflow
       # file. Dependabot PRs that modify workflow files get no pull_request
       # runs, so pins kept here could never pass the required build check
       # (PRs #196-#199, AIML-1245). See the comment in the action itself.
       - name: Build Docker image (without pushing)
-        id: docker-build
         uses: ./.github/actions/build-docker-image
         with:
-          image: contrast/mcp-contrast
+          image: ${{ env.IMAGE }}
           version: ${{ steps.versions.outputs.release }}
           dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -290,8 +266,8 @@ jobs:
       - name: Generate release Docker image SBOMs
         run: |
           mkdir -p "$SBOM_DIR"
-          docker image inspect "contrast/mcp-contrast:${{ steps.versions.outputs.release }}" >/dev/null
-          syft scan docker:contrast/mcp-contrast:${{ steps.versions.outputs.release }} \
+          docker image inspect "${IMAGE}:${{ steps.versions.outputs.release }}" >/dev/null
+          syft scan "docker:${IMAGE}:${{ steps.versions.outputs.release }}" \
             -o "cyclonedx-json=$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.cdx.json" \
             -o "spdx-json=$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json"
           for sbom in \
@@ -305,16 +281,59 @@ jobs:
           jq -e '(.packages // []) | length > 1' \
             "$SBOM_DIR/mcp-contrast-docker-${{ steps.versions.outputs.release }}.sbom.spdx.json"
 
-      - name: Push and sign Docker image with DCT
+      # Docker Content Trust is gone: Docker CLI 29 (ubuntu-latest since the
+      # Ubuntu 26.04 rollout) moved `docker trust` to a plugin (docker/cli
+      # c9bb291154) and ignores DOCKER_CONTENT_TRUST on push (docker/cli
+      # ad776d1e10), and Docker shuts down Notary v1 on 2026-12-08
+      # (https://docs.docker.com/retired/). The image is signed with a
+      # Sigstore-backed GitHub attestation instead (PL-1453).
+      # Only the release tag goes out before the attestation, so a failed
+      # attestation never moves `latest` to an unattested image.
+      - name: Push Docker release tag
+        id: docker-push
+        shell: bash
         env:
-          DOCKER_CONTENT_TRUST: 1
-          DOCKER_CONTENT_TRUST_REPOSITORY_PASSPHRASE: ${{ secrets.DIGICERT_PKEY_PASSPHRASE }}
+          RELEASE_VERSION: ${{ steps.versions.outputs.release }}
         run: |
-          # The tags are newline-separated, not comma-separated
-          echo "${{ steps.docker-build.outputs.tags }}" | while read -r tag; do
-            echo "Pushing and signing $tag"
-            docker push "$tag"
-          done
+          docker push "${IMAGE}:${RELEASE_VERSION}"
+          # Read the digest back from the registry so the attestation binds to
+          # exactly what DockerHub serves for the release tag.
+          digest="$(docker buildx imagetools inspect "docker.io/${IMAGE}:${RELEASE_VERSION}" --format '{{ .Manifest.Digest }}')"
+          if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "Unexpected digest for ${IMAGE}:${RELEASE_VERSION}: '${digest}'"
+            exit 1
+          fi
+          echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+
+      - name: Attest Docker image build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          # Docker Hub needs the docker.io registry prefix, and no tag; the
+          # digest identifies the image.
+          subject-name: docker.io/${{ env.IMAGE }}
+          subject-digest: ${{ steps.docker-push.outputs.digest }}
+          push-to-registry: true
+          # Storage records need the artifact-metadata permission and are not
+          # used here.
+          create-storage-record: false
+
+      - name: Push Docker latest tag
+        shell: bash
+        env:
+          RELEASE_DIGEST: ${{ steps.docker-push.outputs.digest }}
+        run: |
+          # Point latest at the attested digest on the registry rather than
+          # pushing the local tag, so latest cannot land on anything else.
+          # --prefer-index=false keeps a single-manifest image as-is; without
+          # it imagetools wraps it in a new index whose digest has no
+          # attestation.
+          docker buildx imagetools create --prefer-index=false \
+            -t "docker.io/${IMAGE}:latest" "docker.io/${IMAGE}@${RELEASE_DIGEST}"
+          latest_digest="$(docker buildx imagetools inspect "docker.io/${IMAGE}:latest" --format '{{ .Manifest.Digest }}')"
+          if [[ "$latest_digest" != "$RELEASE_DIGEST" ]]; then
+            echo "latest (${latest_digest}) does not match the attested release digest (${RELEASE_DIGEST})"
+            exit 1
+          fi
 
       - name: Create GitHub Release
         uses: step-security/action-gh-release@44319d37c8b7966bf07f89f0cbf63408141446df # v3.0.3

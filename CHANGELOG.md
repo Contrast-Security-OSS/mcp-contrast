@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.6.1] - 2026-11-24
-
 ### Security
 
 **Docker image runs on Temurin 21.0.13.1**: The builder and runtime base images now pin explicit
@@ -16,6 +14,17 @@ Temurin versions by digest instead of the floating `21-alpine` tags, moving the 
 21.0.11 to 21.0.13.1. This picks up the OpenJDK security updates through 2026-11-17, fixing the
 critical and high JRE vulnerabilities flagged by container scans, including CVE-2026-91403, where
 the JDK truststore still trusted the distrusted emSign G3 root certificates.
+
+**Docker images are signed with GitHub attestations instead of Docker Content Trust**: Docker is
+retiring Content Trust, and its signing service shuts down on December 8, 2026. Each published
+image now carries a Sigstore-backed build provenance attestation instead. Verify an image with
+`gh attestation verify oci://docker.io/contrast/mcp-contrast:X.Y.Z --repo Contrast-Security-OSS/mcp-contrast`.
+
+## [2.6.1] - 2026-11-24
+
+Internal-only release with no customer-facing changes. It published `contrast-mcp-core` 2.6.1 to
+Artifactory. No Docker image or GitHub Release was published, so the Docker image changes planned
+for 2.6.1 ship in the next release.
 
 ## [2.6.0] - 2026-09-24
 

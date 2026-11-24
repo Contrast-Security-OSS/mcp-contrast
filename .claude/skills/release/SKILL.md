@@ -21,8 +21,10 @@ gate in Phase 3.
 
 Releases fail mid-flight more than anywhere else. On re-entry, detect completed work
 from the repo and skip it: stamped changelog already on `origin/main` → go to Phase 5
-or 6; release workflow already succeeded → go to Phase 7. The workflow itself is safe
-to re-dispatch because it reuses an existing `vX.Y.Z` tag at HEAD.
+or 6; release workflow already succeeded → go to Phase 7. Re-dispatching the workflow
+is safe only if the failed run never reached "Publish contrast-mcp-core to public
+Artifactory". Otherwise follow RELEASING.md "Recovering from a failed run after tag
+creation".
 
 ## Phase 1 — Preflight (read-only)
 
@@ -123,13 +125,15 @@ human decides at the next gate.
    jar plus four SBOMs (jar and Docker image, CycloneDX and SPDX each).
 2. Attestation: `gh release download vX.Y.Z --pattern '*.jar'` to a temp dir, then
    `gh attestation verify mcp-contrast-X.Y.Z.jar --repo Contrast-Security-OSS/mcp-contrast`.
-3. DockerHub: `curl -sf https://hub.docker.com/v2/repositories/contrast/mcp-contrast/tags/X.Y.Z`.
+3. DockerHub: `curl -sf https://hub.docker.com/v2/repositories/contrast/mcp-contrast/tags/X.Y.Z`,
+   then `gh attestation verify oci://docker.io/contrast/mcp-contrast:X.Y.Z --repo Contrast-Security-OSS/mcp-contrast`.
 4. Artifactory: `curl -sfI https://contrastsecurity.jfrog.io/artifactory/contrast-mcp-release/com/contrast/labs/ai/mcp/contrast-mcp-core/X.Y.Z/contrast-mcp-core-X.Y.Z.pom`.
    If anonymous read is refused, note it and rely on the workflow's publish step
    having succeeded.
 
 For any failed check, report it together with a suggested remediation path (which
-workflow step to inspect, whether re-dispatch is safe). Do not attempt remediation
+workflow step to inspect, whether re-dispatch is safe per RELEASING.md "Recovering
+from a failed run after tag creation"). Do not attempt remediation
 yourself, a half-published release is exactly where automation causes damage.
 
 ## Phase 8 — Release notes
