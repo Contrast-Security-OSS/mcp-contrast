@@ -17,7 +17,7 @@ The Contrast product that actually auto-remediates vulnerabilities, using AI to 
 _Avoid_: conflating SmartFix with the AutoRemediated status or with Auto-Verified
 
 **Issue Status**:
-The NorthStar status vocabulary on Issue entities. The values are REPORTED, CONFIRMED, REMEDIATED, NOT_A_PROBLEM, and FIXED. Suspicious and AutoRemediated exist only as Vulnerability statuses, never as Issue Statuses.
+The Northstar status vocabulary on Issue entities. The values are REPORTED, CONFIRMED, REMEDIATED, NOT_A_PROBLEM, and FIXED. Suspicious and AutoRemediated exist only as Vulnerability statuses, never as Issue Statuses.
 _Avoid_: using this term for legacy Vulnerability statuses
 
 **Vulnerability type**:
