@@ -55,7 +55,7 @@ jobs:
           fi
 
       - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@a27deee331cfb157dfcf8de274f4874dd23b730c # v4
+        uses: gradle/actions/wrapper-validation@c0152e9a6b68fc2b5c1f256331f2e8f82b68ad62 # v4
 
       - name: Set up JDK 21
         uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
